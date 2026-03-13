@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+
 import {
   BrowserRouter,
   Routes,
@@ -6,7 +6,7 @@ import {
   Navigate,
   useParams,
 } from "react-router-dom";
-import { GLOBAL_CSS } from "./constants/styles";
+import './app.css';
 import { useCheckin } from "./hooks/useCheckin";
 import { AppShell } from "./layout/AppShell";
 
@@ -28,22 +28,6 @@ import {
 
 import type { StepId } from "./types";
 
-function useGlobalStyles(css: string) {
-  useEffect(() => {
-    let el = document.getElementById(
-      "app-global-styles",
-    ) as HTMLStyleElement | null;
-    if (!el) {
-      el = document.createElement("style");
-      el.id = "app-global-styles";
-      document.head.appendChild(el);
-    }
-    el.textContent = css;
-    return () => {
-      if (el) el.textContent = "";
-    };
-  }, [css]);
-}
 
 const STEPS_WITHOUT_DOTS = new Set<StepId>(["tablet_buscar", "exito"]);
 
@@ -200,7 +184,7 @@ function CheckinWizard() {
 
 // El App principal solo provee el Router
 export default function App() {
-  useGlobalStyles(GLOBAL_CSS);
+
 
   return (
     <BrowserRouter>
