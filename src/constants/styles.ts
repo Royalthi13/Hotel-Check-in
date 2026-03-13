@@ -580,7 +580,7 @@ html, body, #root {
 /* ════════════════════════════════════════════════════════════════════════
    CHOICE CARDS
    ════════════════════════════════════════════════════════════════════════ */
-.choice-grid { display: flex; flex-direction: column; gap: 16px; padding: 24px var(--px); align-items:center; width:100%;}
+.choice-grid { display: flex; flex-direction: column; gap: 12px; }
 
 /* Tablet y desktop: en fila */
 @media (min-width: 600px) {
@@ -590,27 +590,19 @@ html, body, #root {
 
 .choice-card {
   background: var(--white); border: 2px solid var(--border-lt);
-  border-radius: var(--r-lg); padding: 20px; cursor: pointer;
-  display: flex; align-items: center; gap: 16px;
-  transition: all 0.3s cubic-bezier(0.4,0,0.2,1); text-align: left; width: 100%; max-width: 420px;
+  border-radius: var(--r-lg); padding: 18px 16px; cursor: pointer;
+  display: flex; align-items: flex-start; gap: 14px;
+  transition: all .18s; text-align: left; width: 100%;
 }
 .choice-card:hover {
   border-color: var(--primary);
   box-shadow: 0 4px 18px rgba(250,134,92,.13);
-  transform: translateY(-4px);
+  transform: translateY(-2px);
 }
 .choice-icon {
-  width: 52px; 
-  height: 52px; 
-  border-radius: 14px;
-  background: var(--primary-lt); 
-  color: var(--primary);        
-  display: flex; 
-  align-items: center; 
-  justify-content: center; 
-  flex-shrink: 0;
-  font-size: 22px;
-  transition: all 0.3s ease;
+  width: 44px; height: 44px; border-radius: 12px;
+  background: var(--secondary);
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
 }
 .choice-icon.accent { background: var(--primary); }
 .choice-card-title { font-size: var(--fs-md); font-weight: 500; color: var(--text); margin-bottom: 4px; }
