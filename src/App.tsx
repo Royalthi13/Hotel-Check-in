@@ -1,15 +1,14 @@
-<<<<<<< HEAD
-import React, { useEffect } from "react";
+import { useEffect } from "react";
+import {
+  BrowserRouter,
+  Routes,
+  Route,
+  Navigate,
+  useParams,
+} from "react-router-dom";
 import { GLOBAL_CSS } from "./constants/styles";
 import { useCheckin } from "./hooks/useCheckin";
 import { AppShell } from "./layout/AppShell";
-=======
-import { useEffect } from 'react';
-import { BrowserRouter, Routes, Route, Navigate, useParams } from 'react-router-dom';
-import { GLOBAL_CSS } from './constants/styles';
-import { useCheckin } from './hooks/useCheckin';
-import { AppShell } from './layout/AppShell';
->>>>>>> 2fbd90572bbe0e47c2bd530dcb364740ac2e0b7b
 
 // Screens
 import { ScreenTabletBuscar } from "./screens/ScreenTabletBuscar";
@@ -27,11 +26,7 @@ import {
   ScreenExito,
 } from "./screens/ScreenExtrasRevisionExito";
 
-<<<<<<< HEAD
-import type { AppMode, StepId } from "./types";
-=======
-import type { StepId } from './types';
->>>>>>> 2fbd90572bbe0e47c2bd530dcb364740ac2e0b7b
+import type { StepId } from "./types";
 
 function useGlobalStyles(css: string) {
   useEffect(() => {
@@ -50,21 +45,7 @@ function useGlobalStyles(css: string) {
   }, [css]);
 }
 
-<<<<<<< HEAD
-// ─────────────────────────────────────────────────────────────────────────
-// Cambia aquí el modo de la app:
-//   'link'   → flujo de enlace por email (cliente llega desde un link)
-//   'tablet' → flujo de quiosco en el hotel (búsqueda por número de reserva)
-//
-// En producción leerlo de la URL:
-//   const APP_MODE: AppMode = new URLSearchParams(location.search).has('tablet') ? 'tablet' : 'link';
-// ─────────────────────────────────────────────────────────────────────────
-const APP_MODE: AppMode = "link";
-
 const STEPS_WITHOUT_DOTS = new Set<StepId>(["tablet_buscar", "exito"]);
-=======
-const STEPS_WITHOUT_DOTS = new Set<StepId>(['tablet_buscar', 'exito']);
->>>>>>> 2fbd90572bbe0e47c2bd530dcb364740ac2e0b7b
 
 function CheckinWizard() {
   // 1. Leemos el estado desde la URL
@@ -87,14 +68,8 @@ function CheckinWizard() {
     nextGuest,
   } = actions;
 
-<<<<<<< HEAD
-  const { step, guestIndex } = nav;
-  const showDots = !STEPS_WITHOUT_DOTS.has(step);
-  const isMainGuest = guestIndex === 0;
-  const currentGuest = state.guests[guestIndex] ?? {};
-=======
   const currentStep = nav.step;
-  const showDots   = !STEPS_WITHOUT_DOTS.has(currentStep);
+  const showDots = !STEPS_WITHOUT_DOTS.has(currentStep);
   const isMainGuest = nav.guestIndex === 0;
   const currentGuest = state.guests[nav.guestIndex] ?? {};
 
@@ -102,7 +77,6 @@ function CheckinWizard() {
   if (!step) {
     return <Navigate to={`/checkin/${token}/bienvenida`} replace />;
   }
->>>>>>> 2fbd90572bbe0e47c2bd530dcb364740ac2e0b7b
 
   const handleChooseManual = () => {
     goTo("num_personas");
@@ -114,11 +88,7 @@ function CheckinWizard() {
   };
 
   // ── Tablet buscar ──────────────────────────────────────────────────────
-<<<<<<< HEAD
-  if (step === "tablet_buscar") {
-=======
-  if (currentStep === 'tablet_buscar') {
->>>>>>> 2fbd90572bbe0e47c2bd530dcb364740ac2e0b7b
+  if (currentStep === "tablet_buscar") {
     return (
       <div className="shell">
         <div className="card">
@@ -130,17 +100,8 @@ function CheckinWizard() {
 
   // ── Flujo principal ────────────────────────────────────────────────────
   return (
-<<<<<<< HEAD
     <AppShell nav={nav} actions={{ goBack, goToDotIndex }} showDots={showDots}>
-      {step === "bienvenida" && (
-=======
-    <AppShell
-      nav={nav}
-      actions={{ goBack, goToDotIndex }}
-      showDots={showDots}
-    >
-      {currentStep === 'bienvenida' && (
->>>>>>> 2fbd90572bbe0e47c2bd530dcb364740ac2e0b7b
+      {currentStep === "bienvenida" && (
         <ScreenBienvenida
           knownGuest={state.knownGuest}
           reserva={state.reserva}
@@ -149,11 +110,7 @@ function CheckinWizard() {
         />
       )}
 
-<<<<<<< HEAD
-      {step === "num_personas" && (
-=======
-      {currentStep === 'num_personas' && (
->>>>>>> 2fbd90572bbe0e47c2bd530dcb364740ac2e0b7b
+      {currentStep === "num_personas" && (
         <ScreenNumPersonas
           value={state.numPersonas}
           onChange={setNumPersonas}
@@ -161,11 +118,7 @@ function CheckinWizard() {
         />
       )}
 
-<<<<<<< HEAD
-      {step === "confirmar_datos" && (
-=======
-      {currentStep === 'confirmar_datos' && (
->>>>>>> 2fbd90572bbe0e47c2bd530dcb364740ac2e0b7b
+      {currentStep === "confirmar_datos" && (
         <ScreenFormPersonal
           data={currentGuest}
           onChange={(key, value) => updateGuest(nav.guestIndex, key, value)}
@@ -176,11 +129,7 @@ function CheckinWizard() {
         />
       )}
 
-<<<<<<< HEAD
-      {step === "escanear" && (
-=======
-      {currentStep === 'escanear' && (
->>>>>>> 2fbd90572bbe0e47c2bd530dcb364740ac2e0b7b
+      {currentStep === "escanear" && (
         <ScreenEscanear
           onScanned={(data) => {
             applyScannedData(data);
@@ -190,11 +139,7 @@ function CheckinWizard() {
         />
       )}
 
-<<<<<<< HEAD
-      {step === "form_personal" && (
-=======
-      {currentStep === 'form_personal' && (
->>>>>>> 2fbd90572bbe0e47c2bd530dcb364740ac2e0b7b
+      {currentStep === "form_personal" && (
         <ScreenFormPersonal
           data={currentGuest}
           onChange={(key, value) => updateGuest(nav.guestIndex, key, value)}
@@ -211,46 +156,26 @@ function CheckinWizard() {
         />
       )}
 
-<<<<<<< HEAD
-      {step === "form_contacto" && (
+      {currentStep === "form_contacto" && (
         <ScreenFormContacto
           data={currentGuest}
-          onChange={(key, value) => updateGuest(guestIndex, key, value)}
+          onChange={(key, value) => updateGuest(nav.guestIndex, key, value)}
           onNext={() => goTo("form_documento")}
         />
       )}
 
-      {step === "form_documento" && (
-=======
-      {currentStep === 'form_contacto' && (
-        <ScreenFormContacto
-          data={currentGuest}
-          onChange={(key, value) => updateGuest(nav.guestIndex, key, value)}
-          onNext={() => goTo('form_documento')}
-        />
-      )}
-
-      {currentStep === 'form_documento' && (
->>>>>>> 2fbd90572bbe0e47c2bd530dcb364740ac2e0b7b
+      {currentStep === "form_documento" && (
         <ScreenFormDocumento
           data={currentGuest}
           onChange={(key, value) => updateGuest(nav.guestIndex, key, value)}
           guestIndex={nav.guestIndex}
           totalGuests={state.numPersonas}
           isMainGuest={isMainGuest}
-<<<<<<< HEAD
-          onNext={() => nextGuest(guestIndex, "form_documento")}
+          onNext={() => nextGuest(nav.guestIndex, "form_documento")}
         />
       )}
 
-      {step === "form_extras" && (
-=======
-          onNext={() => nextGuest(nav.guestIndex, 'form_documento')}
-        />
-      )}
-
-      {currentStep === 'form_extras' && (
->>>>>>> 2fbd90572bbe0e47c2bd530dcb364740ac2e0b7b
+      {currentStep === "form_extras" && (
         <ScreenFormExtras
           horaLlegada={state.horaLlegada}
           observaciones={state.observaciones}
@@ -260,11 +185,7 @@ function CheckinWizard() {
         />
       )}
 
-<<<<<<< HEAD
-      {step === "revision" && (
-=======
-      {currentStep === 'revision' && (
->>>>>>> 2fbd90572bbe0e47c2bd530dcb364740ac2e0b7b
+      {currentStep === "revision" && (
         <ScreenRevision
           state={state}
           onEditStep={(targetStep) => goTo(targetStep as StepId, "back")}
@@ -272,15 +193,7 @@ function CheckinWizard() {
         />
       )}
 
-<<<<<<< HEAD
-      {step === "exito" && <ScreenExito state={state} />}
-    </AppShell>
-  );
-}
-=======
-      {currentStep === 'exito' && (
-        <ScreenExito state={state} />
-      )}
+      {currentStep === "exito" && <ScreenExito state={state} />}
     </AppShell>
   );
 }
@@ -293,9 +206,11 @@ export default function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/checkin/:token/:step?" element={<CheckinWizard />} />
-        <Route path="*" element={<Navigate to="/checkin/new/bienvenida" replace />} />
+        <Route
+          path="*"
+          element={<Navigate to="/checkin/new/bienvenida" replace />}
+        />
       </Routes>
     </BrowserRouter>
   );
 }
->>>>>>> 2fbd90572bbe0e47c2bd530dcb364740ac2e0b7b
