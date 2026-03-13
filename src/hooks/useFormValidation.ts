@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react';
 import type { PartialGuestData, FormErrors } from '../types';
+import dayjs from 'dayjs'
 
 type ValidatorFn<T> = (data: T) => FormErrors;
 
@@ -32,7 +33,22 @@ export function validatePersonal(data: PartialGuestData): FormErrors {
   if (!data.nombre?.trim())   e.nombre   = 'El nombre es obligatorio';
   if (!data.apellido?.trim()) e.apellido = 'El primer apellido es obligatorio';
   if (!data.sexo)             e.sexo     = 'Indique el sexo';
-  if (!data.fechaNac)         e.fechaNac = 'La fecha de nacimiento es obligatoria';
+  
+  // 🛡️ NUEVA VALIDACIÓN DE FECHA BLINDADA
+  if (!data.fechaNac) {
+    e.fechaNac = 'La fecha de nacimiento es obligatoria';
+  } else {
+    const parsedDate = dayjs(data.fechaNac);
+    
+    if (!parsedDate.isValid()) {
+      e.fechaNac = 'La fecha introducida no es válida';
+    } else if (parsedDate.isAfter(dayjs())) {
+      e.fechaNac = 'La fecha de nacimiento no puede ser futura';
+    } else if (parsedDate.year() < 1900) {
+      e.fechaNac = 'Introduce un año válido (ej. 1980)';
+    }
+  }
+
   return e;
 }
 

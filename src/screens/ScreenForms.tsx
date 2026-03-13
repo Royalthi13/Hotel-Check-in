@@ -94,12 +94,14 @@ export const ScreenFormPersonal: React.FC<FormPersonalProps> = ({
           </Field>
           
           {/* 🛡️ DEFENSA: MUI DatePicker Aislado */}
-          <Field label="Fecha de nacimiento" required error={errors.fechaNac}>
+        {/* 🛡️ DEFENSA: MUI DatePicker Aislado y Restringido */}
+        <Field label="Fecha de nacimiento" required error={errors.fechaNac}>
             <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="es">
               <DatePicker
                 value={data.fechaNac ? dayjs(data.fechaNac) : null}
+                disableFuture // <-- Bloquea el calendario para fechas futuras
+                minDate={dayjs('1900-01-01')} // <-- No deja bajar del año 1900
                 onChange={(newValue) => {
-                  // Mantenemos el estado agnóstico de Material UI guardando un simple string
                   const dateString = newValue ? newValue.format('YYYY-MM-DD') : '';
                   onChange('fechaNac', dateString);
                 }}
@@ -107,7 +109,6 @@ export const ScreenFormPersonal: React.FC<FormPersonalProps> = ({
                   textField: {
                     className: errors.fechaNac ? 'err' : '',
                     placeholder: 'DD/MM/AAAA',
-                    // Adaptamos la altura para que coincida con tus inputs normales
                     sx: { 
                       '& .MuiInputBase-root': { height: '42px', borderRadius: '8px', fontSize: '15px' },
                       width: '100%'

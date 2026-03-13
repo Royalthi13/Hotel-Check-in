@@ -1,4 +1,3 @@
-
 import {
   BrowserRouter,
   Routes,
@@ -9,6 +8,7 @@ import {
 import './app.css';
 import { useCheckin } from "./hooks/useCheckin";
 import { AppShell } from "./layout/AppShell";
+import { LoadingSpinner } from "./components/ui"; // <-- AÑADIDO: Importamos el Spinner
 
 // Screens
 import { ScreenTabletBuscar } from "./screens/ScreenTabletBuscar";
@@ -28,44 +28,42 @@ import {
 
 import type { StepId } from "./types";
 
-
 const STEPS_WITHOUT_DOTS = new Set<StepId>(["tablet_buscar", "exito"]);
 
+// 🛡️ DEFENSA: Componente helper para redirigir URLs limpias sin romper React
+function RedirectToBienvenida() {
+  const { token } = useParams();
+  return <Navigate to={`/checkin/${token}/bienvenida`} replace />;
+}
+
 function CheckinWizard() {
-  // 1. Leemos el estado desde la URL
   const { token, step } = useParams();
 
-  // 2. Pasamos token y step al hook
-  const [state, nav, actions] = useCheckin(token, step);
+  // 1. AHORA SÍ recogemos el isLoading (4º parámetro)
+  const [state, nav, actions, isLoading] = useCheckin(token, step);
+
+  // 2. BLOQUEO DE UI: Si está cargando datos de MSW, no renderizamos el wizard aún
+  if (isLoading) {
+    return (
+      <div className="shell" style={{ alignItems: 'center', justifyContent: 'center' }}>
+        <LoadingSpinner text="Recuperando reserva segura..." />
+      </div>
+    );
+  }
 
   const {
-    goTo,
-    goBack,
-    goToDotIndex,
-    setReservaFromTablet,
-    setNumPersonas,
-    updateGuest,
-    confirmKnownGuest,
-    applyScannedData,
-    setHoraLlegada,
-    setObservaciones,
-    nextGuest,
+    goTo, goBack, goToDotIndex, setReservaFromTablet, setNumPersonas,
+    updateGuest, confirmKnownGuest, applyScannedData, setHoraLlegada,
+    setObservaciones, nextGuest,
   } = actions;
 
-  const currentStep = nav.step;
+  // Si por algún motivo step es undefined aquí, usamos 'bienvenida' por defecto
+  const currentStep = nav.step || 'bienvenida';
   const showDots = !STEPS_WITHOUT_DOTS.has(currentStep);
   const isMainGuest = nav.guestIndex === 0;
   const currentGuest = state.guests[nav.guestIndex] ?? {};
 
-  // 3. Redirección de seguridad si falta el step
-  if (!step) {
-    return <Navigate to={`/checkin/${token}/bienvenida`} replace />;
-  }
-
-  const handleChooseManual = () => {
-    goTo("num_personas");
-  };
-
+  const handleChooseManual = () => goTo("num_personas");
   const handleConfirmKnown = () => {
     confirmKnownGuest();
     goTo("form_contacto");
@@ -182,18 +180,19 @@ function CheckinWizard() {
   );
 }
 
-// El App principal solo provee el Router
+// El App principal configura el Router y delega las redirecciones a la capa de rutas
 export default function App() {
-
-
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/checkin/:token/:step?" element={<CheckinWizard />} />
-        <Route
-          path="*"
-          element={<Navigate to="/checkin/new/bienvenida" replace />}
-        />
+        {/* Si entran con el token pero sin paso, redirigimos a bienvenida */}
+        <Route path="/checkin/:token" element={<RedirectToBienvenida />} />
+        
+        {/* Si entran con token y paso, abrimos el Wizard */}
+        <Route path="/checkin/:token/:step" element={<CheckinWizard />} />
+        
+        {/* Cualquier otra ruta errónea, forzamos un token nuevo y bienvenida */}
+        <Route path="*" element={<Navigate to="/checkin/new/bienvenida" replace />} />
       </Routes>
     </BrowserRouter>
   );
