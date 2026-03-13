@@ -1,5 +1,5 @@
 export const GLOBAL_CSS = `
-@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&display=swap');
+@import url(https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&display=swap');
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -584,7 +584,7 @@ html, body, #root {
 
 /* Tablet y desktop: en fila */
 @media (min-width: 600px) {
-  .choice-grid { flex-direction: row; gap: 14px; }
+  .choice-grid { flex-direction: column; gap: 14px; }
   .choice-card { flex: 1; }
 }
 
