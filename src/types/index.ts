@@ -27,18 +27,15 @@ export interface Reserva {
 
 // ─── Datos de un huésped ──────────────────────────────────────────────────────
 export interface GuestData {
-  // Personal
   nombre: string;
   apellido: string;
   apellido2: string;
   sexo: string;
   fechaNac: string;
   nacionalidad: string;
-  // Menor acompañante (solo huésped principal)
   tienesMenor?: boolean;
   nombreMenor?: string;
   relacionMenor?: string;
-  // Contacto (solo huésped principal)
   email?: string;
   telefono?: string;
   direccion?: string;
@@ -46,7 +43,6 @@ export interface GuestData {
   provincia?: string;
   cp?: string;
   pais?: string;
-  // Documento
   tipoDoc: string;
   numDoc: string;
   vat?: string;
@@ -56,23 +52,53 @@ export interface GuestData {
 
 export type PartialGuestData = Partial<GuestData>;
 
-// ─── Datos globales del checkin ───────────────────────────────────────────────
+// ─── Estado global del checkin ────────────────────────────────────────────────
 export interface CheckinState {
   appMode: AppMode;
   reserva: Reserva | null;
-  /** Si el email está en la BD, datos precargados */
   knownGuest: GuestData | null;
-  /** Número total de personas (principal + acompañantes) */
   numPersonas: number;
-  /** Array de datos por persona. Índice 0 = huésped principal */
   guests: PartialGuestData[];
-  /** Preferencias / extras (solo una vez, no por persona) */
   horaLlegada: string;
   observaciones: string;
+  rgpdAcepted: boolean;
 }
 
-// ─── Errores de validación ────────────────────────────────────────────────────
+// ─── Validación ───────────────────────────────────────────────────────────────
 export type FormErrors = Record<string, string>;
 
-// ─── Dirección de navegación ──────────────────────────────────────────────────
+// ─── Navegación ───────────────────────────────────────────────────────────────
 export type NavDirection = 'forward' | 'back';
+
+// ─── Contrato público del hook useCheckin ─────────────────────────────────────
+// Estos tipos viven AQUÍ, no en el hook.
+// Regla: si un tipo lo necesita un consumidor externo (AppShell, App, screens),
+// pertenece a types/. Si solo lo usa el hook internamente, se queda en el hook
+// SIN export (ej: HistoryEntry).
+//
+// Ventaja: puedes refactorizar useCheckin por completo sin romper ningún import
+// externo, porque el contrato está desacoplado de la implementación.
+
+export interface CheckinNav {
+  step: StepId;
+  guestIndex: number;
+  direction: NavDirection;
+  dotSteps: StepId[];
+  dotIndex: number;
+  canGoBack: boolean;
+}
+
+export interface CheckinActions {
+  goTo: (step: StepId, dir?: NavDirection, gIdx?: number) => void;
+  goBack: () => void;
+  goToDotIndex: (dotIdx: number) => void;
+  setReservaFromTablet: (res: Reserva) => void;
+  setNumPersonas: (n: number) => void;
+  updateGuest: (index: number, key: keyof PartialGuestData, value: unknown) => void;
+  confirmKnownGuest: () => void;
+  applyScannedData: (data: Partial<GuestData>, guestIdx?: number) => void;
+  setHoraLlegada: (v: string) => void;
+  setObservaciones: (v: string) => void;
+  nextGuest: (currentGuestIndex: number, fromStep: StepId) => void;
+  setRgpdAcepted: (v: boolean) => void;
+}

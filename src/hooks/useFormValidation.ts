@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
 import type { PartialGuestData, FormErrors } from '../types';
-import dayjs from 'dayjs'
+import dayjs from 'dayjs';
 
 type ValidatorFn<T> = (data: T) => FormErrors;
 
@@ -26,27 +26,42 @@ export function useFormValidation<T>(validator: ValidatorFn<T>) {
   return { errors, validate, clearError, clearAll };
 }
 
-// ─── Validadores por pantalla ─────────────────────────────────────────────
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+/** Calcula la edad en años a partir de fechaNac (string YYYY-MM-DD) */
+function calcularEdad(fechaNac: string | undefined): number | null {
+  if (!fechaNac) return null;
+  const d = dayjs(fechaNac);
+  if (!d.isValid()) return null;
+  return dayjs().diff(d, 'years');
+}
+
+// ─── Validadores ──────────────────────────────────────────────────────────────
 
 export function validatePersonal(data: PartialGuestData): FormErrors {
   const e: FormErrors = {};
+
   if (!data.nombre?.trim())   e.nombre   = 'El nombre es obligatorio';
   if (!data.apellido?.trim()) e.apellido = 'El primer apellido es obligatorio';
   if (!data.sexo)             e.sexo     = 'Indique el sexo';
-  
-  // 🛡️ NUEVA VALIDACIÓN DE FECHA BLINDADA
+
   if (!data.fechaNac) {
     e.fechaNac = 'La fecha de nacimiento es obligatoria';
   } else {
-    const parsedDate = dayjs(data.fechaNac);
-    
-    if (!parsedDate.isValid()) {
-      e.fechaNac = 'La fecha introducida no es válida';
-    } else if (parsedDate.isAfter(dayjs())) {
-      e.fechaNac = 'La fecha de nacimiento no puede ser futura';
-    } else if (parsedDate.year() < 1900) {
-      e.fechaNac = 'Introduce un año válido (ej. 1980)';
-    }
+    const parsed = dayjs(data.fechaNac);
+    if (!parsed.isValid())           e.fechaNac = 'La fecha introducida no es válida';
+    else if (parsed.isAfter(dayjs())) e.fechaNac = 'La fecha de nacimiento no puede ser futura';
+    else if (parsed.year() < 1900)   e.fechaNac = 'Introduce un año válido (ej. 1980)';
+  }
+
+  // FIX 3: Validar datos de menor DENTRO del validador
+  // calcularEdad devuelve null si la fecha es inválida — solo validamos si tenemos edad real
+  const edad = calcularEdad(data.fechaNac);
+  const esMenor = edad !== null && edad < 18;
+
+  if (esMenor) {
+    if (!data.nombreMenor?.trim()) e.nombreMenor = 'Indique el nombre del responsable adulto';
+    if (!data.relacionMenor)       e.relacionMenor = 'Indique el parentesco con el menor';
   }
 
   return e;
@@ -63,8 +78,8 @@ export function validateContacto(data: PartialGuestData): FormErrors {
 
 export function validateDocumento(data: PartialGuestData): FormErrors {
   const e: FormErrors = {};
-  if (!data.tipoDoc) e.tipoDoc = 'Seleccione el tipo de documento';
-  if (!data.numDoc?.trim()) e.numDoc = 'El número de documento es obligatorio';
+  if (!data.tipoDoc)         e.tipoDoc = 'Seleccione el tipo de documento';
+  if (!data.numDoc?.trim())  e.numDoc  = 'El número de documento es obligatorio';
   return e;
 }
 

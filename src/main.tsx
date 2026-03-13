@@ -1,23 +1,27 @@
-import { StrictMode } from 'react'
-import { createRoot } from 'react-dom/client'
-import './index.css'
-import App from './App.tsx'
+import React from 'react';
+import ReactDOM from 'react-dom/client';
+import App from './App';
+import './app.css';
 
-async function enableMocking() {
-  // Usamos import.meta.env.DEV (estándar de Vite) en lugar de process.env
-  if (!import.meta.env.DEV) {
-    return
+// FIX 2: LocalizationProvider al nivel raíz — se monta UNA sola vez, nunca se remonta
+import { LocalizationProvider } from '@mui/x-date-pickers';
+import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
+import 'dayjs/locale/es';
+
+// Inicializar MSW en desarrollo
+async function prepare() {
+  if (import.meta.env.DEV) {
+    const { worker } = await import('./mocks/browser');
+    await worker.start({ onUnhandledRequest: 'bypass' });
   }
-  
-  const { worker } = await import('./mocks/browser')
-  // Iniciamos el worker interceptando peticiones
-  return worker.start({ onUnhandledRequest: 'bypass' })
 }
 
-enableMocking().then(() => {
-  createRoot(document.getElementById('root')!).render(
-    <StrictMode>
-      <App />
-    </StrictMode>,
-  )
-})
+prepare().then(() => {
+  ReactDOM.createRoot(document.getElementById('root')!).render(
+    <React.StrictMode>
+      <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="es">
+        <App />
+      </LocalizationProvider>
+    </React.StrictMode>,
+  );
+});

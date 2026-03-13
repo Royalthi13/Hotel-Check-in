@@ -894,4 +894,31 @@ html, body, #root {
   letter-spacing: 0.05em;
 }
 
+@keyframes highlight-fade {
+  from { background-color: var(--primary-lt); }
+  to { background-color: transparent; }
+}
+
+input.auto-filled {
+  animation: highlight-fade 2s ease-out;
+}
+  .field-autocomplete { position: relative; width: 100%; }
+.sug-box {
+  position: absolute;
+  top: 100%; left: 0; right: 0;
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  z-index: 1000; /* Para que flote por encima de todo */
+  max-height: 200px;
+  overflow-y: auto;
+}
+.sug-opt {
+  padding: 10px 15px;
+  cursor: pointer;
+  border-bottom: 1px solid #f0f0f0;
+  font-size: 14px;
+}
+.sug-opt:hover { background: #f9f9f9; color: var(--primary); }
 `;

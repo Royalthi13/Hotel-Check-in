@@ -3,13 +3,11 @@ import { Alert, Button, Icon } from '../components/ui';
 import type { GuestData } from '../types';
 
 interface Props {
-  /** Llama cuando el escaneo/upload proporciona datos prefill */
+  guestIndex?: number;  // índice del huésped que está escaneando (por defecto 0)
   onScanned: (data: Partial<GuestData>) => void;
-  /** El usuario prefiere saltarse el escaneo y rellenar manualmente */
   onSkip: () => void;
 }
 
-// Datos simulados que "extraería" el OCR del documento
 const MOCK_SCAN_DATA: Partial<GuestData> = {
   nombre: 'Carlos',
   apellido: 'García',
@@ -28,11 +26,9 @@ export const ScreenEscanear: React.FC<Props> = ({ onScanned, onSkip }) => {
 
   const handleScan = () => {
     setScanning(true);
-    // Simula el proceso de captura + OCR
     setTimeout(() => {
       setScanning(false);
       setScanned(true);
-      // Pequeño delay para que el usuario vea el estado "success"
       setTimeout(() => onScanned(MOCK_SCAN_DATA), 900);
     }, 2600);
   };
@@ -40,6 +36,8 @@ export const ScreenEscanear: React.FC<Props> = ({ onScanned, onSkip }) => {
   const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    // FIX 20: limpiar el input para permitir re-subida
+    e.target.value = '';
     setScanning(true);
     setTimeout(() => {
       setScanning(false);
@@ -49,7 +47,7 @@ export const ScreenEscanear: React.FC<Props> = ({ onScanned, onSkip }) => {
   };
 
   return (
-    <div className="screen">
+    <>
       <div className="sec-hdr">
         <h2>Escanear documento</h2>
         <p>
@@ -60,14 +58,12 @@ export const ScreenEscanear: React.FC<Props> = ({ onScanned, onSkip }) => {
       </div>
 
       <div style={{ padding: '10px 24px 0' }}>
-        {/* Viewport de cámara simulado */}
         <div className="scan-viewport">
           <div className="scan-bg">
             <span className="scan-ghost">
               <Icon name="id" size={80} color="#fff" />
             </span>
           </div>
-          {/* Frame overlay */}
           <div className="scan-overlay">
             <div className="scan-corner tl" />
             <div className="scan-corner tr" />
@@ -85,7 +81,6 @@ export const ScreenEscanear: React.FC<Props> = ({ onScanned, onSkip }) => {
           </div>
         </div>
 
-        {/* Controles de cámara */}
         {!scanned && (
           <div className="scan-controls">
             <button
@@ -117,7 +112,7 @@ export const ScreenEscanear: React.FC<Props> = ({ onScanned, onSkip }) => {
 
         {scanned && (
           <Alert variant="ok" style={{ margin: '8px 0 12px' }}>
-            Documento escaneado correctamente. Procesando datos para rellenar el formulario…
+            Documento escaneado correctamente. Procesando datos…
           </Alert>
         )}
 
@@ -141,9 +136,8 @@ export const ScreenEscanear: React.FC<Props> = ({ onScanned, onSkip }) => {
               style={{ display: 'none' }}
               onChange={handleFile}
             />
-
             <Alert variant="info">
-              <Icon name="lock" size={13} /> Transmisión cifrada. El documento se elimina tras el check-in conforme al RGPD.
+              <Icon name="lock" size={13} /> Transmisión cifrada. Documento eliminado tras el check-in conforme al RGPD.
             </Alert>
           </>
         )}
@@ -156,6 +150,6 @@ export const ScreenEscanear: React.FC<Props> = ({ onScanned, onSkip }) => {
         </Button>
       </div>
       <div style={{ height: 12 }} />
-    </div>
+    </>
   );
 };

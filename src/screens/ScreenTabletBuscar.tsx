@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Field, Button, Alert, LoadingSpinner, Icon } from '../components/ui';
-import { MOCK_RESERVAS } from '../constants';
+import { MOCK_RESERVAS } from '../mocks/reservas-mock';
 import type { Reserva } from '../types';
 
 interface Props {
@@ -17,7 +17,6 @@ export const ScreenTabletBuscar: React.FC<Props> = ({ onFound }) => {
     if (!trimmed) { setError('Introduzca su número de reserva.'); return; }
     setError('');
     setLoading(true);
-    // Simula llamada al backend
     setTimeout(() => {
       setLoading(false);
       const res = MOCK_RESERVAS[trimmed];
