@@ -4,9 +4,9 @@ import type {
   AppMode, StepId, CheckinState, Reserva,
   GuestData, PartialGuestData, NavDirection,
 } from '../types';
-import { MOCK_KNOWN_GUEST, DOT_STEPS_BASE } from '../constants';
+import { DOT_STEPS_BASE } from '../constants'; // ⚠️ ¡Fíjate! Ya no importamos MOCK_KNOWN_GUEST
 
-// ─── Navegación: qué paso viene antes/después ─────────────────────────────
+// ... (Las interfaces CheckinNav y CheckinActions se mantienen iguales) ...
 export interface CheckinNav {
   step: StepId;
   guestIndex: number;
@@ -32,15 +32,14 @@ export interface CheckinActions {
 
 const EMPTY_GUEST: PartialGuestData = {};
 
-function buildInitialState(appMode: AppMode): CheckinState {
-  const isLink = appMode === 'link';
+// 🛡️ DEFENSA: El estado inicial ahora nace completamente vacío y agnóstico.
+function buildEmptyState(appMode: AppMode): CheckinState {
   return {
     appMode,
     reserva: null,
-    // 🛡️ DEFENSA: En producción, knownGuest vendrá del fetch inicial (MSW)
-    knownGuest: isLink ? MOCK_KNOWN_GUEST : null, 
+    knownGuest: null, // Sin datos quemados
     numPersonas: 1,
-    guests: [isLink ? { ...MOCK_KNOWN_GUEST } : EMPTY_GUEST],
+    guests: [EMPTY_GUEST],
     horaLlegada: '',
     observaciones: '',
   };
@@ -48,65 +47,82 @@ function buildInitialState(appMode: AppMode): CheckinState {
 
 type HistoryEntry = { step: StepId; guestIndex: number };
 
-export function useCheckin(token: string = 'new', urlStep?: string): [CheckinState, CheckinNav, CheckinActions] {
+// 🛡️ DEFENSA: Añadimos un boolean (isLoading) al return del hook para que la UI sepa cuándo pintar el Spinner
+export function useCheckin(token: string = 'new', urlStep?: string): [CheckinState, CheckinNav, CheckinActions, boolean] {
   const navigate = useNavigate();
   
   const appMode: AppMode = token === 'new' ? 'link' : 'tablet';
   const step = (urlStep as StepId) || 'bienvenida';
 
-  const [state, setState] = useState<CheckinState>(() => buildInitialState(appMode));
+  const [isLoading, setIsLoading] = useState(true);
+  const [state, setState] = useState<CheckinState>(() => buildEmptyState(appMode));
   const [guestIndex, setGuestIndex] = useState(0);
   const [direction, setDirection] = useState<NavDirection>('forward');
-  const [history, setHistory] = useState<HistoryEntry[]>([]);
+  
+  // Persistimos el historial y los permisos en Session Storage para sobrevivir al F5
+  const [history, setHistory] = useState<HistoryEntry[]>(() => {
+    const saved = sessionStorage.getItem(`history_${token}`);
+    return saved ? JSON.parse(saved) : [];
+  });
 
-  // NUEVA ESTRATEGIA DE SEGURIDAD: Un Set con los pasos que el usuario tiene derecho a visitar
-  const [allowedSteps, setAllowedSteps] = useState<Set<StepId>>(new Set(['bienvenida', 'tablet_buscar']));
+  const [allowedSteps, setAllowedSteps] = useState<Set<StepId>>(() => {
+    const saved = sessionStorage.getItem(`allowedSteps_${token}`);
+    return saved ? new Set(JSON.parse(saved)) : new Set(['bienvenida', 'tablet_buscar']);
+  });
+
+  // ── 1. EFECTO: FETCH DE DATOS DESDE LA API SIMULADA ───────────────────────
+  useEffect(() => {
+    setIsLoading(true);
+    // Hacemos una llamada HTTP real. MSW la interceptará en desarrollo.
+    fetch(`/api/checkin/${token}`)
+      .then(res => res.json())
+      .then(response => {
+        // Si el backend (MSW) nos dice que encontró al usuario, poblamos el estado
+        if (response.status === 'found' && response.data) {
+          setState(s => ({
+            ...s,
+            knownGuest: response.data,
+            guests: [{ ...response.data }]
+          }));
+        }
+      })
+      .catch(err => console.error('Error cargando la reserva:', err))
+      .finally(() => setIsLoading(false)); // Apagamos el loading al terminar
+  }, [token]);
+
+  // ── 2. EFECTO: GUARDAR PERMISOS EN SESSION STORAGE (Arregla el F5) ──────
+  useEffect(() => {
+    sessionStorage.setItem(`allowedSteps_${token}`, JSON.stringify([...allowedSteps]));
+    sessionStorage.setItem(`history_${token}`, JSON.stringify(history));
+  }, [allowedSteps, history, token]);
 
   const dotSteps = DOT_STEPS_BASE;
-
-  const dotForStep = (s: StepId): StepId => {
-    if (s === 'escanear' || s === 'confirmar_datos') return 'form_personal';
-    return s;
-  };
-
+  const dotForStep = (s: StepId): StepId => (s === 'escanear' || s === 'confirmar_datos') ? 'form_personal' : s;
   const dotIndex = dotSteps.indexOf(dotForStep(step));
 
-  const canGoBack =
-    step !== 'bienvenida' &&
-    step !== 'exito' &&
-    step !== 'tablet_buscar' &&
-    history.length > 0;
+  const canGoBack = step !== 'bienvenida' && step !== 'exito' && step !== 'tablet_buscar' && history.length > 0;
 
-  // ── VIGILANTE DE LA URL (Route Guard Robusto) ─────────────────────────────
+  // ── VIGILANTE DE LA URL (Route Guard) ─────────────────────────────────────
   useEffect(() => {
-    // Si la URL pide un paso que NO está en nuestra lista de permitidos...
-    if (!allowedSteps.has(step)) {
+    if (!isLoading && !allowedSteps.has(step)) {
       console.warn(`Intento de salto ilegal al paso: ${step}`);
-      // Volvemos al último paso seguro que tengamos en el historial, o a bienvenida
       const lastSafeStep = history.length > 0 ? history[history.length - 1].step : 'bienvenida';
       navigate(`/checkin/${token}/${lastSafeStep}`, { replace: true });
     }
-  }, [step, allowedSteps, history, navigate, token]);
+  }, [step, allowedSteps, history, navigate, token, isLoading]);
 
-  // ── Navegar a un paso concreto ────────────────────────────────────────────
+  // ── Navegación (goTo, goBack, etc.) se mantienen iguales... ───────────────
   const goTo = useCallback((nextStep: StepId, dir: NavDirection = 'forward', gIdx?: number) => {
     setHistory(h => [...h, { step, guestIndex }]);
     setDirection(dir);
     if (gIdx !== undefined) setGuestIndex(gIdx);
-    
-    // NUEVO: Registramos el siguiente paso como "legal" antes de navegar
     setAllowedSteps(prev => new Set(prev).add(nextStep));
-    
     navigate(`/checkin/${token}/${nextStep}`);
   }, [step, guestIndex, token, navigate]);
 
-  // ── Volver atrás (pila de historial) ─────────────────────────────────────
   const goBack = useCallback(() => {
     setHistory(h => {
-      if (!h.length) {
-        navigate(-1);
-        return h;
-      }
+      if (!h.length) { navigate(-1); return h; }
       const prev = h[h.length - 1];
       setDirection('back');
       setGuestIndex(prev.guestIndex);
@@ -115,26 +131,21 @@ export function useCheckin(token: string = 'new', urlStep?: string): [CheckinSta
     });
   }, [navigate, token]);
 
-  // ── Navegar clickando un dot ───────────────────────────────────────────────
   const goToDotIndex = useCallback((targetDotIdx: number) => {
     if (targetDotIdx > dotIndex) return; 
     const targetStep = dotSteps[targetDotIdx];
-    
-    // Como volvemos a un paso anterior por el dot, debemos garantizar que sea legal
     setAllowedSteps(prev => new Set(prev).add(targetStep));
-    
     setHistory(h => [...h, { step, guestIndex }]);
     setDirection('back');
     setGuestIndex(0);
     navigate(`/checkin/${token}/${targetStep}`);
   }, [dotIndex, dotSteps, step, guestIndex, navigate, token]);
 
-  // ... (El resto de funciones se mantienen exactamente igual)
   const setReservaFromTablet = useCallback((res: Reserva) => {
     setState(s => ({ ...s, reserva: res }));
     setHistory([]);
     setDirection('forward');
-    setAllowedSteps(new Set(['bienvenida'])); // Reseteamos permisos
+    setAllowedSteps(new Set(['bienvenida']));
     navigate(`/checkin/${token}/bienvenida`);
   }, [navigate, token]);
 
@@ -159,9 +170,7 @@ export function useCheckin(token: string = 'new', urlStep?: string): [CheckinSta
     });
   }, []);
 
-  const confirmKnownGuest = useCallback(() => {
-    goTo('form_contacto');
-  }, [goTo]);
+  const confirmKnownGuest = useCallback(() => goTo('form_contacto'), [goTo]);
 
   const applyScannedData = useCallback((data: Partial<GuestData>) => {
     setState(s => {
@@ -177,8 +186,7 @@ export function useCheckin(token: string = 'new', urlStep?: string): [CheckinSta
   const nextGuest = useCallback((currentIdx: number, fromStep: StepId) => {
     const total = state.numPersonas;
     if (fromStep === 'form_documento' && currentIdx < total - 1) {
-      const nextIdx = currentIdx + 1;
-      goTo('form_personal', 'forward', nextIdx);
+      goTo('form_personal', 'forward', currentIdx + 1);
     } else if (fromStep === 'form_documento') {
       goTo('form_extras', 'forward', 0);
     } else if (fromStep === 'form_personal') {
@@ -188,28 +196,11 @@ export function useCheckin(token: string = 'new', urlStep?: string): [CheckinSta
     }
   }, [state.numPersonas, goTo]);
 
-  const nav: CheckinNav = {
-    step,
-    guestIndex,
-    direction,
-    dotSteps,
-    dotIndex,
-    canGoBack,
-  };
-
+  const nav: CheckinNav = { step, guestIndex, direction, dotSteps, dotIndex, canGoBack };
   const actions: CheckinActions = {
-    goTo,
-    goBack,
-    goToDotIndex,
-    setReservaFromTablet,
-    setNumPersonas,
-    updateGuest,
-    confirmKnownGuest,
-    applyScannedData,
-    setHoraLlegada,
-    setObservaciones,
-    nextGuest,
+    goTo, goBack, goToDotIndex, setReservaFromTablet, setNumPersonas,
+    updateGuest, confirmKnownGuest, applyScannedData, setHoraLlegada, setObservaciones, nextGuest,
   };
 
-  return [state, nav, actions];
+  return [state, nav, actions, isLoading]; // <-- Devolvemos isLoading aquí
 }
