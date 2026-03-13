@@ -67,9 +67,10 @@ export function useCheckin(token: string = 'new', urlStep?: string): [CheckinSta
 
   const [allowedSteps, setAllowedSteps] = useState<Set<StepId>>(() => {
     const saved = sessionStorage.getItem(`allowedSteps_${token}`);
-    return saved ? new Set(JSON.parse(saved)) : new Set(['bienvenida', 'tablet_buscar']);
+    const parsedSteps = saved ? JSON.parse(saved) : [];
+    // 🛡️ IMPORTANTE: 'tablet_buscar' y 'bienvenida' deben estar aquí DESDE EL INICIO
+    return new Set([...parsedSteps, 'bienvenida', 'tablet_buscar']);
   });
-
   // ── 1. EFECTO: FETCH DE DATOS DESDE LA API SIMULADA ───────────────────────
   useEffect(() => {
     setIsLoading(true);
@@ -102,14 +103,29 @@ export function useCheckin(token: string = 'new', urlStep?: string): [CheckinSta
 
   const canGoBack = step !== 'bienvenida' && step !== 'exito' && step !== 'tablet_buscar' && history.length > 0;
 
-  // ── VIGILANTE DE LA URL (Route Guard) ─────────────────────────────────────
-  useEffect(() => {
-    if (!isLoading && !allowedSteps.has(step)) {
-      console.warn(`Intento de salto ilegal al paso: ${step}`);
-      const lastSafeStep = history.length > 0 ? history[history.length - 1].step : 'bienvenida';
-      navigate(`/checkin/${token}/${lastSafeStep}`, { replace: true });
+// ── VIGILANTE DE LA URL (Route Guard) ─────────────────────────────────────
+useEffect(() => {
+  // 1. Si estamos cargando datos de la API, esperamos.
+  if (isLoading) return;
+
+  // 2. Definimos los puntos de entrada que NO necesitan validación
+  const isEntryStep = step === 'bienvenida' || step === 'tablet_buscar';
+  
+  // 3. Si es un punto de entrada, simplemente aseguramos que esté en el Set y salimos
+  if (isEntryStep) {
+    if (!allowedSteps.has(step)) {
+      setAllowedSteps(prev => new Set(prev).add(step));
     }
-  }, [step, allowedSteps, history, navigate, token, isLoading]);
+    return; 
+  }
+
+  // 4. Solo si NO es un punto de entrada Y NO tiene permiso, redirigimos
+  if (!allowedSteps.has(step)) {
+    console.warn(`Intento de salto ilegal al paso: ${step}`);
+    const lastSafeStep = history.length > 0 ? history[history.length - 1].step : 'bienvenida';
+    navigate(`/checkin/${token}/${lastSafeStep}`, { replace: true });
+  }
+}, [step, allowedSteps, history, navigate, token, isLoading]);
 
   // ── Navegación (goTo, goBack, etc.) se mantienen iguales... ───────────────
   const goTo = useCallback((nextStep: StepId, dir: NavDirection = 'forward', gIdx?: number) => {
@@ -142,13 +158,24 @@ export function useCheckin(token: string = 'new', urlStep?: string): [CheckinSta
   }, [dotIndex, dotSteps, step, guestIndex, navigate, token]);
 
   const setReservaFromTablet = useCallback((res: Reserva) => {
-    setState(s => ({ ...s, reserva: res }));
+    setState(s => {
+      // Magia: Creamos el array de huéspedes vacío exacto para rellenar
+      const prefilledGuests = Array(res.numHuespedes)
+        .fill(null)
+        .map(() => ({ ...EMPTY_GUEST }));
+
+      return { 
+        ...s, 
+        reserva: res,
+        numPersonas: res.numHuespedes, // <-- Guardamos el número de la BD
+        guests: prefilledGuests        // <-- Preparamos las fichas vacías
+      };
+    });
     setHistory([]);
     setDirection('forward');
     setAllowedSteps(new Set(['bienvenida']));
     navigate(`/checkin/${token}/bienvenida`);
   }, [navigate, token]);
-
   const setNumPersonas = useCallback((n: number) => {
     setState(s => {
       const current = s.guests;

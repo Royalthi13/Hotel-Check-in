@@ -63,7 +63,17 @@ function CheckinWizard() {
   const isMainGuest = nav.guestIndex === 0;
   const currentGuest = state.guests[nav.guestIndex] ?? {};
 
-  const handleChooseManual = () => goTo("num_personas");
+  const handleChooseManual = () => {
+    if (state.knownGuest) {
+      goTo("confirmar_datos");
+    } else if (state.reserva) {
+      // 🚀 UX Inteligente: Ya sabemos cuántos son, saltamos directo al formulario.
+      // (Si quieren añadir a alguien, pueden usar el botón 'Atrás').
+      goTo("form_personal");
+    } else {
+      goTo("num_personas");
+    }
+  };
   const handleConfirmKnown = () => {
     confirmKnownGuest();
     goTo("form_contacto");
@@ -111,13 +121,17 @@ function CheckinWizard() {
         />
       )}
 
-      {currentStep === "escanear" && (
+{currentStep === "escanear" && (
         <ScreenEscanear
           onScanned={(data) => {
             applyScannedData(data);
-            goTo("num_personas");
+            // Salto inteligente después de escanear
+            state.reserva ? goTo("form_personal") : goTo("num_personas");
           }}
-          onSkip={() => goTo("num_personas")}
+          onSkip={() => {
+            // Salto inteligente si omiten el escaneo
+            state.reserva ? goTo("form_personal") : goTo("num_personas");
+          }}
         />
       )}
 

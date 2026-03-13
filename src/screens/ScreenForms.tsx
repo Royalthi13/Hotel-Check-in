@@ -28,6 +28,10 @@ export const ScreenFormPersonal: React.FC<FormPersonalProps> = ({
 }) => {
   const { errors, validate } = useFormValidation(validatePersonal);
 
+  // 🛡️ LÓGICA DE NEGOCIO: Cálculo de edad en tiempo real
+  const fechaNac = data.fechaNac ? dayjs(data.fechaNac) : null;
+  const esMenor = fechaNac ? dayjs().diff(fechaNac, 'years') < 18 : false;
+
   const handleNext = () => {
     if (validate(data)) onNext();
   };
@@ -93,16 +97,14 @@ export const ScreenFormPersonal: React.FC<FormPersonalProps> = ({
             </select>
           </Field>
           
-          {/* 🛡️ DEFENSA: MUI DatePicker Aislado */}
-        {/* 🛡️ DEFENSA: MUI DatePicker Aislado y Restringido */}
-        <Field label="Fecha de nacimiento" required error={errors.fechaNac}>
+          <Field label="Fecha de nacimiento" required error={errors.fechaNac}>
             <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="es">
               <DatePicker
                 value={data.fechaNac ? dayjs(data.fechaNac) : null}
-                disableFuture // <-- Bloquea el calendario para fechas futuras
-                minDate={dayjs('1900-01-01')} // <-- No deja bajar del año 1900
+                disableFuture
+                minDate={dayjs('1900-01-01')}
                 onChange={(newValue) => {
-                  const dateString = newValue ? newValue.format('YYYY-MM-DD') : '';
+                  const dateString = newValue && newValue.isValid() ? newValue.format('YYYY-MM-DD') : '';
                   onChange('fechaNac', dateString);
                 }}
                 slotProps={{
@@ -127,7 +129,43 @@ export const ScreenFormPersonal: React.FC<FormPersonalProps> = ({
           </select>
         </Field>
 
-        {isMainGuest && (
+        {/* 🚨 SECCIÓN INTELIGENTE PARA MENORES DE EDAD (Compliance Legal) */}
+        {isMainGuest && esMenor && (
+          <div style={{ 
+            marginTop: 20, 
+            padding: '16px', 
+            background: 'var(--err-bg)', 
+            borderRadius: 'var(--r-lg)', 
+            border: '1px solid var(--err)' 
+          }}>
+            <div style={{ display: 'flex', gap: 10, color: 'var(--err)', fontWeight: 600, fontSize: 13, marginBottom: 8 }}>
+              <Icon name="warn" size={16} />
+              <span>Acompañante adulto obligatorio</span>
+            </div>
+            <p style={{ fontSize: 12, color: 'var(--text-mid)', marginBottom: 16, lineHeight: 1.4 }}>
+              De acuerdo con la normativa legal, un menor de edad no puede realizar el check-in sin un tutor. Indique los datos del adulto que le acompaña.
+            </p>
+            <div className="g2">
+              <Field label="Nombre del adulto responsable" required error={errors.nombreMenor}>
+                <input
+                  type="text"
+                  value={data.nombreMenor ?? ''}
+                  onChange={e => onChange('nombreMenor', e.target.value)}
+                  placeholder="Nombre completo"
+                />
+              </Field>
+              <Field label="Relación / Parentesco" required error={errors.relacionMenor}>
+                <select value={data.relacionMenor ?? ''} onChange={e => onChange('relacionMenor', e.target.value)}>
+                  <option value="">—</option>
+                  {RELACIONES_MENOR.map(r => <option key={r}>{r}</option>)}
+                </select>
+              </Field>
+            </div>
+          </div>
+        )}
+
+        {/* Sección para Adultos que viajan con menores (Solo si el titular es adulto) */}
+        {isMainGuest && !esMenor && (
           <>
             <div className="divlabel">Acompañante menor (si aplica)</div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
@@ -136,15 +174,15 @@ export const ScreenFormPersonal: React.FC<FormPersonalProps> = ({
                 id="menor"
                 checked={!!data.tienesMenor}
                 onChange={e => onChange('tienesMenor', e.target.checked)}
-                style={{ width: 17, height: 17, accentColor: 'var(--primary)' }}
+                style={{ width: 17, height: 17, accentColor: 'var(--primary)', cursor: 'pointer' }}
               />
               <label htmlFor="menor" style={{ fontSize: 13, color: 'var(--text-mid)', cursor: 'pointer' }}>
-                Viaja con un menor de edad
+                Viaja con un menor de edad adicional
               </label>
             </div>
             {data.tienesMenor && (
               <div className="g2">
-                <Field label="Nombre del menor">
+                <Field label="Nombre del menor" required error={errors.nombreMenor}>
                   <input
                     type="text"
                     value={data.nombreMenor ?? ''}
@@ -152,7 +190,7 @@ export const ScreenFormPersonal: React.FC<FormPersonalProps> = ({
                     placeholder="Nombre"
                   />
                 </Field>
-                <Field label="Relación">
+                <Field label="Relación" required error={errors.relacionMenor}>
                   <select value={data.relacionMenor ?? ''} onChange={e => onChange('relacionMenor', e.target.value)}>
                     <option value="">—</option>
                     {RELACIONES_MENOR.map(r => <option key={r}>{r}</option>)}
@@ -175,7 +213,7 @@ export const ScreenFormPersonal: React.FC<FormPersonalProps> = ({
 };
 
 // ═══════════════════════════════════════════════════════════════════════════
-// FORM CONTACTO (solo huésped principal)
+// FORM CONTACTO
 // ═══════════════════════════════════════════════════════════════════════════
 interface FormContactoProps {
   data: PartialGuestData;
@@ -194,7 +232,7 @@ export const ScreenFormContacto: React.FC<FormContactoProps> = ({ data, onChange
     <div className="screen">
       <div className="sec-hdr">
         <h2>Contacto y dirección</h2>
-        <p>Datos de contacto y dirección de residencia habitual del huésped principal.</p>
+        <p>Datos de contacto y residencia habitual del huésped principal.</p>
       </div>
 
       <div className="fields" style={{ marginTop: 12 }}>
