@@ -9,13 +9,16 @@ interface Props {
   onChooseManual: () => void;
 }
 
+// FIX 8: Eliminado <div className="screen"> propio.
+// AppShell ya envuelve todo el contenido en .screen-wrap > .screen
+// Tener dos .screen anidados rompe el flex layout en desktop y duplica la animación slideIn.
 export const ScreenBienvenida: React.FC<Props> = ({
   knownGuest, reserva, onChooseScan, onChooseManual,
 }) => {
   const isKnown = !!knownGuest;
 
   return (
-    <div className="screen">
+    <>
       {/* Hero */}
       <div className="hero">
         <div className="hero-eyebrow">Pre Check-in Online</div>
@@ -60,7 +63,6 @@ export const ScreenBienvenida: React.FC<Props> = ({
         </p>
 
         <div className="choice-grid">
-          {/* Opción A: Escanear — siempre OPCIONAL */}
           <button className="choice-card" onClick={onChooseScan}>
             <div className="choice-icon accent">
               <Icon name="id" size={20} color="#fff" />
@@ -76,12 +78,10 @@ export const ScreenBienvenida: React.FC<Props> = ({
               </div>
               <div className="choice-card-sub">
                 Fotografíe su DNI o pasaporte y rellenaremos los datos automáticamente.
-                Más rápido, pero no es obligatorio.
               </div>
             </div>
           </button>
 
-          {/* Opción B: Rellenar / confirmar manualmente */}
           <button className="choice-card" onClick={onChooseManual}>
             <div className="choice-icon">
               <Icon name="user" size={20} color="#fff" />
@@ -106,6 +106,6 @@ export const ScreenBienvenida: React.FC<Props> = ({
         <Icon name="lock" size={11} />
         Cifrado SSL · Datos protegidos conforme al RGPD
       </div>
-    </div>
+    </>
   );
 };

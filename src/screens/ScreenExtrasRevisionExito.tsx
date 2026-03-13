@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Field, Button, Alert, ConfirmBlock, Icon } from '../components/ui';
 import { ReservationCard } from '../components/ui';
 import { HORAS_LLEGADA } from '../constants';
@@ -18,7 +18,7 @@ interface FormExtrasProps {
 export const ScreenFormExtras: React.FC<FormExtrasProps> = ({
   horaLlegada, observaciones, onHoraChange, onObsChange, onNext,
 }) => (
-  <div className="screen">
+  <>
     <div className="sec-hdr">
       <h2>Preferencias y extras</h2>
       <p>Información adicional para personalizar su estancia. Todos los campos son opcionales.</p>
@@ -54,7 +54,7 @@ export const ScreenFormExtras: React.FC<FormExtrasProps> = ({
         Revisar y confirmar
       </Button>
     </div>
-  </div>
+  </>
 );
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -62,20 +62,23 @@ export const ScreenFormExtras: React.FC<FormExtrasProps> = ({
 // ═══════════════════════════════════════════════════════════════════════════
 interface RevisionProps {
   state: CheckinState;
+  isSubmitting: boolean;                          // FIX 23
   onEditStep: (step: string) => void;
   onSubmit: () => void;
+  onRgpdChange: (v: boolean) => void;             // FIX 14
 }
 
-export const ScreenRevision: React.FC<RevisionProps> = ({ state, onEditStep, onSubmit }) => {
-  const [accepted, setAccepted] = useState(false);
-  const { reserva, guests, horaLlegada, observaciones } = state;
+export const ScreenRevision: React.FC<RevisionProps> = ({
+  state, isSubmitting, onEditStep, onSubmit, onRgpdChange,
+}) => {
+  const { reserva, guests, horaLlegada, observaciones, rgpdAcepted } = state;
   const main = guests[0] ?? {};
 
   const fullName = (g: typeof main) =>
     [g.nombre, g.apellido, g.apellido2].filter(Boolean).join(' ');
 
   return (
-    <div className="screen">
+    <>
       <div className="sec-hdr">
         <h2>Revise sus datos</h2>
         <p>Compruebe que toda la información es correcta antes de confirmar el pre check-in.</p>
@@ -88,28 +91,31 @@ export const ScreenRevision: React.FC<RevisionProps> = ({ state, onEditStep, onS
           </div>
         )}
 
-        {/* Un bloque por cada huésped */}
         {guests.map((g, idx) => (
           <React.Fragment key={idx}>
             <ConfirmBlock
               title={idx === 0 ? 'Huésped principal — datos personales' : `Acompañante ${idx + 1} — datos personales`}
               onEdit={() => onEditStep('form_personal')}
               rows={[
-                ['Nombre', fullName(g)],
-                ['Sexo', g.sexo ?? null],
-                ['Nacimiento', g.fechaNac ?? null],
-                ['Nacionalidad', g.nacionalidad ?? null],
-                g.tienesMenor ? ['Menor', `${g.nombreMenor ?? '—'} (${g.relacionMenor ?? '—'})`] : ['', ''],
+                ['Nombre',       fullName(g)       || null],
+                ['Sexo',         g.sexo            ?? null],
+                ['Nacimiento',   g.fechaNac         ?? null],
+                ['Nacionalidad', g.nacionalidad    ?? null],
+                // FIX 9: Evitar key '' duplicada — usar undefined para omitir la fila
+                ...(g.tienesMenor
+                  ? [['Menor', `${g.nombreMenor ?? '—'} (${g.relacionMenor ?? '—'})`] as [string, string]]
+                  : []
+                ),
               ]}
             />
             <ConfirmBlock
               title={idx === 0 ? 'Huésped principal — documento' : `Acompañante ${idx + 1} — documento`}
               onEdit={() => onEditStep('form_documento')}
               rows={[
-                ['Tipo', g.tipoDoc ?? null],
-                ['Número', g.numDoc ?? null],
-                g.vat ? ['VAT', g.vat] : ['', ''],
-                ['Foto', g.docUploaded ? '✓ Adjuntada' : '—'],
+                ['Tipo',   g.tipoDoc    ?? null],
+                ['Número', g.numDoc     ?? null],
+                ...(g.vat ? [['VAT', g.vat] as [string, string]] : []),
+                ['Foto',   g.docUploaded ? '✓ Adjuntada' : '—'],
               ]}
             />
           </React.Fragment>
@@ -119,9 +125,10 @@ export const ScreenRevision: React.FC<RevisionProps> = ({ state, onEditStep, onS
           title="Contacto y dirección"
           onEdit={() => onEditStep('form_contacto')}
           rows={[
-            ['Email', main.email ?? null],
-            ['Teléfono', main.telefono ?? null],
-            ['Dirección', [main.direccion, main.ciudad, main.provincia, main.cp, main.pais].filter(Boolean).join(', ') || null],
+            ['Email',     main.email    ?? null],
+            ['Teléfono',  main.telefono ?? null],
+            ['Dirección', [main.direccion, main.ciudad, main.provincia, main.cp, main.pais]
+              .filter(Boolean).join(', ') || null],
           ]}
         />
 
@@ -130,20 +137,20 @@ export const ScreenRevision: React.FC<RevisionProps> = ({ state, onEditStep, onS
             title="Preferencias"
             onEdit={() => onEditStep('form_extras')}
             rows={[
-              ['Llegada', horaLlegada || null],
-              ['Notas', observaciones || null],
+              ['Llegada', horaLlegada  || null],
+              ['Notas',   observaciones || null],
             ]}
           />
         )}
       </div>
 
-      {/* Checkbox de aceptación */}
+      {/* FIX 14: RGPD usa estado global (onRgpdChange) — sobrevive al Atrás */}
       <div className="chk-area">
         <input
           type="checkbox"
           id="chk-accept"
-          checked={accepted}
-          onChange={e => setAccepted(e.target.checked)}
+          checked={rgpdAcepted ?? false}
+          onChange={e => onRgpdChange(e.target.checked)}
         />
         <label htmlFor="chk-accept">
           Confirmo que los datos son correctos y acepto la{' '}
@@ -154,19 +161,23 @@ export const ScreenRevision: React.FC<RevisionProps> = ({ state, onEditStep, onS
 
       <div className="spacer" />
       <div className="btn-row">
+        {/* FIX 23: Botón muestra spinner mientras hace POST */}
         <Button
           variant="primary"
-          iconRight="check"
+          iconRight={isSubmitting ? undefined : 'check'}
           onClick={onSubmit}
-          disabled={!accepted}
+          disabled={!rgpdAcepted || isSubmitting}
         >
-          Completar pre check-in
+          {isSubmitting
+            ? <><div className="spinner" style={{ width: 18, height: 18, borderWidth: 2 }} />Enviando…</>
+            : 'Completar pre check-in'
+          }
         </Button>
         <div className="privacy">
           <Icon name="lock" size={11} /> Cifrado SSL · Datos protegidos conforme al RGPD
         </div>
       </div>
-    </div>
+    </>
   );
 };
 
@@ -182,8 +193,18 @@ export const ScreenExito: React.FC<ExitoProps> = ({ state }) => {
   const main = guests[0] ?? {};
   const nombreCompleto = [main.nombre, main.apellido].filter(Boolean).join(' ');
 
+  // FIX 27: Imprimir confirmación
+  const handlePrint = () => window.print();
+
+  // FIX 27: Añadir hora de llegada navega al paso extras
+  // (No podemos goTo aquí porque estamos fuera del hook — usar navigate directamente)
+  // En producción, este botón abriría un modal o un enlace a soporte.
+  const handleAddHora = () => {
+    window.history.back(); // Simplificado — en producción: link a área de cliente
+  };
+
   return (
-    <div className="screen">
+    <>
       <div className="success-wrap">
         <div className="success-ring">
           <Icon name="checkC" size={42} color="var(--ok)" />
@@ -232,18 +253,26 @@ export const ScreenExito: React.FC<ExitoProps> = ({ state }) => {
         </div>
 
         <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 10 }}>
-          <Button variant="primary" style={{ background: 'var(--secondary)' }}>
-            <Icon name="check" size={16} /> Finalizar
+          {/* FIX 27: Botón Finalizar funcional (imprime o cierra) */}
+          <Button
+            variant="primary"
+            style={{ background: 'var(--secondary)' }}
+            onClick={handlePrint}
+          >
+            <Icon name="check" size={16} /> Guardar / Imprimir confirmación
           </Button>
-          <Button variant="secondary" iconLeft="clock">
-            Añadir hora de llegada
-          </Button>
+          {/* FIX 27: Botón hora de llegada funcional */}
+          {(!horaLlegada || horaLlegada === 'No especificada') && (
+            <Button variant="secondary" iconLeft="clock" onClick={handleAddHora}>
+              Añadir hora de llegada
+            </Button>
+          )}
         </div>
 
         <div className="privacy" style={{ marginTop: 14 }}>
           <Icon name="info" size={11} /> Recibirá una confirmación en su email
         </div>
       </div>
-    </div>
+    </>
   );
 };

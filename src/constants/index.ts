@@ -1,6 +1,8 @@
-import type { GuestData, Reserva, StepId } from '../types';
+// ─── NOTA: MOCK_RESERVAS movido a /mocks/mockData.ts (FIX 17) ─────────────────
+// constants/index.ts solo contiene constantes reales de la app.
 
-// ─── Paleta de colores (CSS vars reference) ────────────────────────────────
+import type { GuestData, StepId } from '../types';
+
 export const COLORS = {
   primary:    '#fa865c',
   primaryD:   '#e5704a',
@@ -22,7 +24,6 @@ export const COLORS = {
   errBg:      '#fdf2f2',
 } as const;
 
-// ─── Mock: cliente conocido (viene por email con historial) ────────────────
 export const MOCK_KNOWN_GUEST: GuestData = {
   nombre: 'Carlos', apellido: 'García', apellido2: 'López',
   sexo: 'Hombre', fechaNac: '1985-03-22', nacionalidad: 'Española',
@@ -32,27 +33,6 @@ export const MOCK_KNOWN_GUEST: GuestData = {
   tipoDoc: 'DNI', numDoc: '12345678A', vat: '',
 };
 
-// ─── Mock: reservas para modo tablet ──────────────────────────────────────
-export const MOCK_RESERVAS: Record<string, Reserva> = {
-  '78432': {
-    confirmacion: '#LM-78432',
-    habitacion: 'Suite Junior Deluxe',
-    fechaEntrada: '15 mar 2025',
-    fechaSalida: '18 mar 2025',
-    numHuespedes: 2,
-    numNoches: 3,
-  },
-  '99999': {
-    confirmacion: '#LM-99999',
-    habitacion: 'Habitación Superior',
-    fechaEntrada: '22 abr 2025',
-    fechaSalida: '25 abr 2025',
-    numHuespedes: 1,
-    numNoches: 3,
-  },
-};
-
-// ─── Opciones de selects ───────────────────────────────────────────────────
 export const PAISES = [
   'España', 'Alemania', 'Francia', 'Italia', 'Portugal',
   'Reino Unido', 'EE. UU.', 'Argentina', 'México', 'Otro',
@@ -74,38 +54,18 @@ export const HORAS_LLEGADA = [
 ];
 
 export const SEXOS = ['Hombre', 'Mujer', 'No indicar'];
-
 export const RELACIONES_MENOR = ['Hijo/a', 'Sobrino/a', 'Tutor legal', 'Otra'];
 
-// ─── Definición de pasos con puntitos ─────────────────────────────────────
-// Los pasos que aparecen como dots en la barra de progreso.
-// "tablet_buscar" queda fuera del flujo con dots.
-// El índice de guest (cuando hay varios) se añade dinámicamente en el hook.
 export const FLOW_STEPS_LINK: StepId[] = [
-  'bienvenida',
-  'num_personas',
-  'escanear',        // o form_personal; ambos comparten el mismo dot
-  'form_personal',
-  'form_contacto',
-  'form_documento',
-  'form_extras',
-  'revision',
-  'exito',
+  'bienvenida', 'num_personas', 'escanear', 'form_personal',
+  'form_contacto', 'form_documento', 'form_extras', 'revision', 'exito',
 ];
 
-// Pasos que se muestran como dots (simplificado para la UI)
 export const DOT_STEPS_BASE: StepId[] = [
-  'bienvenida',
-  'num_personas',
-  'form_personal',   // "escanear" comparte este dot
-  'form_contacto',
-  'form_documento',
-  'form_extras',
-  'revision',
-  'exito',
+  'bienvenida', 'num_personas', 'form_personal', 'form_contacto',
+  'form_documento', 'form_extras', 'revision', 'exito',
 ];
 
-// Etiquetas para tooltip de dots
 export const DOT_LABELS: Partial<Record<StepId, string>> = {
   bienvenida:    'Bienvenida',
   num_personas:  'Personas',

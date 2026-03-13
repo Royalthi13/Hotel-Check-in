@@ -27,18 +27,15 @@ export interface Reserva {
 
 // ─── Datos de un huésped ──────────────────────────────────────────────────────
 export interface GuestData {
-  // Personal
   nombre: string;
   apellido: string;
   apellido2: string;
   sexo: string;
   fechaNac: string;
   nacionalidad: string;
-  // Menor acompañante (solo huésped principal)
   tienesMenor?: boolean;
   nombreMenor?: string;
   relacionMenor?: string;
-  // Contacto (solo huésped principal)
   email?: string;
   telefono?: string;
   direccion?: string;
@@ -46,10 +43,10 @@ export interface GuestData {
   provincia?: string;
   cp?: string;
   pais?: string;
-  // Documento
   tipoDoc: string;
   numDoc: string;
   vat?: string;
+  // FIX 1: docFile nunca se serializa — solo docUploaded persiste
   docFile?: File | null;
   docUploaded?: boolean;
 }
@@ -60,15 +57,13 @@ export type PartialGuestData = Partial<GuestData>;
 export interface CheckinState {
   appMode: AppMode;
   reserva: Reserva | null;
-  /** Si el email está en la BD, datos precargados */
   knownGuest: GuestData | null;
-  /** Número total de personas (principal + acompañantes) */
   numPersonas: number;
-  /** Array de datos por persona. Índice 0 = huésped principal */
   guests: PartialGuestData[];
-  /** Preferencias / extras (solo una vez, no por persona) */
   horaLlegada: string;
   observaciones: string;
+  // FIX 14: RGPD persiste en estado global — sobrevive al botón Atrás
+  rgpdAcepted: boolean;
 }
 
 // ─── Errores de validación ────────────────────────────────────────────────────

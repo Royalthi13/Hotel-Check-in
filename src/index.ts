@@ -3,7 +3,6 @@
 export { default as App } from './App';
 export * from './types';
 export * from './constants';
-export * from './constants/styles';
 export * from './hooks/useCheckin';
 export * from './hooks/useFormValidation';
 export * from './components/ui';
