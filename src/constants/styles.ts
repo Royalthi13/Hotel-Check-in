@@ -838,4 +838,60 @@ html, body, #root {
   .success-title { font-size:44px; }
   .success-wrap  { padding-top:56px; }
 }
+
+/* ... todo tu código anterior ... */
+
+.success-wrap {
+  padding-top:56px;
+}
+
+/* ════════════════════════════════════════════════════════════════════════
+   AUTOCOMPLETE SUGGESTIONS (Pegado correctamente dentro del string)
+   ════════════════════════════════════════════════════════════════════════ */
+.field-autocomplete {
+  position: relative;
+  width: 100%;
+}
+
+.suggestions-list {
+  position: absolute;
+  top: calc(var(--input-h) + 4px);
+  left: 0;
+  right: 0;
+  background: var(--white);
+  border: 1.5px solid var(--primary);
+  border-radius: var(--r);
+  box-shadow: 0 10px 25px rgba(50, 65, 84, 0.15);
+  z-index: 1000;
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+.suggestion-item {
+  padding: 12px 14px;
+  cursor: pointer;
+  font-size: var(--fs-sm);
+  color: var(--text);
+  display: flex;
+  flex-direction: column;
+  border-bottom: 1px solid var(--border-lt);
+  transition: all 0.2s;
+}
+
+.suggestion-item:hover {
+  background: var(--primary-lt);
+}
+
+.suggestion-item strong {
+  color: var(--text);
+  font-weight: 600;
+}
+
+.suggestion-item span {
+  font-size: 10px;
+  color: var(--text-low);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
 `;
