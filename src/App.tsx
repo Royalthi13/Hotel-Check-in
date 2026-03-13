@@ -1,4 +1,5 @@
-import React, { useEffect } from 'react';
+import { useEffect } from 'react';
+import { BrowserRouter, Routes, Route, Navigate, useParams } from 'react-router-dom';
 import { GLOBAL_CSS } from './constants/styles';
 import { useCheckin } from './hooks/useCheckin';
 import { AppShell } from './layout/AppShell';
@@ -19,9 +20,8 @@ import {
   ScreenExito,
 } from './screens/ScreenExtrasRevisionExito';
 
-import type { AppMode, StepId } from './types';
+import type { StepId } from './types';
 
-// ── Inyecta el CSS en <head> para que aplique globalmente ──────────────
 function useGlobalStyles(css: string) {
   useEffect(() => {
     let el = document.getElementById('app-global-styles') as HTMLStyleElement | null;
@@ -35,22 +35,14 @@ function useGlobalStyles(css: string) {
   }, [css]);
 }
 
-// ─────────────────────────────────────────────────────────────────────────
-// Cambia aquí el modo de la app:
-//   'link'   → flujo de enlace por email (cliente llega desde un link)
-//   'tablet' → flujo de quiosco en el hotel (búsqueda por número de reserva)
-//
-// En producción leerlo de la URL:
-//   const APP_MODE: AppMode = new URLSearchParams(location.search).has('tablet') ? 'tablet' : 'link';
-// ─────────────────────────────────────────────────────────────────────────
-const APP_MODE: AppMode = 'link';
-
 const STEPS_WITHOUT_DOTS = new Set<StepId>(['tablet_buscar', 'exito']);
 
-export default function App() {
-  useGlobalStyles(GLOBAL_CSS);
+function CheckinWizard() {
+  // 1. Leemos el estado desde la URL
+  const { token, step } = useParams();
 
-  const [state, nav, actions] = useCheckin(APP_MODE);
+  // 2. Pasamos token y step al hook
+  const [state, nav, actions] = useCheckin(token, step);
 
   const {
     goTo, goBack, goToDotIndex,
@@ -59,10 +51,15 @@ export default function App() {
     setHoraLlegada, setObservaciones, nextGuest,
   } = actions;
 
-  const { step, guestIndex } = nav;
-  const showDots   = !STEPS_WITHOUT_DOTS.has(step);
-  const isMainGuest = guestIndex === 0;
-  const currentGuest = state.guests[guestIndex] ?? {};
+  const currentStep = nav.step;
+  const showDots   = !STEPS_WITHOUT_DOTS.has(currentStep);
+  const isMainGuest = nav.guestIndex === 0;
+  const currentGuest = state.guests[nav.guestIndex] ?? {};
+
+  // 3. Redirección de seguridad si falta el step
+  if (!step) {
+    return <Navigate to={`/checkin/${token}/bienvenida`} replace />;
+  }
 
   const handleChooseManual = () => {
     if (state.knownGuest) {
@@ -78,7 +75,7 @@ export default function App() {
   };
 
   // ── Tablet buscar ──────────────────────────────────────────────────────
-  if (step === 'tablet_buscar') {
+  if (currentStep === 'tablet_buscar') {
     return (
       <div className="shell">
         <div className="card">
@@ -95,7 +92,7 @@ export default function App() {
       actions={{ goBack, goToDotIndex }}
       showDots={showDots}
     >
-      {step === 'bienvenida' && (
+      {currentStep === 'bienvenida' && (
         <ScreenBienvenida
           knownGuest={state.knownGuest}
           reserva={state.reserva}
@@ -104,7 +101,7 @@ export default function App() {
         />
       )}
 
-      {step === 'num_personas' && (
+      {currentStep === 'num_personas' && (
         <ScreenNumPersonas
           value={state.numPersonas}
           onChange={setNumPersonas}
@@ -112,18 +109,18 @@ export default function App() {
         />
       )}
 
-      {step === 'confirmar_datos' && (
+      {currentStep === 'confirmar_datos' && (
         <ScreenFormPersonal
           data={currentGuest}
-          onChange={(key, value) => updateGuest(guestIndex, key, value)}
-          guestIndex={guestIndex}
+          onChange={(key, value) => updateGuest(nav.guestIndex, key, value)}
+          guestIndex={nav.guestIndex}
           totalGuests={state.numPersonas}
           isMainGuest={isMainGuest}
           onNext={handleConfirmKnown}
         />
       )}
 
-      {step === 'escanear' && (
+      {currentStep === 'escanear' && (
         <ScreenEscanear
           onScanned={(data) => {
             applyScannedData(data);
@@ -133,11 +130,11 @@ export default function App() {
         />
       )}
 
-      {step === 'form_personal' && (
+      {currentStep === 'form_personal' && (
         <ScreenFormPersonal
           data={currentGuest}
-          onChange={(key, value) => updateGuest(guestIndex, key, value)}
-          guestIndex={guestIndex}
+          onChange={(key, value) => updateGuest(nav.guestIndex, key, value)}
+          guestIndex={nav.guestIndex}
           totalGuests={state.numPersonas}
           isMainGuest={isMainGuest}
           onNext={() => {
@@ -150,26 +147,26 @@ export default function App() {
         />
       )}
 
-      {step === 'form_contacto' && (
+      {currentStep === 'form_contacto' && (
         <ScreenFormContacto
           data={currentGuest}
-          onChange={(key, value) => updateGuest(guestIndex, key, value)}
+          onChange={(key, value) => updateGuest(nav.guestIndex, key, value)}
           onNext={() => goTo('form_documento')}
         />
       )}
 
-      {step === 'form_documento' && (
+      {currentStep === 'form_documento' && (
         <ScreenFormDocumento
           data={currentGuest}
-          onChange={(key, value) => updateGuest(guestIndex, key, value)}
-          guestIndex={guestIndex}
+          onChange={(key, value) => updateGuest(nav.guestIndex, key, value)}
+          guestIndex={nav.guestIndex}
           totalGuests={state.numPersonas}
           isMainGuest={isMainGuest}
-          onNext={() => nextGuest(guestIndex, 'form_documento')}
+          onNext={() => nextGuest(nav.guestIndex, 'form_documento')}
         />
       )}
 
-      {step === 'form_extras' && (
+      {currentStep === 'form_extras' && (
         <ScreenFormExtras
           horaLlegada={state.horaLlegada}
           observaciones={state.observaciones}
@@ -179,7 +176,7 @@ export default function App() {
         />
       )}
 
-      {step === 'revision' && (
+      {currentStep === 'revision' && (
         <ScreenRevision
           state={state}
           onEditStep={(targetStep) => goTo(targetStep as StepId, 'back')}
@@ -187,9 +184,23 @@ export default function App() {
         />
       )}
 
-      {step === 'exito' && (
+      {currentStep === 'exito' && (
         <ScreenExito state={state} />
       )}
     </AppShell>
+  );
+}
+
+// El App principal solo provee el Router
+export default function App() {
+  useGlobalStyles(GLOBAL_CSS);
+
+  return (
+    <BrowserRouter>
+      <Routes>
+        <Route path="/checkin/:token/:step?" element={<CheckinWizard />} />
+        <Route path="*" element={<Navigate to="/checkin/new/bienvenida" replace />} />
+      </Routes>
+    </BrowserRouter>
   );
 }

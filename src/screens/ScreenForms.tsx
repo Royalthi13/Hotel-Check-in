@@ -1,8 +1,15 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Field, Button, Alert, Icon } from '../components/ui';
 import { PAISES, NACIONALIDADES, TIPOS_DOCUMENTO, SEXOS, RELACIONES_MENOR } from '../constants';
 import { useFormValidation, validatePersonal, validateContacto, validateDocumento } from '../hooks/useFormValidation';
 import type { PartialGuestData } from '../types';
+
+// ── Imports de Material UI para el calendario ──────────────────────────────
+import { LocalizationProvider } from '@mui/x-date-pickers';
+import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
+import { DatePicker } from '@mui/x-date-pickers/DatePicker';
+import dayjs from 'dayjs';
+import 'dayjs/locale/es'; // Formato en español
 
 // ═══════════════════════════════════════════════════════════════════════════
 // FORM PERSONAL
@@ -85,13 +92,30 @@ export const ScreenFormPersonal: React.FC<FormPersonalProps> = ({
               {SEXOS.map(s => <option key={s}>{s}</option>)}
             </select>
           </Field>
+          
+          {/* 🛡️ DEFENSA: MUI DatePicker Aislado */}
           <Field label="Fecha de nacimiento" required error={errors.fechaNac}>
-            <input
-              type="date"
-              value={data.fechaNac ?? ''}
-              onChange={e => onChange('fechaNac', e.target.value)}
-              className={errors.fechaNac ? 'err' : ''}
-            />
+            <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="es">
+              <DatePicker
+                value={data.fechaNac ? dayjs(data.fechaNac) : null}
+                onChange={(newValue) => {
+                  // Mantenemos el estado agnóstico de Material UI guardando un simple string
+                  const dateString = newValue ? newValue.format('YYYY-MM-DD') : '';
+                  onChange('fechaNac', dateString);
+                }}
+                slotProps={{
+                  textField: {
+                    className: errors.fechaNac ? 'err' : '',
+                    placeholder: 'DD/MM/AAAA',
+                    // Adaptamos la altura para que coincida con tus inputs normales
+                    sx: { 
+                      '& .MuiInputBase-root': { height: '42px', borderRadius: '8px', fontSize: '15px' },
+                      width: '100%'
+                    }
+                  }
+                }}
+              />
+            </LocalizationProvider>
           </Field>
         </div>
 
@@ -102,7 +126,6 @@ export const ScreenFormPersonal: React.FC<FormPersonalProps> = ({
           </select>
         </Field>
 
-        {/* Menores solo para el huésped principal */}
         {isMainGuest && (
           <>
             <div className="divlabel">Acompañante menor (si aplica)</div>
@@ -305,7 +328,6 @@ export const ScreenFormDocumento: React.FC<FormDocumentoProps> = ({
           </Field>
         </div>
 
-        {/* VAT solo para huésped principal */}
         {isMainGuest && (
           <Field label="VAT / NIF fiscal (opcional)">
             <input
@@ -317,7 +339,6 @@ export const ScreenFormDocumento: React.FC<FormDocumentoProps> = ({
           </Field>
         )}
 
-        {/* Foto del documento — completamente OPCIONAL */}
         <div className="divlabel">Foto del documento (opcional)</div>
         <Alert variant="info" style={{ marginBottom: 10 }}>
           Adjuntar la foto del documento es <strong>opcional</strong>. Si prefiere no hacerlo,
