@@ -306,14 +306,15 @@ export const ScreenFormPersonal: React.FC<FormPersonalProps> = ({
 // ═══════════════════════════════════════════════════════════════════════════
 // 2. FORM CONTACTO
 // ═══════════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════════════
+// 2. FORM CONTACTO (FLUJO INTERNACIONAL)
+// ═══════════════════════════════════════════════════════════════════════════
 export const ScreenFormContacto: React.FC<FormContactoProps> = ({
   data,
   onChange,
   onNext,
 }) => {
   const { errors, validate } = useFormValidation(validateContacto);
-
-  // ⚡ AQUÍ INYECTAMOS EL HOOK CON LOS NOMBRES EXACTOS PARA QUE NO DÉ ERROR ⚡
   const { buscarCP, isSearching } = useZipCode(onChange);
 
   const handleNext = () => {
@@ -343,30 +344,39 @@ export const ScreenFormContacto: React.FC<FormContactoProps> = ({
           gap: 2.5,
         }}
       >
-        <div>
-          <TextField
-            label="Email"
-            required
-            fullWidth
-            value={data.email ?? ""}
-            onChange={(e) => onChange("email", e.target.value)}
-            error={!!errors.email}
-            sx={inputSx}
-          />
-          <FieldError msg={errors.email} />
-        </div>
-        <div>
-          <TextField
-            label="Teléfono"
-            required
-            fullWidth
-            value={data.telefono ?? ""}
-            onChange={(e) => onChange("telefono", e.target.value)}
-            error={!!errors.telefono}
-            sx={inputSx}
-          />
-          <FieldError msg={errors.telefono} />
-        </div>
+        {/* Email y Teléfono (Igual que antes) */}
+        <Box
+          sx={{
+            display: "grid",
+            gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" },
+            gap: 2,
+          }}
+        >
+          <div>
+            <TextField
+              label="Email"
+              required
+              fullWidth
+              value={data.email ?? ""}
+              onChange={(e) => onChange("email", e.target.value)}
+              error={!!errors.email}
+              sx={inputSx}
+            />
+            <FieldError msg={errors.email} />
+          </div>
+          <div>
+            <TextField
+              label="Teléfono"
+              required
+              fullWidth
+              value={data.telefono ?? ""}
+              onChange={(e) => onChange("telefono", e.target.value)}
+              error={!!errors.telefono}
+              sx={inputSx}
+            />
+            <FieldError msg={errors.telefono} />
+          </div>
+        </Box>
 
         <TextField
           label="Dirección habitual"
@@ -376,34 +386,9 @@ export const ScreenFormContacto: React.FC<FormContactoProps> = ({
           sx={inputSx}
         />
 
-        <Box
-          sx={{
-            display: "grid",
-            gridTemplateColumns: { xs: "1fr", sm: "1fr 2fr" },
-            gap: 2,
-          }}
-        >
-          <TextField
-            label="Código Postal"
-            fullWidth
-            value={data.cp ?? ""}
-            onChange={(e) => {
-              const val = e.target.value.replace(/\D/g, "").slice(0, 5);
-              onChange("cp", val);
-              if (val.length === 5) buscarCP(val);
-            }}
-            sx={inputSx}
-            InputProps={{ endAdornment: isSearching ? "⏳" : null }}
-          />
-          <TextField
-            label="Provincia"
-            fullWidth
-            value={data.provincia ?? ""}
-            onChange={(e) => onChange("provincia", e.target.value)}
-            sx={inputSx}
-          />
-        </Box>
+        <div className="divlabel">Ubicación internacional</div>
 
+        {/* 1. PRIMERO PEDIMOS EL PAÍS */}
         <Box
           sx={{
             display: "grid",
@@ -411,13 +396,6 @@ export const ScreenFormContacto: React.FC<FormContactoProps> = ({
             gap: 2,
           }}
         >
-          <TextField
-            label="Ciudad"
-            fullWidth
-            value={data.ciudad ?? ""}
-            onChange={(e) => onChange("ciudad", e.target.value)}
-            sx={inputSx}
-          />
           <div>
             <TextField
               select
@@ -437,6 +415,51 @@ export const ScreenFormContacto: React.FC<FormContactoProps> = ({
             </TextField>
             <FieldError msg={errors.pais} />
           </div>
+
+          {/* 2. LUEGO EL CÓDIGO POSTAL */}
+          <TextField
+            label="Código Postal"
+            fullWidth
+            value={data.cp ?? ""}
+            onChange={(e) => onChange("cp", e.target.value.toUpperCase())} // ToUpperCase por si hay letras (ej. UK)
+            onBlur={() => {
+              // ⚡ LA MAGIA: Al salir del campo, si hay país y CP, buscamos
+              if (data.cp && data.pais) {
+                buscarCP(data.cp, data.pais);
+              }
+            }}
+            sx={inputSx}
+            InputProps={{ endAdornment: isSearching ? "⏳" : null }}
+            helperText={
+              !data.pais
+                ? "Seleccione un país primero"
+                : "Búsqueda automática al terminar de escribir"
+            }
+          />
+        </Box>
+
+        {/* 3. LOS CAMPOS QUE SE RELLENAN SOLOS */}
+        <Box
+          sx={{
+            display: "grid",
+            gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" },
+            gap: 2,
+          }}
+        >
+          <TextField
+            label="Ciudad"
+            fullWidth
+            value={data.ciudad ?? ""}
+            onChange={(e) => onChange("ciudad", e.target.value)}
+            sx={inputSx}
+          />
+          <TextField
+            label="Provincia"
+            fullWidth
+            value={data.provincia ?? ""}
+            onChange={(e) => onChange("provincia", e.target.value)}
+            sx={inputSx}
+          />
         </Box>
       </Box>
       <div className="spacer" />
@@ -448,7 +471,6 @@ export const ScreenFormContacto: React.FC<FormContactoProps> = ({
     </>
   );
 };
-
 // ═══════════════════════════════════════════════════════════════════════════
 // 3. FORM DOCUMENTO
 // ═══════════════════════════════════════════════════════════════════════════
