@@ -46,6 +46,7 @@ export interface GuestData {
   tipoDoc: string;
   numDoc: string;
   vat?: string;
+  // FIX 1: docFile nunca se serializa — solo docUploaded persiste
   docFile?: File | null;
   docUploaded?: boolean;
 }

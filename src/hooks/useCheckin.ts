@@ -7,9 +7,29 @@ import type {
 } from '../types';
 import { DOT_STEPS_BASE } from '../constants';
 
-// HistoryEntry es INTERNO al hook — sin export deliberadamente.
-// Si lo necesitaras fuera, iría a types/. Aquí no, porque ningún consumidor externo lo usa.
-type HistoryEntry = { step: StepId; guestIndex: number };
+export interface CheckinNav {
+  step: StepId;
+  guestIndex: number;
+  direction: NavDirection;
+  dotSteps: StepId[];
+  dotIndex: number;
+  canGoBack: boolean;
+}
+
+export interface CheckinActions {
+  goTo: (step: StepId, dir?: NavDirection, gIdx?: number) => void;
+  goBack: () => void;
+  goToDotIndex: (dotIdx: number) => void;
+  setReservaFromTablet: (res: Reserva) => void;
+  setNumPersonas: (n: number) => void;
+  updateGuest: (index: number, key: keyof PartialGuestData, value: unknown) => void;
+  confirmKnownGuest: () => void;
+  applyScannedData: (data: Partial<GuestData>, guestIdx?: number) => void;
+  setHoraLlegada: (v: string) => void;
+  setObservaciones: (v: string) => void;
+  nextGuest: (currentGuestIndex: number, fromStep: StepId) => void;
+  setRgpdAcepted: (v: boolean) => void;
+}
 
 const EMPTY_GUEST: PartialGuestData = {};
 
@@ -33,6 +53,8 @@ function buildEmptyState(appMode: AppMode): CheckinState {
     rgpdAcepted: false,
   };
 }
+
+type HistoryEntry = { step: StepId; guestIndex: number };
 
 // FIX 22: Intentar recuperar de localStorage también (persiste entre sesiones)
 function hydrateState(token: string, appMode: AppMode): CheckinState {
@@ -79,10 +101,7 @@ function pruneOldSessions(currentToken: string) {
   }
 }
 
-export function useCheckin(
-  token: string = 'new',
-  urlStep?: string,
-): [CheckinState, CheckinNav, CheckinActions, boolean] {
+export function useCheckin(token: string = 'new', urlStep?: string): [CheckinState, CheckinNav, CheckinActions, boolean] {
   const navigate = useNavigate();
   const appMode: AppMode = token === 'new' ? 'link' : 'tablet';
   const step = (urlStep as StepId) || 'bienvenida';
@@ -100,10 +119,16 @@ export function useCheckin(
   const allowedStepsRef = useRef(allowedSteps);
   useEffect(() => { allowedStepsRef.current = allowedSteps; }, [allowedSteps]);
 
-  // ── FETCH DATOS ──────────────────────────────────────────────────────────
+  // ── FETCH DATOS (solo si hay token real) ──────────────────────────────
   useEffect(() => {
-    if (token === 'new') { setIsLoading(false); return; }
-    if (state.knownGuest || state.reserva) { setIsLoading(false); return; }
+    if (token === 'new') {
+      setIsLoading(false);
+      return;
+    }
+    if (state.knownGuest || state.reserva) {
+      setIsLoading(false);
+      return;
+    }
 
     setIsLoading(true);
     fetch(`/api/checkin/${token}`)
@@ -121,18 +146,22 @@ export function useCheckin(
       .finally(() => setIsLoading(false));
   }, [token]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // ── PERSISTENCIA ─────────────────────────────────────────────────────────
+  // ── PERSISTENCIA ─────────────────────────────────────────────────────
   useEffect(() => {
     pruneOldSessions(token);
-    const sanitized = { ...state, guests: sanitizeGuestsForStorage(state.guests) };
+    const sanitized = {
+      ...state,
+      guests: sanitizeGuestsForStorage(state.guests), // FIX 1
+    };
     const serialized = JSON.stringify(sanitized);
     sessionStorage.setItem(`state_${token}`, serialized);
-    localStorage.setItem(`state_${token}`, serialized);
+    localStorage.setItem(`state_${token}`, serialized);           // FIX 22
     sessionStorage.setItem(`allowedSteps_${token}`, JSON.stringify([...allowedSteps]));
     sessionStorage.setItem(`history_${token}`, JSON.stringify(history));
   }, [state, allowedSteps, history, token]);
 
-  // ── VIGILANTE DE URL ─────────────────────────────────────────────────────
+  // ── VIGILANTE DE URL ─────────────────────────────────────────────────
+  // FIX 4: Usa ref síncrono, sin allowedSteps en dependencias → sin bucle
   useEffect(() => {
     if (isLoading) return;
     const isEntryStep = step === 'bienvenida' || step === 'tablet_buscar';
@@ -143,20 +172,22 @@ export function useCheckin(
       return;
     }
     if (!allowedStepsRef.current.has(step)) {
-      const lastSafe = history.length > 0 ? history[history.length - 1].step : 'bienvenida';
+      const hist = history;
+      const lastSafe = hist.length > 0 ? hist[hist.length - 1].step : 'bienvenida';
       navigate(`/checkin/${token}/${lastSafe}`, { replace: true });
     }
   }, [step, isLoading, navigate, token, history]);
 
-  // ── DOTS ─────────────────────────────────────────────────────────────────
+  // ── CÁLCULO DE DOTS ──────────────────────────────────────────────────
   const dotSteps = DOT_STEPS_BASE;
   const dotForStep = (s: StepId): StepId =>
     (s === 'escanear' || s === 'confirmar_datos') ? 'form_personal' : s;
+  // FIX 10: Fallback a 0 si el step no está mapeado — nunca -1 silencioso
   const rawDotIndex = dotSteps.indexOf(dotForStep(step));
-  const dotIndex = rawDotIndex >= 0 ? rawDotIndex : 0; // FIX 10: nunca -1
+  const dotIndex = rawDotIndex >= 0 ? rawDotIndex : 0;
   const canGoBack = step !== 'bienvenida' && step !== 'exito' && step !== 'tablet_buscar' && history.length > 0;
 
-  // ── ACCIONES ─────────────────────────────────────────────────────────────
+  // ── ACCIONES ─────────────────────────────────────────────────────────
   const goTo = useCallback((nextStep: StepId, dir: NavDirection = 'forward', gIdx?: number) => {
     setHistory(h => [...h, { step, guestIndex }]);
     setDirection(dir);
@@ -188,7 +219,7 @@ export function useCheckin(
 
   // FIX 5: Usar ref para evitar redirección redundante del vigilante
   const setReservaFromTablet = useCallback((res: Reserva) => {
-    const freshAllowed = new Set<StepId>(['bienvenida', 'tablet_buscar']);
+    const freshAllowed = new Set<StepId>(['bienvenida', 'tablet_buscar', 'bienvenida']);
     allowedStepsRef.current = freshAllowed;
     setAllowedSteps(freshAllowed);
     setState(s => ({
@@ -221,7 +252,9 @@ export function useCheckin(
   }, []);
 
   // FIX 6: confirmKnownGuest ya NO navega — la navegación la controla App.tsx
-  const confirmKnownGuest = useCallback(() => {}, []);
+  const confirmKnownGuest = useCallback(() => {
+    // Solo prepara el estado; App.tsx llama goTo('form_contacto') por separado
+  }, []);
 
   // FIX 11: applyScannedData acepta guestIdx para escanear por huésped, no global
   const applyScannedData = useCallback((data: Partial<GuestData>, guestIdx: number = 0) => {
@@ -238,21 +271,26 @@ export function useCheckin(
   // FIX 14: Persistir aceptación RGPD en estado global
   const setRgpdAcepted = useCallback((v: boolean) => setState(s => ({ ...s, rgpdAcepted: v })), []);
 
-  // FIX 7: nextGuest corregido — acompañantes van form_personal → form_documento
+  // FIX 7: nextGuest corregido — acompañantes van form_personal → form_documento (sin contacto)
   const nextGuest = useCallback((currentIdx: number, fromStep: StepId) => {
     const total = state.numPersonas;
     if (fromStep === 'form_personal') {
       if (currentIdx === 0) {
+        // Huésped principal siempre va a contacto primero
         goTo('form_contacto', 'forward', 0);
       } else {
+        // Acompañantes: personal → documento directamente
         goTo('form_documento', 'forward', currentIdx);
       }
     } else if (fromStep === 'form_contacto') {
+      // Solo huésped principal llega aquí
       goTo('form_documento', 'forward', 0);
     } else if (fromStep === 'form_documento') {
       if (currentIdx < total - 1) {
+        // Siguiente acompañante
         goTo('form_personal', 'forward', currentIdx + 1);
       } else {
+        // Último huésped → extras
         goTo('form_extras', 'forward', 0);
       }
     }
