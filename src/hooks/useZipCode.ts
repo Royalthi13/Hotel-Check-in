@@ -1,3 +1,4 @@
+// src/hooks/useZipCode.ts
 import { useState } from "react";
 
 export const useZipCode = (onChange: (key: any, value: any) => void) => {
@@ -25,24 +26,28 @@ export const useZipCode = (onChange: (key: any, value: any) => void) => {
     Argentina: "ar",
     Colombia: "co",
   };
+
   const buscarCP = async (cp: string, paisElegido: string) => {
     if (!paisElegido || !cp) return;
 
     const codigoIso = mapaPaises[paisElegido];
-
     if (!codigoIso) return;
 
     setIsSearching(true);
     try {
       if (paisElegido === "España") {
         console.log("Consultando CP para España: ", cp);
+        // Aquí meterás tu futura API para España
       } else {
         const res = await fetch(`https://api.zippopotam.us/${codigoIso}/${cp}`);
         if (res.ok) {
           const data = await res.json();
           const place = data.places[0];
-          onChange("ciudad", place["place name"]);
-          onChange("provincia", place["state"]);
+
+          onChange("ciudad", place["place name"] || "");
+          onChange("provincia", place["state"] || "");
+
+          console.log("CP Encontrado:", place["place name"], place["state"]);
         } else {
           console.log("CP no encontrado en la base internacional.");
         }

@@ -4,7 +4,7 @@ import { useZipCode } from "@/hooks/useZipCode";
 import {
   PAISES,
   NACIONALIDADES,
-  TIPOS_DOCUMENTO,
+  TIPOS_DOCUMENTO, // Recuerda quitar "Carné de conducir" de tu archivo constants
   SEXOS,
   RELACIONES_MENOR,
 } from "@/constants";
@@ -58,6 +58,7 @@ interface FormDocumentoProps {
   totalGuests: number;
   isMainGuest: boolean;
   onNext: () => void;
+  modoFlujo?: "manual" | "escaneo"; // 👈 AQUÍ ESTÁ EL TIPO
 }
 
 const FieldError: React.FC<{ msg?: string }> = ({ msg }) =>
@@ -69,7 +70,7 @@ const FieldError: React.FC<{ msg?: string }> = ({ msg }) =>
   ) : null;
 
 // ═══════════════════════════════════════════════════════════════════════════
-// 1. FORM PERSONAL 
+// 1. FORM PERSONAL (Limpio y correcto)
 // ═══════════════════════════════════════════════════════════════════════════
 export const ScreenFormPersonal: React.FC<FormPersonalProps> = ({
   data, onChange, guestIndex, totalGuests, isMainGuest, onNext,
@@ -182,7 +183,7 @@ export const ScreenFormPersonal: React.FC<FormPersonalProps> = ({
 };
 
 // ═══════════════════════════════════════════════════════════════════════════
-// 2. FORM CONTACTO 
+// 2. FORM CONTACTO (Sin Cambios)
 // ═══════════════════════════════════════════════════════════════════════════
 export const ScreenFormContacto: React.FC<FormContactoProps> = ({
   data, onChange, onNext,
@@ -238,8 +239,20 @@ export const ScreenFormContacto: React.FC<FormContactoProps> = ({
           </TextField>
           <TextField label="Código Postal" fullWidth value={data.cp ?? ""}
             onChange={(e) => onChange("cp", e.target.value.toUpperCase())}
-            onBlur={() => { if (data.cp && data.pais) buscarCP(data.cp, data.pais); }}
-            sx={inputSx} InputProps={{ endAdornment: isSearching ? "⏳" : null }} />
+            onBlur={() => {
+              if (data.cp && data.pais) buscarCP(data.cp, data.pais);
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                if (data.cp && data.pais) {
+                  buscarCP(data.cp, data.pais);
+                }
+              }
+            }}
+            sx={inputSx}
+            InputProps={{ endAdornment: isSearching ? "⏳" : null }}
+          />
         </Box>
 
         <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" }, gap: 2 }}>
@@ -251,6 +264,7 @@ export const ScreenFormContacto: React.FC<FormContactoProps> = ({
             <TextField label="Provincia" fullWidth value={data.provincia ?? ""}
               onChange={(e) => onChange("provincia", e.target.value)} sx={inputSx} />
           )}
+
           {esEspana ? (
             <Autocomplete freeSolo autoHighlight
               options={(sugerenciasMunicipios || []).map((m) => m.nombre)}
@@ -272,13 +286,22 @@ export const ScreenFormContacto: React.FC<FormContactoProps> = ({
   );
 };
 
+
 // ═══════════════════════════════════════════════════════════════════════════
 // 3. FORM DOCUMENTO 
 // ═══════════════════════════════════════════════════════════════════════════
 export const ScreenFormDocumento: React.FC<FormDocumentoProps> = ({
+  data,
+  onChange,
+  guestIndex,
+  totalGuests,
+  isMainGuest,
+  onNext,
+  modoFlujo,
   data, onChange, guestIndex, totalGuests, isMainGuest, onNext,
 }) => {
   const { errors, validate, clearError } = useFormValidation(validateDocumento);
+
 
   useDebounce(() => {
     if (!data.tipoDoc || !data.numDoc) return;
@@ -295,6 +318,8 @@ export const ScreenFormDocumento: React.FC<FormDocumentoProps> = ({
       clearError("numDoc");
     }
   }, 500, [data.numDoc, data.tipoDoc]);
+
+  const mostrarCargaFoto = modoFlujo !== "manual";
 
   return (
     <>
@@ -341,23 +366,47 @@ export const ScreenFormDocumento: React.FC<FormDocumentoProps> = ({
           </div>
         </Box>
 
-        <label htmlFor={`doc-${guestIndex}`} style={{ cursor: "pointer" }}>
-          <div className={`upload-area ${data.docUploaded ? "done" : ""}`}>
-            <Icon name={data.docUploaded ? "checkC" : "upload"} size={24}
-              color={data.docUploaded ? "var(--ok)" : "var(--text-low)"} />
-            <p style={{ marginTop: 8, fontSize: 14, fontWeight: 500 }}>
-              {data.docUploaded ? "Documento cargado" : "Subir foto del documento"}
-            </p>
-          </div>
-          <input type="file" id={`doc-${guestIndex}`} hidden
-            onClick={(e) => { (e.target as HTMLInputElement).value = ""; }}
-            onChange={(e) => {
-              if (e.target.files?.[0]) {
-                onChange("docFile", e.target.files[0]);
+        {mostrarCargaFoto && (
+          <label htmlFor={`doc-${guestIndex}`} style={{ cursor: "pointer" }}>
+            <div className={`upload-area ${data.docUploaded ? "done" : ""}`}>
+              <Icon
+                name={data.docUploaded ? "checkC" : "upload"}
+                size={24}
+                color={data.docUploaded ? "var(--ok)" : "var(--text-low)"}
+              />
+              <p style={{ marginTop: 8, fontSize: 14, fontWeight: 500 }}>
+                {data.docUploaded
+                  ? "Documento cargado"
+                  : "Subir foto del documento"}
+              </p>
+            </div>
+            <input
+              type="file"
+              id={`doc-${guestIndex}`}
+              hidden
+              accept="image/*,.pdf"
+              capture="environment"
+              onClick={(e: React.MouseEvent<HTMLInputElement>) => {
+                (e.target as HTMLInputElement).value = "";
+              }}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                const file = e.target.files?.[0];
+                if (!file) return;
+
+                if (file.size > 10485760) {
+                  alert(
+                    "El archivo es demasiado grande. El máximo permitido son 10 MB.",
+                  );
+                  e.target.value = "";
+                  return;
+                }
+
+                onChange("docFile", file);
                 onChange("docUploaded", true);
-              }
-            }} />
-        </label>
+              }}
+            />
+          </label>
+        )}
       </Box>
 
       <div className="spacer" />

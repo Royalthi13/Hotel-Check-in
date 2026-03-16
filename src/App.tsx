@@ -21,16 +21,16 @@ import {
   ScreenFormPersonal,
   ScreenFormContacto,
   ScreenFormDocumento,
-} from './screens/ScreenForms';
+} from "./screens/ScreenForms";
 import {
   ScreenFormExtras,
   ScreenRevision,
   ScreenExito,
-} from './screens/ScreenExtrasRevisionExito';
+} from "./screens/ScreenExtrasRevisionExito";
 
-import type { StepId } from './types';
+import type { StepId } from "./types";
 
-const STEPS_WITHOUT_DOTS = new Set<StepId>(['tablet_buscar', 'exito']);
+const STEPS_WITHOUT_DOTS = new Set<StepId>(["tablet_buscar", "exito"]);
 
 // Timeout de inactividad para modo tablet (5 minutos)
 const TABLET_TIMEOUT_MS = 5 * 60 * 1000;
@@ -47,9 +47,11 @@ function CheckinWizard() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Timeout de inactividad en modo tablet
-  const tabletTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const tabletTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(
+    undefined,
+  );
   useEffect(() => {
-    if (state.appMode !== 'tablet') return;
+    if (state.appMode !== "tablet") return;
     const reset = () => {
       clearTimeout(tabletTimeoutRef.current);
       tabletTimeoutRef.current = setTimeout(() => {
@@ -60,18 +62,21 @@ function CheckinWizard() {
       }, TABLET_TIMEOUT_MS);
     };
     reset();
-    window.addEventListener('pointerdown', reset);
-    window.addEventListener('keydown', reset);
+    window.addEventListener("pointerdown", reset);
+    window.addEventListener("keydown", reset);
     return () => {
       clearTimeout(tabletTimeoutRef.current);
-      window.removeEventListener('pointerdown', reset);
-      window.removeEventListener('keydown', reset);
+      window.removeEventListener("pointerdown", reset);
+      window.removeEventListener("keydown", reset);
     };
   }, [state.appMode, token]);
 
   if (isLoading) {
     return (
-      <div className="shell" style={{ alignItems: 'center', justifyContent: 'center' }}>
+      <div
+        className="shell"
+        style={{ alignItems: "center", justifyContent: "center" }}
+      >
         <LoadingSpinner text="Recuperando su reserva de forma segura…" />
       </div>
     );
@@ -85,18 +90,20 @@ function CheckinWizard() {
     nextGuest, setRgpdAcepted,
   } = actions;
 
-  const currentStep  = nav.step || 'bienvenida';
-  const showDots     = !STEPS_WITHOUT_DOTS.has(currentStep);
-  const isMainGuest  = nav.guestIndex === 0;
+  const currentStep = nav.step || "bienvenida";
+  const showDots = !STEPS_WITHOUT_DOTS.has(currentStep);
+  const isMainGuest = nav.guestIndex === 0;
   const currentGuest = state.guests[nav.guestIndex] ?? {};
 
   const handleChooseManual = () => {
+    sessionStorage.setItem(`modoFlujo_${token}`, "manual");
+
     if (state.knownGuest) {
-      goTo('confirmar_datos');
+      goTo("confirmar_datos");
     } else if (state.reserva) {
       goTo('num_personas');
     } else {
-      goTo('num_personas');
+      goTo("num_personas");
     }
   };
 
@@ -106,8 +113,8 @@ function CheckinWizard() {
     setIsSubmitting(true);
     try {
       const res = await fetch(`/api/checkin/${token}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           reserva:      state.reserva,
           guests:       state.guests.map(({ docFile: _f, ...rest }) => rest),
@@ -116,10 +123,12 @@ function CheckinWizard() {
         }),
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      goTo('exito');
+      goTo("exito");
     } catch (err) {
-      console.error('Error al enviar check-in:', err);
-      setSubmitError('Error al enviar los datos. Compruebe su conexión e inténtelo de nuevo.');
+      console.error("Error al enviar check-in:", err);
+      setSubmitError(
+        "Error al enviar los datos. Compruebe su conexión e inténtelo de nuevo.",
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -130,7 +139,7 @@ function CheckinWizard() {
     return (
       <div className="shell">
         <div className="card">
-          <ScreenTabletBuscar onFound={res => setReservaFromTablet(res)} />
+          <ScreenTabletBuscar onFound={(res) => setReservaFromTablet(res)} />
         </div>
       </div>
     );
@@ -138,25 +147,27 @@ function CheckinWizard() {
 
   return (
     <AppShell nav={nav} actions={{ goBack, goToDotIndex }} showDots={showDots}>
-
-      {currentStep === 'bienvenida' && (
+      {currentStep === "bienvenida" && (
         <ScreenBienvenida
           knownGuest={state.knownGuest}
           reserva={state.reserva}
-          onChooseScan={() => goTo('escanear')}
+          onChooseScan={() => {
+            sessionStorage.setItem(`modoFlujo_${token}`, "escaneo");
+            goTo("escanear");
+          }}
           onChooseManual={handleChooseManual}
         />
       )}
 
-      {currentStep === 'num_personas' && (
+      {currentStep === "num_personas" && (
         <ScreenNumPersonas
           value={state.numPersonas}
           onChange={setNumPersonas}
-          onNext={() => goTo('form_personal')}
+          onNext={() => goTo("form_personal")}
         />
       )}
 
-      {currentStep === 'confirmar_datos' && (
+      {currentStep === "confirmar_datos" && (
         <ScreenConfirmarDatos
           guest={currentGuest}
           onConfirm={() => goTo('form_contacto')}
@@ -164,7 +175,7 @@ function CheckinWizard() {
         />
       )}
 
-      {currentStep === 'escanear' && (
+      {currentStep === "escanear" && (
         <ScreenEscanear
           onScanned={(data) => {
             applyScannedData(data, nav.guestIndex);
@@ -174,57 +185,62 @@ function CheckinWizard() {
         />
       )}
 
-      {currentStep === 'form_personal' && (
+      {currentStep === "form_personal" && (
         <ScreenFormPersonal
           data={currentGuest}
           onChange={(key, value) => updateGuest(nav.guestIndex, key, value)}
           guestIndex={nav.guestIndex}
           totalGuests={state.numPersonas}
           isMainGuest={isMainGuest}
-          onNext={() => nextGuest(nav.guestIndex, 'form_personal')}
+          onNext={() => nextGuest(nav.guestIndex, "form_personal")}
         />
       )}
 
-      {currentStep === 'form_contacto' && (
+      {currentStep === "form_contacto" && (
         <ScreenFormContacto
           data={currentGuest}
           onChange={(key, value) => updateGuest(nav.guestIndex, key, value)}
-          onNext={() => nextGuest(nav.guestIndex, 'form_contacto')}
+          onNext={() => nextGuest(nav.guestIndex, "form_contacto")}
         />
       )}
 
-      {currentStep === 'form_documento' && (
+      {currentStep === "form_documento" && (
         <ScreenFormDocumento
           data={currentGuest}
           onChange={(key, value) => updateGuest(nav.guestIndex, key, value)}
           guestIndex={nav.guestIndex}
           totalGuests={state.numPersonas}
           isMainGuest={isMainGuest}
-          onNext={() => nextGuest(nav.guestIndex, 'form_documento')}
+          onNext={() => nextGuest(nav.guestIndex, "form_documento")}
+          modoFlujo={
+            (sessionStorage.getItem(`modoFlujo_${token}`) as
+              | "manual"
+              | "escaneo") || "escaneo"
+          }
         />
       )}
 
-      {currentStep === 'form_extras' && (
+      {currentStep === "form_extras" && (
         <ScreenFormExtras
           horaLlegada={state.horaLlegada}
           observaciones={state.observaciones}
           onHoraChange={setHoraLlegada}
           onObsChange={setObservaciones}
-          onNext={() => goTo('revision')}
+          onNext={() => goTo("revision")}
         />
       )}
 
-      {currentStep === 'revision' && (
+      {currentStep === "revision" && (
         <>
           {submitError && (
-            <div style={{ padding: '8px 24px 0' }}>
+            <div style={{ padding: "8px 24px 0" }}>
               <Alert variant="err">{submitError}</Alert>
             </div>
           )}
           <ScreenRevision
             state={state}
             isSubmitting={isSubmitting}
-            onEditStep={(targetStep) => goTo(targetStep as StepId, 'back')}
+            onEditStep={(targetStep) => goTo(targetStep as StepId, "back")}
             onSubmit={handleSubmit}
             onRgpdChange={setRgpdAcepted}
           />
