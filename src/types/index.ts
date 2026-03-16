@@ -1,19 +1,19 @@
 // ─── Modos de entrada ────────────────────────────────────────────────────────
-export type AppMode = 'link' | 'tablet';
+export type AppMode = "link" | "tablet";
 
 // ─── Pasos del flujo ──────────────────────────────────────────────────────────
 export type StepId =
-  | 'tablet_buscar'
-  | 'bienvenida'
-  | 'num_personas'
-  | 'confirmar_datos'
-  | 'escanear'
-  | 'form_personal'
-  | 'form_contacto'
-  | 'form_documento'
-  | 'form_extras'
-  | 'revision'
-  | 'exito';
+  | "tablet_buscar"
+  | "bienvenida"
+  | "num_personas"
+  | "confirmar_datos"
+  | "escanear"
+  | "form_personal"
+  | "form_contacto"
+  | "form_documento"
+  | "form_extras"
+  | "revision"
+  | "exito";
 
 // ─── Reserva ──────────────────────────────────────────────────────────────────
 export interface Reserva {
@@ -23,6 +23,8 @@ export interface Reserva {
   fechaSalida: string;
   numHuespedes: number;
   numNoches: number;
+  habilitado?: boolean;
+  motivoDeshabilitado?: string;
 }
 
 // ─── Datos de un huésped ──────────────────────────────────────────────────────
@@ -69,7 +71,7 @@ export interface CheckinState {
 export type FormErrors = Record<string, string>;
 
 // ─── Navegación ───────────────────────────────────────────────────────────────
-export type NavDirection = 'forward' | 'back';
+export type NavDirection = "forward" | "back";
 
 // ─── Contrato público del hook useCheckin ─────────────────────────────────────
 // Estos tipos viven AQUÍ, no en el hook.
@@ -95,7 +97,11 @@ export interface CheckinActions {
   goToDotIndex: (dotIdx: number) => void;
   setReservaFromTablet: (res: Reserva) => void;
   setNumPersonas: (n: number) => void;
-  updateGuest: (index: number, key: keyof PartialGuestData, value: unknown) => void;
+  updateGuest: (
+    index: number,
+    key: keyof PartialGuestData,
+    value: unknown,
+  ) => void;
   confirmKnownGuest: () => void;
   applyScannedData: (data: Partial<GuestData>, guestIdx?: number) => void;
   setHoraLlegada: (v: string) => void;
