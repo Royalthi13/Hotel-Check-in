@@ -23,10 +23,6 @@
     /* Vite — habilita import.meta.env, import.meta.hot, etc. */
     "types": ["vite/client"],
 
-    /* SOLUCIÓN AL ERROR:
-       Eliminamos "baseUrl" y ajustamos "paths" para que 
-       las rutas se resuelvan desde la raíz del proyecto.
-    */
     "paths": {
       "@/*": ["./src/*"]
     }
