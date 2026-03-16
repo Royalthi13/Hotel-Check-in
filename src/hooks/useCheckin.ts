@@ -69,14 +69,12 @@ export function useCheckin(
   const appMode: AppMode = token === 'new' ? 'link' : 'tablet';
   const step = (urlStep as StepId | undefined) ?? 'bienvenida';
 
-  // ── useReducer: estado del formulario — cambios atómicos ──────────────────
   const [state, dispatch] = useReducer(
     checkinReducer,
     undefined,
     () => hydrateState(token, appMode),
   );
 
-  // ── useState: estado de navegación (provocan re-renders en screens) ───────
   const [guestIndex,   setGuestIndex]   = useState(0);
   const [direction,    setDirection]    = useState<NavDirection>('forward');
   const [isLoading,    setIsLoading]    = useState(token !== 'new');
@@ -94,9 +92,8 @@ export function useCheckin(
     fetch(`/api/checkin/${token}`)
       .then(r => r.json())
       .then((res: { status: string; data: GuestData | null }) => {
-        if (res.status === 'found' && res.data) {
+        if (res.status === 'found' && res.data)
           dispatch({ type: 'SET_KNOWN_GUEST', guest: res.data });
-        }
       })
       .catch(err => console.error('Error fetch checkin:', err))
       .finally(() => setIsLoading(false));
@@ -128,12 +125,13 @@ export function useCheckin(
   }, [step, isLoading, navigate, token, history]);
 
   // ── Dots ──────────────────────────────────────────────────────────────────
-  const dotSteps    = DOT_STEPS_BASE;
-  const dotForStep  = (s: StepId): StepId =>
-    (s === 'escanear' || s === 'confirmar_datos') ? 'form_personal' : s;
-  const rawDot      = dotSteps.indexOf(dotForStep(step));
-  const dotIndex    = rawDot >= 0 ? rawDot : 0;
-  const canGoBack   =
+  const dotSteps = DOT_STEPS_BASE;
+  const dotForStep = (s: StepId): StepId =>
+    (s === 'escanear' || s === 'confirmar_datos' || s === 'form_relaciones')
+      ? 'form_personal' : s;
+  const rawDot   = dotSteps.indexOf(dotForStep(step));
+  const dotIndex = rawDot >= 0 ? rawDot : 0;
+  const canGoBack =
     step !== 'bienvenida' && step !== 'exito' &&
     step !== 'tablet_buscar' && history.length > 0;
 
@@ -171,9 +169,7 @@ export function useCheckin(
     navigate(`/checkin/${token}/${target}`);
   }, [dotIndex, dotSteps, step, guestIndex, navigate, token]);
 
-  // ── Acciones del estado (despachan al reducer) ────────────────────────────
-
-  // Tablet: 1 dispatch atómico en vez de 3 setState encadenados
+  // ── Acciones ──────────────────────────────────────────────────────────────
   const setReservaFromTablet = useCallback((res: Reserva) => {
     const fresh = new Set<StepId>(['bienvenida', 'tablet_buscar']);
     allowedStepsRef.current = fresh;
@@ -185,8 +181,9 @@ export function useCheckin(
     navigate(`/checkin/${token}/bienvenida`);
   }, [navigate, token]);
 
-  const setNumPersonas = useCallback((n: number) =>
-    dispatch({ type: 'SET_NUM_PERSONAS', n }), []);
+  // Recibe adultos y menores por separado
+  const setNumPersonas = useCallback((adultos: number, menores: number) =>
+    dispatch({ type: 'SET_NUM_PERSONAS', adultos, menores }), []);
 
   const updateGuest = useCallback((
     index: number,
@@ -194,7 +191,14 @@ export function useCheckin(
     value: unknown,
   ) => dispatch({ type: 'UPDATE_GUEST', index, key, value }), []);
 
-  const confirmKnownGuest = useCallback(() => { /* no-op: App.tsx navega */ }, []);
+  // Actualiza el parentesco de menor[menorIndex] con adulto[adultoIndex]
+  const updateRelacion = useCallback((
+    menorIndex: number,
+    adultoIndex: number,
+    parentesco: string,
+  ) => dispatch({ type: 'UPDATE_RELACION', menorIndex, adultoIndex, parentesco }), []);
+
+  const confirmKnownGuest = useCallback(() => { /* App.tsx navega */ }, []);
 
   const applyScannedData = useCallback((data: Partial<GuestData>, guestIdx = 0) =>
     dispatch({ type: 'APPLY_SCAN', data, guestIdx }), []);
@@ -203,20 +207,62 @@ export function useCheckin(
   const setObservaciones = useCallback((value: string)  => dispatch({ type: 'SET_OBSERVACIONES', value }), []);
   const setRgpdAcepted   = useCallback((value: boolean) => dispatch({ type: 'SET_RGPD',          value }), []);
 
+  // ── Flujo nextGuest ───────────────────────────────────────────────────────
+  // Orden:
+  //   Adultos: personal → (contacto solo el 0) → documento
+  //   Menores: personal → documento → relaciones con cada adulto
+  // Al terminar todos → form_extras
   const nextGuest = useCallback((currentIdx: number, fromStep: StepId) => {
-    const total = state.numPersonas;
+    const { numAdultos, numMenores } = state;
+    const totalAdultos = numAdultos;
+    const totalMenores = numMenores;
+    const hasMenores   = totalMenores > 0;
+
     if (fromStep === 'form_personal') {
-      currentIdx === 0
-        ? goTo('form_contacto', 'forward', 0)
-        : goTo('form_documento', 'forward', currentIdx);
-    } else if (fromStep === 'form_contacto') {
-      goTo('form_documento', 'forward', 0);
-    } else if (fromStep === 'form_documento') {
-      currentIdx < total - 1
-        ? goTo('form_personal', 'forward', currentIdx + 1)
-        : goTo('form_extras',   'forward', 0);
+      if (currentIdx === 0) {
+        // Titular → contacto
+        goTo('form_contacto', 'forward', 0);
+      } else {
+        // Cualquier otro (adulto o menor) → documento
+        goTo('form_documento', 'forward', currentIdx);
+      }
     }
-  }, [state.numPersonas, goTo]);
+
+    else if (fromStep === 'form_contacto') {
+      // Siempre desde titular (idx 0) → documento
+      goTo('form_documento', 'forward', 0);
+    }
+
+    else if (fromStep === 'form_documento') {
+      const nextIdx = currentIdx + 1;
+
+      if (nextIdx < totalAdultos) {
+        // Siguiente adulto
+        goTo('form_personal', 'forward', nextIdx);
+      } else if (currentIdx === totalAdultos - 1 && hasMenores) {
+        // Terminamos adultos → primer menor
+        goTo('form_personal', 'forward', totalAdultos);
+      } else if (currentIdx >= totalAdultos) {
+        // Estamos en un menor → relaciones con adultos
+        goTo('form_relaciones', 'forward', currentIdx);
+      } else {
+        // Sin menores → extras
+        goTo('form_extras', 'forward', 0);
+      }
+    }
+
+    else if (fromStep === 'form_relaciones') {
+      const nextIdx = currentIdx + 1;
+
+      if (nextIdx < totalAdultos + totalMenores) {
+        // Siguiente menor
+        goTo('form_personal', 'forward', nextIdx);
+      } else {
+        // Todos procesados → extras
+        goTo('form_extras', 'forward', 0);
+      }
+    }
+  }, [state, goTo]);
 
   // ─────────────────────────────────────────────────────────────────────────
   const nav: CheckinNav = { step, guestIndex, direction, dotSteps, dotIndex, canGoBack };
@@ -224,7 +270,8 @@ export function useCheckin(
   const actions: CheckinActions = {
     goTo, goBack, goToDotIndex,
     setReservaFromTablet,
-    setNumPersonas, updateGuest, confirmKnownGuest, applyScannedData,
+    setNumPersonas, updateGuest, updateRelacion,
+    confirmKnownGuest, applyScannedData,
     setHoraLlegada, setObservaciones, nextGuest, setRgpdAcepted,
   };
 

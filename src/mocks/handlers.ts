@@ -1,5 +1,5 @@
 import { http, HttpResponse, delay } from 'msw';
-import { MOCK_KNOWN_GUEST } from '../constants';
+import { MOCK_KNOWN_GUEST } from '@/constants';
 import { MOCK_RESERVAS } from './reservas-mock'; // datos aquí, el handler solo los usa
 
 export const handlers = [

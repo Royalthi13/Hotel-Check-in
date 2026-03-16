@@ -104,8 +104,10 @@ export const ScreenRevision: React.FC<RevisionProps> = ({
                 ['Sexo',         g.sexo             ?? null],
                 ['Nacimiento',   g.fechaNac          ?? null],
                 ['Nacionalidad', g.nacionalidad     ?? null],
-                ...(g.tienesMenor
-                  ? [['Menor', `${g.nombreMenor ?? '—'} (${g.relacionMenor ?? '—'})`] as [string, string]]
+                ...(g.esMenor && (g.relacionesConAdultos ?? []).length > 0
+                  ? (g.relacionesConAdultos ?? []).map(r => (
+                      [`Relación con adulto ${r.adultoIndex + 1}`, r.parentesco || '—'] as [string, string]
+                    ))
                   : []
                 ),
               ]}
@@ -234,9 +236,9 @@ export const ScreenExito: React.FC<ExitoProps> = ({ state, onAddHora }) => {
               <span>Huésped principal</span><span>{nombreCompleto}</span>
             </div>
           )}
-          {state.numPersonas > 1 && (
+          {(state.numAdultos + state.numMenores) > 1 && (
             <div className="si-row">
-              <span>Total huéspedes</span><span>{state.numPersonas}</span>
+              <span>Total huéspedes</span><span>{state.numAdultos + state.numMenores}</span>
             </div>
           )}
           {main.tipoDoc && (

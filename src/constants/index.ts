@@ -41,6 +41,8 @@ export const MOCK_KNOWN_GUEST: GuestData = {
   tipoDoc: "DNI",
   numDoc: "12345678M", // ← letra correcta: 12345678 % 23 = 6 → M
   vat: "",
+  esMenor: false,
+  relacionesConAdultos: [],
 };
 
 export const PAISES = [
@@ -102,7 +104,23 @@ export const HORAS_LLEGADA = [
 ];
 
 export const SEXOS = ["Hombre", "Mujer", "No indicar"];
+
+// Usado en ScreenForms (campo relacionMenor legacy, por compatibilidad)
 export const RELACIONES_MENOR = ["Hijo/a", "Sobrino/a", "Tutor legal", "Otra"];
+
+// Lista completa para ScreenRelacionesMenor (Orden INT/1922/2003)
+export const PARENTESCOS_MENOR = [
+  "Hijo/a",
+  "Nieto/a",
+  "Sobrino/a",
+  "Hermano/a",
+  "Primo/a",
+  "Tutor legal",
+  "Padre/Madre adoptivo/a",
+  "Familia de acogida",
+  "Otra relación familiar",
+  "Otra relación de tutela",
+];
 
 export const FLOW_STEPS_LINK: StepId[] = [
   "bienvenida",
@@ -111,11 +129,13 @@ export const FLOW_STEPS_LINK: StepId[] = [
   "form_personal",
   "form_contacto",
   "form_documento",
+  "form_relaciones",
   "form_extras",
   "revision",
   "exito",
 ];
 
+// form_relaciones no aparece en los dots — se mapea a form_personal visualmente
 export const DOT_STEPS_BASE: StepId[] = [
   "bienvenida",
   "num_personas",

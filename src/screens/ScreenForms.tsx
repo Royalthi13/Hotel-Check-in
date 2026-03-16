@@ -6,7 +6,6 @@ import {
   NACIONALIDADES,
   TIPOS_DOCUMENTO,
   SEXOS,
-  RELACIONES_MENOR,
 } from "@/constants";
 import {
   useFormValidation,
@@ -29,6 +28,7 @@ function useDebounce(fn: () => void, delay: number, deps: unknown[]) {
   useEffect(() => {
     const t = setTimeout(() => fnRef.current(), delay);
     return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [...deps, delay]);
 }
 
@@ -43,6 +43,7 @@ interface FormPersonalProps {
   guestIndex: number;
   totalGuests: number;
   isMainGuest: boolean;
+  esMenor?: boolean;  // viene del estado, no se infiere aquí
   onNext: () => void;
 }
 interface FormContactoProps {
@@ -70,13 +71,15 @@ const FieldError: React.FC<{ msg?: string }> = ({ msg }) =>
 
 // ═══════════════════════════════════════════════════════════════════════════
 // 1. SCREEN FORM PERSONAL
+// La lógica de menores (parentesco) se maneja en ScreenRelacionesMenor.
+// Aquí solo se recogen nombre, apellidos, sexo, fecha de nacimiento y
+// nacionalidad — igual para adultos y menores.
 // ═══════════════════════════════════════════════════════════════════════════
 export const ScreenFormPersonal: React.FC<FormPersonalProps> = ({
-  data, onChange, guestIndex, totalGuests, isMainGuest, onNext,
+  data, onChange, guestIndex, totalGuests, isMainGuest, esMenor, onNext,
 }) => {
   const { errors, validate, clearError } = useFormValidation(validatePersonal);
   const fechaNac = data.fechaNac ? dayjs(data.fechaNac) : null;
-  const esMenor = fechaNac?.isValid() ? dayjs().diff(fechaNac, "years") < 18 : false;
 
   useDebounce(() => {
     if ((data.nombre?.length ?? 0) >= 2) validate(data);
@@ -90,12 +93,23 @@ export const ScreenFormPersonal: React.FC<FormPersonalProps> = ({
     <>
       <div className="sec-hdr">
         <Typography variant="h2" sx={{ fontFamily: "Cormorant Garamond, serif", fontSize: "var(--fs-2xl)" }}>
-          Datos personales
+          {esMenor ? "Datos del menor" : "Datos personales"}
         </Typography>
         <Typography variant="body2" color="var(--text-low)">
-          Huésped {guestIndex + 1} de {totalGuests} {isMainGuest && "(Titular)"}
+          Huésped {guestIndex + 1} de {totalGuests}
+          {isMainGuest && " · Titular de la reserva"}
+          {esMenor && " · Menor de edad"}
         </Typography>
       </div>
+
+      {/* Aviso si el titular intenta poner una fecha que lo hace menor */}
+      {isMainGuest && fechaNac?.isValid() && dayjs().diff(fechaNac, "years") < 18 && (
+        <div style={{ padding: "0 24px" }}>
+          <Alert variant="err" style={{ margin: "8px 0 0" }}>
+            <strong>El titular no puede ser menor de edad.</strong> Por favor, introduzca la fecha correcta.
+          </Alert>
+        </div>
+      )}
 
       <Box style={{ padding: "0 var(--px)" }} sx={{ mt: 2, display: "flex", flexDirection: "column", gap: 2.5 }}>
         <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" }, gap: 2 }}>
@@ -112,6 +126,9 @@ export const ScreenFormPersonal: React.FC<FormPersonalProps> = ({
             <FieldError msg={errors.apellido} />
           </div>
         </Box>
+
+        <TextField label="Segundo apellido" fullWidth value={data.apellido2 ?? ""}
+          onChange={(e) => onChange("apellido2", e.target.value)} sx={inputSx} />
 
         <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" }, gap: 2 }}>
           <div>
@@ -132,34 +149,19 @@ export const ScreenFormPersonal: React.FC<FormPersonalProps> = ({
           </div>
         </Box>
 
-        {isMainGuest && esMenor && (
-          <Alert variant="err" style={{ margin: 0 }}>
-            <strong>Acción no permitida.</strong> El titular de la reserva no puede ser menor de edad. Por favor, indique datos de un adulto.
-          </Alert>
-        )}
-
-        {!isMainGuest && esMenor && (
-          <Box sx={{ p: 2, bgcolor: "var(--primary-lt)", borderRadius: "12px", border: "1px solid var(--border)" }}>
-            <Typography variant="subtitle2" sx={{ mb: 2, color: "var(--text-main)" }}>Datos del menor</Typography>
-            <TextField select label="Parentesco con el titular" required fullWidth value={data.relacionMenor ?? ""}
-              onChange={(e) => { onChange("relacionMenor", e.target.value); clearError("relacionMenor"); }}
-              error={!!errors.relacionMenor} sx={inputSx}>
-              {RELACIONES_MENOR.map((r) => <MenuItem key={r} value={r}>{r}</MenuItem>)}
-            </TextField>
-            <FieldError msg={errors.relacionMenor} />
-          </Box>
-        )}
-
-        {!esMenor && (
-          <TextField select label="Nacionalidad" fullWidth value={data.nacionalidad ?? ""}
-            onChange={(e) => onChange("nacionalidad", e.target.value)} sx={inputSx}>
-            {NACIONALIDADES.map((n) => <MenuItem key={n} value={n}>{n}</MenuItem>)}
-          </TextField>
-        )}
+        <TextField select label="Nacionalidad" fullWidth value={data.nacionalidad ?? ""}
+          onChange={(e) => onChange("nacionalidad", e.target.value)} sx={inputSx}>
+          {NACIONALIDADES.map((n) => <MenuItem key={n} value={n}>{n}</MenuItem>)}
+        </TextField>
       </Box>
 
+      <div className="spacer" />
       <div className="btn-row">
-        <Button disabled={isMainGuest && esMenor} onClick={() => { if (validate(data)) onNext(); }} iconRight="right">
+        <Button
+          disabled={isMainGuest && fechaNac?.isValid() && dayjs().diff(fechaNac, "years") < 18}
+          onClick={() => { if (validate(data)) onNext(); }}
+          iconRight="right"
+        >
           Continuar
         </Button>
       </div>
@@ -187,8 +189,12 @@ export const ScreenFormContacto: React.FC<FormContactoProps> = ({ data, onChange
   return (
     <>
       <div className="sec-hdr">
-        <Typography variant="h2" sx={{ fontFamily: "Cormorant Garamond, serif", fontSize: "var(--fs-2xl)" }}>Contacto</Typography>
+        <Typography variant="h2" sx={{ fontFamily: "Cormorant Garamond, serif", fontSize: "var(--fs-2xl)" }}>
+          Contacto
+        </Typography>
+        <p>Datos para la confirmación del registro.</p>
       </div>
+
       <Box style={{ padding: "0 var(--px)" }} sx={{ mt: 2, display: "flex", flexDirection: "column", gap: 2.5 }}>
         <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" }, gap: 2 }}>
           <div>
@@ -205,16 +211,21 @@ export const ScreenFormContacto: React.FC<FormContactoProps> = ({ data, onChange
           </div>
         </Box>
 
+        <TextField label="Dirección habitual" fullWidth value={data.direccion ?? ""}
+          onChange={(e) => onChange("direccion", e.target.value)} sx={inputSx} />
+
+        <div className="divlabel">Ubicación</div>
+
         <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" }, gap: 2 }}>
           <TextField select label="País" required fullWidth value={data.pais ?? ""}
             onChange={(e) => { onChange("pais", e.target.value); clearError("pais"); }}
             error={!!errors.pais} sx={inputSx}>
             {PAISES.map((p) => <MenuItem key={p} value={p}>{p}</MenuItem>)}
           </TextField>
-          <TextField label="Código Postal" fullWidth value={data.cp ?? ""} 
-            onBlur={() => data.cp && data.pais && buscarCP(data.cp, data.pais)}
+          <TextField label="Código Postal" fullWidth value={data.cp ?? ""}
+            onBlur={() => { if (data.cp && data.pais) buscarCP(data.cp, data.pais); }}
             onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); if (data.cp && data.pais) buscarCP(data.cp, data.pais); } }}
-            onChange={(e) => onChange("cp", e.target.value.toUpperCase())} 
+            onChange={(e) => onChange("cp", e.target.value.toUpperCase())}
             sx={inputSx} InputProps={{ endAdornment: isSearching ? "⏳" : null }} />
         </Box>
 
@@ -228,7 +239,8 @@ export const ScreenFormContacto: React.FC<FormContactoProps> = ({ data, onChange
               onChange={(e) => onChange("provincia", e.target.value)} sx={inputSx} />
           )}
           {esEspana ? (
-            <Autocomplete freeSolo autoHighlight options={(sugerenciasMunicipios || []).map((m) => m.nombre)}
+            <Autocomplete freeSolo autoHighlight
+              options={(sugerenciasMunicipios || []).map((m) => m.nombre)}
               value={data.ciudad || ""}
               onInputChange={(_, v) => { onChange("ciudad", v || ""); cargarMunicipios(v || "", data.provincia as string); }}
               renderInput={(p) => <TextField {...p} label="Ciudad" sx={inputSx} />} />
@@ -238,6 +250,8 @@ export const ScreenFormContacto: React.FC<FormContactoProps> = ({ data, onChange
           )}
         </Box>
       </Box>
+
+      <div className="spacer" />
       <div className="btn-row">
         <Button onClick={() => { if (validate(data)) onNext(); }} iconRight="right">Continuar</Button>
       </div>
@@ -249,9 +263,10 @@ export const ScreenFormContacto: React.FC<FormContactoProps> = ({ data, onChange
 // 3. SCREEN FORM DOCUMENTO
 // ═══════════════════════════════════════════════════════════════════════════
 export const ScreenFormDocumento: React.FC<FormDocumentoProps> = ({
-  data, onChange, guestIndex, totalGuests, isMainGuest, onNext, modoFlujo
+  data, onChange, guestIndex, totalGuests, isMainGuest, onNext, modoFlujo,
 }) => {
   const { errors, validate, clearError } = useFormValidation(validateDocumento);
+  const mostrarCargaFoto = modoFlujo !== "manual";
 
   useDebounce(() => {
     if (data.tipoDoc && data.numDoc) {
@@ -260,21 +275,23 @@ export const ScreenFormDocumento: React.FC<FormDocumentoProps> = ({
     }
   }, 500, [data.numDoc, data.tipoDoc]);
 
-  const mostrarCargaFoto = modoFlujo !== "manual";
-
   return (
     <>
       <div className="sec-hdr">
-        <Typography variant="h2" sx={{ fontFamily: "Cormorant Garamond, serif", fontSize: "var(--fs-2xl)" }}>Documento</Typography>
+        <Typography variant="h2" sx={{ fontFamily: "Cormorant Garamond, serif", fontSize: "var(--fs-2xl)" }}>
+          Documento
+        </Typography>
         <Typography variant="body2" color="var(--text-low)">
-          Identificación huésped {guestIndex + 1} de {totalGuests} {isMainGuest && "(Titular)"}
+          Identificación huésped {guestIndex + 1} de {totalGuests}
+          {isMainGuest && " (Titular)"}
         </Typography>
       </div>
+
       <Box style={{ padding: "0 var(--px)" }} sx={{ mt: 2, display: "flex", flexDirection: "column", gap: 2.5 }}>
         <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" }, gap: 2 }}>
           <div>
             <TextField select label="Tipo de documento" required fullWidth value={data.tipoDoc ?? ""}
-              onChange={(e) => { onChange("tipoDoc", e.target.value); onChange("numDoc", ""); clearError("tipoDoc"); }}
+              onChange={(e) => { onChange("tipoDoc", e.target.value); onChange("numDoc", ""); clearError("tipoDoc"); clearError("numDoc"); }}
               error={!!errors.tipoDoc} sx={inputSx}>
               {TIPOS_DOCUMENTO.map((t) => <MenuItem key={t} value={t}>{t}</MenuItem>)}
             </TextField>
@@ -285,21 +302,24 @@ export const ScreenFormDocumento: React.FC<FormDocumentoProps> = ({
               onChange={(e) => { onChange("numDoc", e.target.value.toUpperCase()); if (errors.numDoc) clearError("numDoc"); }}
               error={!!errors.numDoc} sx={inputSx}
               placeholder={
-                data.tipoDoc === "DNI" ? "12345678M" : 
-                data.tipoDoc === "NIE" ? "X1234567Z" : 
+                data.tipoDoc === "DNI" ? "12345678M" :
+                data.tipoDoc === "NIE" ? "X1234567Z" :
                 data.tipoDoc === "Pasaporte" ? "AAA123456" : undefined
               } />
             <FieldError msg={errors.numDoc} />
           </div>
         </Box>
-        
+
         {mostrarCargaFoto && (
           <label htmlFor={`doc-${guestIndex}`} style={{ cursor: "pointer" }}>
             <div className={`upload-area ${data.docUploaded ? "done" : ""}`}>
-              <Icon name={data.docUploaded ? "checkC" : "upload"} size={24} color={data.docUploaded ? "var(--ok)" : "var(--text-low)"} />
-              <p style={{ marginTop: 8, fontSize: 14 }}>{data.docUploaded ? "Documento cargado" : "Subir foto del documento"}</p>
+              <Icon name={data.docUploaded ? "checkC" : "upload"} size={24}
+                color={data.docUploaded ? "var(--ok)" : "var(--text-low)"} />
+              <p style={{ marginTop: 8, fontSize: 14 }}>
+                {data.docUploaded ? "Documento cargado" : "Subir foto del documento"}
+              </p>
             </div>
-            <input id={`doc-${guestIndex}`} type="file" hidden accept="image/*" capture="environment" 
+            <input id={`doc-${guestIndex}`} type="file" hidden accept="image/*" capture="environment"
               onChange={(e) => {
                 const f = e.target.files?.[0];
                 if (f && f.size < 10485760) { onChange("docFile", f); onChange("docUploaded", true); }
@@ -307,9 +327,11 @@ export const ScreenFormDocumento: React.FC<FormDocumentoProps> = ({
           </label>
         )}
       </Box>
+
+      <div className="spacer" />
       <div className="btn-row">
         <Button onClick={() => { if (validate(data)) onNext(); }} iconRight="right">
-          {guestIndex < totalGuests - 1 ? "Siguiente huésped" : "Finalizar"}
+          {guestIndex < totalGuests - 1 ? "Siguiente huésped" : "Continuar"}
         </Button>
       </div>
     </>

@@ -1,4 +1,4 @@
-import type { Reserva } from '../types';
+import type { Reserva } from '@/types';
 
 export const MOCK_RESERVAS: Record<string, Reserva> = {
   '78432': {

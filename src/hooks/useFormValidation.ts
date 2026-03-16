@@ -31,12 +31,7 @@ export function useFormValidation<T>(validator: ValidatorFn<T>) {
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-function calcularEdad(fechaNac: string | undefined): number | null {
-  if (!fechaNac) return null;
-  const d = dayjs(fechaNac);
-  if (!d.isValid()) return null;
-  return dayjs().diff(d, "years");
-}
+
 
 // ─── Validación de documentos de identidad españoles ─────────────────────────
 
@@ -149,15 +144,8 @@ export function validatePersonal(data: PartialGuestData): FormErrors {
     else if (parsed.year() < 1900)    e.fechaNac = 'Introduce un año válido (ej: 1980)';
   }
 
-  const edad = calcularEdad(data.fechaNac);
-  const esMenor = edad !== null && edad < 18;
-
-  if (esMenor) {
-    if (!data.nombreMenor?.trim())
-      e.nombreMenor = "Indique el nombre del responsable adulto";
-    if (!data.relacionMenor)
-      e.relacionMenor = "Indique el parentesco con el menor";
-  }
+  // ❌ Se eliminó la validación de 'nombreMenor' y 'relacionMenor' de aquí.
+  // Ahora el flujo de menores se encarga de exigir la matriz de parentesco en ScreenRelacionesMenor.tsx
 
   return e;
 }
