@@ -113,9 +113,6 @@ export const ScreenFormPersonal: React.FC<FormPersonalProps> = ({
           </div>
         </Box>
 
-        <TextField label="Segundo apellido" fullWidth value={data.apellido2 ?? ""}
-          onChange={(e) => onChange("apellido2", e.target.value)} sx={inputSx} />
-
         <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" }, gap: 2 }}>
           <div>
             <TextField select label="Sexo" required fullWidth value={data.sexo ?? ""}
@@ -137,7 +134,7 @@ export const ScreenFormPersonal: React.FC<FormPersonalProps> = ({
 
         {isMainGuest && esMenor && (
           <Alert variant="err" style={{ margin: 0 }}>
-            <strong>Acción no permitida.</strong> El titular de la reserva no puede ser menor de edad.
+            <strong>Acción no permitida.</strong> El titular de la reserva no puede ser menor de edad. Por favor, indique datos de un adulto.
           </Alert>
         )}
 
@@ -179,6 +176,14 @@ export const ScreenFormContacto: React.FC<FormContactoProps> = ({ data, onChange
   const { sugerenciasProvincias, sugerenciasMunicipios, cargarProvincias, cargarMunicipios } = usePlaces();
   const esEspana = data.pais === "España";
 
+  useDebounce(() => {
+    if (data.email?.includes("@")) validate(data);
+  }, 500, [data.email]);
+
+  useDebounce(() => {
+    if ((data.telefono?.length ?? 0) >= 7) validate(data);
+  }, 500, [data.telefono]);
+
   return (
     <>
       <div className="sec-hdr">
@@ -188,28 +193,30 @@ export const ScreenFormContacto: React.FC<FormContactoProps> = ({ data, onChange
         <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" }, gap: 2 }}>
           <div>
             <TextField label="Email" required fullWidth value={data.email ?? ""}
-              onChange={(e) => { onChange("email", e.target.value); clearError("email"); }}
+              onChange={(e) => { onChange("email", e.target.value); if (errors.email) clearError("email"); }}
               error={!!errors.email} sx={inputSx} />
             <FieldError msg={errors.email} />
           </div>
           <div>
             <TextField label="Teléfono" required fullWidth value={data.telefono ?? ""}
-              onChange={(e) => { onChange("telefono", e.target.value); clearError("telefono"); }}
+              onChange={(e) => { onChange("telefono", e.target.value); if (errors.telefono) clearError("telefono"); }}
               error={!!errors.telefono} sx={inputSx} />
             <FieldError msg={errors.telefono} />
           </div>
         </Box>
 
-        <TextField select label="País" required fullWidth value={data.pais ?? ""}
-          onChange={(e) => { onChange("pais", e.target.value); clearError("pais"); }}
-          error={!!errors.pais} sx={inputSx}>
-          {PAISES.map((p) => <MenuItem key={p} value={p}>{p}</MenuItem>)}
-        </TextField>
-
-        <TextField label="Código Postal" fullWidth value={data.cp ?? ""} 
-          onBlur={() => data.cp && data.pais && buscarCP(data.cp, data.pais)}
-          onChange={(e) => onChange("cp", e.target.value.toUpperCase())} 
-          sx={inputSx} InputProps={{ endAdornment: isSearching ? "⏳" : null }} />
+        <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" }, gap: 2 }}>
+          <TextField select label="País" required fullWidth value={data.pais ?? ""}
+            onChange={(e) => { onChange("pais", e.target.value); clearError("pais"); }}
+            error={!!errors.pais} sx={inputSx}>
+            {PAISES.map((p) => <MenuItem key={p} value={p}>{p}</MenuItem>)}
+          </TextField>
+          <TextField label="Código Postal" fullWidth value={data.cp ?? ""} 
+            onBlur={() => data.cp && data.pais && buscarCP(data.cp, data.pais)}
+            onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); if (data.cp && data.pais) buscarCP(data.cp, data.pais); } }}
+            onChange={(e) => onChange("cp", e.target.value.toUpperCase())} 
+            sx={inputSx} InputProps={{ endAdornment: isSearching ? "⏳" : null }} />
+        </Box>
 
         <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" }, gap: 2 }}>
           {esEspana ? (
@@ -220,7 +227,6 @@ export const ScreenFormContacto: React.FC<FormContactoProps> = ({ data, onChange
             <TextField label="Provincia" fullWidth value={data.provincia ?? ""}
               onChange={(e) => onChange("provincia", e.target.value)} sx={inputSx} />
           )}
-
           {esEspana ? (
             <Autocomplete freeSolo autoHighlight options={(sugerenciasMunicipios || []).map((m) => m.nombre)}
               value={data.ciudad || ""}
@@ -261,38 +267,49 @@ export const ScreenFormDocumento: React.FC<FormDocumentoProps> = ({
       <div className="sec-hdr">
         <Typography variant="h2" sx={{ fontFamily: "Cormorant Garamond, serif", fontSize: "var(--fs-2xl)" }}>Documento</Typography>
         <Typography variant="body2" color="var(--text-low)">
-          Huésped {guestIndex + 1} de {totalGuests} {isMainGuest && "(Titular)"}
+          Identificación huésped {guestIndex + 1} de {totalGuests} {isMainGuest && "(Titular)"}
         </Typography>
       </div>
       <Box style={{ padding: "0 var(--px)" }} sx={{ mt: 2, display: "flex", flexDirection: "column", gap: 2.5 }}>
         <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" }, gap: 2 }}>
-          <TextField select label="Tipo de documento" required fullWidth value={data.tipoDoc ?? ""}
-            onChange={(e) => { onChange("tipoDoc", e.target.value); clearError("tipoDoc"); }}
-            error={!!errors.tipoDoc} sx={inputSx}>
-            {TIPOS_DOCUMENTO.map((t) => <MenuItem key={t} value={t}>{t}</MenuItem>)}
-          </TextField>
-          <TextField label="Número" required fullWidth value={data.numDoc ?? ""}
-            onChange={(e) => { onChange("numDoc", e.target.value.toUpperCase()); clearError("numDoc"); }}
-            error={!!errors.numDoc} sx={inputSx} />
+          <div>
+            <TextField select label="Tipo de documento" required fullWidth value={data.tipoDoc ?? ""}
+              onChange={(e) => { onChange("tipoDoc", e.target.value); onChange("numDoc", ""); clearError("tipoDoc"); }}
+              error={!!errors.tipoDoc} sx={inputSx}>
+              {TIPOS_DOCUMENTO.map((t) => <MenuItem key={t} value={t}>{t}</MenuItem>)}
+            </TextField>
+            <FieldError msg={errors.tipoDoc} />
+          </div>
+          <div>
+            <TextField label="Número" required fullWidth value={data.numDoc ?? ""}
+              onChange={(e) => { onChange("numDoc", e.target.value.toUpperCase()); if (errors.numDoc) clearError("numDoc"); }}
+              error={!!errors.numDoc} sx={inputSx}
+              placeholder={
+                data.tipoDoc === "DNI" ? "12345678M" : 
+                data.tipoDoc === "NIE" ? "X1234567Z" : 
+                data.tipoDoc === "Pasaporte" ? "AAA123456" : undefined
+              } />
+            <FieldError msg={errors.numDoc} />
+          </div>
         </Box>
         
         {mostrarCargaFoto && (
           <label htmlFor={`doc-${guestIndex}`} style={{ cursor: "pointer" }}>
             <div className={`upload-area ${data.docUploaded ? "done" : ""}`}>
-              <Icon name={data.docUploaded ? "checkC" : "upload"} size={24} />
-              <p>{data.docUploaded ? "Documento cargado" : "Subir foto del documento"}</p>
+              <Icon name={data.docUploaded ? "checkC" : "upload"} size={24} color={data.docUploaded ? "var(--ok)" : "var(--text-low)"} />
+              <p style={{ marginTop: 8, fontSize: 14 }}>{data.docUploaded ? "Documento cargado" : "Subir foto del documento"}</p>
             </div>
             <input id={`doc-${guestIndex}`} type="file" hidden accept="image/*" capture="environment" 
               onChange={(e) => {
                 const f = e.target.files?.[0];
-                if (f) { onChange("docFile", f); onChange("docUploaded", true); }
+                if (f && f.size < 10485760) { onChange("docFile", f); onChange("docUploaded", true); }
               }} />
           </label>
         )}
       </Box>
       <div className="btn-row">
         <Button onClick={() => { if (validate(data)) onNext(); }} iconRight="right">
-          {guestIndex < totalGuests - 1 ? "Siguiente" : "Finalizar"}
+          {guestIndex < totalGuests - 1 ? "Siguiente huésped" : "Finalizar"}
         </Button>
       </div>
     </>
