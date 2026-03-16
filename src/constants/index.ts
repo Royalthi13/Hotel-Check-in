@@ -85,7 +85,6 @@ export const TIPOS_DOCUMENTO = [
   "CIF",
   "Pasaporte",
   "NIE",
-  "Carnet de conducir",
   "Otro",
 ];
 
