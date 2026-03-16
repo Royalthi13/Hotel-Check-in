@@ -315,17 +315,23 @@ export const ConfirmBlock: React.FC<ConfirmBlockProps> = ({
 export interface HeaderProps {
   canGoBack: boolean;
   onBack: () => void;
+  onOverview?: () => void;
 }
 
-export const Header: React.FC<HeaderProps> = ({ canGoBack, onBack }) => (
+export const Header: React.FC<HeaderProps> = ({
+  canGoBack,
+  onBack,
+  onOverview,
+}) => (
   <div className="hdr">
-    {canGoBack ? (
-      <button type="button" className="hdr-back" onClick={onBack}>
-        <Icon name="left" size={15} /> Atrás
-      </button>
-    ) : (
-      <div style={{ width: 62 }} />
-    )}
+    <div style={{ width: "85px", display: "flex", alignItems: "center" }}>
+      {canGoBack && (
+        <button type="button" className="hdr-back" onClick={onBack}>
+          <Icon name="left" size={15} /> Atrás
+        </button>
+      )}
+    </div>
+
     <div className="hdr-brand">
       <div className="hdr-logo">L</div>
       <div>
@@ -333,10 +339,43 @@ export const Header: React.FC<HeaderProps> = ({ canGoBack, onBack }) => (
         <div className="hdr-sub">Hotels &amp; Resorts</div>
       </div>
     </div>
-    <div style={{ width: 62 }} />
+
+    <div
+      style={{
+        width: "85px",
+        display: "flex",
+        justifyContent: "flex-end",
+        alignItems: "center",
+      }}
+    >
+      {onOverview && (
+        <button
+          type="button"
+          onClick={onOverview}
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "6px",
+            padding: "6px 12px",
+            backgroundColor: "var(--primary)",
+            color: "#fff", // Texto en blanco
+            border: "none",
+            borderRadius: "20px", // Forma de píldora
+            cursor: "pointer",
+            fontWeight: 600,
+            fontSize: "11px",
+            boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
+            transition: "transform 0.1s ease",
+          }}
+          title="Ver resumen del grupo"
+        >
+          <Icon name="users" size={12} color="#fff" />
+          <span>Resumen</span>
+        </button>
+      )}
+    </div>
   </div>
 );
-
 // ═══════════════════════════════════════════════════════════════════════════
 // RESERVATION CARD
 // ═══════════════════════════════════════════════════════════════════════════

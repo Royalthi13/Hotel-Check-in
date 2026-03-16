@@ -32,7 +32,6 @@ import type { StepId } from "./types";
 
 const STEPS_WITHOUT_DOTS = new Set<StepId>(["tablet_buscar", "exito"]);
 
-// Timeout de inactividad para modo tablet (5 minutos)
 const TABLET_TIMEOUT_MS = 5 * 60 * 1000;
 
 function RedirectToBienvenida() {
@@ -46,7 +45,6 @@ function CheckinWizard() {
   const [submitError, setSubmitError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Timeout de inactividad en modo tablet
   const tabletTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(
     undefined,
   );
@@ -113,7 +111,6 @@ function CheckinWizard() {
     }
   };
 
-  // ✅ onSubmit es async — el tipo de ScreenRevision ahora coincide
   const handleSubmit = async (): Promise<void> => {
     setSubmitError("");
     setIsSubmitting(true);
@@ -140,6 +137,7 @@ function CheckinWizard() {
     }
   };
 
+  // Tablet buscar — sin AppShell (no tiene header ni dots)
   if (currentStep === "tablet_buscar") {
     return (
       <div className="shell">
@@ -155,6 +153,7 @@ function CheckinWizard() {
       nav={nav}
       actions={{ goBack, goToDotIndex, goTo }}
       showDots={showDots}
+      state={state}
     >
       {currentStep === "bienvenida" && (
         <ScreenBienvenida
