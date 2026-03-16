@@ -17,7 +17,13 @@ import {
 } from "@/hooks/useFormValidation";
 import type { PartialGuestData } from "@/types";
 import { DatePicker } from "@mui/x-date-pickers";
-import { TextField, MenuItem, Box, Typography, Autocomplete } from "@mui/material";
+import {
+  TextField,
+  MenuItem,
+  Box,
+  Typography,
+  Autocomplete,
+} from "@mui/material";
 import { usePlaces } from "@/hooks/usePlaces";
 import dayjs from "dayjs";
 import "dayjs/locale/es";
@@ -62,8 +68,18 @@ interface FormDocumentoProps {
 
 const FieldError: React.FC<{ msg?: string }> = ({ msg }) =>
   msg ? (
-    <span role="alert" aria-live="polite" className="field-err"
-      style={{ display: "flex", alignItems: "center", gap: 4, color: "var(--err)", fontSize: "0.8rem" }}>
+    <span
+      role="alert"
+      aria-live="polite"
+      className="field-err"
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: 4,
+        color: "var(--err)",
+        fontSize: "0.8rem",
+      }}
+    >
       <Icon name="warn" size={11} /> {msg}
     </span>
   ) : null;
@@ -71,25 +87,66 @@ const FieldError: React.FC<{ msg?: string }> = ({ msg }) =>
 // ═══════════════════════════════════════════════════════════════════════════
 // 1. SCREEN FORM PERSONAL
 // ═══════════════════════════════════════════════════════════════════════════
-export const ScreenFormPersonal: React.FC<FormPersonalProps> = ({
-  data, onChange, guestIndex, totalGuests, isMainGuest, onNext,
+export const ScreenFormPersonal: React.FC<
+  FormPersonalProps & { allGuests: PartialGuestData[] }
+> = ({
+  data,
+  onChange,
+  guestIndex,
+  totalGuests,
+  isMainGuest,
+  onNext,
+  allGuests,
 }) => {
   const { errors, validate, clearError } = useFormValidation(validatePersonal);
   const fechaNac = data.fechaNac ? dayjs(data.fechaNac) : null;
-  const esMenor = fechaNac?.isValid() ? dayjs().diff(fechaNac, "years") < 18 : false;
 
-  useDebounce(() => {
-    if ((data.nombre?.length ?? 0) >= 2) validate(data);
-  }, 500, [data.nombre]);
+  const esMenor = fechaNac?.isValid()
+    ? dayjs().diff(fechaNac, "years") < 18
+    : false;
 
-  useDebounce(() => {
-    if ((data.apellido?.length ?? 0) >= 2) validate(data);
-  }, 500, [data.apellido]);
+  const otrosHuespedes = allGuests
+    .map((g, idx) => ({ ...g, idx }))
+    .filter((g) => g.idx !== guestIndex);
+
+  const hayOtrosMenores = otrosHuespedes.some(
+    (g) => g.fechaNac && dayjs().diff(dayjs(g.fechaNac), "years") < 18,
+  );
+
+  useDebounce(
+    () => {
+      if ((data.nombre?.length ?? 0) >= 2) validate(data);
+    },
+    500,
+    [data.nombre],
+  );
+
+  useDebounce(
+    () => {
+      if ((data.apellido?.length ?? 0) >= 2) validate(data);
+    },
+    500,
+    [data.apellido],
+  );
+
+  const updateRelacion = (targetIdx: number, relacion: string) => {
+    const nuevosParentescos = {
+      ...(data.parentescos || {}),
+      [targetIdx]: relacion,
+    };
+    onChange("parentescos", nuevosParentescos);
+  };
 
   return (
     <>
       <div className="sec-hdr">
-        <Typography variant="h2" sx={{ fontFamily: "Cormorant Garamond, serif", fontSize: "var(--fs-2xl)" }}>
+        <Typography
+          variant="h2"
+          sx={{
+            fontFamily: "Cormorant Garamond, serif",
+            fontSize: "var(--fs-2xl)",
+          }}
+        >
           Datos personales
         </Typography>
         <Typography variant="body2" color="var(--text-low)">
@@ -97,36 +154,98 @@ export const ScreenFormPersonal: React.FC<FormPersonalProps> = ({
         </Typography>
       </div>
 
-      <Box style={{ padding: "0 var(--px)" }} sx={{ mt: 2, display: "flex", flexDirection: "column", gap: 2.5 }}>
-        <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" }, gap: 2 }}>
+      <Box
+        style={{ padding: "0 var(--px)" }}
+        sx={{ mt: 2, display: "flex", flexDirection: "column", gap: 2.5 }}
+      >
+        <Box
+          sx={{
+            display: "grid",
+            gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" },
+            gap: 2,
+          }}
+        >
           <div>
-            <TextField label="Nombre" required fullWidth value={data.nombre ?? ""}
-              onChange={(e) => { onChange("nombre", e.target.value); if (errors.nombre) clearError("nombre"); }}
-              error={!!errors.nombre} sx={inputSx} />
+            <TextField
+              label="Nombre"
+              required
+              fullWidth
+              value={data.nombre ?? ""}
+              onChange={(e) => {
+                onChange("nombre", e.target.value);
+                if (errors.nombre) clearError("nombre");
+              }}
+              error={!!errors.nombre}
+              sx={inputSx}
+            />
             <FieldError msg={errors.nombre} />
           </div>
           <div>
-            <TextField label="Primer apellido" required fullWidth value={data.apellido ?? ""}
-              onChange={(e) => { onChange("apellido", e.target.value); if (errors.apellido) clearError("apellido"); }}
-              error={!!errors.apellido} sx={inputSx} />
+            <TextField
+              label="Primer apellido"
+              required
+              fullWidth
+              value={data.apellido ?? ""}
+              onChange={(e) => {
+                onChange("apellido", e.target.value);
+                if (errors.apellido) clearError("apellido");
+              }}
+              error={!!errors.apellido}
+              sx={inputSx}
+            />
             <FieldError msg={errors.apellido} />
           </div>
         </Box>
 
-        <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" }, gap: 2 }}>
+        <Box
+          sx={{
+            display: "grid",
+            gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" },
+            gap: 2,
+          }}
+        >
           <div>
-            <TextField select label="Sexo" required fullWidth value={data.sexo ?? ""}
-              onChange={(e) => { onChange("sexo", e.target.value); clearError("sexo"); }}
-              error={!!errors.sexo} sx={inputSx}>
-              {SEXOS.map((s) => <MenuItem key={s} value={s}>{s}</MenuItem>)}
+            <TextField
+              select
+              label="Sexo"
+              required
+              fullWidth
+              value={data.sexo ?? ""}
+              onChange={(e) => {
+                onChange("sexo", e.target.value);
+                clearError("sexo");
+              }}
+              error={!!errors.sexo}
+              sx={inputSx}
+            >
+              {SEXOS.map((s) => (
+                <MenuItem key={s} value={s}>
+                  {s}
+                </MenuItem>
+              ))}
             </TextField>
             <FieldError msg={errors.sexo} />
           </div>
           <div>
-            <DatePicker label="Fecha de nacimiento *" value={fechaNac} disableFuture
+            <DatePicker
+              label="Fecha de nacimiento *"
+              value={fechaNac}
+              disableFuture
               minDate={dayjs("1900-01-01")}
-              onChange={(v) => { onChange("fechaNac", v?.isValid() ? v.format("YYYY-MM-DD") : ""); clearError("fechaNac"); }}
-              slotProps={{ textField: { fullWidth: true, error: !!errors.fechaNac, sx: inputSx } }}
+              onChange={(v) => {
+                onChange(
+                  "fechaNac",
+                  v?.isValid() ? v.format("YYYY-MM-DD") : "",
+                );
+                clearError("fechaNac");
+              }}
+              slotProps={{
+                textField: {
+                  fullWidth: true,
+                  error: !!errors.fechaNac,
+                  sx: inputSx,
+                },
+              }}
             />
             <FieldError msg={errors.fechaNac} />
           </div>
@@ -134,112 +253,314 @@ export const ScreenFormPersonal: React.FC<FormPersonalProps> = ({
 
         {isMainGuest && esMenor && (
           <Alert variant="err" style={{ margin: 0 }}>
-            <strong>Acción no permitida.</strong> El titular de la reserva no puede ser menor de edad. Por favor, indique datos de un adulto.
+            <strong>Acción no permitida.</strong> El titular de la reserva debe
+            ser mayor de edad. Por favor, indique datos de un adulto.
           </Alert>
         )}
 
-        {!isMainGuest && esMenor && (
-          <Box sx={{ p: 2, bgcolor: "var(--primary-lt)", borderRadius: "12px", border: "1px solid var(--border)" }}>
-            <Typography variant="subtitle2" sx={{ mb: 2, color: "var(--text-main)" }}>Datos del menor</Typography>
-            <TextField select label="Parentesco con el titular" required fullWidth value={data.relacionMenor ?? ""}
-              onChange={(e) => { onChange("relacionMenor", e.target.value); clearError("relacionMenor"); }}
-              error={!!errors.relacionMenor} sx={inputSx}>
-              {RELACIONES_MENOR.map((r) => <MenuItem key={r} value={r}>{r}</MenuItem>)}
-            </TextField>
-            <FieldError msg={errors.relacionMenor} />
+        {(esMenor || hayOtrosMenores) && (
+          <Box
+            sx={{
+              p: 2,
+              bgcolor: "var(--primary-lt)",
+              borderRadius: "12px",
+              border: "1px solid var(--border)",
+              display: "flex",
+              flexDirection: "column",
+              gap: 2,
+            }}
+          >
+            <Typography
+              variant="subtitle2"
+              sx={{ color: "var(--primary)", fontWeight: 600 }}
+            >
+              {esMenor
+                ? "Vínculos del menor con el grupo"
+                : "Relación con menores en el grupo"}
+            </Typography>
+
+            {otrosHuespedes.map((otro) => {
+              const otroEsMenor =
+                otro.fechaNac &&
+                dayjs().diff(dayjs(otro.fechaNac), "years") < 18;
+
+              if (!esMenor && !otroEsMenor) return null;
+
+              return (
+                <div key={otro.idx}>
+                  <TextField
+                    select
+                    fullWidth
+                    label={
+                      esMenor
+                        ? `¿Qué es el menor de ${otro.nombre || "Huésped " + (otro.idx + 1)}?`
+                        : `Parentesco con el menor ${otro.nombre || "Huésped " + (otro.idx + 1)}`
+                    }
+                    value={data.parentescos?.[otro.idx] ?? ""}
+                    onChange={(e) => updateRelacion(otro.idx, e.target.value)}
+                    sx={inputSx}
+                  >
+                    {RELACIONES_MENOR.map((r) => (
+                      <MenuItem key={r} value={r}>
+                        {r}
+                      </MenuItem>
+                    ))}
+                  </TextField>
+                </div>
+              );
+            })}
           </Box>
         )}
 
         {!esMenor && (
-          <TextField select label="Nacionalidad" fullWidth value={data.nacionalidad ?? ""}
-            onChange={(e) => onChange("nacionalidad", e.target.value)} sx={inputSx}>
-            {NACIONALIDADES.map((n) => <MenuItem key={n} value={n}>{n}</MenuItem>)}
+          <TextField
+            select
+            label="Nacionalidad"
+            fullWidth
+            value={data.nacionalidad ?? ""}
+            onChange={(e) => onChange("nacionalidad", e.target.value)}
+            sx={inputSx}
+          >
+            {NACIONALIDADES.map((n) => (
+              <MenuItem key={n} value={n}>
+                {n}
+              </MenuItem>
+            ))}
           </TextField>
         )}
       </Box>
 
       <div className="btn-row">
-        <Button disabled={isMainGuest && esMenor} onClick={() => { if (validate(data)) onNext(); }} iconRight="right">
-          Continuar
+        <Button
+          disabled={isMainGuest && esMenor}
+          onClick={() => {
+            if (!validate(data)) return;
+
+            if (guestIndex === totalGuests - 1) {
+              const incompletos = allGuests.some((g) => {
+                const esM =
+                  g.fechaNac && dayjs().diff(dayjs(g.fechaNac), "years") < 18;
+                const tieneQueRellenar = esM || hayOtrosMenores;
+                return (
+                  tieneQueRellenar &&
+                  (!g.parentescos || Object.keys(g.parentescos).length === 0)
+                );
+              });
+
+              if (incompletos) {
+                alert(
+                  "Faltan parentescos por rellenar en los formularios. Revise los datos de todos los huéspedes.",
+                );
+                return;
+              }
+            }
+            onNext();
+          }}
+          iconRight="right"
+        >
+          {guestIndex < totalGuests - 1 ? "Continuar" : "Finalizar Registro"}
         </Button>
       </div>
     </>
   );
 };
-
 // ═══════════════════════════════════════════════════════════════════════════
 // 2. SCREEN FORM CONTACTO
 // ═══════════════════════════════════════════════════════════════════════════
-export const ScreenFormContacto: React.FC<FormContactoProps> = ({ data, onChange, onNext }) => {
+export const ScreenFormContacto: React.FC<FormContactoProps> = ({
+  data,
+  onChange,
+  onNext,
+}) => {
   const { errors, validate, clearError } = useFormValidation(validateContacto);
   const { buscarCP, isSearching } = useZipCode(onChange);
-  const { sugerenciasProvincias, sugerenciasMunicipios, cargarProvincias, cargarMunicipios } = usePlaces();
+  const {
+    sugerenciasProvincias,
+    sugerenciasMunicipios,
+    cargarProvincias,
+    cargarMunicipios,
+  } = usePlaces();
   const esEspana = data.pais === "España";
 
-  useDebounce(() => {
-    if (data.email?.includes("@")) validate(data);
-  }, 500, [data.email]);
+  useDebounce(
+    () => {
+      if (data.email?.includes("@")) validate(data);
+    },
+    500,
+    [data.email],
+  );
 
-  useDebounce(() => {
-    if ((data.telefono?.length ?? 0) >= 7) validate(data);
-  }, 500, [data.telefono]);
+  useDebounce(
+    () => {
+      if ((data.telefono?.length ?? 0) >= 7) validate(data);
+    },
+    500,
+    [data.telefono],
+  );
 
   return (
     <>
       <div className="sec-hdr">
-        <Typography variant="h2" sx={{ fontFamily: "Cormorant Garamond, serif", fontSize: "var(--fs-2xl)" }}>Contacto</Typography>
+        <Typography
+          variant="h2"
+          sx={{
+            fontFamily: "Cormorant Garamond, serif",
+            fontSize: "var(--fs-2xl)",
+          }}
+        >
+          Contacto
+        </Typography>
       </div>
-      <Box style={{ padding: "0 var(--px)" }} sx={{ mt: 2, display: "flex", flexDirection: "column", gap: 2.5 }}>
-        <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" }, gap: 2 }}>
+      <Box
+        style={{ padding: "0 var(--px)" }}
+        sx={{ mt: 2, display: "flex", flexDirection: "column", gap: 2.5 }}
+      >
+        <Box
+          sx={{
+            display: "grid",
+            gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" },
+            gap: 2,
+          }}
+        >
           <div>
-            <TextField label="Email" required fullWidth value={data.email ?? ""}
-              onChange={(e) => { onChange("email", e.target.value); if (errors.email) clearError("email"); }}
-              error={!!errors.email} sx={inputSx} />
+            <TextField
+              label="Email"
+              required
+              fullWidth
+              value={data.email ?? ""}
+              onChange={(e) => {
+                onChange("email", e.target.value);
+                if (errors.email) clearError("email");
+              }}
+              error={!!errors.email}
+              sx={inputSx}
+            />
             <FieldError msg={errors.email} />
           </div>
           <div>
-            <TextField label="Teléfono" required fullWidth value={data.telefono ?? ""}
-              onChange={(e) => { onChange("telefono", e.target.value); if (errors.telefono) clearError("telefono"); }}
-              error={!!errors.telefono} sx={inputSx} />
+            <TextField
+              label="Teléfono"
+              required
+              fullWidth
+              value={data.telefono ?? ""}
+              onChange={(e) => {
+                onChange("telefono", e.target.value);
+                if (errors.telefono) clearError("telefono");
+              }}
+              error={!!errors.telefono}
+              sx={inputSx}
+            />
             <FieldError msg={errors.telefono} />
           </div>
         </Box>
 
-        <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" }, gap: 2 }}>
-          <TextField select label="País" required fullWidth value={data.pais ?? ""}
-            onChange={(e) => { onChange("pais", e.target.value); clearError("pais"); }}
-            error={!!errors.pais} sx={inputSx}>
-            {PAISES.map((p) => <MenuItem key={p} value={p}>{p}</MenuItem>)}
+        <Box
+          sx={{
+            display: "grid",
+            gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" },
+            gap: 2,
+          }}
+        >
+          <TextField
+            select
+            label="País"
+            required
+            fullWidth
+            value={data.pais ?? ""}
+            onChange={(e) => {
+              onChange("pais", e.target.value);
+              clearError("pais");
+            }}
+            error={!!errors.pais}
+            sx={inputSx}
+          >
+            {PAISES.map((p) => (
+              <MenuItem key={p} value={p}>
+                {p}
+              </MenuItem>
+            ))}
           </TextField>
-          <TextField label="Código Postal" fullWidth value={data.cp ?? ""} 
+          <TextField
+            label="Código Postal"
+            fullWidth
+            value={data.cp ?? ""}
             onBlur={() => data.cp && data.pais && buscarCP(data.cp, data.pais)}
-            onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); if (data.cp && data.pais) buscarCP(data.cp, data.pais); } }}
-            onChange={(e) => onChange("cp", e.target.value.toUpperCase())} 
-            sx={inputSx} InputProps={{ endAdornment: isSearching ? "⏳" : null }} />
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                if (data.cp && data.pais) buscarCP(data.cp, data.pais);
+              }
+            }}
+            onChange={(e) => onChange("cp", e.target.value.toUpperCase())}
+            sx={inputSx}
+            InputProps={{ endAdornment: isSearching ? "⏳" : null }}
+          />
         </Box>
 
-        <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" }, gap: 2 }}>
+        <Box
+          sx={{
+            display: "grid",
+            gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" },
+            gap: 2,
+          }}
+        >
           {esEspana ? (
-            <Autocomplete freeSolo autoHighlight options={sugerenciasProvincias || []} value={data.provincia || ""}
-              onInputChange={(_, v) => { onChange("provincia", v || ""); cargarProvincias(v || ""); }}
-              renderInput={(p) => <TextField {...p} label="Provincia" sx={inputSx} />} />
+            <Autocomplete
+              freeSolo
+              autoHighlight
+              options={sugerenciasProvincias || []}
+              value={data.provincia || ""}
+              onInputChange={(_, v) => {
+                onChange("provincia", v || "");
+                cargarProvincias(v || "");
+              }}
+              renderInput={(p) => (
+                <TextField {...p} label="Provincia" sx={inputSx} />
+              )}
+            />
           ) : (
-            <TextField label="Provincia" fullWidth value={data.provincia ?? ""}
-              onChange={(e) => onChange("provincia", e.target.value)} sx={inputSx} />
+            <TextField
+              label="Provincia"
+              fullWidth
+              value={data.provincia ?? ""}
+              onChange={(e) => onChange("provincia", e.target.value)}
+              sx={inputSx}
+            />
           )}
           {esEspana ? (
-            <Autocomplete freeSolo autoHighlight options={(sugerenciasMunicipios || []).map((m) => m.nombre)}
+            <Autocomplete
+              freeSolo
+              autoHighlight
+              options={(sugerenciasMunicipios || []).map((m) => m.nombre)}
               value={data.ciudad || ""}
-              onInputChange={(_, v) => { onChange("ciudad", v || ""); cargarMunicipios(v || "", data.provincia as string); }}
-              renderInput={(p) => <TextField {...p} label="Ciudad" sx={inputSx} />} />
+              onInputChange={(_, v) => {
+                onChange("ciudad", v || "");
+                cargarMunicipios(v || "", data.provincia as string);
+              }}
+              renderInput={(p) => (
+                <TextField {...p} label="Ciudad" sx={inputSx} />
+              )}
+            />
           ) : (
-            <TextField label="Ciudad" fullWidth value={data.ciudad ?? ""}
-              onChange={(e) => onChange("ciudad", e.target.value)} sx={inputSx} />
+            <TextField
+              label="Ciudad"
+              fullWidth
+              value={data.ciudad ?? ""}
+              onChange={(e) => onChange("ciudad", e.target.value)}
+              sx={inputSx}
+            />
           )}
         </Box>
       </Box>
       <div className="btn-row">
-        <Button onClick={() => { if (validate(data)) onNext(); }} iconRight="right">Continuar</Button>
+        <Button
+          onClick={() => {
+            if (validate(data)) onNext();
+          }}
+          iconRight="right"
+        >
+          Continuar
+        </Button>
       </div>
     </>
   );
@@ -249,66 +570,145 @@ export const ScreenFormContacto: React.FC<FormContactoProps> = ({ data, onChange
 // 3. SCREEN FORM DOCUMENTO
 // ═══════════════════════════════════════════════════════════════════════════
 export const ScreenFormDocumento: React.FC<FormDocumentoProps> = ({
-  data, onChange, guestIndex, totalGuests, isMainGuest, onNext, modoFlujo
+  data,
+  onChange,
+  guestIndex,
+  totalGuests,
+  isMainGuest,
+  onNext,
+  modoFlujo,
 }) => {
   const { errors, validate, clearError } = useFormValidation(validateDocumento);
 
-  useDebounce(() => {
-    if (data.tipoDoc && data.numDoc) {
-      const errorMsg = validarNumeroDocumento(data.tipoDoc, data.numDoc);
-      if (errorMsg) validate(data); else clearError("numDoc");
-    }
-  }, 500, [data.numDoc, data.tipoDoc]);
+  useDebounce(
+    () => {
+      if (data.tipoDoc && data.numDoc) {
+        const errorMsg = validarNumeroDocumento(data.tipoDoc, data.numDoc);
+        if (errorMsg) validate(data);
+        else clearError("numDoc");
+      }
+    },
+    500,
+    [data.numDoc, data.tipoDoc],
+  );
 
   const mostrarCargaFoto = modoFlujo !== "manual";
 
   return (
     <>
       <div className="sec-hdr">
-        <Typography variant="h2" sx={{ fontFamily: "Cormorant Garamond, serif", fontSize: "var(--fs-2xl)" }}>Documento</Typography>
+        <Typography
+          variant="h2"
+          sx={{
+            fontFamily: "Cormorant Garamond, serif",
+            fontSize: "var(--fs-2xl)",
+          }}
+        >
+          Documento
+        </Typography>
         <Typography variant="body2" color="var(--text-low)">
-          Identificación huésped {guestIndex + 1} de {totalGuests} {isMainGuest && "(Titular)"}
+          Identificación huésped {guestIndex + 1} de {totalGuests}{" "}
+          {isMainGuest && "(Titular)"}
         </Typography>
       </div>
-      <Box style={{ padding: "0 var(--px)" }} sx={{ mt: 2, display: "flex", flexDirection: "column", gap: 2.5 }}>
-        <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" }, gap: 2 }}>
+      <Box
+        style={{ padding: "0 var(--px)" }}
+        sx={{ mt: 2, display: "flex", flexDirection: "column", gap: 2.5 }}
+      >
+        <Box
+          sx={{
+            display: "grid",
+            gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" },
+            gap: 2,
+          }}
+        >
           <div>
-            <TextField select label="Tipo de documento" required fullWidth value={data.tipoDoc ?? ""}
-              onChange={(e) => { onChange("tipoDoc", e.target.value); onChange("numDoc", ""); clearError("tipoDoc"); }}
-              error={!!errors.tipoDoc} sx={inputSx}>
-              {TIPOS_DOCUMENTO.map((t) => <MenuItem key={t} value={t}>{t}</MenuItem>)}
+            <TextField
+              select
+              label="Tipo de documento"
+              required
+              fullWidth
+              value={data.tipoDoc ?? ""}
+              onChange={(e) => {
+                onChange("tipoDoc", e.target.value);
+                onChange("numDoc", "");
+                clearError("tipoDoc");
+              }}
+              error={!!errors.tipoDoc}
+              sx={inputSx}
+            >
+              {TIPOS_DOCUMENTO.map((t) => (
+                <MenuItem key={t} value={t}>
+                  {t}
+                </MenuItem>
+              ))}
             </TextField>
             <FieldError msg={errors.tipoDoc} />
           </div>
           <div>
-            <TextField label="Número" required fullWidth value={data.numDoc ?? ""}
-              onChange={(e) => { onChange("numDoc", e.target.value.toUpperCase()); if (errors.numDoc) clearError("numDoc"); }}
-              error={!!errors.numDoc} sx={inputSx}
+            <TextField
+              label="Número"
+              required
+              fullWidth
+              value={data.numDoc ?? ""}
+              onChange={(e) => {
+                onChange("numDoc", e.target.value.toUpperCase());
+                if (errors.numDoc) clearError("numDoc");
+              }}
+              error={!!errors.numDoc}
+              sx={inputSx}
               placeholder={
-                data.tipoDoc === "DNI" ? "12345678M" : 
-                data.tipoDoc === "NIE" ? "X1234567Z" : 
-                data.tipoDoc === "Pasaporte" ? "AAA123456" : undefined
-              } />
+                data.tipoDoc === "DNI"
+                  ? "12345678M"
+                  : data.tipoDoc === "NIE"
+                    ? "X1234567Z"
+                    : data.tipoDoc === "Pasaporte"
+                      ? "AAA123456"
+                      : undefined
+              }
+            />
             <FieldError msg={errors.numDoc} />
           </div>
         </Box>
-        
+
         {mostrarCargaFoto && (
           <label htmlFor={`doc-${guestIndex}`} style={{ cursor: "pointer" }}>
             <div className={`upload-area ${data.docUploaded ? "done" : ""}`}>
-              <Icon name={data.docUploaded ? "checkC" : "upload"} size={24} color={data.docUploaded ? "var(--ok)" : "var(--text-low)"} />
-              <p style={{ marginTop: 8, fontSize: 14 }}>{data.docUploaded ? "Documento cargado" : "Subir foto del documento"}</p>
+              <Icon
+                name={data.docUploaded ? "checkC" : "upload"}
+                size={24}
+                color={data.docUploaded ? "var(--ok)" : "var(--text-low)"}
+              />
+              <p style={{ marginTop: 8, fontSize: 14 }}>
+                {data.docUploaded
+                  ? "Documento cargado"
+                  : "Subir foto del documento"}
+              </p>
             </div>
-            <input id={`doc-${guestIndex}`} type="file" hidden accept="image/*" capture="environment" 
+            <input
+              id={`doc-${guestIndex}`}
+              type="file"
+              hidden
+              accept="image/*"
+              capture="environment"
               onChange={(e) => {
                 const f = e.target.files?.[0];
-                if (f && f.size < 10485760) { onChange("docFile", f); onChange("docUploaded", true); }
-              }} />
+                if (f && f.size < 10485760) {
+                  onChange("docFile", f);
+                  onChange("docUploaded", true);
+                }
+              }}
+            />
           </label>
         )}
       </Box>
       <div className="btn-row">
-        <Button onClick={() => { if (validate(data)) onNext(); }} iconRight="right">
+        <Button
+          onClick={() => {
+            if (validate(data)) onNext();
+          }}
+          iconRight="right"
+        >
           {guestIndex < totalGuests - 1 ? "Siguiente huésped" : "Finalizar"}
         </Button>
       </div>
