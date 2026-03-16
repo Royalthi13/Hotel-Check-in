@@ -48,7 +48,7 @@ export interface GuestData {
   tipoDoc: string;
   numDoc: string;
   vat?: string;
-  // docFile nunca se serializa en sessionStorage — solo docUploaded persiste
+  parentescos?: Record<number, string>;
   docFile?: File | null;
   docUploaded?: boolean;
 }
