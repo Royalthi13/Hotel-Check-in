@@ -426,6 +426,14 @@ export const ScreenFormContacto: React.FC<FormContactoProps> = ({
             onBlur={() => {
               if (data.cp && data.pais) buscarCP(data.cp, data.pais);
             }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                if (data.cp && data.pais) {
+                  buscarCP(data.cp, data.pais);
+                }
+              }
+            }}
             sx={inputSx}
             InputProps={{ endAdornment: isSearching ? "⏳" : null }}
           />
