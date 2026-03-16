@@ -1,6 +1,6 @@
 import React from 'react';
-import { Icon, ReservationCard } from '../components/ui';
-import type { Reserva, GuestData } from '../types';
+import { Icon, ReservationCard } from '@/components/ui';
+import type { Reserva, GuestData } from '@/types';
 
 interface Props {
   knownGuest: GuestData | null;
@@ -9,9 +9,6 @@ interface Props {
   onChooseManual: () => void;
 }
 
-// FIX 8: Eliminado <div className="screen"> propio.
-// AppShell ya envuelve todo el contenido en .screen-wrap > .screen
-// Tener dos .screen anidados rompe el flex layout en desktop y duplica la animación slideIn.
 export const ScreenBienvenida: React.FC<Props> = ({
   knownGuest, reserva, onChooseScan, onChooseManual,
 }) => {
@@ -19,7 +16,6 @@ export const ScreenBienvenida: React.FC<Props> = ({
 
   return (
     <>
-      {/* Hero */}
       <div className="hero">
         <div className="hero-eyebrow">Pre Check-in Online</div>
         <h1 className="hero-title">
@@ -46,14 +42,12 @@ export const ScreenBienvenida: React.FC<Props> = ({
         </p>
       </div>
 
-      {/* Reservation summary */}
       {reserva && (
         <div style={{ padding: '18px 24px 0' }}>
           <ReservationCard reserva={reserva} />
         </div>
       )}
 
-      {/* Choice cards */}
       <div style={{ padding: '20px 24px 0' }}>
         <p style={{ fontSize: 13, color: 'var(--text-mid)', marginBottom: 14, lineHeight: 1.5 }}>
           {isKnown

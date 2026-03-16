@@ -1,9 +1,9 @@
 import React, { useRef, useState } from 'react';
-import { Alert, Button, Icon } from '../components/ui';
-import type { GuestData } from '../types';
+import { Alert, Button, Icon } from '@/components/ui';
+import type { GuestData } from '@/types';
 
 interface Props {
-  guestIndex?: number;  // índice del huésped que está escaneando (por defecto 0)
+  guestIndex?: number;
   onScanned: (data: Partial<GuestData>) => void;
   onSkip: () => void;
 }
@@ -13,7 +13,7 @@ const MOCK_SCAN_DATA: Partial<GuestData> = {
   apellido: 'García',
   apellido2: 'López',
   tipoDoc: 'DNI',
-  numDoc: '12345678A',
+  numDoc: '12345678M', // ← letra correcta: 12345678 % 23 = 6 → M
   fechaNac: '1985-03-22',
   nacionalidad: 'Española',
   sexo: 'Hombre',
@@ -21,7 +21,7 @@ const MOCK_SCAN_DATA: Partial<GuestData> = {
 
 export const ScreenEscanear: React.FC<Props> = ({ onScanned, onSkip }) => {
   const [scanning, setScanning] = useState(false);
-  const [scanned, setScanned] = useState(false);
+  const [scanned,  setScanned]  = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
   const handleScan = () => {
@@ -36,7 +36,6 @@ export const ScreenEscanear: React.FC<Props> = ({ onScanned, onSkip }) => {
   const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    // FIX 20: limpiar el input para permitir re-subida
     e.target.value = '';
     setScanning(true);
     setTimeout(() => {

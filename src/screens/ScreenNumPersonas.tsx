@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Button, Alert, Icon } from '../components/ui';
+import { Button, Alert, Icon } from '@/components/ui';
 
 interface Props {
   value: number;
@@ -35,7 +35,6 @@ export const ScreenNumPersonas: React.FC<Props> = ({ value, onChange, onNext }) 
       </div>
 
       <div style={{ padding: '0 24px' }}>
-        {/* Stepper visual */}
         <div className="stepper">
           <button
             className="stepper-btn"
@@ -61,7 +60,6 @@ export const ScreenNumPersonas: React.FC<Props> = ({ value, onChange, onNext }) 
           </button>
         </div>
 
-        {/* Info contextual */}
         {value === 1 && (
           <Alert variant="info">
             Solo el huésped principal. Se le pedirán datos de contacto además de los personales.
@@ -74,7 +72,6 @@ export const ScreenNumPersonas: React.FC<Props> = ({ value, onChange, onNext }) 
           </Alert>
         )}
 
-        {/* Aviso menores */}
         <Alert variant="info" icon="info" style={{ marginTop: 8 }}>
           Los menores de edad no necesitan formulario individual; podrá indicar su información
           en el apartado del huésped principal o acompañante adulto responsable.

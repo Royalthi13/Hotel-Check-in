@@ -1,20 +1,20 @@
 import React from "react";
-import { Button, Alert, Icon } from "../components/ui";
-import { useZipCode } from "../hooks/useZipCode";
+import { Button, Alert, Icon } from "@/components/ui";
+import { useZipCode } from "@/hooks/useZipCode";
 import {
   PAISES,
   NACIONALIDADES,
   TIPOS_DOCUMENTO,
   SEXOS,
   RELACIONES_MENOR,
-} from "../constants";
+} from "@/constants";
 import {
   useFormValidation,
   validatePersonal,
   validateContacto,
   validateDocumento,
-} from "../hooks/useFormValidation";
-import type { PartialGuestData } from "../types";
+} from "@/hooks/useFormValidation";
+import type { PartialGuestData } from "@/types";
 
 import { DatePicker } from "@mui/x-date-pickers";
 import {
@@ -24,7 +24,7 @@ import {
   Typography,
   Autocomplete,
 } from "@mui/material";
-import { usePlaces } from "../hooks/usePlaces";
+import { usePlaces } from "@/hooks/usePlaces";
 import dayjs from "dayjs";
 import "dayjs/locale/es";
 
@@ -114,9 +114,10 @@ export const ScreenFormPersonal: React.FC<FormPersonalProps> = ({
         </Typography>
       </div>
 
+      {/* ✅ style={{ padding }} en vez de sx={{ p: "0 var(--px)" }} — MUI no interpreta CSS vars en la prop shorthand p */}
       <Box
+        style={{ padding: "0 var(--px)" }}
         sx={{
-          p: "0 var(--px)",
           mt: 2,
           display: "flex",
           flexDirection: "column",
@@ -155,9 +156,7 @@ export const ScreenFormPersonal: React.FC<FormPersonalProps> = ({
               error={!!errors.apellido}
               sx={inputSx}
               inputProps={{
-                "aria-describedby": errors.apellido
-                  ? "err-apellido"
-                  : undefined,
+                "aria-describedby": errors.apellido ? "err-apellido" : undefined,
               }}
             />
             <FieldError msg={errors.apellido} />
@@ -214,9 +213,7 @@ export const ScreenFormPersonal: React.FC<FormPersonalProps> = ({
                   error: !!errors.fechaNac,
                   sx: inputSx,
                   inputProps: {
-                    "aria-describedby": errors.fechaNac
-                      ? "err-fecha"
-                      : undefined,
+                    "aria-describedby": errors.fechaNac ? "err-fecha" : undefined,
                   },
                 },
               }}
@@ -313,7 +310,6 @@ export const ScreenFormContacto: React.FC<FormContactoProps> = ({
 }) => {
   const { errors, validate } = useFormValidation(validateContacto);
   const { buscarCP, isSearching } = useZipCode(onChange);
-
   const {
     sugerenciasProvincias,
     sugerenciasMunicipios,
@@ -341,9 +337,11 @@ export const ScreenFormContacto: React.FC<FormContactoProps> = ({
         </Typography>
         <p>Datos para la confirmación del registro.</p>
       </div>
+
+      {/* ✅ style={{ padding }} en vez de sx={{ p }} */}
       <Box
+        style={{ padding: "0 var(--px)" }}
         sx={{
-          p: "0 var(--px)",
           mt: 2,
           display: "flex",
           flexDirection: "column",
@@ -437,7 +435,6 @@ export const ScreenFormContacto: React.FC<FormContactoProps> = ({
             gap: 2,
           }}
         >
-          {/* PROVINCIA */}
           {esEspana ? (
             <Autocomplete
               freeSolo
@@ -463,7 +460,6 @@ export const ScreenFormContacto: React.FC<FormContactoProps> = ({
             />
           )}
 
-          {/* CIUDAD */}
           {esEspana ? (
             <Autocomplete
               freeSolo
@@ -500,6 +496,7 @@ export const ScreenFormContacto: React.FC<FormContactoProps> = ({
     </>
   );
 };
+
 // ═══════════════════════════════════════════════════════════════════════════
 // 3. FORM DOCUMENTO
 // ═══════════════════════════════════════════════════════════════════════════
@@ -533,9 +530,11 @@ export const ScreenFormDocumento: React.FC<FormDocumentoProps> = ({
           {isMainGuest && " (titular de la reserva)"}
         </Typography>
       </div>
+
+      {/* ✅ style={{ padding }} en vez de sx={{ p }} */}
       <Box
+        style={{ padding: "0 var(--px)" }}
         sx={{
-          p: "0 var(--px)",
           mt: 2,
           display: "flex",
           flexDirection: "column",
@@ -556,7 +555,12 @@ export const ScreenFormDocumento: React.FC<FormDocumentoProps> = ({
               required
               fullWidth
               value={data.tipoDoc ?? ""}
-              onChange={(e) => onChange("tipoDoc", e.target.value)}
+              onChange={(e) => {
+                // Limpiar el error de numDoc al cambiar el tipo —
+                // el formato válido cambia según el tipo seleccionado
+                onChange("tipoDoc", e.target.value);
+                onChange("numDoc", "");
+              }}
               error={!!errors.tipoDoc}
               sx={inputSx}
             >
@@ -574,9 +578,10 @@ export const ScreenFormDocumento: React.FC<FormDocumentoProps> = ({
               required
               fullWidth
               value={data.numDoc ?? ""}
-              onChange={(e) => onChange("numDoc", e.target.value)}
+              onChange={(e) => onChange("numDoc", e.target.value.toUpperCase())}
               error={!!errors.numDoc}
               sx={inputSx}
+              inputProps={{ style: { letterSpacing: "0.06em" } }}
             />
             <FieldError msg={errors.numDoc} />
           </div>
@@ -599,9 +604,7 @@ export const ScreenFormDocumento: React.FC<FormDocumentoProps> = ({
             type="file"
             id={`doc-${guestIndex}`}
             hidden
-            onClick={(e) => {
-              (e.target as HTMLInputElement).value = "";
-            }}
+            onClick={(e) => { (e.target as HTMLInputElement).value = ""; }}
             onChange={(e) => {
               if (e.target.files?.[0]) {
                 onChange("docFile", e.target.files[0]);
@@ -611,6 +614,7 @@ export const ScreenFormDocumento: React.FC<FormDocumentoProps> = ({
           />
         </label>
       </Box>
+
       <div className="spacer" />
       <div className="btn-row">
         <Button onClick={handleNext} iconRight="right">

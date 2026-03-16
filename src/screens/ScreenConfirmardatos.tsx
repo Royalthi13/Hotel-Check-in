@@ -1,6 +1,6 @@
 import React from 'react';
-import { Button, ConfirmBlock, Alert, Icon } from '../components/ui';
-import type { PartialGuestData } from '../types';
+import { Button, ConfirmBlock, Alert, Icon } from '@/components/ui';
+import type { PartialGuestData } from '@/types';
 
 interface Props {
   guest: PartialGuestData;
@@ -8,14 +8,6 @@ interface Props {
   onEdit: () => void;
 }
 
-/**
- * Pantalla dedicada al paso "confirmar_datos".
- * Muestra los datos precargados del cliente conocido (viene del token del email)
- * y le da dos opciones: confirmar tal cual o editar campo a campo.
- *
- * NO usa el formulario con validación obligatoria — eso es form_personal.
- * Si el cliente pulsa "Editar", va a form_personal donde puede cambiar lo que quiera.
- */
 export const ScreenConfirmarDatos: React.FC<Props> = ({ guest, onConfirm, onEdit }) => {
   const fullName = [guest.nombre, guest.apellido, guest.apellido2]
     .filter(Boolean)
