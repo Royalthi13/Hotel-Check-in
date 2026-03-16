@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from "react";
+import React from "react";
 import { Button, Alert, Icon } from "../components/ui";
-import { useZipCode } from "../hooks/useZipcode";
+import { useZipCode } from "../hooks/useZipCode";
 import {
   PAISES,
   NACIONALIDADES,
@@ -16,13 +16,18 @@ import {
 } from "../hooks/useFormValidation";
 import type { PartialGuestData } from "../types";
 
-// FIX 2: LocalizationProvider eliminado — ahora vive en main.tsx
 import { DatePicker } from "@mui/x-date-pickers";
-import { TextField, MenuItem, Box, Typography } from "@mui/material";
+import {
+  TextField,
+  MenuItem,
+  Box,
+  Typography,
+  Autocomplete,
+} from "@mui/material";
+import { usePlaces } from "../hooks/usePlaces";
 import dayjs from "dayjs";
 import "dayjs/locale/es";
 
-// FIX 18: inputSx definido UNA sola vez fuera de los componentes — no se recrea en cada render
 const inputSx = {
   "& .MuiInputBase-root": {
     borderRadius: "12px",
@@ -33,7 +38,6 @@ const inputSx = {
   },
 };
 
-// Interfaces de Props
 interface FormPersonalProps {
   data: PartialGuestData;
   onChange: (key: keyof PartialGuestData, value: unknown) => void;
@@ -58,7 +62,6 @@ interface FormDocumentoProps {
   onNext: () => void;
 }
 
-// FIX 19: Componente de error accesible con role="alert" para lectores de pantalla
 const FieldError: React.FC<{ msg?: string }> = ({ msg }) =>
   msg ? (
     <span
@@ -85,7 +88,6 @@ export const ScreenFormPersonal: React.FC<FormPersonalProps> = ({
   const { errors, validate } = useFormValidation(validatePersonal);
 
   const fechaNac = data.fechaNac ? dayjs(data.fechaNac) : null;
-  // FIX 3: esMenor también calculado aquí para el UI, pero la fuente de verdad es el validador
   const esMenor =
     fechaNac && fechaNac.isValid()
       ? dayjs().diff(fechaNac, "years") < 18
@@ -198,7 +200,6 @@ export const ScreenFormPersonal: React.FC<FormPersonalProps> = ({
           </div>
 
           <div>
-            {/* FIX 2: DatePicker sin LocalizationProvider propio — ya está en main.tsx */}
             <DatePicker
               label="Fecha de nacimiento *"
               value={fechaNac}
@@ -239,7 +240,6 @@ export const ScreenFormPersonal: React.FC<FormPersonalProps> = ({
           ))}
         </TextField>
 
-        {/* FIX 3: Aviso de menor — solo si isMainGuest y esMenor */}
         {isMainGuest && esMenor && (
           <Alert variant="err" style={{ margin: 0 }}>
             <strong>Acompañante adulto obligatorio.</strong> Indique abajo el
@@ -306,9 +306,6 @@ export const ScreenFormPersonal: React.FC<FormPersonalProps> = ({
 // ═══════════════════════════════════════════════════════════════════════════
 // 2. FORM CONTACTO
 // ═══════════════════════════════════════════════════════════════════════════
-// ═══════════════════════════════════════════════════════════════════════════
-// 2. FORM CONTACTO (FLUJO INTERNACIONAL)
-// ═══════════════════════════════════════════════════════════════════════════
 export const ScreenFormContacto: React.FC<FormContactoProps> = ({
   data,
   onChange,
@@ -316,6 +313,15 @@ export const ScreenFormContacto: React.FC<FormContactoProps> = ({
 }) => {
   const { errors, validate } = useFormValidation(validateContacto);
   const { buscarCP, isSearching } = useZipCode(onChange);
+
+  const {
+    sugerenciasProvincias,
+    sugerenciasMunicipios,
+    cargarProvincias,
+    cargarMunicipios,
+  } = usePlaces();
+
+  const esEspana = data.pais === "España";
 
   const handleNext = () => {
     if (validate(data)) onNext();
@@ -344,7 +350,6 @@ export const ScreenFormContacto: React.FC<FormContactoProps> = ({
           gap: 2.5,
         }}
       >
-        {/* Email y Teléfono (Igual que antes) */}
         <Box
           sx={{
             display: "grid",
@@ -386,9 +391,8 @@ export const ScreenFormContacto: React.FC<FormContactoProps> = ({
           sx={inputSx}
         />
 
-        <div className="divlabel">Ubicación internacional</div>
+        <div className="divlabel">Ubicación</div>
 
-        {/* 1. PRIMERO PEDIMOS EL PAÍS */}
         <Box
           sx={{
             display: "grid",
@@ -396,49 +400,36 @@ export const ScreenFormContacto: React.FC<FormContactoProps> = ({
             gap: 2,
           }}
         >
-          <div>
-            <TextField
-              select
-              label="País"
-              required
-              fullWidth
-              value={data.pais ?? ""}
-              onChange={(e) => onChange("pais", e.target.value)}
-              error={!!errors.pais}
-              sx={inputSx}
-            >
-              {PAISES.map((p) => (
-                <MenuItem key={p} value={p}>
-                  {p}
-                </MenuItem>
-              ))}
-            </TextField>
-            <FieldError msg={errors.pais} />
-          </div>
+          <TextField
+            select
+            label="País"
+            required
+            fullWidth
+            value={data.pais ?? ""}
+            onChange={(e) => onChange("pais", e.target.value)}
+            error={!!errors.pais}
+            sx={inputSx}
+          >
+            {PAISES.map((p) => (
+              <MenuItem key={p} value={p}>
+                {p}
+              </MenuItem>
+            ))}
+          </TextField>
 
-          {/* 2. LUEGO EL CÓDIGO POSTAL */}
           <TextField
             label="Código Postal"
             fullWidth
             value={data.cp ?? ""}
-            onChange={(e) => onChange("cp", e.target.value.toUpperCase())} // ToUpperCase por si hay letras (ej. UK)
+            onChange={(e) => onChange("cp", e.target.value.toUpperCase())}
             onBlur={() => {
-              // ⚡ LA MAGIA: Al salir del campo, si hay país y CP, buscamos
-              if (data.cp && data.pais) {
-                buscarCP(data.cp, data.pais);
-              }
+              if (data.cp && data.pais) buscarCP(data.cp, data.pais);
             }}
             sx={inputSx}
             InputProps={{ endAdornment: isSearching ? "⏳" : null }}
-            helperText={
-              !data.pais
-                ? "Seleccione un país primero"
-                : "Búsqueda automática al terminar de escribir"
-            }
           />
         </Box>
 
-        {/* 3. LOS CAMPOS QUE SE RELLENAN SOLOS */}
         <Box
           sx={{
             display: "grid",
@@ -446,22 +437,60 @@ export const ScreenFormContacto: React.FC<FormContactoProps> = ({
             gap: 2,
           }}
         >
-          <TextField
-            label="Ciudad"
-            fullWidth
-            value={data.ciudad ?? ""}
-            onChange={(e) => onChange("ciudad", e.target.value)}
-            sx={inputSx}
-          />
-          <TextField
-            label="Provincia"
-            fullWidth
-            value={data.provincia ?? ""}
-            onChange={(e) => onChange("provincia", e.target.value)}
-            sx={inputSx}
-          />
+          {/* PROVINCIA */}
+          {esEspana ? (
+            <Autocomplete
+              freeSolo
+              autoHighlight
+              options={sugerenciasProvincias || []}
+              value={data.provincia || ""}
+              onInputChange={(_, newValue) => {
+                const val = newValue || "";
+                onChange("provincia", val);
+                cargarProvincias(val);
+              }}
+              renderInput={(params) => (
+                <TextField {...params} label="Provincia" sx={inputSx} />
+              )}
+            />
+          ) : (
+            <TextField
+              label="Provincia"
+              fullWidth
+              value={data.provincia ?? ""}
+              onChange={(e) => onChange("provincia", e.target.value)}
+              sx={inputSx}
+            />
+          )}
+
+          {/* CIUDAD */}
+          {esEspana ? (
+            <Autocomplete
+              freeSolo
+              autoHighlight
+              options={(sugerenciasMunicipios || []).map((m) => m.nombre)}
+              value={data.ciudad || ""}
+              onInputChange={(_, newValue) => {
+                const val = newValue || "";
+                onChange("ciudad", val);
+                cargarMunicipios(val, data.provincia as string);
+              }}
+              renderInput={(params) => (
+                <TextField {...params} label="Ciudad" sx={inputSx} />
+              )}
+            />
+          ) : (
+            <TextField
+              label="Ciudad"
+              fullWidth
+              value={data.ciudad ?? ""}
+              onChange={(e) => onChange("ciudad", e.target.value)}
+              sx={inputSx}
+            />
+          )}
         </Box>
       </Box>
+
       <div className="spacer" />
       <div className="btn-row">
         <Button onClick={handleNext} iconRight="right">
@@ -501,7 +530,6 @@ export const ScreenFormDocumento: React.FC<FormDocumentoProps> = ({
         </Typography>
         <Typography variant="body2" color="var(--text-low)">
           Identificación del huésped {guestIndex + 1} de {totalGuests}
-          {/* FIX 15: isMainGuest usado — mostrar indicación extra para el principal */}
           {isMainGuest && " (titular de la reserva)"}
         </Typography>
       </div>
@@ -571,7 +599,6 @@ export const ScreenFormDocumento: React.FC<FormDocumentoProps> = ({
             type="file"
             id={`doc-${guestIndex}`}
             hidden
-            // FIX 20: Limpiar el input tras procesar para permitir re-subida
             onClick={(e) => {
               (e.target as HTMLInputElement).value = "";
             }}
