@@ -1,22 +1,22 @@
-import React, { useRef, useState } from 'react';
-import { Alert, Button, Icon } from '../components/ui';
-import type { GuestData } from '../types';
+import React, { useRef, useState } from "react";
+import { Alert, Button, Icon } from "../components/ui";
+import type { GuestData } from "../types";
 
 interface Props {
-  guestIndex?: number;  // índice del huésped que está escaneando (por defecto 0)
+  guestIndex?: number; // índice del huésped que está escaneando (por defecto 0)
   onScanned: (data: Partial<GuestData>) => void;
   onSkip: () => void;
 }
 
 const MOCK_SCAN_DATA: Partial<GuestData> = {
-  nombre: 'Carlos',
-  apellido: 'García',
-  apellido2: 'López',
-  tipoDoc: 'DNI',
-  numDoc: '12345678A',
-  fechaNac: '1985-03-22',
-  nacionalidad: 'Española',
-  sexo: 'Hombre',
+  nombre: "Carlos",
+  apellido: "García",
+  apellido2: "López",
+  tipoDoc: "DNI",
+  numDoc: "12345678A",
+  fechaNac: "1985-03-22",
+  nacionalidad: "Española",
+  sexo: "Hombre",
 };
 
 export const ScreenEscanear: React.FC<Props> = ({ onScanned, onSkip }) => {
@@ -36,13 +36,23 @@ export const ScreenEscanear: React.FC<Props> = ({ onScanned, onSkip }) => {
   const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    // FIX 20: limpiar el input para permitir re-subida
-    e.target.value = '';
+
+    if (file.size > 20971520) {
+      alert("El archivo es demasiado grande. El máximo permitido son 10 MB.");
+      e.target.value = "";
+      return;
+    }
+
+    e.target.value = "";
     setScanning(true);
     setTimeout(() => {
       setScanning(false);
       setScanned(true);
-      setTimeout(() => onScanned({ ...MOCK_SCAN_DATA, docFile: file, docUploaded: true }), 800);
+      setTimeout(
+        () =>
+          onScanned({ ...MOCK_SCAN_DATA, docFile: file, docUploaded: true }),
+        800,
+      );
     }, 1800);
   };
 
@@ -51,13 +61,14 @@ export const ScreenEscanear: React.FC<Props> = ({ onScanned, onSkip }) => {
       <div className="sec-hdr">
         <h2>Escanear documento</h2>
         <p>
-          Coloque su DNI o pasaporte dentro del marco y pulse capturar. Los datos se
-          rellenarán automáticamente. <strong>Este paso es opcional</strong> — puede
-          saltarlo y rellenar todo a mano.
+          Coloque su DNI o pasaporte dentro del marco y pulse capturar. Los
+          datos se rellenarán automáticamente.{" "}
+          <strong>Este paso es opcional</strong> — puede saltarlo y rellenar
+          todo a mano.
         </p>
       </div>
 
-      <div style={{ padding: '10px 24px 0' }}>
+      <div style={{ padding: "10px 24px 0" }}>
         <div className="scan-viewport">
           <div className="scan-bg">
             <span className="scan-ghost">
@@ -73,11 +84,10 @@ export const ScreenEscanear: React.FC<Props> = ({ onScanned, onSkip }) => {
           </div>
           <div className="scan-hint">
             {scanned
-              ? '✓ Documento detectado'
+              ? "✓ Documento detectado"
               : scanning
-                ? 'Procesando…'
-                : 'Centre el documento en el marco'
-            }
+                ? "Procesando…"
+                : "Centre el documento en el marco"}
           </div>
         </div>
 
@@ -98,20 +108,28 @@ export const ScreenEscanear: React.FC<Props> = ({ onScanned, onSkip }) => {
               disabled={scanning}
               aria-label="Capturar documento"
             >
-              {scanning
-                ? <div className="spinner" style={{ width: 26, height: 26, borderWidth: 2 }} />
-                : <Icon name="camera" size={26} color="#fff" />
-              }
+              {scanning ? (
+                <div
+                  className="spinner"
+                  style={{ width: 26, height: 26, borderWidth: 2 }}
+                />
+              ) : (
+                <Icon name="camera" size={26} color="#fff" />
+              )}
             </button>
 
-            <button className="scan-side-btn" title="Flash" aria-label="Activar flash">
+            <button
+              className="scan-side-btn"
+              title="Flash"
+              aria-label="Activar flash"
+            >
               <Icon name="flash" size={18} color="var(--text-mid)" />
             </button>
           </div>
         )}
 
         {scanned && (
-          <Alert variant="ok" style={{ margin: '8px 0 12px' }}>
+          <Alert variant="ok" style={{ margin: "8px 0 12px" }}>
             Documento escaneado correctamente. Procesando datos…
           </Alert>
         )}
@@ -125,7 +143,7 @@ export const ScreenEscanear: React.FC<Props> = ({ onScanned, onSkip }) => {
                   <Icon name="upload" size={22} color="var(--text-mid)" />
                 </div>
                 <div className="upload-title">Subir foto del documento</div>
-                <div className="upload-sub">JPG, PNG o PDF · Máx. 10 MB</div>
+                <div className="upload-sub">JPG, PNG o PDF · Máx. 20 MB</div>
               </div>
             </label>
             <input
@@ -133,11 +151,15 @@ export const ScreenEscanear: React.FC<Props> = ({ onScanned, onSkip }) => {
               ref={fileRef}
               type="file"
               accept="image/*,.pdf"
-              style={{ display: 'none' }}
+              capture="environment"
+              style={{ display: "none" }}
               onChange={handleFile}
             />
             <Alert variant="info">
-              <Icon name="lock" size={13} /> Transmisión cifrada. Documento eliminado tras el check-in conforme al RGPD.
+              <Icon name="lock" size={13} /> Los documentos escaneados o subidos
+              a esta plataforma no serán almacenados y solo serán utilizados
+              para el procesamiento de los datos exclusivamente necesarios
+              conforme al Reglamento General de Protección de Datos.
             </Alert>
           </>
         )}
