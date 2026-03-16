@@ -1,31 +1,47 @@
 import React, { useState } from 'react';
-import { Field, Button, Alert, LoadingSpinner, Icon } from '../components/ui';
-import { MOCK_RESERVAS } from '../mocks/reservas-mock';
-import type { Reserva } from '../types';
+import { Field, Button, Alert, LoadingSpinner, Icon } from '@/components/ui';
+import type { Reserva } from '@/types';
 
 interface Props {
   onFound: (reserva: Reserva) => void;
 }
 
+/**
+ * Pantalla de búsqueda de reserva para el quiosco del hotel (modo tablet).
+ *
+ * Usa fetch('/api/reservas/:id') interceptado por MSW en desarrollo.
+ * En producción, la misma URL apunta al backend real sin cambiar nada aquí.
+ *
+ * Números de prueba disponibles en mocks/reservas-mock.ts: 78432 y 99999
+ */
 export const ScreenTabletBuscar: React.FC<Props> = ({ onFound }) => {
-  const [num, setNum] = useState('');
+  const [num,     setNum]     = useState('');
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [error,   setError]   = useState('');
 
-  const buscar = () => {
+  const buscar = async () => {
     const trimmed = num.trim();
     if (!trimmed) { setError('Introduzca su número de reserva.'); return; }
+
     setError('');
     setLoading(true);
-    setTimeout(() => {
-      setLoading(false);
-      const res = MOCK_RESERVAS[trimmed];
-      if (res) {
-        onFound(res);
-      } else {
-        setError('No se encontró ninguna reserva con ese número. Compruebe el dato o solicite ayuda en recepción.');
+
+    try {
+      const res = await fetch(`/api/reservas/${encodeURIComponent(trimmed)}`);
+      const data = await res.json() as { ok: boolean; reserva?: Reserva; message?: string };
+
+      if (!res.ok || !data.ok || !data.reserva) {
+        setError(data.message ?? 'No se encontró ninguna reserva con ese número.');
+        return;
       }
-    }, 1500);
+
+      onFound(data.reserva);
+
+    } catch {
+      setError('Error de conexión. Compruebe la red e inténtelo de nuevo.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleKey = (e: React.KeyboardEvent) => {
