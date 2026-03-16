@@ -34,15 +34,21 @@ export const useZipCode = (onChange: (key: any, value: any) => void) => {
 
     setIsSearching(true);
     try {
-      const res = await fetch(`https://api.zippopotam.us/${codigoIso}/${cp}`);
-      if (res.ok) {
-        const data = await res.json();
-        const place = data.places[0];
-        onChange("ciudad", place["place name"]);
-        onChange("provincia", place["state"]);
+      if (paisElegido === "España") {
+        console.log("Consultando CP para España: ", cp);
+      } else {
+        const res = await fetch(`https://api.zippopotam.us/${codigoIso}/${cp}`);
+        if (res.ok) {
+          const data = await res.json();
+          const place = data.places[0];
+          onChange("ciudad", place["place name"]);
+          onChange("provincia", place["state"]);
+        } else {
+          console.log("CP no encontrado en la base internacional.");
+        }
       }
     } catch (e) {
-      console.log("No se encontró el CP en la base de datos internacional.");
+      console.log("Error en la petición de Código Postal:", e);
     } finally {
       setIsSearching(false);
     }
