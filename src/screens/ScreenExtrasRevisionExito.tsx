@@ -1,11 +1,11 @@
-import React from 'react';
-import { Field, Button, Alert, ConfirmBlock, Icon } from '@/components/ui';
-import { ReservationCard } from '@/components/ui';
-import { HORAS_LLEGADA } from '@/constants';
-import type { CheckinState } from '@/types';
+import React from "react";
+import { Typography, Box } from "@mui/material";
+import { Field, Button, Alert, ConfirmBlock, Icon } from "@/components/ui";
+import { HORAS_LLEGADA } from "@/constants";
+import type { CheckinState } from "@/types";
 
 // ═══════════════════════════════════════════════════════════════════════════
-// FORM EXTRAS
+// 1. FORM EXTRAS
 // ═══════════════════════════════════════════════════════════════════════════
 interface FormExtrasProps {
   horaLlegada: string;
@@ -16,19 +16,36 @@ interface FormExtrasProps {
 }
 
 export const ScreenFormExtras: React.FC<FormExtrasProps> = ({
-  horaLlegada, observaciones, onHoraChange, onObsChange, onNext,
+  horaLlegada,
+  observaciones,
+  onHoraChange,
+  onObsChange,
+  onNext,
 }) => (
   <>
     <div className="sec-hdr">
-      <h2>Preferencias y extras</h2>
-      <p>Información adicional para personalizar su estancia. Todos los campos son opcionales.</p>
+      <Typography
+        variant="h2"
+        sx={{
+          fontFamily: "Cormorant Garamond, serif",
+          fontSize: "var(--fs-2xl)",
+        }}
+      >
+        Preferencias y extras
+      </Typography>
+      <p>Información adicional opcional para su estancia.</p>
     </div>
 
     <div className="fields" style={{ marginTop: 12 }}>
       <div className="divlabel">Llegada</div>
       <Field label="Hora estimada de llegada">
-        <select value={horaLlegada} onChange={e => onHoraChange(e.target.value)}>
-          {HORAS_LLEGADA.map(h => <option key={h}>{h}</option>)}
+        <select
+          value={horaLlegada}
+          onChange={(e) => onHoraChange(e.target.value)}
+        >
+          {HORAS_LLEGADA.map((h) => (
+            <option key={h}>{h}</option>
+          ))}
         </select>
       </Field>
 
@@ -37,15 +54,10 @@ export const ScreenFormExtras: React.FC<FormExtrasProps> = ({
         <textarea
           rows={4}
           value={observaciones}
-          onChange={e => onObsChange(e.target.value)}
-          placeholder="Habitación en planta alta, cuna para bebé, alergias, dieta especial…"
+          onChange={(e) => onObsChange(e.target.value)}
+          placeholder="Cuna, alergias, habitación planta alta..."
         />
       </Field>
-
-      <Alert variant="info" style={{ marginTop: 8 }}>
-        Las peticiones son orientativas. El hotel hará lo posible por atenderlas,
-        aunque no pueden garantizarse de antemano.
-      </Alert>
     </div>
 
     <div className="spacer" />
@@ -58,222 +70,242 @@ export const ScreenFormExtras: React.FC<FormExtrasProps> = ({
 );
 
 // ═══════════════════════════════════════════════════════════════════════════
-// REVISION
+// 2. REVISION
 // ═══════════════════════════════════════════════════════════════════════════
-interface RevisionProps {
+interface ScreenRevisionProps {
   state: CheckinState;
   isSubmitting: boolean;
-  onEditStep: (step: string) => void;
-  // ✅ Tipado correcto: async porque hace fetch al backend
-  onSubmit: () => Promise<void>;
+  onEditGuest: (index: number) => void;
+  onSubmit: () => void;
   onRgpdChange: (v: boolean) => void;
 }
 
-export const ScreenRevision: React.FC<RevisionProps> = ({
-  state, isSubmitting, onEditStep, onSubmit, onRgpdChange,
+export const ScreenRevision: React.FC<ScreenRevisionProps> = ({
+  state,
+  isSubmitting,
+  onEditGuest,
+  onSubmit,
+  onRgpdChange,
 }) => {
-  const { reserva, guests, horaLlegada, observaciones, rgpdAcepted } = state;
-  const main = guests[0] ?? {};
+  const infoGrupo = Array.from({ length: state.numPersonas }).map((_, i) => {
+    const g = state.guests[i];
+    const esValido = !!(g?.nombre && g?.numDoc);
+    return {
+      index: i,
+      nombre: g?.nombre || `Huésped ${i + 1}`,
+      esValido,
+      datos: g,
+    };
+  });
 
-  const fullName = (g: typeof main) =>
-    [g.nombre, g.apellido, g.apellido2].filter(Boolean).join(' ');
+  const pendientes = infoGrupo.filter((h) => !h.esValido);
+  const todoOk = pendientes.length === 0;
 
   return (
-    <>
+    <div className="screen">
       <div className="sec-hdr">
-        <h2>Revise sus datos</h2>
-        <p>Compruebe que toda la información es correcta antes de confirmar el pre check-in.</p>
+        <Typography
+          variant="h2"
+          sx={{
+            fontFamily: "Cormorant Garamond, serif",
+            fontSize: "var(--fs-2xl)",
+          }}
+        >
+          Revisión del grupo
+        </Typography>
+        <p>
+          {todoOk
+            ? "✓ Todo listo"
+            : `Faltan datos de ${pendientes.length} personas.`}
+        </p>
       </div>
 
-      <div style={{ padding: '8px 24px 0' }}>
-        {reserva && (
-          <div style={{ marginBottom: 12 }}>
-            <ReservationCard reserva={reserva} />
-          </div>
+      <Box
+        sx={{
+          padding: "0 24px",
+          display: "flex",
+          flexDirection: "column",
+          gap: "16px",
+        }}
+      >
+        {pendientes.length > 0 && (
+          <Alert variant="warm">
+            <strong style={{ display: "block", marginBottom: "8px" }}>
+              Pendientes de completar:
+            </strong>
+            {pendientes.map((p) => (
+              <div
+                key={p.index}
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  marginBottom: "8px",
+                }}
+              >
+                <span>• {p.nombre}</span>
+                <button
+                  onClick={() => onEditGuest(p.index)}
+                  style={{
+                    color: "var(--primary)",
+                    fontWeight: "bold",
+                    border: "none",
+                    background: "none",
+                    cursor: "pointer",
+                    fontSize: "12px",
+                  }}
+                >
+                  RELLENAR AHORA
+                </button>
+              </div>
+            ))}
+          </Alert>
         )}
 
-        {guests.map((g, idx) => (
-          <React.Fragment key={idx}>
+        {infoGrupo
+          .filter((h) => h.esValido)
+          .map((h) => (
             <ConfirmBlock
-              title={idx === 0
-                ? 'Huésped principal — datos personales'
-                : `Acompañante ${idx + 1} — datos personales`}
-              onEdit={() => onEditStep('form_personal')}
+              key={h.index}
+              title={h.nombre}
+              onEdit={() => onEditGuest(h.index)}
               rows={[
-                ['Nombre',       fullName(g)        || null],
-                ['Sexo',         g.sexo             ?? null],
-                ['Nacimiento',   g.fechaNac          ?? null],
-                ['Nacionalidad', g.nacionalidad     ?? null],
-                ...(g.tienesMenor
-                  ? [['Menor', `${g.nombreMenor ?? '—'} (${g.relacionMenor ?? '—'})`] as [string, string]]
-                  : []
-                ),
+                ["Documento", `${h.datos?.tipoDoc} ${h.datos?.numDoc}`],
+                [
+                  "Vínculos",
+                  h.datos?.parentescos ? "Registrados" : "No requeridos",
+                ],
               ]}
             />
-            <ConfirmBlock
-              title={idx === 0
-                ? 'Huésped principal — documento'
-                : `Acompañante ${idx + 1} — documento`}
-              onEdit={() => onEditStep('form_documento')}
-              rows={[
-                ['Tipo',   g.tipoDoc    ?? null],
-                ['Número', g.numDoc     ?? null],
-                ...(g.vat ? [['VAT', g.vat] as [string, string]] : []),
-                ['Foto',   g.docUploaded ? '✓ Adjuntada' : '—'],
-              ]}
-            />
-          </React.Fragment>
-        ))}
+          ))}
 
-        <ConfirmBlock
-          title="Contacto y dirección"
-          onEdit={() => onEditStep('form_contacto')}
-          rows={[
-            ['Email',     main.email    ?? null],
-            ['Teléfono',  main.telefono ?? null],
-            ['Dirección', [main.direccion, main.ciudad, main.provincia, main.cp, main.pais]
-              .filter(Boolean).join(', ') || null],
-          ]}
-        />
-
-        {(horaLlegada || observaciones) && (
-          <ConfirmBlock
-            title="Preferencias"
-            onEdit={() => onEditStep('form_extras')}
-            rows={[
-              ['Llegada', horaLlegada   || null],
-              ['Notas',   observaciones || null],
-            ]}
+        <label
+          style={{
+            display: "flex",
+            gap: "12px",
+            marginTop: "10px",
+            alignItems: "center",
+            cursor: "pointer",
+          }}
+        >
+          <input
+            type="checkbox"
+            checked={state.rgpdAcepted}
+            onChange={(e) => onRgpdChange(e.target.checked)}
           />
-        )}
-      </div>
-
-      {/* RGPD persiste en estado global — sobrevive a navegar atrás y volver */}
-      <div className="chk-area">
-        <input
-          type="checkbox"
-          id="chk-accept"
-          checked={rgpdAcepted ?? false}
-          onChange={e => onRgpdChange(e.target.checked)}
-        />
-        <label htmlFor="chk-accept">
-          Confirmo que los datos son correctos y acepto la{' '}
-          <a href="#">política de privacidad</a> y las{' '}
-          <a href="#">condiciones del pre check-in</a> del hotel.
+          <Typography variant="caption">
+            Acepto la política de privacidad y el envío de datos.
+          </Typography>
         </label>
-      </div>
+      </Box>
 
       <div className="spacer" />
       <div className="btn-row">
         <Button
           variant="primary"
-          iconRight={isSubmitting ? undefined : 'check'}
           onClick={onSubmit}
-          disabled={!rgpdAcepted || isSubmitting}
+          disabled={!todoOk || isSubmitting || !state.rgpdAcepted}
+          fullWidth
         >
-          {isSubmitting
-            ? (
-              <>
-                <div className="spinner" style={{ width: 18, height: 18, borderWidth: 2 }} />
-                Enviando…
-              </>
-            )
-            : 'Completar pre check-in'
-          }
+          {isSubmitting ? "Enviando..." : "Finalizar Check-in"}
         </Button>
-        <div className="privacy">
-          <Icon name="lock" size={11} /> Cifrado SSL · Datos protegidos conforme al RGPD
-        </div>
       </div>
-    </>
+    </div>
   );
 };
 
 // ═══════════════════════════════════════════════════════════════════════════
-// ÉXITO
+// 3. ÉXITO
 // ═══════════════════════════════════════════════════════════════════════════
 interface ExitoProps {
   state: CheckinState;
-  onAddHora?: () => void; // callback para navegar a form_extras desde App.tsx
+  onAddHora?: () => void;
 }
 
 export const ScreenExito: React.FC<ExitoProps> = ({ state, onAddHora }) => {
   const { reserva, guests, horaLlegada } = state;
   const main = guests[0] ?? {};
-  const nombreCompleto = [main.nombre, main.apellido].filter(Boolean).join(' ');
+  const nombreCompleto = [main.nombre, main.apellido].filter(Boolean).join(" ");
 
   return (
-    <>
-      <div className="success-wrap">
-        <div className="success-ring">
-          <Icon name="checkC" size={42} color="var(--ok)" />
+    <div className="success-wrap">
+      <div className="success-ring">
+        <Icon name="checkC" size={42} color="var(--ok)" />
+      </div>
+
+      <Typography
+        variant="h1"
+        className="success-title"
+        sx={{
+          fontFamily: "Cormorant Garamond, serif",
+          fontSize: "2rem",
+          textAlign: "center",
+          my: 2,
+        }}
+      >
+        ¡Registro completado!
+      </Typography>
+
+      <p
+        className="success-sub"
+        style={{ textAlign: "center", marginBottom: 24 }}
+      >
+        Sus datos han sido enviados. Le esperamos en recepción.
+      </p>
+
+      <div className="success-info-card">
+        {reserva && (
+          <>
+            <div className="si-row">
+              <span>Reserva</span>
+              <span>{reserva.confirmacion}</span>
+            </div>
+            <div className="si-row">
+              <span>Habitación</span>
+              <span>{reserva.habitacion}</span>
+            </div>
+            <div
+              style={{
+                height: 1,
+                background: "var(--border)",
+                margin: "8px 0",
+              }}
+            />
+          </>
+        )}
+        <div className="si-row">
+          <span>Titular</span>
+          <span>{nombreCompleto}</span>
         </div>
-
-        <h1 className="success-title">
-          ¡Pre check-in<br />completado!
-        </h1>
-        <p className="success-sub">
-          Sus datos han sido registrados. Al llegar al hotel, diríjase
-          directamente a recepción para recoger su llave de habitación.
-        </p>
-
-        <div className="success-info-card">
-          {reserva && (
-            <>
-              <div className="si-row">
-                <span>Reserva</span><span>{reserva.confirmacion}</span>
-              </div>
-              <div className="si-row">
-                <span>Habitación</span><span>{reserva.habitacion}</span>
-              </div>
-              <div style={{ height: 1, background: 'var(--border)' }} />
-            </>
-          )}
-          {nombreCompleto && (
-            <div className="si-row">
-              <span>Huésped principal</span><span>{nombreCompleto}</span>
-            </div>
-          )}
-          {state.numPersonas > 1 && (
-            <div className="si-row">
-              <span>Total huéspedes</span><span>{state.numPersonas}</span>
-            </div>
-          )}
-          {main.tipoDoc && (
-            <div className="si-row">
-              <span>Documento</span>
-              <span>{main.tipoDoc} · {main.numDoc}</span>
-            </div>
-          )}
-          {horaLlegada && horaLlegada !== 'No especificada' && (
-            <div className="si-row">
-              <span>Llegada prevista</span><span>{horaLlegada}</span>
-            </div>
-          )}
-        </div>
-
-        <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 10 }}>
-          {/* Imprimir / guardar confirmación */}
-          <Button
-            variant="primary"
-            style={{ background: 'var(--secondary)' }}
-            onClick={() => window.print()}
-          >
-            <Icon name="check" size={16} /> Guardar / Imprimir confirmación
-          </Button>
-
-          {/* Añadir hora solo si no se especificó — usa callback de App.tsx, no history.back() */}
-          {(!horaLlegada || horaLlegada === 'No especificada') && onAddHora && (
-            <Button variant="secondary" iconLeft="clock" onClick={onAddHora}>
-              Añadir hora de llegada
-            </Button>
-          )}
-        </div>
-
-        <div className="privacy" style={{ marginTop: 14 }}>
-          <Icon name="info" size={11} /> Recibirá una confirmación en su email
+        <div className="si-row">
+          <span>Llegada</span>
+          <span>{horaLlegada || "No especificada"}</span>
         </div>
       </div>
-    </>
+
+      <Box
+        sx={{
+          width: "100%",
+          display: "flex",
+          flexDirection: "column",
+          gap: 1.5,
+          mt: 3,
+        }}
+      >
+        <Button
+          variant="primary"
+          style={{ background: "var(--secondary)" }}
+          onClick={() => window.print()}
+        >
+          <Icon name="check" size={16} /> Guardar confirmación
+        </Button>
+
+        {(!horaLlegada || horaLlegada === "No especificada") && (
+          <Button variant="secondary" iconLeft="clock" onClick={onAddHora}>
+            Añadir hora de llegada
+          </Button>
+        )}
+      </Box>
+    </div>
   );
 };

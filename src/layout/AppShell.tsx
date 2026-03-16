@@ -1,23 +1,22 @@
-import React from 'react';
-import { Header, DotsProgress, Icon } from '../components/ui';
-import { DOT_LABELS } from '../constants';
-// ✅ CheckinNav y CheckinActions viven en types/, no en el hook
-import type { CheckinNav, CheckinActions, StepId } from '../types';
+import React from "react";
+import { Header, DotsProgress, Icon } from "../components/ui";
+import { DOT_LABELS } from "../constants";
+import type { CheckinNav, CheckinActions, StepId } from "../types";
 
 const SIDE_STEPS: { id: StepId; label: string }[] = [
-  { id: 'bienvenida',     label: 'Bienvenida'       },
-  { id: 'num_personas',   label: 'N.º de personas'  },
-  { id: 'form_personal',  label: 'Datos personales' },
-  { id: 'form_contacto',  label: 'Contacto'         },
-  { id: 'form_documento', label: 'Documento'        },
-  { id: 'form_extras',    label: 'Preferencias'     },
-  { id: 'revision',       label: 'Revisión'         },
-  { id: 'exito',          label: 'Completado'       },
+  { id: "bienvenida", label: "Bienvenida" },
+  { id: "num_personas", label: "N.º de personas" },
+  { id: "form_personal", label: "Datos personales" },
+  { id: "form_contacto", label: "Contacto" },
+  { id: "form_documento", label: "Documento" },
+  { id: "form_extras", label: "Preferencias" },
+  { id: "revision", label: "Revisión" },
+  { id: "exito", label: "Completado" },
 ];
 
 const DOT_FOR: Partial<Record<StepId, StepId>> = {
-  escanear:        'form_personal',
-  confirmar_datos: 'form_personal',
+  escanear: "form_personal",
+  confirmar_datos: "form_personal",
 };
 
 function getActiveSideStep(step: StepId): StepId {
@@ -26,24 +25,31 @@ function getActiveSideStep(step: StepId): StepId {
 
 interface AppShellProps {
   nav: CheckinNav;
-  actions: Pick<CheckinActions, 'goBack' | 'goToDotIndex'>;
+  actions: Pick<CheckinActions, "goBack" | "goToDotIndex" | "goTo">;
   showDots: boolean;
   children: React.ReactNode;
 }
 
-export const AppShell: React.FC<AppShellProps> = ({ nav, actions, showDots, children }) => {
-  const dotLabels  = nav.dotSteps.map((s: StepId) => DOT_LABELS[s] ?? s);
+export const AppShell: React.FC<AppShellProps> = ({
+  nav,
+  actions,
+  showDots,
+  children,
+}) => {
+  const dotLabels = nav.dotSteps.map((s: StepId) => DOT_LABELS[s] ?? s);
   const activeStep = getActiveSideStep(nav.step);
-  const activeIdx  = SIDE_STEPS.findIndex(s => s.id === activeStep);
+  const activeIdx = SIDE_STEPS.findIndex((s) => s.id === activeStep);
+
+  const showOverviewBtn =
+    nav.step !== "revision" &&
+    nav.step !== "exito" &&
+    nav.step !== "tablet_buscar";
 
   return (
     <div className="shell">
       <div className="card">
-
-        {/* Header — sticky, ancho completo */}
         <Header canGoBack={nav.canGoBack} onBack={actions.goBack} />
 
-        {/* Dots — solo móvil/tablet, en desktop los oculta el CSS */}
         {showDots && nav.dotIndex >= 0 && (
           <DotsProgress
             steps={nav.dotSteps}
@@ -54,41 +60,79 @@ export const AppShell: React.FC<AppShellProps> = ({ nav, actions, showDots, chil
           />
         )}
 
-        {/* body-row: panel lateral (desktop) + contenido principal */}
         <div className="body-row">
-
-          {/* Panel lateral — visible solo en desktop via CSS */}
           <aside className="side-panel">
             <div className="side-panel-inner">
               <div className="sp-logo">
                 <span>Lumina</span>
                 <em>Hotels</em>
               </div>
-              <p className="sp-sub">
-                Complete su pre check-in y llegue al hotel sin esperas en recepción.
-              </p>
+
+              {showOverviewBtn && (
+                <button
+                  className="btn-overview-trigger"
+                  onClick={() => actions.goTo("revision")}
+                  style={{
+                    margin: "20px 0",
+                    padding: "10px",
+                    borderRadius: "8px",
+                    background: "rgba(255,255,255,0.1)",
+                    border: "1px solid rgba(255,255,255,0.2)",
+                    color: "#fff",
+                    cursor: "pointer",
+                    width: "100%",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: "8px",
+                    fontSize: "12px",
+                  }}
+                >
+                  <Icon name="search" size={14} color="var(--primary)" />
+                  Resumen de la reserva
+                </button>
+              )}
 
               <nav className="sp-steps" aria-label="Progreso">
                 {SIDE_STEPS.map((s, i) => {
-                  const isDone   = i < activeIdx;
+                  const isDone = i < activeIdx;
                   const isActive = i === activeIdx;
+
                   return (
-                    <div
+                    <button
                       key={s.id}
+                      onClick={() => actions.goTo(s.id, "back")}
+                      disabled={s.id === "exito" && activeIdx < 6}
                       className={[
-                        'sp-step',
-                        isActive ? 'sp-step--active' : '',
-                        isDone   ? 'sp-step--done'   : '',
-                      ].filter(Boolean).join(' ')}
+                        "sp-step",
+                        isActive ? "sp-step--active" : "",
+                        isDone ? "sp-step--done" : "",
+                      ]
+                        .filter(Boolean)
+                        .join(" ")}
+                      style={{
+                        background: "none",
+                        border: "none",
+                        width: "100%",
+                        textAlign: "left",
+                        cursor: "pointer",
+                        padding: "8px 0",
+                      }}
                     >
                       <div className="sp-step-num">
-                        {isDone
-                          ? <Icon name="check" size={12} color="#fff" />
-                          : i + 1
-                        }
+                        {isDone ? (
+                          <Icon name="check" size={10} color="#fff" />
+                        ) : (
+                          i + 1
+                        )}
                       </div>
-                      <span className="sp-step-label">{s.label}</span>
-                    </div>
+                      <span
+                        className="sp-step-label"
+                        style={{ opacity: isActive || isDone ? 1 : 0.5 }}
+                      >
+                        {s.label}
+                      </span>
+                    </button>
                   );
                 })}
               </nav>
@@ -100,16 +144,14 @@ export const AppShell: React.FC<AppShellProps> = ({ nav, actions, showDots, chil
             </div>
           </aside>
 
-          {/* Contenido de la pantalla */}
           <div className="screen-wrap">
             <div
-              className={`screen ${nav.direction === 'back' ? 'back' : ''}`}
+              className={`screen ${nav.direction === "back" ? "back" : ""}`}
               key={nav.step}
             >
               {children}
             </div>
           </div>
-
         </div>
       </div>
     </div>

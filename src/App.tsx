@@ -4,19 +4,19 @@ import {
   Route,
   Navigate,
   useParams,
-} from 'react-router-dom';
-import './App.css';
-import { ErrorBoundary } from '@/components/ErrorBoundary';
-import { useCheckin } from './hooks/useCheckin';
-import { AppShell } from './layout/AppShell';
-import { LoadingSpinner, Alert } from './components/ui';
-import { useEffect, useRef, useState } from 'react';
+} from "react-router-dom";
+import "./App.css";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { useCheckin } from "./hooks/useCheckin";
+import { AppShell } from "./layout/AppShell";
+import { LoadingSpinner, Alert } from "./components/ui";
+import { useEffect, useRef, useState } from "react";
 
-import { ScreenTabletBuscar }   from './screens/ScreenTabletBuscar';
-import { ScreenBienvenida }     from './screens/ScreenBienvenida';
-import { ScreenNumPersonas }    from './screens/ScreenNumPersonas';
-import { ScreenEscanear }       from './screens/ScreenEscanear';
-import { ScreenConfirmarDatos } from './screens/ScreenConfirmardatos'; // ← casing exacto del archivo en disco
+import { ScreenTabletBuscar } from "./screens/ScreenTabletBuscar";
+import { ScreenBienvenida } from "./screens/ScreenBienvenida";
+import { ScreenNumPersonas } from "./screens/ScreenNumPersonas";
+import { ScreenEscanear } from "./screens/ScreenEscanear";
+import { ScreenConfirmarDatos } from "./screens/ScreenConfirmardatos"; // ← casing exacto del archivo en disco
 import {
   ScreenFormPersonal,
   ScreenFormContacto,
@@ -43,7 +43,7 @@ function RedirectToBienvenida() {
 function CheckinWizard() {
   const { token, step } = useParams();
   const [state, nav, actions, isLoading] = useCheckin(token, step);
-  const [submitError,  setSubmitError]  = useState('');
+  const [submitError, setSubmitError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Timeout de inactividad en modo tablet
@@ -83,11 +83,17 @@ function CheckinWizard() {
   }
 
   const {
-    goTo, goBack, goToDotIndex,
-    setReservaFromTablet, setNumPersonas,
-    updateGuest, applyScannedData,
-    setHoraLlegada, setObservaciones,
-    nextGuest, setRgpdAcepted,
+    goTo,
+    goBack,
+    goToDotIndex,
+    setReservaFromTablet,
+    setNumPersonas,
+    updateGuest,
+    applyScannedData,
+    setHoraLlegada,
+    setObservaciones,
+    nextGuest,
+    setRgpdAcepted,
   } = actions;
 
   const currentStep = nav.step || "bienvenida";
@@ -101,7 +107,7 @@ function CheckinWizard() {
     if (state.knownGuest) {
       goTo("confirmar_datos");
     } else if (state.reserva) {
-      goTo('num_personas');
+      goTo("num_personas");
     } else {
       goTo("num_personas");
     }
@@ -109,16 +115,16 @@ function CheckinWizard() {
 
   // ✅ onSubmit es async — el tipo de ScreenRevision ahora coincide
   const handleSubmit = async (): Promise<void> => {
-    setSubmitError('');
+    setSubmitError("");
     setIsSubmitting(true);
     try {
       const res = await fetch(`/api/checkin/${token}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          reserva:      state.reserva,
-          guests:       state.guests.map(({ docFile: _f, ...rest }) => rest),
-          horaLlegada:  state.horaLlegada,
+          reserva: state.reserva,
+          guests: state.guests.map(({ docFile: _f, ...rest }) => rest),
+          horaLlegada: state.horaLlegada,
           observaciones: state.observaciones,
         }),
       });
@@ -134,8 +140,7 @@ function CheckinWizard() {
     }
   };
 
-  // Tablet buscar — sin AppShell (no tiene header ni dots)
-  if (currentStep === 'tablet_buscar') {
+  if (currentStep === "tablet_buscar") {
     return (
       <div className="shell">
         <div className="card">
@@ -146,7 +151,11 @@ function CheckinWizard() {
   }
 
   return (
-    <AppShell nav={nav} actions={{ goBack, goToDotIndex }} showDots={showDots}>
+    <AppShell
+      nav={nav}
+      actions={{ goBack, goToDotIndex, goTo }}
+      showDots={showDots}
+    >
       {currentStep === "bienvenida" && (
         <ScreenBienvenida
           knownGuest={state.knownGuest}
@@ -170,8 +179,8 @@ function CheckinWizard() {
       {currentStep === "confirmar_datos" && (
         <ScreenConfirmarDatos
           guest={currentGuest}
-          onConfirm={() => goTo('form_contacto')}
-          onEdit={()   => goTo('form_personal')}
+          onConfirm={() => goTo("form_contacto")}
+          onEdit={() => goTo("form_personal")}
         />
       )}
 
@@ -179,9 +188,9 @@ function CheckinWizard() {
         <ScreenEscanear
           onScanned={(data) => {
             applyScannedData(data, nav.guestIndex);
-            goTo('num_personas');
+            goTo("num_personas");
           }}
-          onSkip={() => goTo('num_personas')}
+          onSkip={() => goTo("num_personas")}
         />
       )}
 
@@ -193,6 +202,7 @@ function CheckinWizard() {
           totalGuests={state.numPersonas}
           isMainGuest={isMainGuest}
           onNext={() => nextGuest(nav.guestIndex, "form_personal")}
+          allGuests={state.guests}
         />
       )}
 
@@ -240,21 +250,20 @@ function CheckinWizard() {
           <ScreenRevision
             state={state}
             isSubmitting={isSubmitting}
-            onEditStep={(targetStep) => goTo(targetStep as StepId, "back")}
+            onEditGuest={(idx) => goTo("form_personal", "back", idx)}
             onSubmit={handleSubmit}
             onRgpdChange={setRgpdAcepted}
           />
         </>
       )}
 
-      {currentStep === 'exito' && (
+      {currentStep === "exito" && (
         <ScreenExito
           state={state}
           // ✅ Navegación correcta a form_extras, no window.history.back()
-          onAddHora={() => goTo('form_extras', 'back')}
+          onAddHora={() => goTo("form_extras", "back")}
         />
       )}
-
     </AppShell>
   );
 }
@@ -263,9 +272,19 @@ export default function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/checkin/:token"       element={<RedirectToBienvenida />} />
-        <Route path="/checkin/:token/:step" element={<ErrorBoundary><CheckinWizard /></ErrorBoundary>} />
-        <Route path="*"                     element={<Navigate to="/checkin/new/bienvenida" replace />} />
+        <Route path="/checkin/:token" element={<RedirectToBienvenida />} />
+        <Route
+          path="/checkin/:token/:step"
+          element={
+            <ErrorBoundary>
+              <CheckinWizard />
+            </ErrorBoundary>
+          }
+        />
+        <Route
+          path="*"
+          element={<Navigate to="/checkin/new/bienvenida" replace />}
+        />
       </Routes>
     </BrowserRouter>
   );
