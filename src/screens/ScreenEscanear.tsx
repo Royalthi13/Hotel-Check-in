@@ -37,7 +37,7 @@ export const ScreenEscanear: React.FC<Props> = ({ onScanned, onSkip }) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (file.size > 20971520) {
+    if (file.size > 10485760) {
       alert("El archivo es demasiado grande. El máximo permitido son 10 MB.");
       e.target.value = "";
       return;
@@ -143,7 +143,7 @@ export const ScreenEscanear: React.FC<Props> = ({ onScanned, onSkip }) => {
                   <Icon name="upload" size={22} color="var(--text-mid)" />
                 </div>
                 <div className="upload-title">Subir foto del documento</div>
-                <div className="upload-sub">JPG, PNG o PDF · Máx. 20 MB</div>
+                <div className="upload-sub">JPG, PNG o PDF · Máx. 10 MB</div>
               </div>
             </label>
             <input

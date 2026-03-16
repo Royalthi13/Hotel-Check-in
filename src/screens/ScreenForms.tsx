@@ -518,7 +518,7 @@ export const ScreenFormDocumento: React.FC<FormDocumentoProps> = ({
   totalGuests,
   isMainGuest,
   onNext,
-  modoFlujo, // 👈 RECIBE EL MODO AQUÍ
+  modoFlujo,
 }) => {
   const { errors, validate } = useFormValidation(validateDocumento);
 
@@ -526,7 +526,6 @@ export const ScreenFormDocumento: React.FC<FormDocumentoProps> = ({
     if (validate(data)) onNext();
   };
 
-  // 🛡️ CONDICIÓN APLICADA: Oculta la foto si es manual
   const mostrarCargaFoto = modoFlujo !== "manual";
 
   return (
@@ -595,7 +594,6 @@ export const ScreenFormDocumento: React.FC<FormDocumentoProps> = ({
           </div>
         </Box>
 
-        {/* 🛡️ RENDERIZADO CONDICIONAL AQUÍ */}
         {mostrarCargaFoto && (
           <label htmlFor={`doc-${guestIndex}`} style={{ cursor: "pointer" }}>
             <div className={`upload-area ${data.docUploaded ? "done" : ""}`}>
@@ -614,14 +612,25 @@ export const ScreenFormDocumento: React.FC<FormDocumentoProps> = ({
               type="file"
               id={`doc-${guestIndex}`}
               hidden
-              onClick={(e: any) => {
-                e.target.value = "";
+              accept="image/*,.pdf"
+              capture="environment"
+              onClick={(e: React.MouseEvent<HTMLInputElement>) => {
+                (e.target as HTMLInputElement).value = "";
               }}
-              onChange={(e: any) => {
-                if (e.target.files?.[0]) {
-                  onChange("docFile", e.target.files[0]);
-                  onChange("docUploaded", true);
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                const file = e.target.files?.[0];
+                if (!file) return;
+
+                if (file.size > 10485760) {
+                  alert(
+                    "El archivo es demasiado grande. El máximo permitido son 10 MB.",
+                  );
+                  e.target.value = "";
+                  return;
                 }
+
+                onChange("docFile", file);
+                onChange("docUploaded", true);
               }}
             />
           </label>
