@@ -6,6 +6,7 @@ import {
   useParams,
 } from 'react-router-dom';
 import './App.css';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { useCheckin } from './hooks/useCheckin';
 import { AppShell } from './layout/AppShell';
 import { LoadingSpinner, Alert } from './components/ui';
@@ -247,7 +248,7 @@ export default function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/checkin/:token"       element={<RedirectToBienvenida />} />
-        <Route path="/checkin/:token/:step" element={<CheckinWizard />} />
+        <Route path="/checkin/:token/:step" element={<ErrorBoundary><CheckinWizard /></ErrorBoundary>} />
         <Route path="*"                     element={<Navigate to="/checkin/new/bienvenida" replace />} />
       </Routes>
     </BrowserRouter>
