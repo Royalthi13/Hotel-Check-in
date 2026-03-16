@@ -169,18 +169,25 @@ export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElemen
   variant?: "primary" | "secondary";
   iconLeft?: IconName;
   iconRight?: IconName;
+  fullWidth?: boolean;
 }
 
 export const Button: React.FC<ButtonProps> = ({
   variant = "primary",
   iconLeft,
   iconRight,
+  fullWidth,
   children,
   className,
+  style,
   ...rest
 }) => (
   <button
     className={`btn-${variant}${className ? ` ${className}` : ""}`}
+    style={{
+      width: fullWidth ? "100%" : undefined,
+      ...style,
+    }}
     {...rest}
   >
     {iconLeft && <Icon name={iconLeft} size={17} />}
@@ -188,7 +195,6 @@ export const Button: React.FC<ButtonProps> = ({
     {iconRight && <Icon name={iconRight} size={17} />}
   </button>
 );
-
 // ═══════════════════════════════════════════════════════════════════════════
 // ALERT
 // ═══════════════════════════════════════════════════════════════════════════
