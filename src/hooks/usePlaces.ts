@@ -1,69 +1,60 @@
-import { useState } from "react";
+import { useState } from 'react';
 
 export interface Municipio {
   nombre: string;
   provincia: string;
 }
 
-const API_BASE_URL = "https://tu-api-backend.com/api";
+// En desarrollo sin backend, las llamadas fallan silenciosamente y devuelven [].
+// Cuando el backend esté listo, cambia esta constante a la URL real.
+const API_BASE_URL = import.meta.env.VITE_API_URL ?? '';
 
-const quitarAcentos = (str: string) => {
-  return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-};
+const quitarAcentos = (str: string) =>
+  str.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 
-export const usePlaces = () => {
-  const [sugerenciasProvincias, setSugerenciasProvincias] = useState<string[]>(
-    [],
-  );
-  const [sugerenciasMunicipios, setSugerenciasMunicipios] = useState<
-    Municipio[]
-  >([]);
+export function usePlaces() {
+  const [sugerenciasProvincias, setSugerenciasProvincias] = useState<string[]>([]);
+  const [sugerenciasMunicipios, setSugerenciasMunicipios] = useState<Municipio[]>([]);
 
   const cargarProvincias = async (texto: string) => {
-    if (!texto) return setSugerenciasProvincias([]);
-
-    const textoLimpio = quitarAcentos(texto);
-
+    if (!texto || !API_BASE_URL) {
+      setSugerenciasProvincias([]);
+      return;
+    }
     try {
       const res = await fetch(
-        `${API_BASE_URL}/provincias?q=${encodeURIComponent(textoLimpio)}`,
+        `${API_BASE_URL}/api/provincias?q=${encodeURIComponent(quitarAcentos(texto))}`,
       );
-      if (!res.ok) throw new Error("Error en servidor de provincias");
-
-      const data = await res.json();
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data: string[] = await res.json();
       setSugerenciasProvincias(data);
-    } catch (error) {
-      console.error("Fallo al cargar provincias:", error);
+    } catch {
+      // Fallo silencioso: el campo sigue funcionando como input libre
       setSugerenciasProvincias([]);
     }
   };
 
   const cargarMunicipios = async (texto: string, provincia?: string) => {
-    if (!texto) return setSugerenciasMunicipios([]);
-
-    const textoLimpio = quitarAcentos(texto);
-
+    if (!texto || !API_BASE_URL) {
+      setSugerenciasMunicipios([]);
+      return;
+    }
     try {
-      const params = new URLSearchParams({ q: textoLimpio });
-      if (provincia) params.append("provincia", provincia);
-
-      const res = await fetch(
-        `${API_BASE_URL}/municipios?${params.toString()}`,
-      );
-      if (!res.ok) throw new Error("Error en servidor de municipios");
-
-      const data = await res.json();
+      const params = new URLSearchParams({ q: quitarAcentos(texto) });
+      if (provincia) params.append('provincia', provincia);
+      const res = await fetch(`${API_BASE_URL}/api/municipios?${params}`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data: Municipio[] = await res.json();
       setSugerenciasMunicipios(data);
-    } catch (error) {
-      console.error("Fallo al cargar municipios:", error);
+    } catch {
       setSugerenciasMunicipios([]);
     }
   };
 
   return {
-    sugerenciasProvincias: sugerenciasProvincias || [],
-    sugerenciasMunicipios: sugerenciasMunicipios || [],
+    sugerenciasProvincias,
+    sugerenciasMunicipios,
     cargarProvincias,
     cargarMunicipios,
   };
-};
+}

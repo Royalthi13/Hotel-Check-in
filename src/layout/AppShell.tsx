@@ -1,8 +1,8 @@
 import React from 'react';
 import { Header, DotsProgress, Icon } from '../components/ui';
 import { DOT_LABELS } from '../constants';
-import type { CheckinNav, CheckinActions } from '../hooks/useCheckin';
-import type { StepId } from '../types';
+// ✅ CheckinNav y CheckinActions viven en types/, no en el hook
+import type { CheckinNav, CheckinActions, StepId } from '../types';
 
 const SIDE_STEPS: { id: StepId; label: string }[] = [
   { id: 'bienvenida',     label: 'Bienvenida'       },
@@ -14,35 +14,35 @@ const SIDE_STEPS: { id: StepId; label: string }[] = [
   { id: 'revision',       label: 'Revisión'         },
   { id: 'exito',          label: 'Completado'       },
 ];
- 
+
 const DOT_FOR: Partial<Record<StepId, StepId>> = {
   escanear:        'form_personal',
   confirmar_datos: 'form_personal',
 };
- 
+
 function getActiveSideStep(step: StepId): StepId {
   return DOT_FOR[step] ?? step;
 }
- 
+
 interface AppShellProps {
   nav: CheckinNav;
   actions: Pick<CheckinActions, 'goBack' | 'goToDotIndex'>;
   showDots: boolean;
   children: React.ReactNode;
 }
- 
+
 export const AppShell: React.FC<AppShellProps> = ({ nav, actions, showDots, children }) => {
-  const dotLabels  = nav.dotSteps.map(s => DOT_LABELS[s] ?? s);
+  const dotLabels  = nav.dotSteps.map((s: StepId) => DOT_LABELS[s] ?? s);
   const activeStep = getActiveSideStep(nav.step);
   const activeIdx  = SIDE_STEPS.findIndex(s => s.id === activeStep);
- 
+
   return (
     <div className="shell">
       <div className="card">
- 
+
         {/* Header — sticky, ancho completo */}
         <Header canGoBack={nav.canGoBack} onBack={actions.goBack} />
- 
+
         {/* Dots — solo móvil/tablet, en desktop los oculta el CSS */}
         {showDots && nav.dotIndex >= 0 && (
           <DotsProgress
@@ -53,10 +53,10 @@ export const AppShell: React.FC<AppShellProps> = ({ nav, actions, showDots, chil
             onDotClick={actions.goToDotIndex}
           />
         )}
- 
+
         {/* body-row: panel lateral (desktop) + contenido principal */}
         <div className="body-row">
- 
+
           {/* Panel lateral — visible solo en desktop via CSS */}
           <aside className="side-panel">
             <div className="side-panel-inner">
@@ -67,7 +67,7 @@ export const AppShell: React.FC<AppShellProps> = ({ nav, actions, showDots, chil
               <p className="sp-sub">
                 Complete su pre check-in y llegue al hotel sin esperas en recepción.
               </p>
- 
+
               <nav className="sp-steps" aria-label="Progreso">
                 {SIDE_STEPS.map((s, i) => {
                   const isDone   = i < activeIdx;
@@ -92,14 +92,14 @@ export const AppShell: React.FC<AppShellProps> = ({ nav, actions, showDots, chil
                   );
                 })}
               </nav>
- 
+
               <div className="sp-footer">
                 <Icon name="lock" size={12} color="rgba(255,255,255,.3)" />
                 <span>Cifrado SSL · RGPD</span>
               </div>
             </div>
           </aside>
- 
+
           {/* Contenido de la pantalla */}
           <div className="screen-wrap">
             <div
@@ -109,10 +109,9 @@ export const AppShell: React.FC<AppShellProps> = ({ nav, actions, showDots, chil
               {children}
             </div>
           </div>
- 
+
         </div>
       </div>
     </div>
   );
 };
- 

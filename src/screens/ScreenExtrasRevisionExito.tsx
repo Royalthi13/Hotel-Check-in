@@ -62,10 +62,11 @@ export const ScreenFormExtras: React.FC<FormExtrasProps> = ({
 // ═══════════════════════════════════════════════════════════════════════════
 interface RevisionProps {
   state: CheckinState;
-  isSubmitting: boolean;                          // FIX 23
+  isSubmitting: boolean;
   onEditStep: (step: string) => void;
-  onSubmit: () => void;
-  onRgpdChange: (v: boolean) => void;             // FIX 14
+  // ✅ Tipado correcto: async porque hace fetch al backend
+  onSubmit: () => Promise<void>;
+  onRgpdChange: (v: boolean) => void;
 }
 
 export const ScreenRevision: React.FC<RevisionProps> = ({
@@ -94,14 +95,15 @@ export const ScreenRevision: React.FC<RevisionProps> = ({
         {guests.map((g, idx) => (
           <React.Fragment key={idx}>
             <ConfirmBlock
-              title={idx === 0 ? 'Huésped principal — datos personales' : `Acompañante ${idx + 1} — datos personales`}
+              title={idx === 0
+                ? 'Huésped principal — datos personales'
+                : `Acompañante ${idx + 1} — datos personales`}
               onEdit={() => onEditStep('form_personal')}
               rows={[
-                ['Nombre',       fullName(g)       || null],
-                ['Sexo',         g.sexo            ?? null],
-                ['Nacimiento',   g.fechaNac         ?? null],
-                ['Nacionalidad', g.nacionalidad    ?? null],
-                // FIX 9: Evitar key '' duplicada — usar undefined para omitir la fila
+                ['Nombre',       fullName(g)        || null],
+                ['Sexo',         g.sexo             ?? null],
+                ['Nacimiento',   g.fechaNac          ?? null],
+                ['Nacionalidad', g.nacionalidad     ?? null],
                 ...(g.tienesMenor
                   ? [['Menor', `${g.nombreMenor ?? '—'} (${g.relacionMenor ?? '—'})`] as [string, string]]
                   : []
@@ -109,7 +111,9 @@ export const ScreenRevision: React.FC<RevisionProps> = ({
               ]}
             />
             <ConfirmBlock
-              title={idx === 0 ? 'Huésped principal — documento' : `Acompañante ${idx + 1} — documento`}
+              title={idx === 0
+                ? 'Huésped principal — documento'
+                : `Acompañante ${idx + 1} — documento`}
               onEdit={() => onEditStep('form_documento')}
               rows={[
                 ['Tipo',   g.tipoDoc    ?? null],
@@ -137,14 +141,14 @@ export const ScreenRevision: React.FC<RevisionProps> = ({
             title="Preferencias"
             onEdit={() => onEditStep('form_extras')}
             rows={[
-              ['Llegada', horaLlegada  || null],
+              ['Llegada', horaLlegada   || null],
               ['Notas',   observaciones || null],
             ]}
           />
         )}
       </div>
 
-      {/* FIX 14: RGPD usa estado global (onRgpdChange) — sobrevive al Atrás */}
+      {/* RGPD persiste en estado global — sobrevive a navegar atrás y volver */}
       <div className="chk-area">
         <input
           type="checkbox"
@@ -161,7 +165,6 @@ export const ScreenRevision: React.FC<RevisionProps> = ({
 
       <div className="spacer" />
       <div className="btn-row">
-        {/* FIX 23: Botón muestra spinner mientras hace POST */}
         <Button
           variant="primary"
           iconRight={isSubmitting ? undefined : 'check'}
@@ -169,7 +172,12 @@ export const ScreenRevision: React.FC<RevisionProps> = ({
           disabled={!rgpdAcepted || isSubmitting}
         >
           {isSubmitting
-            ? <><div className="spinner" style={{ width: 18, height: 18, borderWidth: 2 }} />Enviando…</>
+            ? (
+              <>
+                <div className="spinner" style={{ width: 18, height: 18, borderWidth: 2 }} />
+                Enviando…
+              </>
+            )
             : 'Completar pre check-in'
           }
         </Button>
@@ -186,22 +194,13 @@ export const ScreenRevision: React.FC<RevisionProps> = ({
 // ═══════════════════════════════════════════════════════════════════════════
 interface ExitoProps {
   state: CheckinState;
+  onAddHora?: () => void; // callback para navegar a form_extras desde App.tsx
 }
 
-export const ScreenExito: React.FC<ExitoProps> = ({ state }) => {
+export const ScreenExito: React.FC<ExitoProps> = ({ state, onAddHora }) => {
   const { reserva, guests, horaLlegada } = state;
   const main = guests[0] ?? {};
   const nombreCompleto = [main.nombre, main.apellido].filter(Boolean).join(' ');
-
-  // FIX 27: Imprimir confirmación
-  const handlePrint = () => window.print();
-
-  // FIX 27: Añadir hora de llegada navega al paso extras
-  // (No podemos goTo aquí porque estamos fuera del hook — usar navigate directamente)
-  // En producción, este botón abriría un modal o un enlace a soporte.
-  const handleAddHora = () => {
-    window.history.back(); // Simplificado — en producción: link a área de cliente
-  };
 
   return (
     <>
@@ -214,8 +213,8 @@ export const ScreenExito: React.FC<ExitoProps> = ({ state }) => {
           ¡Pre check-in<br />completado!
         </h1>
         <p className="success-sub">
-          Sus datos han sido registrados. Al llegar al hotel, diríjase directamente
-          a recepción para recoger su llave de habitación.
+          Sus datos han sido registrados. Al llegar al hotel, diríjase
+          directamente a recepción para recoger su llave de habitación.
         </p>
 
         <div className="success-info-card">
@@ -242,7 +241,8 @@ export const ScreenExito: React.FC<ExitoProps> = ({ state }) => {
           )}
           {main.tipoDoc && (
             <div className="si-row">
-              <span>Documento</span><span>{main.tipoDoc} · {main.numDoc}</span>
+              <span>Documento</span>
+              <span>{main.tipoDoc} · {main.numDoc}</span>
             </div>
           )}
           {horaLlegada && horaLlegada !== 'No especificada' && (
@@ -253,17 +253,18 @@ export const ScreenExito: React.FC<ExitoProps> = ({ state }) => {
         </div>
 
         <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 10 }}>
-          {/* FIX 27: Botón Finalizar funcional (imprime o cierra) */}
+          {/* Imprimir / guardar confirmación */}
           <Button
             variant="primary"
             style={{ background: 'var(--secondary)' }}
-            onClick={handlePrint}
+            onClick={() => window.print()}
           >
             <Icon name="check" size={16} /> Guardar / Imprimir confirmación
           </Button>
-          {/* FIX 27: Botón hora de llegada funcional */}
-          {(!horaLlegada || horaLlegada === 'No especificada') && (
-            <Button variant="secondary" iconLeft="clock" onClick={handleAddHora}>
+
+          {/* Añadir hora solo si no se especificó — usa callback de App.tsx, no history.back() */}
+          {(!horaLlegada || horaLlegada === 'No especificada') && onAddHora && (
+            <Button variant="secondary" iconLeft="clock" onClick={onAddHora}>
               Añadir hora de llegada
             </Button>
           )}

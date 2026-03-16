@@ -9,32 +9,40 @@ interface Props {
 }
 
 /**
- * FIX 21: Pantalla dedicada para el paso "confirmar_datos".
- * En lugar de mostrar un formulario vacío con validación obligatoria,
- * muestra los datos precargados del cliente y permite confirmar o editar.
+ * Pantalla dedicada al paso "confirmar_datos".
+ * Muestra los datos precargados del cliente conocido (viene del token del email)
+ * y le da dos opciones: confirmar tal cual o editar campo a campo.
+ *
+ * NO usa el formulario con validación obligatoria — eso es form_personal.
+ * Si el cliente pulsa "Editar", va a form_personal donde puede cambiar lo que quiera.
  */
 export const ScreenConfirmarDatos: React.FC<Props> = ({ guest, onConfirm, onEdit }) => {
-  const fullName = [guest.nombre, guest.apellido, guest.apellido2].filter(Boolean).join(' ');
+  const fullName = [guest.nombre, guest.apellido, guest.apellido2]
+    .filter(Boolean)
+    .join(' ');
 
   return (
     <>
       <div className="sec-hdr">
         <h2>Sus datos registrados</h2>
-        <p>Hemos encontrado su perfil. Compruebe que los datos son correctos antes de continuar.</p>
+        <p>
+          Hemos encontrado su perfil. Compruebe que los datos son correctos
+          antes de continuar.
+        </p>
       </div>
 
       <div style={{ padding: '12px 24px 0' }}>
         <Alert variant="info">
-          <Icon name="info" size={13} />
-          Si algún dato ha cambiado, pulse <strong>Editar</strong> para actualizarlo.
+          Si algún dato ha cambiado, pulse <strong>Editar</strong> para
+          actualizarlo.
         </Alert>
 
         <ConfirmBlock
           title="Datos personales"
           rows={[
             ['Nombre completo', fullName || null],
-            ['Sexo',            guest.sexo ?? null],
-            ['Fecha nacimiento', guest.fechaNac ?? null],
+            ['Sexo',            guest.sexo       ?? null],
+            ['Fecha nacimiento', guest.fechaNac   ?? null],
             ['Nacionalidad',    guest.nacionalidad ?? null],
           ]}
         />
@@ -48,6 +56,16 @@ export const ScreenConfirmarDatos: React.FC<Props> = ({ guest, onConfirm, onEdit
             ]}
           />
         )}
+
+        {guest.email && (
+          <ConfirmBlock
+            title="Contacto"
+            rows={[
+              ['Email',    guest.email    ?? null],
+              ['Teléfono', guest.telefono ?? null],
+            ]}
+          />
+        )}
       </div>
 
       <div className="spacer" />
@@ -58,6 +76,11 @@ export const ScreenConfirmarDatos: React.FC<Props> = ({ guest, onConfirm, onEdit
         <Button variant="secondary" iconLeft="edit" onClick={onEdit}>
           Editar datos
         </Button>
+      </div>
+
+      <div className="privacy" style={{ paddingBottom: 20 }}>
+        <Icon name="lock" size={11} />
+        Datos protegidos conforme al RGPD
       </div>
     </>
   );

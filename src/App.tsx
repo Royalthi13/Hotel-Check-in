@@ -15,13 +15,7 @@ import { ScreenTabletBuscar }   from './screens/ScreenTabletBuscar';
 import { ScreenBienvenida }     from './screens/ScreenBienvenida';
 import { ScreenNumPersonas }    from './screens/ScreenNumPersonas';
 import { ScreenEscanear }       from './screens/ScreenEscanear';
-
-// IMPORTANTE: el nombre del archivo en disco debe ser exactamente este.
-// En Windows, TypeScript falla si el casing del import no coincide con el archivo.
-// Si creaste el archivo como "ScreenConfirmardatos.tsx" (d minúscula),
-// renómbralo a "ScreenConfirmarDatos.tsx" (D mayúscula) desde el explorador de archivos.
-import { ScreenConfirmarDatos } from './screens/ScreenConfirmarDatos';
-
+import { ScreenConfirmarDatos } from './screens/ScreenConfirmardatos'; // ← casing exacto del archivo en disco
 import {
   ScreenFormPersonal,
   ScreenFormContacto,
@@ -48,7 +42,7 @@ function RedirectToBienvenida() {
 function CheckinWizard() {
   const { token, step } = useParams();
   const [state, nav, actions, isLoading] = useCheckin(token, step);
-  const [submitError, setSubmitError] = useState('');
+  const [submitError,  setSubmitError]  = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Timeout de inactividad en modo tablet
@@ -83,9 +77,11 @@ function CheckinWizard() {
   }
 
   const {
-    goTo, goBack, goToDotIndex, setReservaFromTablet, setNumPersonas,
-    updateGuest, applyScannedData, setHoraLlegada,
-    setObservaciones, nextGuest, setRgpdAcepted,
+    goTo, goBack, goToDotIndex,
+    setReservaFromTablet, setNumPersonas,
+    updateGuest, applyScannedData,
+    setHoraLlegada, setObservaciones,
+    nextGuest, setRgpdAcepted,
   } = actions;
 
   const currentStep  = nav.step || 'bienvenida';
@@ -97,13 +93,14 @@ function CheckinWizard() {
     if (state.knownGuest) {
       goTo('confirmar_datos');
     } else if (state.reserva) {
-      goTo('form_personal');
+      goTo('num_personas');
     } else {
       goTo('num_personas');
     }
   };
 
-  const handleSubmit = async () => {
+  // ✅ onSubmit es async — el tipo de ScreenRevision ahora coincide
+  const handleSubmit = async (): Promise<void> => {
     setSubmitError('');
     setIsSubmitting(true);
     try {
@@ -111,9 +108,9 @@ function CheckinWizard() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          reserva: state.reserva,
-          guests: state.guests.map(({ docFile: _f, ...rest }) => rest),
-          horaLlegada: state.horaLlegada,
+          reserva:      state.reserva,
+          guests:       state.guests.map(({ docFile: _f, ...rest }) => rest),
+          horaLlegada:  state.horaLlegada,
           observaciones: state.observaciones,
         }),
       });
@@ -127,7 +124,7 @@ function CheckinWizard() {
     }
   };
 
-  // ── Tablet buscar ──────────────────────────────────────────────────────
+  // Tablet buscar — sin AppShell (no tiene header ni dots)
   if (currentStep === 'tablet_buscar') {
     return (
       <div className="shell">
@@ -138,7 +135,6 @@ function CheckinWizard() {
     );
   }
 
-  // ── Flujo principal ────────────────────────────────────────────────────
   return (
     <AppShell nav={nav} actions={{ goBack, goToDotIndex }} showDots={showDots}>
 
@@ -163,7 +159,7 @@ function CheckinWizard() {
         <ScreenConfirmarDatos
           guest={currentGuest}
           onConfirm={() => goTo('form_contacto')}
-          onEdit={() => goTo('form_personal')}
+          onEdit={()   => goTo('form_personal')}
         />
       )}
 
@@ -171,11 +167,9 @@ function CheckinWizard() {
         <ScreenEscanear
           onScanned={(data) => {
             applyScannedData(data, nav.guestIndex);
-            state.reserva ? goTo('form_personal') : goTo('num_personas');
+            goTo('num_personas');
           }}
-          onSkip={() => {
-            state.reserva ? goTo('form_personal') : goTo('num_personas');
-          }}
+          onSkip={() => goTo('num_personas')}
         />
       )}
 
@@ -236,7 +230,13 @@ function CheckinWizard() {
         </>
       )}
 
-      {currentStep === 'exito' && <ScreenExito state={state} />}
+      {currentStep === 'exito' && (
+        <ScreenExito
+          state={state}
+          // ✅ Navegación correcta a form_extras, no window.history.back()
+          onAddHora={() => goTo('form_extras', 'back')}
+        />
+      )}
 
     </AppShell>
   );

@@ -46,7 +46,7 @@ export interface GuestData {
   tipoDoc: string;
   numDoc: string;
   vat?: string;
-  // FIX 1: docFile nunca se serializa — solo docUploaded persiste
+  // docFile nunca se serializa en sessionStorage — solo docUploaded persiste
   docFile?: File | null;
   docUploaded?: boolean;
 }
@@ -73,12 +73,12 @@ export type NavDirection = 'forward' | 'back';
 
 // ─── Contrato público del hook useCheckin ─────────────────────────────────────
 // Estos tipos viven AQUÍ, no en el hook.
-// Regla: si un tipo lo necesita un consumidor externo (AppShell, App, screens),
-// pertenece a types/. Si solo lo usa el hook internamente, se queda en el hook
-// SIN export (ej: HistoryEntry).
+// Si un tipo lo necesita un consumidor externo (AppShell, App, screens),
+// pertenece a types/. Los tipos internos del hook (HistoryEntry, etc.)
+// se quedan en el hook sin export.
 //
-// Ventaja: puedes refactorizar useCheckin por completo sin romper ningún import
-// externo, porque el contrato está desacoplado de la implementación.
+// Ventaja: puedes refactorizar useCheckin por completo sin romper ningún
+// import externo, porque el contrato está desacoplado de la implementación.
 
 export interface CheckinNav {
   step: StepId;
