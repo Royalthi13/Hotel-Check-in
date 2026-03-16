@@ -23,12 +23,13 @@
     /* Vite — habilita import.meta.env, import.meta.hot, etc. */
     "types": ["vite/client"],
 
-    /* Alias — debe coincidir exactamente con vite.config.ts */
-    "baseUrl": ".",
+    /* SOLUCIÓN AL ERROR:
+       Eliminamos "baseUrl" y ajustamos "paths" para que 
+       las rutas se resuelvan desde la raíz del proyecto.
+    */
     "paths": {
       "@/*": ["./src/*"]
     }
   },
   "include": ["src"]
-  /* Sin "references" — tsconfig.node.json se gestiona por separado si existe */
 }
