@@ -69,12 +69,14 @@ const FieldError: React.FC<{ msg?: string }> = ({ msg }) =>
   ) : null;
 
 // ═══════════════════════════════════════════════════════════════════════════
-// 1. FORM PERSONAL — validación en tiempo real (debounce 500ms) en nombre/apellido
+// 1. FORM PERSONAL 
 // ═══════════════════════════════════════════════════════════════════════════
 export const ScreenFormPersonal: React.FC<FormPersonalProps> = ({
   data, onChange, guestIndex, totalGuests, isMainGuest, onNext,
 }) => {
   const { errors, validate, clearError } = useFormValidation(validatePersonal);
+  
+  // Cálculo dinámico de la edad
   const fechaNac = data.fechaNac ? dayjs(data.fechaNac) : null;
   const esMenor = fechaNac?.isValid() ? dayjs().diff(fechaNac, "years") < 18 : false;
 
@@ -93,11 +95,12 @@ export const ScreenFormPersonal: React.FC<FormPersonalProps> = ({
           Datos personales
         </Typography>
         <Typography variant="body2" color="var(--text-low)">
-          Huésped {guestIndex + 1} de {totalGuests}
+          Huésped {guestIndex + 1} de {totalGuests} {isMainGuest && "(Titular)"}
         </Typography>
       </div>
 
       <Box style={{ padding: "0 var(--px)" }} sx={{ mt: 2, display: "flex", flexDirection: "column", gap: 2.5 }}>
+        
         <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" }, gap: 2 }}>
           <div>
             <TextField label="Nombre" required fullWidth value={data.nombre ?? ""}
@@ -135,47 +138,51 @@ export const ScreenFormPersonal: React.FC<FormPersonalProps> = ({
           </div>
         </Box>
 
-        <TextField select label="Nacionalidad" fullWidth value={data.nacionalidad ?? ""}
-          onChange={(e) => onChange("nacionalidad", e.target.value)} sx={inputSx}>
-          {NACIONALIDADES.map((n) => <MenuItem key={n} value={n}>{n}</MenuItem>)}
-        </TextField>
-
         {isMainGuest && esMenor && (
           <Alert variant="err" style={{ margin: 0 }}>
-            <strong>Acompañante adulto obligatorio.</strong> Indique abajo el nombre del responsable.
+            <strong>Acción no permitida.</strong> El titular de la reserva no puede ser menor de edad. Por favor, introduzca los datos de un adulto primero.
           </Alert>
         )}
 
-        {esMenor && isMainGuest && (
-          <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" }, gap: 2, p: 2, bgcolor: "var(--primary-lt)", borderRadius: "12px" }}>
-            <div>
-              <TextField label="Nombre del responsable" required fullWidth value={data.nombreMenor ?? ""}
-                onChange={(e) => { onChange("nombreMenor", e.target.value); if (errors.nombreMenor) clearError("nombreMenor"); }}
-                error={!!errors.nombreMenor} sx={inputSx} />
-              <FieldError msg={errors.nombreMenor} />
-            </div>
-            <div>
-              <TextField select label="Parentesco" required fullWidth value={data.relacionMenor ?? ""}
-                onChange={(e) => { onChange("relacionMenor", e.target.value); clearError("relacionMenor"); }}
-                error={!!errors.relacionMenor} sx={inputSx}>
-                {RELACIONES_MENOR.map((r) => <MenuItem key={r} value={r}>{r}</MenuItem>)}
-              </TextField>
-              <FieldError msg={errors.relacionMenor} />
-            </div>
+        {!isMainGuest && esMenor && (
+          <Box sx={{ p: 2, bgcolor: "var(--primary-lt)", borderRadius: "12px", border: "1px solid var(--border)" }}>
+            <Typography variant="subtitle2" sx={{ mb: 2, color: "var(--text-main)" }}>
+              Datos del menor acompañante
+            </Typography>
+            <TextField select label="Parentesco con el titular" required fullWidth value={data.relacionMenor ?? ""}
+              onChange={(e) => { onChange("relacionMenor", e.target.value); clearError("relacionMenor"); }}
+              error={!!errors.relacionMenor} sx={inputSx}>
+              {RELACIONES_MENOR.map((r) => <MenuItem key={r} value={r}>{r}</MenuItem>)}
+            </TextField>
+            <FieldError msg={errors.relacionMenor} />
           </Box>
         )}
+
+        {!esMenor && (
+          <TextField select label="Nacionalidad" fullWidth value={data.nacionalidad ?? ""}
+            onChange={(e) => onChange("nacionalidad", e.target.value)} sx={inputSx}>
+            {NACIONALIDADES.map((n) => <MenuItem key={n} value={n}>{n}</MenuItem>)}
+          </TextField>
+        )}
+
       </Box>
 
       <div className="spacer" />
       <div className="btn-row">
-        <Button onClick={() => { if (validate(data)) onNext(); }} iconRight="right">Continuar</Button>
+        <Button 
+          disabled={isMainGuest && esMenor} 
+          onClick={() => { if (validate(data)) onNext(); }} 
+          iconRight="right"
+        >
+          Continuar
+        </Button>
       </div>
     </>
   );
 };
 
 // ═══════════════════════════════════════════════════════════════════════════
-// 2. FORM CONTACTO — validación en tiempo real (debounce 500ms) en email/teléfono
+// 2. FORM CONTACTO 
 // ═══════════════════════════════════════════════════════════════════════════
 export const ScreenFormContacto: React.FC<FormContactoProps> = ({
   data, onChange, onNext,
@@ -266,14 +273,13 @@ export const ScreenFormContacto: React.FC<FormContactoProps> = ({
 };
 
 // ═══════════════════════════════════════════════════════════════════════════
-// 3. FORM DOCUMENTO — validación DNI/NIE en tiempo real (debounce 500ms)
+// 3. FORM DOCUMENTO 
 // ═══════════════════════════════════════════════════════════════════════════
 export const ScreenFormDocumento: React.FC<FormDocumentoProps> = ({
   data, onChange, guestIndex, totalGuests, isMainGuest, onNext,
 }) => {
   const { errors, validate, clearError } = useFormValidation(validateDocumento);
 
-  // Validar numDoc en tiempo real cuando tiene longitud mínima para el tipo
   useDebounce(() => {
     if (!data.tipoDoc || !data.numDoc) return;
     const minLen: Record<string, number> = {
@@ -308,7 +314,7 @@ export const ScreenFormDocumento: React.FC<FormDocumentoProps> = ({
             <TextField select label="Tipo de documento" required fullWidth value={data.tipoDoc ?? ""}
               onChange={(e) => {
                 onChange("tipoDoc", e.target.value);
-                onChange("numDoc", "");  // limpiar al cambiar tipo
+                onChange("numDoc", ""); 
                 clearError("tipoDoc");
                 clearError("numDoc");
               }}
