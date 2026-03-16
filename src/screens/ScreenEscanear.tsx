@@ -4,7 +4,7 @@ import type { GuestData } from '@/types';
 
 interface Props {
   guestIndex?: number;
-  guestIndex?: number;
+ 
   onScanned: (data: Partial<GuestData>) => void;
   onSkip: () => void;
 }

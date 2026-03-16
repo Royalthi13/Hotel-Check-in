@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Field, Button, Alert, LoadingSpinner, Icon } from '@/components/ui';
 import type { Reserva } from '@/types';
+import { MOCK_RESERVAS } from '@/mocks/reservas-mock';
 
 interface Props {
   onFound: (reserva: Reserva) => void;
@@ -20,49 +21,23 @@ export const ScreenTabletBuscar: React.FC<Props> = ({ onFound }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  const buscar = () => {
+  // Añadimos 'async' aquí para poder usar await
+  const buscar = async () => {
     const trimmedNum = num.trim();
     const trimmedContacto = contacto.trim();
 
-    if (!trimmedNum && !trimmedContacto) {
-      setError(
-        "Por favor, introduzca el número de reserva y su email o teléfono.",
-      );
-      return;
-    }
-
-    if (!trimmedNum) {
-      setError("Por favor, introduzca el número de reserva.");
-      return;
-    }
-
-    if (!trimmedContacto) {
-      setError("Por favor, introduzca su email o número de teléfono.");
+    if (!trimmedNum || !trimmedContacto) {
+      setError("Por favor, introduzca el número de reserva y su email o teléfono.");
       return;
     }
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     const phoneRegex = /^\+?[\d\s-]{9,15}$/;
-
     const isEmail = emailRegex.test(trimmedContacto);
     const isPhone = phoneRegex.test(trimmedContacto);
 
     if (!isEmail && !isPhone) {
-      const numCount = (trimmedContacto.match(/\d/g) || []).length;
-      const letterCount = (trimmedContacto.match(/[a-zA-Z]/g) || []).length;
-
-      const seemsLikeEmail =
-        trimmedContacto.includes("@") || letterCount > numCount;
-
-      if (seemsLikeEmail) {
-        setError(
-          "Formato de email incorrecto. Asegúrese de que incluye un '@' y un dominio (ej: nombre@email.com).",
-        );
-      } else {
-        setError(
-          "Formato de teléfono incorrecto. Elimine las letras y asegúrese de que tiene entre 9 y 15 dígitos.",
-        );
-      }
+      setError("Formato de contacto inválido.");
       return;
     }
 
@@ -70,30 +45,34 @@ export const ScreenTabletBuscar: React.FC<Props> = ({ onFound }) => {
     setLoading(true);
 
     try {
-      const res = await fetch(`/api/reservas/${encodeURIComponent(trimmed)}`);
+      // 1. INTENTO CON API REAL (o MSW)
+      const res = await fetch(`/api/reservas/${encodeURIComponent(trimmedNum)}`);
       const data = await res.json() as { ok: boolean; reserva?: Reserva; message?: string };
 
-      if (!res.ok || !data.ok || !data.reserva) {
-        setError(data.message ?? 'No se encontró ninguna reserva con ese número.');
+      if (res.ok && data.ok && data.reserva) {
+        onFound(data.reserva);
         return;
       }
+      
+      // 2. FALLBACK A MOCKS (Si falla la API o no encuentra nada)
+      const mockRes = MOCK_RESERVAS[trimmedNum as keyof typeof MOCK_RESERVAS];
+      if (mockRes) {
+        onFound(mockRes);
+      } else {
+        setError(data.message ?? 'No se encontró ninguna reserva con esos datos.');
+      }
 
-      onFound(data.reserva);
-
-    } catch {
-      setError('Error de conexión. Compruebe la red e inténtelo de nuevo.');
+    } catch (e) {
+      // 3. SEGUNDO INTENTO CON MOCKS POR SI ES ERROR DE RED
+      const mockRes = MOCK_RESERVAS[trimmedNum as keyof typeof MOCK_RESERVAS];
+      if (mockRes) {
+        onFound(mockRes);
+      } else {
+        setError('Error de conexión y reserva no encontrada en local.');
+      }
     } finally {
       setLoading(false);
-      const res = MOCK_RESERVAS[trimmedNum];
-
-      if (res) {
-        onFound(res);
-      } else {
-        setError(
-          "No se encontró ninguna reserva con esos datos. Compruebe la información o solicite ayuda.",
-        );
-      }
-    }, 1500);
+    } // Aquí se cierra el bloque correctamente, sin el "}, 1500)"
   };
 
   const handleKey = (e: React.KeyboardEvent) => {
