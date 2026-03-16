@@ -4,7 +4,7 @@ import { useZipCode } from "../hooks/useZipCode";
 import {
   PAISES,
   NACIONALIDADES,
-  TIPOS_DOCUMENTO,
+  TIPOS_DOCUMENTO, // Recuerda quitar "Carné de conducir" de tu archivo constants
   SEXOS,
   RELACIONES_MENOR,
 } from "../constants";
@@ -60,6 +60,7 @@ interface FormDocumentoProps {
   totalGuests: number;
   isMainGuest: boolean;
   onNext: () => void;
+  modoFlujo?: "manual" | "escaneo"; // 👈 AQUÍ ESTÁ EL TIPO
 }
 
 const FieldError: React.FC<{ msg?: string }> = ({ msg }) =>
@@ -75,7 +76,7 @@ const FieldError: React.FC<{ msg?: string }> = ({ msg }) =>
   ) : null;
 
 // ═══════════════════════════════════════════════════════════════════════════
-// 1. FORM PERSONAL
+// 1. FORM PERSONAL (Limpio y correcto)
 // ═══════════════════════════════════════════════════════════════════════════
 export const ScreenFormPersonal: React.FC<FormPersonalProps> = ({
   data,
@@ -304,7 +305,7 @@ export const ScreenFormPersonal: React.FC<FormPersonalProps> = ({
 };
 
 // ═══════════════════════════════════════════════════════════════════════════
-// 2. FORM CONTACTO
+// 2. FORM CONTACTO (Sin Cambios)
 // ═══════════════════════════════════════════════════════════════════════════
 export const ScreenFormContacto: React.FC<FormContactoProps> = ({
   data,
@@ -437,7 +438,6 @@ export const ScreenFormContacto: React.FC<FormContactoProps> = ({
             gap: 2,
           }}
         >
-          {/* PROVINCIA */}
           {esEspana ? (
             <Autocomplete
               freeSolo
@@ -463,7 +463,6 @@ export const ScreenFormContacto: React.FC<FormContactoProps> = ({
             />
           )}
 
-          {/* CIUDAD */}
           {esEspana ? (
             <Autocomplete
               freeSolo
@@ -500,8 +499,9 @@ export const ScreenFormContacto: React.FC<FormContactoProps> = ({
     </>
   );
 };
+
 // ═══════════════════════════════════════════════════════════════════════════
-// 3. FORM DOCUMENTO
+// 3. FORM DOCUMENTO (Aquí está la lógica del modoFlujo)
 // ═══════════════════════════════════════════════════════════════════════════
 export const ScreenFormDocumento: React.FC<FormDocumentoProps> = ({
   data,
@@ -510,11 +510,16 @@ export const ScreenFormDocumento: React.FC<FormDocumentoProps> = ({
   totalGuests,
   isMainGuest,
   onNext,
+  modoFlujo, // 👈 RECIBE EL MODO AQUÍ
 }) => {
   const { errors, validate } = useFormValidation(validateDocumento);
+
   const handleNext = () => {
     if (validate(data)) onNext();
   };
+
+  // 🛡️ CONDICIÓN APLICADA: Oculta la foto si es manual
+  const mostrarCargaFoto = modoFlujo !== "manual";
 
   return (
     <>
@@ -582,34 +587,37 @@ export const ScreenFormDocumento: React.FC<FormDocumentoProps> = ({
           </div>
         </Box>
 
-        <label htmlFor={`doc-${guestIndex}`} style={{ cursor: "pointer" }}>
-          <div className={`upload-area ${data.docUploaded ? "done" : ""}`}>
-            <Icon
-              name={data.docUploaded ? "checkC" : "upload"}
-              size={24}
-              color={data.docUploaded ? "var(--ok)" : "var(--text-low)"}
+        {/* 🛡️ RENDERIZADO CONDICIONAL AQUÍ */}
+        {mostrarCargaFoto && (
+          <label htmlFor={`doc-${guestIndex}`} style={{ cursor: "pointer" }}>
+            <div className={`upload-area ${data.docUploaded ? "done" : ""}`}>
+              <Icon
+                name={data.docUploaded ? "checkC" : "upload"}
+                size={24}
+                color={data.docUploaded ? "var(--ok)" : "var(--text-low)"}
+              />
+              <p style={{ marginTop: 8, fontSize: 14, fontWeight: 500 }}>
+                {data.docUploaded
+                  ? "Documento cargado"
+                  : "Subir foto del documento"}
+              </p>
+            </div>
+            <input
+              type="file"
+              id={`doc-${guestIndex}`}
+              hidden
+              onClick={(e: any) => {
+                e.target.value = "";
+              }}
+              onChange={(e: any) => {
+                if (e.target.files?.[0]) {
+                  onChange("docFile", e.target.files[0]);
+                  onChange("docUploaded", true);
+                }
+              }}
             />
-            <p style={{ marginTop: 8, fontSize: 14, fontWeight: 500 }}>
-              {data.docUploaded
-                ? "Documento cargado"
-                : "Subir foto del documento"}
-            </p>
-          </div>
-          <input
-            type="file"
-            id={`doc-${guestIndex}`}
-            hidden
-            onClick={(e) => {
-              (e.target as HTMLInputElement).value = "";
-            }}
-            onChange={(e) => {
-              if (e.target.files?.[0]) {
-                onChange("docFile", e.target.files[0]);
-                onChange("docUploaded", true);
-              }
-            }}
-          />
-        </label>
+          </label>
+        )}
       </Box>
       <div className="spacer" />
       <div className="btn-row">
