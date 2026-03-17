@@ -1,6 +1,6 @@
-import { useState, useCallback } from 'react';
-import type { PartialGuestData, FormErrors } from '@/types';
-import dayjs from 'dayjs';
+import { useState, useCallback } from "react";
+import type { PartialGuestData, FormErrors } from "@/types";
+import dayjs from "dayjs";
 
 type ValidatorFn<T> = (data: T) => FormErrors;
 
@@ -40,7 +40,7 @@ function calcularEdad(fechaNac: string | undefined): number | null {
 
 // ─── Validación de documentos de identidad españoles ─────────────────────────
 
-const LETRAS_DNI = 'TRWAGMYFPDXBNJZSQVHLCKE';
+const LETRAS_DNI = "TRWAGMYFPDXBNJZSQVHLCKE";
 
 /** Valida formato y letra de control de un DNI español (8 dígitos + letra) */
 function validarDNI(num: string): boolean {
@@ -56,7 +56,7 @@ function validarNIE(num: string): boolean {
   const match = upper.match(/^([XYZ])(\d{7})([A-Z])$/);
   if (!match) return false;
   const [, prefix, digits, letra] = match;
-  const prefixNum = { X: '0', Y: '1', Z: '2' }[prefix]!;
+  const prefixNum = { X: "0", Y: "1", Z: "2" }[prefix]!;
   return LETRAS_DNI[parseInt(prefixNum + digits, 10) % 23] === letra;
 }
 
@@ -83,52 +83,55 @@ function validarCarnet(num: string): boolean {
  * Valida el número de documento según el tipo seleccionado.
  * Devuelve un mensaje de error o null si es válido.
  */
-export function validarNumeroDocumento(tipo: string, num: string): string | null {
+export function validarNumeroDocumento(
+  tipo: string,
+  num: string,
+): string | null {
   const n = num.trim().toUpperCase();
-  if (!n) return 'El número de documento es obligatorio';
+  if (!n) return "El número de documento es obligatorio";
 
   switch (tipo) {
-    case 'DNI':
-    case 'NIF':
+    case "DNI":
+    case "NIF":
       if (!validarDNI(n)) {
-        return 'DNI no válido. Formato: 8 dígitos + letra (ej: 12345678Z)';
+        return "DNI no válido. Formato: 8 dígitos + letra (ej: 12345678Z)";
       }
       break;
 
-    case 'NIE':
+    case "NIE":
       if (!validarNIE(n)) {
-        return 'NIE no válido. Formato: X/Y/Z + 7 dígitos + letra (ej: X1234567Z)';
+        return "NIE no válido. Formato: X/Y/Z + 7 dígitos + letra (ej: X1234567Z)";
       }
       break;
 
-    case 'Pasaporte':
+    case "Pasaporte":
       if (!validarPasaporte(n)) {
-        return 'Pasaporte no válido. Formato: 3 letras + 6 dígitos (ej: AAA123456)';
+        return "Pasaporte no válido. Formato: 3 letras + 6 dígitos (ej: AAA123456)";
       }
       break;
 
-    case 'CIF':
+    case "CIF":
       if (!validarCIF(n)) {
-        return 'CIF no válido. Formato: letra + 7 dígitos + letra/dígito (ej: A1234567B)';
+        return "CIF no válido. Formato: letra + 7 dígitos + letra/dígito (ej: A1234567B)";
       }
       break;
 
-    case 'Carnet de conducir':
+    case "Carnet de conducir":
       if (!validarCarnet(n)) {
-        return 'Carnet no válido. Formato esperado: hasta 2 letras + 8 dígitos + letras';
+        return "Carnet no válido. Formato esperado: hasta 2 letras + 8 dígitos + letras";
       }
       break;
 
-    case 'Otro':
+    case "Otro":
       // Sin validación de formato para documentos extranjeros genéricos
-      if (n.length < 4) return 'El número de documento parece demasiado corto';
+      if (n.length < 4) return "El número de documento parece demasiado corto";
       break;
 
     default:
       break;
   }
 
-  return null; // válido
+  return null;
 }
 
 // ─── Validadores por pantalla ─────────────────────────────────────────────────
@@ -144,19 +147,24 @@ export function validatePersonal(data: PartialGuestData): FormErrors {
     e.fechaNac = "La fecha de nacimiento es obligatoria";
   } else {
     const parsed = dayjs(data.fechaNac);
-    if (!parsed.isValid())            e.fechaNac = 'La fecha introducida no es válida';
-    else if (parsed.isAfter(dayjs())) e.fechaNac = 'La fecha de nacimiento no puede ser futura';
-    else if (parsed.year() < 1900)    e.fechaNac = 'Introduce un año válido (ej: 1980)';
+    if (!parsed.isValid()) e.fechaNac = "La fecha introducida no es válida";
+    else if (parsed.isAfter(dayjs()))
+      e.fechaNac = "La fecha de nacimiento no puede ser futura";
+    else if (parsed.year() < 1900)
+      e.fechaNac = "Introduce un año válido (ej: 1980)";
   }
 
   const edad = calcularEdad(data.fechaNac);
   const esMenor = edad !== null && edad < 18;
 
   if (esMenor) {
-    if (!data.nombreMenor?.trim())
-      e.nombreMenor = "Indique el nombre del responsable adulto";
-    if (!data.relacionMenor)
-      e.relacionMenor = "Indique el parentesco con el menor";
+    const tieneParentesco =
+      data.parentescos && Object.keys(data.parentescos).length > 0;
+
+    if (!tieneParentesco) {
+      e.parentescos =
+        "Debe indicar el parentesco del menor con los acompañantes";
+    }
   }
 
   return e;
@@ -176,11 +184,11 @@ export function validateDocumento(data: PartialGuestData): FormErrors {
   const e: FormErrors = {};
 
   if (!data.tipoDoc) {
-    e.tipoDoc = 'Seleccione el tipo de documento';
+    e.tipoDoc = "Seleccione el tipo de documento";
     return e; // sin tipo no podemos validar el número
   }
 
-  const errorNum = validarNumeroDocumento(data.tipoDoc, data.numDoc ?? '');
+  const errorNum = validarNumeroDocumento(data.tipoDoc, data.numDoc ?? "");
   if (errorNum) e.numDoc = errorNum;
 
   return e;
