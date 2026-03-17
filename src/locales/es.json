@@ -220,7 +220,7 @@
     "doc_subtitle": "Identificación huésped {{current}} de {{total}}",
     "doc_type": "Tipo de documento",
     "doc_number": "Número",
-    "upload_photo": "Subir foto del documento",
+    "upload_photo": "Subir foto de la parte trasera de tu documento",
     "photo_uploaded": "Documento cargado",
     "next_guest": "Siguiente huésped",
     "full_name": "Nombre completo",

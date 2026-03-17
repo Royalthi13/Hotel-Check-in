@@ -218,7 +218,7 @@
     "doc_subtitle": "ID for Guest {{current}} of {{total}}",
     "doc_type": "Document Type",
     "doc_number": "Number",
-    "upload_photo": "Upload document photo",
+    "upload_photo": "Upload a photo of the back of your document",
     "photo_uploaded": "Document uploaded",
     "next_guest": "Next guest",
     "full_name": "Full Name",

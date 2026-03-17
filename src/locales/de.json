@@ -215,7 +215,7 @@
     "doc_subtitle": "Identität für Gast {{current}} von {{total}}",
     "doc_type": "Dokumententyp",
     "doc_number": "Nummer",
-    "upload_photo": "Dokumentenfoto hochladen",
+    "upload_photo": "Foto der Rückseite Ihres Dokuments hochladen",
     "photo_uploaded": "Dokument hochgeladen",
     "next_guest": "Nächster Gast",
     "full_name": "Vollständiger Name",

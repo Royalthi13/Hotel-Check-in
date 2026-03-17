@@ -215,7 +215,7 @@
     "doc_subtitle": "Identificação do hóspede {{current}} de {{total}}",
     "doc_type": "Tipo de Documento",
     "doc_number": "Número",
-    "upload_photo": "Carregar foto do documento",
+    "upload_photo": "Carregar foto da parte traseira do seu documento",
     "photo_uploaded": "Documento carregado",
     "next_guest": "Próximo hóspede",
     "full_name": "Nome completo",

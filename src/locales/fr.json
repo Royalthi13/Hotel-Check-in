@@ -215,7 +215,7 @@
     "doc_subtitle": "Identité du client {{current}} sur {{total}}",
     "doc_type": "Type de document",
     "doc_number": "Numéro",
-    "upload_photo": "Charger photo du document",
+    "upload_photo": "Charger la photo du verso de votre document",
     "photo_uploaded": "Document chargé",
     "next_guest": "Client suivant",
     "full_name": "Nom complet",
