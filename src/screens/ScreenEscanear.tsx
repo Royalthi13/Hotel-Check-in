@@ -1,6 +1,7 @@
-import React, { useRef, useState } from 'react';
-import { Alert, Button, Icon } from '@/components/ui';
-import type { GuestData } from '@/types';
+import React, { useRef, useState } from "react";
+import { useTranslation } from "react-i18next"; // 1. Importamos el hook de traducción
+import { Alert, Button, Icon } from "@/components/ui";
+import type { GuestData } from "@/types";
 
 interface Props {
   onScanned: (data: Partial<GuestData>) => void;
@@ -8,17 +9,18 @@ interface Props {
 }
 
 const MOCK_SCAN_DATA: Partial<GuestData> = {
-  nombre: 'Carlos',
-  apellido: 'García',
-  apellido2: 'López',
-  tipoDoc: 'DNI',
-  numDoc: '12345678M', // ← letra correcta: 12345678 % 23 = 6 → M
-  fechaNac: '1985-03-22',
-  nacionalidad: 'Española',
-  sexo: 'Hombre',
+  nombre: "Carlos",
+  apellido: "García",
+  apellido2: "López",
+  tipoDoc: "DNI",
+  numDoc: "12345678M", // ← letra correcta: 12345678 % 23 = 6 → M
+  fechaNac: "1985-03-22",
+  nacionalidad: "Española",
+  sexo: "Hombre",
 };
 
 export const ScreenEscanear: React.FC<Props> = ({ onScanned, onSkip }) => {
+  const { t } = useTranslation(); // 2. Inicializamos el traductor
   const [scanning, setScanning] = useState(false);
   const [scanned, setScanned] = useState(false);
   const [error, setError] = useState("");
@@ -38,7 +40,8 @@ export const ScreenEscanear: React.FC<Props> = ({ onScanned, onSkip }) => {
     if (!file) return;
 
     if (file.size > 20971520) {
-      alert("El archivo es demasiado grande. El máximo permitido son 20 MB.");
+      // 3. Traducimos el alert nativo (o puedes usar tu componente Alert)
+      alert(t("scan.error_size"));
       e.target.value = "";
       return;
     }
@@ -75,9 +78,8 @@ export const ScreenEscanear: React.FC<Props> = ({ onScanned, onSkip }) => {
 
         setTimeout(() => onScanned(dataPayload), 800);
       } else {
-        setError(
-          "No hemos podido leer los datos con claridad. Asegúrese de que la imagen tiene buena luz, no está borrosa y no tiene reflejos del flash.",
-        );
+        // 4. Traducimos el error de lectura
+        setError(t("scan.error_read"));
       }
     }, 2500);
   };
@@ -85,12 +87,12 @@ export const ScreenEscanear: React.FC<Props> = ({ onScanned, onSkip }) => {
   return (
     <>
       <div className="sec-hdr">
-        <h2>Escanear documento</h2>
+        <h2>{t("scan.title")}</h2>
         <p>
-          Coloque su DNI o pasaporte dentro del marco y pulse capturar. Los
-          datos se rellenarán automáticamente.{" "}
-          <strong>Este paso es opcional</strong> — puede saltarlo y rellenar
-          todo a mano.
+          {/* Combinamos texto traducido con JSX (el <strong>) */}
+          {t("scan.subtitle").split("—")[0]}—
+          <strong> {t("common.optional")}</strong> —
+          {t("scan.subtitle").split("—")[1]}
         </p>
       </div>
 
@@ -115,15 +117,15 @@ export const ScreenEscanear: React.FC<Props> = ({ onScanned, onSkip }) => {
                 <div className="scan-corner bl" />
                 <div className="scan-corner br" />
               </div>
-              <div className="scan-hint">Centre el documento en el marco</div>
+              <div className="scan-hint">{t("scan.hint_center")}</div>
             </div>
 
             <div className="scan-controls">
               <button
                 className="scan-side-btn"
                 onClick={() => fileRef.current?.click()}
-                title="Subir desde galería"
-                aria-label="Subir imagen desde galería"
+                title={t("scan.btn_gallery")}
+                aria-label={t("scan.btn_gallery")}
               >
                 <Icon name="img" size={18} color="var(--text-mid)" />
               </button>
@@ -131,28 +133,28 @@ export const ScreenEscanear: React.FC<Props> = ({ onScanned, onSkip }) => {
               <button
                 className="scan-main-btn"
                 onClick={handleScan}
-                aria-label="Capturar documento"
+                aria-label={t("scan.btn_capture")}
               >
                 <Icon name="camera" size={26} color="#fff" />
               </button>
 
               <button
                 className="scan-side-btn"
-                title="Flash"
-                aria-label="Activar flash"
+                title={t("scan.btn_flash")}
+                aria-label={t("scan.btn_flash")}
               >
                 <Icon name="flash" size={18} color="var(--text-mid)" />
               </button>
             </div>
 
-            <div className="sep">o bien</div>
+            <div className="sep">{t("common.or")}</div>
             <label htmlFor="scan-upload">
               <div className="upload-area">
                 <div className="upload-icon">
                   <Icon name="upload" size={22} color="var(--text-mid)" />
                 </div>
-                <div className="upload-title">Subir foto del documento</div>
-                <div className="upload-sub">JPG, PNG o PDF · Máx. 20 MB</div>
+                <div className="upload-title">{t("scan.upload_title")}</div>
+                <div className="upload-sub">{t("scan.upload_sub")}</div>
               </div>
             </label>
             <input
@@ -165,8 +167,7 @@ export const ScreenEscanear: React.FC<Props> = ({ onScanned, onSkip }) => {
               onChange={handleFile}
             />
             <Alert variant="info">
-              <Icon name="lock" size={13} /> Los documentos escaneados no serán
-              almacenados y solo se extraerán los datos necesarios.
+              <Icon name="lock" size={13} /> {t("scan.privacy_note")}
             </Alert>
           </>
         )}
@@ -189,10 +190,10 @@ export const ScreenEscanear: React.FC<Props> = ({ onScanned, onSkip }) => {
                 className="upload-title"
                 style={{ marginTop: 12, color: "var(--primary-d)" }}
               >
-                Imagen capturada
+                {t("scan.captured_title")}
               </div>
               <div className="upload-sub" style={{ color: "var(--text-mid)" }}>
-                Pulse en Procesar para extraer los datos de forma segura.
+                {t("scan.captured_sub")}
               </div>
             </div>
 
@@ -215,10 +216,10 @@ export const ScreenEscanear: React.FC<Props> = ({ onScanned, onSkip }) => {
                       className="spinner"
                       style={{ width: 18, height: 18, borderWidth: 2 }}
                     />{" "}
-                    Leyendo datos...
+                    {t("scan.btn_reading")}
                   </>
                 ) : (
-                  "Procesar documento"
+                  t("scan.btn_process")
                 )}
               </Button>
               <Button
@@ -226,7 +227,7 @@ export const ScreenEscanear: React.FC<Props> = ({ onScanned, onSkip }) => {
                 onClick={descartarFoto}
                 disabled={scanning}
               >
-                Descartar y probar otra vez
+                {t("scan.btn_discard")}
               </Button>
             </div>
           </div>
@@ -234,7 +235,7 @@ export const ScreenEscanear: React.FC<Props> = ({ onScanned, onSkip }) => {
 
         {scanned && (
           <Alert variant="ok" style={{ margin: "8px 0 12px" }}>
-            Documento leído con éxito. Cargando formulario...
+            {t("scan.success_msg")}
           </Alert>
         )}
       </div>
@@ -244,7 +245,7 @@ export const ScreenEscanear: React.FC<Props> = ({ onScanned, onSkip }) => {
           <div className="spacer" />
           <div className="btn-row">
             <Button variant="secondary" onClick={onSkip}>
-              Prefiero rellenar los datos manualmente
+              {t("scan.btn_manual")}
             </Button>
           </div>
           <div style={{ height: 12 }} />

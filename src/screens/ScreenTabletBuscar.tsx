@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
-import { Field, Button, Alert, LoadingSpinner, Icon } from '@/components/ui';
-import type { Reserva } from '@/types';
-import { MOCK_RESERVAS } from '@/mocks/reservas-mock';
+import React, { useState } from "react";
+import { useTranslation } from "react-i18next"; // 1. Importamos el hook
+import { Field, Button, Alert, LoadingSpinner, Icon } from "@/components/ui";
+import type { Reserva } from "@/types";
+import { MOCK_RESERVAS } from "@/mocks/reservas-mock";
 
 interface Props {
   onFound: (reserva: Reserva) => void;
@@ -16,18 +17,18 @@ interface Props {
  * Números de prueba disponibles en mocks/reservas-mock.ts: 78432 y 99999
  */
 export const ScreenTabletBuscar: React.FC<Props> = ({ onFound }) => {
+  const { t } = useTranslation(); // 2. Inicializamos el traductor
   const [num, setNum] = useState("");
   const [contacto, setContacto] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  // Añadimos 'async' aquí para poder usar await
   const buscar = async () => {
     const trimmedNum = num.trim();
     const trimmedContacto = contacto.trim();
 
     if (!trimmedNum || !trimmedContacto) {
-      setError("Por favor, introduzca el número de reserva y su email o teléfono.");
+      setError(t("search.error_no_booking")); // Usamos la traducción, podrías añadir un error compuesto si quieres
       return;
     }
 
@@ -37,7 +38,7 @@ export const ScreenTabletBuscar: React.FC<Props> = ({ onFound }) => {
     const isPhone = phoneRegex.test(trimmedContacto);
 
     if (!isEmail && !isPhone) {
-      setError("Formato de contacto inválido.");
+      setError(t("validation.invalid_email")); // Reutilizamos un error de validación general
       return;
     }
 
@@ -46,33 +47,40 @@ export const ScreenTabletBuscar: React.FC<Props> = ({ onFound }) => {
 
     try {
       // 1. INTENTO CON API REAL (o MSW)
-      const res = await fetch(`/api/reservas/${encodeURIComponent(trimmedNum)}`);
-      const data = await res.json() as { ok: boolean; reserva?: Reserva; message?: string };
+      const res = await fetch(
+        `/api/reservas/${encodeURIComponent(trimmedNum)}`,
+      );
+      const data = (await res.json()) as {
+        ok: boolean;
+        reserva?: Reserva;
+        message?: string;
+      };
 
       if (res.ok && data.ok && data.reserva) {
         onFound(data.reserva);
         return;
       }
-      
+
       // 2. FALLBACK A MOCKS (Si falla la API o no encuentra nada)
       const mockRes = MOCK_RESERVAS[trimmedNum as keyof typeof MOCK_RESERVAS];
       if (mockRes) {
         onFound(mockRes);
       } else {
-        setError(data.message ?? 'No se encontró ninguna reserva con esos datos.');
+        // En una app real usaríamos data.message si viene traducido desde el backend,
+        // pero aquí forzamos la traducción local por seguridad.
+        setError(t("search.error_not_found"));
       }
-
-    } catch (e) {
+    } catch {
       // 3. SEGUNDO INTENTO CON MOCKS POR SI ES ERROR DE RED
       const mockRes = MOCK_RESERVAS[trimmedNum as keyof typeof MOCK_RESERVAS];
       if (mockRes) {
         onFound(mockRes);
       } else {
-        setError('Error de conexión y reserva no encontrada en local.');
+        setError(t("search.error_connection"));
       }
     } finally {
       setLoading(false);
-    } // Aquí se cierra el bloque correctamente, sin el "}, 1500)"
+    }
   };
 
   const handleKey = (e: React.KeyboardEvent) => {
@@ -86,24 +94,21 @@ export const ScreenTabletBuscar: React.FC<Props> = ({ onFound }) => {
           <Icon name="search" size={30} color="var(--primary)" />
         </div>
         <h1 className="tablet-title">
-          Bienvenido al
+          {t("search.title_1")}
           <br />
-          pre check-in
+          {t("search.title_2")}
         </h1>
-        <p className="tablet-sub">
-          Introduzca su número de reserva para comenzar el proceso de check-in
-          anticipado
-        </p>
+        <p className="tablet-sub">{t("search.subtitle")}</p>
       </div>
 
       <div style={{ padding: "28px 24px 0", flex: 1 }}>
         {error && <Alert variant="err">{error}</Alert>}
 
         {loading ? (
-          <LoadingSpinner text="Buscando su reserva…" />
+          <LoadingSpinner text={t("common.loading")} />
         ) : (
           <>
-            <Field label="Forma de contacto" required>
+            <Field label={t("search.contact_label")} required>
               <input
                 type="text"
                 value={contacto}
@@ -112,9 +117,12 @@ export const ScreenTabletBuscar: React.FC<Props> = ({ onFound }) => {
                   setError("");
                 }}
                 onKeyDown={handleKey}
-                placeholder="Email o número de teléfono"
+                placeholder={t("search.contact_placeholder")}
                 className={
-                  error && (!contacto.trim() || error.includes("Formato"))
+                  error &&
+                  (!contacto.trim() ||
+                    error.includes("Formato") ||
+                    error.includes("Invalid"))
                     ? "err"
                     : ""
                 }
@@ -126,7 +134,7 @@ export const ScreenTabletBuscar: React.FC<Props> = ({ onFound }) => {
                 }}
               />
             </Field>
-            <Field label="Número de reserva" required>
+            <Field label={t("search.booking_label")} required>
               <input
                 type="text"
                 value={num}
@@ -135,7 +143,7 @@ export const ScreenTabletBuscar: React.FC<Props> = ({ onFound }) => {
                   setError("");
                 }}
                 onKeyDown={handleKey}
-                placeholder="Ej: 78432 o 99999"
+                placeholder={t("search.booking_placeholder")}
                 className={error && !num.trim() ? "err" : ""}
                 autoFocus
                 style={{
@@ -158,8 +166,7 @@ export const ScreenTabletBuscar: React.FC<Props> = ({ onFound }) => {
                 lineHeight: 1.5,
               }}
             >
-              Puede encontrar su número en el email de confirmación de la
-              reserva
+              {t("search.booking_hint")}
             </p>
           </>
         )}
@@ -173,12 +180,12 @@ export const ScreenTabletBuscar: React.FC<Props> = ({ onFound }) => {
           onClick={buscar}
           disabled={loading}
         >
-          {loading ? "Buscando…" : "Buscar mi reserva"}
+          {loading ? t("common.loading") : t("search.btn_search")}
         </Button>
       </div>
       <div className="privacy">
         <Icon name="lock" size={11} />
-        Datos protegidos · Conexión cifrada SSL
+        {t("common.privacy_ssl")}
       </div>
       <div style={{ height: 20 }} />
     </div>

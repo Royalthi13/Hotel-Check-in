@@ -1,12 +1,8 @@
 import React, { useEffect, useRef } from "react";
+import { useTranslation } from "react-i18next"; // 1. Importamos el hook
 import { Button, Alert, Icon } from "@/components/ui";
 import { useZipCode } from "@/hooks/useZipCode";
-import {
-  PAISES,
-  NACIONALIDADES,
-  TIPOS_DOCUMENTO,
-  SEXOS,
-} from "@/constants";
+import { PAISES, NACIONALIDADES, TIPOS_DOCUMENTO, SEXOS } from "@/constants";
 import {
   useFormValidation,
   validatePersonal,
@@ -16,7 +12,13 @@ import {
 } from "@/hooks/useFormValidation";
 import type { PartialGuestData } from "@/types";
 import { DatePicker } from "@mui/x-date-pickers";
-import { TextField, MenuItem, Box, Typography, Autocomplete } from "@mui/material";
+import {
+  TextField,
+  MenuItem,
+  Box,
+  Typography,
+  Autocomplete,
+} from "@mui/material";
 import { usePlaces } from "@/hooks/usePlaces";
 import dayjs from "dayjs";
 import "dayjs/locale/es";
@@ -43,7 +45,7 @@ interface FormPersonalProps {
   guestIndex: number;
   totalGuests: number;
   isMainGuest: boolean;
-  esMenor?: boolean;  // viene del estado, no se infiere aquí
+  esMenor?: boolean;
   onNext: () => void;
 }
 interface FormContactoProps {
@@ -63,106 +65,222 @@ interface FormDocumentoProps {
 
 const FieldError: React.FC<{ msg?: string }> = ({ msg }) =>
   msg ? (
-    <span role="alert" aria-live="polite" className="field-err"
-      style={{ display: "flex", alignItems: "center", gap: 4, color: "var(--err)", fontSize: "0.8rem" }}>
+    <span
+      role="alert"
+      aria-live="polite"
+      className="field-err"
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: 4,
+        color: "var(--err)",
+        fontSize: "0.8rem",
+      }}
+    >
       <Icon name="warn" size={11} /> {msg}
     </span>
   ) : null;
 
 // ═══════════════════════════════════════════════════════════════════════════
 // 1. SCREEN FORM PERSONAL
-// La lógica de menores (parentesco) se maneja en ScreenRelacionesMenor.
-// Aquí solo se recogen nombre, apellidos, sexo, fecha de nacimiento y
-// nacionalidad — igual para adultos y menores.
 // ═══════════════════════════════════════════════════════════════════════════
 export const ScreenFormPersonal: React.FC<FormPersonalProps> = ({
-  data, onChange, guestIndex, totalGuests, isMainGuest, esMenor, onNext,
+  data,
+  onChange,
+  guestIndex,
+  totalGuests,
+  isMainGuest,
+  esMenor,
+  onNext,
 }) => {
+  const { t } = useTranslation(); // 2. Inicializamos traductor
   const { errors, validate, clearError } = useFormValidation(validatePersonal);
   const fechaNac = data.fechaNac ? dayjs(data.fechaNac) : null;
 
-  useDebounce(() => {
-    if ((data.nombre?.length ?? 0) >= 2) validate(data);
-  }, 500, [data.nombre]);
+  useDebounce(
+    () => {
+      if ((data.nombre?.length ?? 0) >= 2) validate(data);
+    },
+    500,
+    [data.nombre],
+  );
 
-  useDebounce(() => {
-    if ((data.apellido?.length ?? 0) >= 2) validate(data);
-  }, 500, [data.apellido]);
+  useDebounce(
+    () => {
+      if ((data.apellido?.length ?? 0) >= 2) validate(data);
+    },
+    500,
+    [data.apellido],
+  );
 
   return (
     <>
       <div className="sec-hdr">
-        <Typography variant="h2" sx={{ fontFamily: "Cormorant Garamond, serif", fontSize: "var(--fs-2xl)" }}>
-          {esMenor ? "Datos del menor" : "Datos personales"}
+        <Typography
+          variant="h2"
+          sx={{
+            fontFamily: "Cormorant Garamond, serif",
+            fontSize: "var(--fs-2xl)",
+          }}
+        >
+          {esMenor ? t("forms.minor_data") : t("forms.personal_title")}
         </Typography>
         <Typography variant="body2" color="var(--text-low)">
-          Huésped {guestIndex + 1} de {totalGuests}
-          {isMainGuest && " · Titular de la reserva"}
-          {esMenor && " · Menor de edad"}
+          {t("forms.guest_counter", {
+            current: guestIndex + 1,
+            total: totalGuests,
+          })}
+          {isMainGuest && t("forms.main_guest_tag")}
+          {esMenor && t("forms.minor_tag")}
         </Typography>
       </div>
 
-      {/* Aviso si el titular intenta poner una fecha que lo hace menor */}
-      {isMainGuest && fechaNac?.isValid() && dayjs().diff(fechaNac, "years") < 18 && (
-        <div style={{ padding: "0 24px" }}>
-          <Alert variant="err" style={{ margin: "8px 0 0" }}>
-            <strong>El titular no puede ser menor de edad.</strong> Por favor, introduzca la fecha correcta.
-          </Alert>
-        </div>
-      )}
+      {isMainGuest &&
+        fechaNac?.isValid() &&
+        dayjs().diff(fechaNac, "years") < 18 && (
+          <div style={{ padding: "0 24px" }}>
+            <Alert variant="err" style={{ margin: "8px 0 0" }}>
+              <strong>{t("forms.main_guest_not_minor")}</strong>{" "}
+              {t("forms.enter_correct_date")}
+            </Alert>
+          </div>
+        )}
 
-      <Box style={{ padding: "0 var(--px)" }} sx={{ mt: 2, display: "flex", flexDirection: "column", gap: 2.5 }}>
-        <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" }, gap: 2 }}>
+      <Box
+        style={{ padding: "0 var(--px)" }}
+        sx={{ mt: 2, display: "flex", flexDirection: "column", gap: 2.5 }}
+      >
+        <Box
+          sx={{
+            display: "grid",
+            gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" },
+            gap: 2,
+          }}
+        >
           <div>
-            <TextField label="Nombre" required fullWidth value={data.nombre ?? ""}
-              onChange={(e) => { onChange("nombre", e.target.value); if (errors.nombre) clearError("nombre"); }}
-              error={!!errors.nombre} sx={inputSx} />
+            <TextField
+              label={t("forms.name")}
+              required
+              fullWidth
+              value={data.nombre ?? ""}
+              onChange={(e) => {
+                onChange("nombre", e.target.value);
+                if (errors.nombre) clearError("nombre");
+              }}
+              error={!!errors.nombre}
+              sx={inputSx}
+            />
             <FieldError msg={errors.nombre} />
           </div>
           <div>
-            <TextField label="Primer apellido" required fullWidth value={data.apellido ?? ""}
-              onChange={(e) => { onChange("apellido", e.target.value); if (errors.apellido) clearError("apellido"); }}
-              error={!!errors.apellido} sx={inputSx} />
+            <TextField
+              label={t("forms.surname")}
+              required
+              fullWidth
+              value={data.apellido ?? ""}
+              onChange={(e) => {
+                onChange("apellido", e.target.value);
+                if (errors.apellido) clearError("apellido");
+              }}
+              error={!!errors.apellido}
+              sx={inputSx}
+            />
             <FieldError msg={errors.apellido} />
           </div>
         </Box>
 
-        <TextField label="Segundo apellido" fullWidth value={data.apellido2 ?? ""}
-          onChange={(e) => onChange("apellido2", e.target.value)} sx={inputSx} />
+        <TextField
+          label={t("forms.second_surname")}
+          fullWidth
+          value={data.apellido2 ?? ""}
+          onChange={(e) => onChange("apellido2", e.target.value)}
+          sx={inputSx}
+        />
 
-        <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" }, gap: 2 }}>
+        <Box
+          sx={{
+            display: "grid",
+            gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" },
+            gap: 2,
+          }}
+        >
           <div>
-            <TextField select label="Sexo" required fullWidth value={data.sexo ?? ""}
-              onChange={(e) => { onChange("sexo", e.target.value); clearError("sexo"); }}
-              error={!!errors.sexo} sx={inputSx}>
-              {SEXOS.map((s) => <MenuItem key={s} value={s}>{s}</MenuItem>)}
+            <TextField
+              select
+              label={t("forms.gender")}
+              required
+              fullWidth
+              value={data.sexo ?? ""}
+              onChange={(e) => {
+                onChange("sexo", e.target.value);
+                clearError("sexo");
+              }}
+              error={!!errors.sexo}
+              sx={inputSx}
+            >
+              {SEXOS.map((s) => (
+                <MenuItem key={s} value={s}>
+                  {t(`constants.sexos.${s}`)}
+                </MenuItem>
+              ))}
             </TextField>
             <FieldError msg={errors.sexo} />
           </div>
           <div>
-            <DatePicker label="Fecha de nacimiento *" value={fechaNac} disableFuture
+            <DatePicker
+              label={t("forms.birthdate")}
+              value={fechaNac}
+              disableFuture
               minDate={dayjs("1900-01-01")}
-              onChange={(v) => { onChange("fechaNac", v?.isValid() ? v.format("YYYY-MM-DD") : ""); clearError("fechaNac"); }}
-              slotProps={{ textField: { fullWidth: true, error: !!errors.fechaNac, sx: inputSx } }}
+              onChange={(v) => {
+                onChange(
+                  "fechaNac",
+                  v?.isValid() ? v.format("YYYY-MM-DD") : "",
+                );
+                clearError("fechaNac");
+              }}
+              slotProps={{
+                textField: {
+                  fullWidth: true,
+                  error: !!errors.fechaNac,
+                  sx: inputSx,
+                },
+              }}
             />
             <FieldError msg={errors.fechaNac} />
           </div>
         </Box>
 
-        <TextField select label="Nacionalidad" fullWidth value={data.nacionalidad ?? ""}
-          onChange={(e) => onChange("nacionalidad", e.target.value)} sx={inputSx}>
-          {NACIONALIDADES.map((n) => <MenuItem key={n} value={n}>{n}</MenuItem>)}
+        <TextField
+          select
+          label={t("forms.nationality")}
+          fullWidth
+          value={data.nacionalidad ?? ""}
+          onChange={(e) => onChange("nacionalidad", e.target.value)}
+          sx={inputSx}
+        >
+          {NACIONALIDADES.map((n) => (
+            <MenuItem key={n} value={n}>
+              {t(`constants.nacionalidades.${n}`)}
+            </MenuItem>
+          ))}
         </TextField>
       </Box>
 
       <div className="spacer" />
       <div className="btn-row">
         <Button
-          disabled={isMainGuest && fechaNac?.isValid() && dayjs().diff(fechaNac, "years") < 18}
-          onClick={() => { if (validate(data)) onNext(); }}
+          disabled={
+            isMainGuest &&
+            fechaNac?.isValid() &&
+            dayjs().diff(fechaNac, "years") < 18
+          }
+          onClick={() => {
+            if (validate(data)) onNext();
+          }}
           iconRight="right"
         >
-          Continuar
+          {t("common.continue")}
         </Button>
       </div>
     </>
@@ -172,88 +290,217 @@ export const ScreenFormPersonal: React.FC<FormPersonalProps> = ({
 // ═══════════════════════════════════════════════════════════════════════════
 // 2. SCREEN FORM CONTACTO
 // ═══════════════════════════════════════════════════════════════════════════
-export const ScreenFormContacto: React.FC<FormContactoProps> = ({ data, onChange, onNext }) => {
+export const ScreenFormContacto: React.FC<FormContactoProps> = ({
+  data,
+  onChange,
+  onNext,
+}) => {
+  const { t } = useTranslation();
   const { errors, validate, clearError } = useFormValidation(validateContacto);
   const { buscarCP, isSearching } = useZipCode(onChange);
-  const { sugerenciasProvincias, sugerenciasMunicipios, cargarProvincias, cargarMunicipios } = usePlaces();
+  const {
+    sugerenciasProvincias,
+    sugerenciasMunicipios,
+    cargarProvincias,
+    cargarMunicipios,
+  } = usePlaces();
   const esEspana = data.pais === "España";
 
-  useDebounce(() => {
-    if (data.email?.includes("@")) validate(data);
-  }, 500, [data.email]);
+  useDebounce(
+    () => {
+      if (data.email?.includes("@")) validate(data);
+    },
+    500,
+    [data.email],
+  );
 
-  useDebounce(() => {
-    if ((data.telefono?.length ?? 0) >= 7) validate(data);
-  }, 500, [data.telefono]);
+  useDebounce(
+    () => {
+      if ((data.telefono?.length ?? 0) >= 7) validate(data);
+    },
+    500,
+    [data.telefono],
+  );
 
   return (
     <>
       <div className="sec-hdr">
-        <Typography variant="h2" sx={{ fontFamily: "Cormorant Garamond, serif", fontSize: "var(--fs-2xl)" }}>
-          Contacto
+        <Typography
+          variant="h2"
+          sx={{
+            fontFamily: "Cormorant Garamond, serif",
+            fontSize: "var(--fs-2xl)",
+          }}
+        >
+          {t("forms.contact_title")}
         </Typography>
-        <p>Datos para la confirmación del registro.</p>
+        <p>{t("forms.contact_subtitle")}</p>
       </div>
 
-      <Box style={{ padding: "0 var(--px)" }} sx={{ mt: 2, display: "flex", flexDirection: "column", gap: 2.5 }}>
-        <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" }, gap: 2 }}>
+      <Box
+        style={{ padding: "0 var(--px)" }}
+        sx={{ mt: 2, display: "flex", flexDirection: "column", gap: 2.5 }}
+      >
+        <Box
+          sx={{
+            display: "grid",
+            gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" },
+            gap: 2,
+          }}
+        >
           <div>
-            <TextField label="Email" required fullWidth value={data.email ?? ""}
-              onChange={(e) => { onChange("email", e.target.value); if (errors.email) clearError("email"); }}
-              error={!!errors.email} sx={inputSx} />
+            <TextField
+              label={t("forms.email")}
+              required
+              fullWidth
+              value={data.email ?? ""}
+              onChange={(e) => {
+                onChange("email", e.target.value);
+                if (errors.email) clearError("email");
+              }}
+              error={!!errors.email}
+              sx={inputSx}
+            />
             <FieldError msg={errors.email} />
           </div>
           <div>
-            <TextField label="Teléfono" required fullWidth value={data.telefono ?? ""}
-              onChange={(e) => { onChange("telefono", e.target.value); if (errors.telefono) clearError("telefono"); }}
-              error={!!errors.telefono} sx={inputSx} />
+            <TextField
+              label={t("forms.phone")}
+              required
+              fullWidth
+              value={data.telefono ?? ""}
+              onChange={(e) => {
+                onChange("telefono", e.target.value);
+                if (errors.telefono) clearError("telefono");
+              }}
+              error={!!errors.telefono}
+              sx={inputSx}
+            />
             <FieldError msg={errors.telefono} />
           </div>
         </Box>
 
-        <TextField label="Dirección habitual" fullWidth value={data.direccion ?? ""}
-          onChange={(e) => onChange("direccion", e.target.value)} sx={inputSx} />
+        <TextField
+          label={t("forms.address_habitual")}
+          fullWidth
+          value={data.direccion ?? ""}
+          onChange={(e) => onChange("direccion", e.target.value)}
+          sx={inputSx}
+        />
 
-        <div className="divlabel">Ubicación</div>
+        <div className="divlabel">{t("forms.location")}</div>
 
-        <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" }, gap: 2 }}>
-          <TextField select label="País" required fullWidth value={data.pais ?? ""}
-            onChange={(e) => { onChange("pais", e.target.value); clearError("pais"); }}
-            error={!!errors.pais} sx={inputSx}>
-            {PAISES.map((p) => <MenuItem key={p} value={p}>{p}</MenuItem>)}
+        <Box
+          sx={{
+            display: "grid",
+            gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" },
+            gap: 2,
+          }}
+        >
+          <TextField
+            select
+            label={t("forms.country")}
+            required
+            fullWidth
+            value={data.pais ?? ""}
+            onChange={(e) => {
+              onChange("pais", e.target.value);
+              clearError("pais");
+            }}
+            error={!!errors.pais}
+            sx={inputSx}
+          >
+            {PAISES.map((p) => (
+              <MenuItem key={p} value={p}>
+                {t(`constants.paises.${p}`)}
+              </MenuItem>
+            ))}
           </TextField>
-          <TextField label="Código Postal" fullWidth value={data.cp ?? ""}
-            onBlur={() => { if (data.cp && data.pais) buscarCP(data.cp, data.pais); }}
-            onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); if (data.cp && data.pais) buscarCP(data.cp, data.pais); } }}
+          <TextField
+            label={t("forms.zipcode")}
+            fullWidth
+            value={data.cp ?? ""}
+            onBlur={() => {
+              if (data.cp && data.pais) buscarCP(data.cp, data.pais);
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                if (data.cp && data.pais) buscarCP(data.cp, data.pais);
+              }
+            }}
             onChange={(e) => onChange("cp", e.target.value.toUpperCase())}
-            sx={inputSx} InputProps={{ endAdornment: isSearching ? "⏳" : null }} />
+            sx={inputSx}
+            InputProps={{ endAdornment: isSearching ? "⏳" : null }}
+          />
         </Box>
 
-        <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" }, gap: 2 }}>
+        <Box
+          sx={{
+            display: "grid",
+            gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" },
+            gap: 2,
+          }}
+        >
           {esEspana ? (
-            <Autocomplete freeSolo autoHighlight options={sugerenciasProvincias || []} value={data.provincia || ""}
-              onInputChange={(_, v) => { onChange("provincia", v || ""); cargarProvincias(v || ""); }}
-              renderInput={(p) => <TextField {...p} label="Provincia" sx={inputSx} />} />
+            <Autocomplete
+              freeSolo
+              autoHighlight
+              options={sugerenciasProvincias || []}
+              value={data.provincia || ""}
+              onInputChange={(_, v) => {
+                onChange("provincia", v || "");
+                cargarProvincias(v || "");
+              }}
+              renderInput={(p) => (
+                <TextField {...p} label={t("forms.province")} sx={inputSx} />
+              )}
+            />
           ) : (
-            <TextField label="Provincia" fullWidth value={data.provincia ?? ""}
-              onChange={(e) => onChange("provincia", e.target.value)} sx={inputSx} />
+            <TextField
+              label={t("forms.province")}
+              fullWidth
+              value={data.provincia ?? ""}
+              onChange={(e) => onChange("provincia", e.target.value)}
+              sx={inputSx}
+            />
           )}
           {esEspana ? (
-            <Autocomplete freeSolo autoHighlight
+            <Autocomplete
+              freeSolo
+              autoHighlight
               options={(sugerenciasMunicipios || []).map((m) => m.nombre)}
               value={data.ciudad || ""}
-              onInputChange={(_, v) => { onChange("ciudad", v || ""); cargarMunicipios(v || "", data.provincia as string); }}
-              renderInput={(p) => <TextField {...p} label="Ciudad" sx={inputSx} />} />
+              onInputChange={(_, v) => {
+                onChange("ciudad", v || "");
+                cargarMunicipios(v || "", data.provincia as string);
+              }}
+              renderInput={(p) => (
+                <TextField {...p} label={t("forms.city")} sx={inputSx} />
+              )}
+            />
           ) : (
-            <TextField label="Ciudad" fullWidth value={data.ciudad ?? ""}
-              onChange={(e) => onChange("ciudad", e.target.value)} sx={inputSx} />
+            <TextField
+              label={t("forms.city")}
+              fullWidth
+              value={data.ciudad ?? ""}
+              onChange={(e) => onChange("ciudad", e.target.value)}
+              sx={inputSx}
+            />
           )}
         </Box>
       </Box>
 
       <div className="spacer" />
       <div className="btn-row">
-        <Button onClick={() => { if (validate(data)) onNext(); }} iconRight="right">Continuar</Button>
+        <Button
+          onClick={() => {
+            if (validate(data)) onNext();
+          }}
+          iconRight="right"
+        >
+          {t("common.continue")}
+        </Button>
       </div>
     </>
   );
@@ -263,49 +510,109 @@ export const ScreenFormContacto: React.FC<FormContactoProps> = ({ data, onChange
 // 3. SCREEN FORM DOCUMENTO
 // ═══════════════════════════════════════════════════════════════════════════
 export const ScreenFormDocumento: React.FC<FormDocumentoProps> = ({
-  data, onChange, guestIndex, totalGuests, isMainGuest, onNext, modoFlujo,
+  data,
+  onChange,
+  guestIndex,
+  totalGuests,
+  isMainGuest,
+  onNext,
+  modoFlujo,
 }) => {
+  const { t } = useTranslation();
   const { errors, validate, clearError } = useFormValidation(validateDocumento);
   const mostrarCargaFoto = modoFlujo !== "manual";
 
-  useDebounce(() => {
-    if (data.tipoDoc && data.numDoc) {
-      const errorMsg = validarNumeroDocumento(data.tipoDoc, data.numDoc);
-      if (errorMsg) validate(data); else clearError("numDoc");
-    }
-  }, 500, [data.numDoc, data.tipoDoc]);
+  useDebounce(
+    () => {
+      if (data.tipoDoc && data.numDoc) {
+        // 3. LE PASAMOS LA t A validarNumeroDocumento
+        const errorMsg = validarNumeroDocumento(data.tipoDoc, data.numDoc, t);
+        if (errorMsg) validate(data);
+        else clearError("numDoc");
+      }
+    },
+    500,
+    [data.numDoc, data.tipoDoc],
+  );
 
   return (
     <>
       <div className="sec-hdr">
-        <Typography variant="h2" sx={{ fontFamily: "Cormorant Garamond, serif", fontSize: "var(--fs-2xl)" }}>
-          Documento
+        <Typography
+          variant="h2"
+          sx={{
+            fontFamily: "Cormorant Garamond, serif",
+            fontSize: "var(--fs-2xl)",
+          }}
+        >
+          {t("forms.doc_title")}
         </Typography>
         <Typography variant="body2" color="var(--text-low)">
-          Identificación huésped {guestIndex + 1} de {totalGuests}
-          {isMainGuest && " (Titular)"}
+          {t("forms.doc_subtitle", {
+            current: guestIndex + 1,
+            total: totalGuests,
+          })}
+          {isMainGuest && t("forms.main_guest_paren")}
         </Typography>
       </div>
 
-      <Box style={{ padding: "0 var(--px)" }} sx={{ mt: 2, display: "flex", flexDirection: "column", gap: 2.5 }}>
-        <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" }, gap: 2 }}>
+      <Box
+        style={{ padding: "0 var(--px)" }}
+        sx={{ mt: 2, display: "flex", flexDirection: "column", gap: 2.5 }}
+      >
+        <Box
+          sx={{
+            display: "grid",
+            gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" },
+            gap: 2,
+          }}
+        >
           <div>
-            <TextField select label="Tipo de documento" required fullWidth value={data.tipoDoc ?? ""}
-              onChange={(e) => { onChange("tipoDoc", e.target.value); onChange("numDoc", ""); clearError("tipoDoc"); clearError("numDoc"); }}
-              error={!!errors.tipoDoc} sx={inputSx}>
-              {TIPOS_DOCUMENTO.map((t) => <MenuItem key={t} value={t}>{t}</MenuItem>)}
+            <TextField
+              select
+              label={t("forms.doc_type")}
+              required
+              fullWidth
+              value={data.tipoDoc ?? ""}
+              onChange={(e) => {
+                onChange("tipoDoc", e.target.value);
+                onChange("numDoc", "");
+                clearError("tipoDoc");
+                clearError("numDoc");
+              }}
+              error={!!errors.tipoDoc}
+              sx={inputSx}
+            >
+              {TIPOS_DOCUMENTO.map((docType) => (
+                <MenuItem key={docType} value={docType}>
+                  {t(`constants.documentos.${docType}`)}
+                </MenuItem>
+              ))}
             </TextField>
             <FieldError msg={errors.tipoDoc} />
           </div>
           <div>
-            <TextField label="Número" required fullWidth value={data.numDoc ?? ""}
-              onChange={(e) => { onChange("numDoc", e.target.value.toUpperCase()); if (errors.numDoc) clearError("numDoc"); }}
-              error={!!errors.numDoc} sx={inputSx}
+            <TextField
+              label={t("forms.doc_number")}
+              required
+              fullWidth
+              value={data.numDoc ?? ""}
+              onChange={(e) => {
+                onChange("numDoc", e.target.value.toUpperCase());
+                if (errors.numDoc) clearError("numDoc");
+              }}
+              error={!!errors.numDoc}
+              sx={inputSx}
               placeholder={
-                data.tipoDoc === "DNI" ? "12345678M" :
-                data.tipoDoc === "NIE" ? "X1234567Z" :
-                data.tipoDoc === "Pasaporte" ? "AAA123456" : undefined
-              } />
+                data.tipoDoc === "DNI"
+                  ? "12345678M"
+                  : data.tipoDoc === "NIE"
+                    ? "X1234567Z"
+                    : data.tipoDoc === "Pasaporte"
+                      ? "AAA123456"
+                      : undefined
+              }
+            />
             <FieldError msg={errors.numDoc} />
           </div>
         </Box>
@@ -313,25 +620,46 @@ export const ScreenFormDocumento: React.FC<FormDocumentoProps> = ({
         {mostrarCargaFoto && (
           <label htmlFor={`doc-${guestIndex}`} style={{ cursor: "pointer" }}>
             <div className={`upload-area ${data.docUploaded ? "done" : ""}`}>
-              <Icon name={data.docUploaded ? "checkC" : "upload"} size={24}
-                color={data.docUploaded ? "var(--ok)" : "var(--text-low)"} />
+              <Icon
+                name={data.docUploaded ? "checkC" : "upload"}
+                size={24}
+                color={data.docUploaded ? "var(--ok)" : "var(--text-low)"}
+              />
               <p style={{ marginTop: 8, fontSize: 14 }}>
-                {data.docUploaded ? "Documento cargado" : "Subir foto del documento"}
+                {data.docUploaded
+                  ? t("forms.photo_uploaded")
+                  : t("forms.upload_photo")}
               </p>
             </div>
-            <input id={`doc-${guestIndex}`} type="file" hidden accept="image/*" capture="environment"
+            <input
+              id={`doc-${guestIndex}`}
+              type="file"
+              hidden
+              accept="image/*"
+              capture="environment"
               onChange={(e) => {
                 const f = e.target.files?.[0];
-                if (f && f.size < 10485760) { onChange("docFile", f); onChange("docUploaded", true); }
-              }} />
+                if (f && f.size < 10485760) {
+                  onChange("docFile", f);
+                  onChange("docUploaded", true);
+                }
+              }}
+            />
           </label>
         )}
       </Box>
 
       <div className="spacer" />
       <div className="btn-row">
-        <Button onClick={() => { if (validate(data)) onNext(); }} iconRight="right">
-          {guestIndex < totalGuests - 1 ? "Siguiente huésped" : "Continuar"}
+        <Button
+          onClick={() => {
+            if (validate(data)) onNext();
+          }}
+          iconRight="right"
+        >
+          {guestIndex < totalGuests - 1
+            ? t("forms.next_guest")
+            : t("common.continue")}
         </Button>
       </div>
     </>

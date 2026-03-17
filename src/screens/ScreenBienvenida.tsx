@@ -1,6 +1,7 @@
-import React from 'react';
-import { Icon, ReservationCard } from '@/components/ui';
-import type { Reserva, GuestData } from '@/types';
+import React from "react";
+import { useTranslation } from "react-i18next"; // 1. Importamos el hook
+import { Icon, ReservationCard } from "@/components/ui";
+import type { Reserva, GuestData } from "@/types";
 
 interface Props {
   knownGuest: GuestData | null;
@@ -10,50 +11,68 @@ interface Props {
 }
 
 export const ScreenBienvenida: React.FC<Props> = ({
-  knownGuest, reserva, onChooseScan, onChooseManual,
+  knownGuest,
+  reserva,
+  onChooseScan,
+  onChooseManual,
 }) => {
+  const { t } = useTranslation(); // 2. Inicializamos el traductor
   const isKnown = !!knownGuest;
 
   return (
     <>
       <div className="hero">
-        <div className="hero-eyebrow">Pre Check-in Online</div>
+        <div className="hero-eyebrow">{t("welcome.eyebrow")}</div>
         <h1 className="hero-title">
-          {isKnown
-            ? <>Bienvenido<br />de <em>nuevo</em></>
-            : <>Bienvenido a<br /><em>Lumina</em></>
-          }
+          {isKnown ? (
+            <>
+              {t("welcome.title_known_1")}
+              <br />
+              <em>{t("welcome.title_known_2")}</em>
+            </>
+          ) : (
+            <>
+              {t("welcome.title_new_1")}
+              <br />
+              <em>{t("welcome.title_new_2")}</em>
+            </>
+          )}
         </h1>
         {isKnown && knownGuest?.nombre && (
-          <p style={{
-            fontFamily: "'Cormorant Garamond', serif",
-            fontSize: 20, fontWeight: 400, color: '#fff',
-            marginTop: 10,
-          }}>
-            Buenos días,{' '}
-            <em style={{ color: 'var(--primary)' }}>{knownGuest.nombre}</em>
+          <p
+            style={{
+              fontFamily: "'Cormorant Garamond', serif",
+              fontSize: 20,
+              fontWeight: 400,
+              color: "#fff",
+              marginTop: 10,
+            }}
+          >
+            {/* 3. Interpolación de variables. Le pasamos el nombre al diccionario */}
+            {t("welcome.greeting", { name: knownGuest.nombre })}
           </p>
         )}
         <p className="hero-subtitle">
-          {isKnown
-            ? 'Tenemos su perfil registrado. Confirme o actualice sus datos para agilizar su llegada.'
-            : 'Complete su registro antes de llegar y evite esperas en recepción.'
-          }
+          {isKnown ? t("welcome.subtitle_known") : t("welcome.subtitle_new")}
         </p>
       </div>
 
       {reserva && (
-        <div style={{ padding: '18px 24px 0' }}>
+        <div style={{ padding: "18px 24px 0" }}>
           <ReservationCard reserva={reserva} />
         </div>
       )}
 
-      <div style={{ padding: '20px 24px 0' }}>
-        <p style={{ fontSize: 13, color: 'var(--text-mid)', marginBottom: 14, lineHeight: 1.5 }}>
-          {isKnown
-            ? '¿Cómo prefiere revisar sus datos?'
-            : '¿Cómo prefiere completar su registro?'
-          }
+      <div style={{ padding: "20px 24px 0" }}>
+        <p
+          style={{
+            fontSize: 13,
+            color: "var(--text-mid)",
+            marginBottom: 14,
+            lineHeight: 1.5,
+          }}
+        >
+          {isKnown ? t("welcome.how_to_review") : t("welcome.how_to_complete")}
         </p>
 
         <div className="choice-grid">
@@ -63,15 +82,24 @@ export const ScreenBienvenida: React.FC<Props> = ({
             </div>
             <div className="choice-card-body">
               <div className="choice-card-title">
-                Escanear documento de identidad
-                <span style={{
-                  marginLeft: 8, fontSize: 10, fontWeight: 600,
-                  background: 'var(--primary-lt)', color: 'var(--primary-d)',
-                  padding: '2px 7px', borderRadius: 20, verticalAlign: 'middle',
-                }}>Opcional</span>
+                {t("welcome.card_scan_title")}
+                <span
+                  style={{
+                    marginLeft: 8,
+                    fontSize: 10,
+                    fontWeight: 600,
+                    background: "var(--primary-lt)",
+                    color: "var(--primary-d)",
+                    padding: "2px 7px",
+                    borderRadius: 20,
+                    verticalAlign: "middle",
+                  }}
+                >
+                  {t("common.optional")}
+                </span>
               </div>
               <div className="choice-card-sub">
-                Fotografíe su DNI o pasaporte y rellenaremos los datos automáticamente.
+                {t("welcome.card_scan_sub")}
               </div>
             </div>
           </button>
@@ -82,13 +110,14 @@ export const ScreenBienvenida: React.FC<Props> = ({
             </div>
             <div className="choice-card-body">
               <div className="choice-card-title">
-                {isKnown ? 'Revisar y confirmar mis datos' : 'Rellenar datos manualmente'}
+                {isKnown
+                  ? t("welcome.card_manual_title_known")
+                  : t("welcome.card_manual_title_new")}
               </div>
               <div className="choice-card-sub">
                 {isKnown
-                  ? 'Compruebe los datos que tenemos guardados y confírmelos o modifíquelos.'
-                  : 'Introduzca su información paso a paso. Rápido y sencillo.'
-                }
+                  ? t("welcome.card_manual_sub_known")
+                  : t("welcome.card_manual_sub_new")}
               </div>
             </div>
           </button>
@@ -98,7 +127,7 @@ export const ScreenBienvenida: React.FC<Props> = ({
       <div className="spacer" />
       <div className="privacy" style={{ paddingBottom: 24 }}>
         <Icon name="lock" size={11} />
-        Cifrado SSL · Datos protegidos conforme al RGPD
+        {t("common.privacy_ssl")}
       </div>
     </>
   );

@@ -1,28 +1,50 @@
-import React, { useState } from 'react';
-import { Button, Alert, Icon } from '@/components/ui';
+import React, { useState } from "react";
+import { useTranslation } from "react-i18next"; // 1. Importar hook
+import { Button, Alert, Icon } from "@/components/ui";
 
 interface Props {
   numAdultos: number;
   numMenores: number;
   onChange: (adultos: number, menores: number) => void;
   onNext: () => void;
-  // Cuando venga del backend, totalFijo = reserva.numHuespedes
-  // El componente solo mostrará el stepper de menores y calculará adultos automáticamente
-  // Por ahora es undefined (sin backend)
   totalFijo?: number;
 }
 
 const MAX_TOTAL = 10;
 
 export const ScreenNumPersonas: React.FC<Props> = ({
-  numAdultos, numMenores, onChange, onNext, totalFijo,
+  numAdultos,
+  numMenores,
+  onChange,
+  onNext,
+  totalFijo,
 }) => {
-  const [error, setError] = useState('');
+  const { t } = useTranslation(); // 2. Inicializar traductor
+  const [error, setError] = useState("");
 
   // ── Modo con backend: total conocido, solo preguntamos menores ────────────
   const modoReserva = totalFijo !== undefined;
   const total = modoReserva ? totalFijo : numAdultos + numMenores;
   const maxMenores = modoReserva ? totalFijo - 1 : MAX_TOTAL - numAdultos;
+  const adultosCount = modoReserva ? totalFijo - numMenores : numAdultos;
+
+  // Variables auxiliares para los plurales
+  const personaNoun =
+    total === 1
+      ? t("guestsCount.person_singular")
+      : t("guestsCount.person_plural");
+  const personaNounFijo =
+    totalFijo === 1
+      ? t("guestsCount.person_singular")
+      : t("guestsCount.person_plural");
+  const adultoNoun =
+    adultosCount === 1
+      ? t("guestsCount.adult_singular")
+      : t("guestsCount.adult_plural");
+  const menorNoun =
+    numMenores === 1
+      ? t("guestsCount.minor_singular")
+      : t("guestsCount.minor_plural");
 
   const setMenores = (n: number) => {
     if (n < 0 || n > maxMenores) return;
@@ -37,14 +59,14 @@ export const ScreenNumPersonas: React.FC<Props> = ({
 
   const handleNext = () => {
     if (!modoReserva && numAdultos < 1) {
-      setError('Debe haber al menos 1 adulto.');
+      setError(t("validation.min_adults"));
       return;
     }
     if (modoReserva && totalFijo - numMenores < 1) {
-      setError('Debe haber al menos 1 adulto en la reserva.');
+      setError(t("validation.min_adults_booking"));
       return;
     }
-    setError('');
+    setError("");
     onNext();
   };
 
@@ -52,33 +74,48 @@ export const ScreenNumPersonas: React.FC<Props> = ({
     <div className="screen">
       <div className="sec-hdr">
         <h2>
-          {modoReserva ? 'Menores en la reserva' : 'Composición del grupo'}
+          {modoReserva
+            ? t("guestsCount.title_booking")
+            : t("guestsCount.title_manual")}
         </h2>
         <p>
           {modoReserva
-            ? `Su reserva es para ${totalFijo} ${totalFijo === 1 ? 'persona' : 'personas'}. ¿Cuántas son menores de 18 años?`
-            : 'Indique cuántos adultos y menores de edad se hospedan.'
-          }
+            ? t("guestsCount.subtitle_booking", {
+                total: totalFijo,
+                noun: personaNounFijo,
+              })
+            : t("guestsCount.subtitle_manual")}
         </p>
       </div>
 
-      <div style={{ padding: '0 24px' }}>
-
+      <div style={{ padding: "0 24px" }}>
         {/* ── Modo SIN backend: dos steppers ── */}
         {!modoReserva && (
           <>
-            <div className="divlabel">Adultos (18 años o más)</div>
+            <div className="divlabel">{t("guestsCount.label_adults")}</div>
             <div className="stepper">
-              <button className="stepper-btn" onClick={() => setAdultos(numAdultos - 1)}
-                disabled={numAdultos <= 1} aria-label="Reducir adultos">
+              <button
+                className="stepper-btn"
+                onClick={() => setAdultos(numAdultos - 1)}
+                disabled={numAdultos <= 1}
+                aria-label="Reducir adultos"
+              >
                 <Icon name="minus" size={20} />
               </button>
               <div>
                 <div className="stepper-value">{numAdultos}</div>
-                <div className="stepper-label">{numAdultos === 1 ? 'adulto' : 'adultos'}</div>
+                <div className="stepper-label">
+                  {numAdultos === 1
+                    ? t("guestsCount.adult_singular")
+                    : t("guestsCount.adult_plural")}
+                </div>
               </div>
-              <button className="stepper-btn" onClick={() => setAdultos(numAdultos + 1)}
-                disabled={numAdultos + numMenores >= MAX_TOTAL} aria-label="Aumentar adultos">
+              <button
+                className="stepper-btn"
+                onClick={() => setAdultos(numAdultos + 1)}
+                disabled={numAdultos + numMenores >= MAX_TOTAL}
+                aria-label="Aumentar adultos"
+              >
                 <Icon name="plus" size={20} />
               </button>
             </div>
@@ -87,69 +124,92 @@ export const ScreenNumPersonas: React.FC<Props> = ({
 
         {/* ── Stepper de menores — siempre visible ── */}
         <div className="divlabel" style={{ marginTop: modoReserva ? 0 : 20 }}>
-          Menores de edad (menos de 18 años)
+          {t("guestsCount.label_minors")}
         </div>
         <div className="stepper">
-          <button className="stepper-btn" onClick={() => setMenores(numMenores - 1)}
-            disabled={numMenores <= 0} aria-label="Reducir menores">
+          <button
+            className="stepper-btn"
+            onClick={() => setMenores(numMenores - 1)}
+            disabled={numMenores <= 0}
+            aria-label="Reducir menores"
+          >
             <Icon name="minus" size={20} />
           </button>
           <div>
             <div className="stepper-value">{numMenores}</div>
-            <div className="stepper-label">{numMenores === 1 ? 'menor' : 'menores'}</div>
+            <div className="stepper-label">{menorNoun}</div>
           </div>
-          <button className="stepper-btn" onClick={() => setMenores(numMenores + 1)}
-            disabled={numMenores >= maxMenores} aria-label="Aumentar menores">
+          <button
+            className="stepper-btn"
+            onClick={() => setMenores(numMenores + 1)}
+            disabled={numMenores >= maxMenores}
+            aria-label="Aumentar menores"
+          >
             <Icon name="plus" size={20} />
           </button>
         </div>
 
         {/* ── Resumen ── */}
-        <div style={{
-          margin: '20px 0 4px', padding: '14px 16px',
-          background: 'var(--bg)', borderRadius: 12,
-          border: '1px solid var(--border)',
-          display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-        }}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-            <span style={{ fontSize: 13, color: 'var(--text-mid)' }}>
-              {modoReserva ? (totalFijo - numMenores) : numAdultos}
-              {' '}{(modoReserva ? totalFijo - numMenores : numAdultos) === 1 ? 'adulto' : 'adultos'}
-              {numMenores > 0 && ` · ${numMenores} ${numMenores === 1 ? 'menor' : 'menores'}`}
+        <div
+          style={{
+            margin: "20px 0 4px",
+            padding: "14px 16px",
+            background: "var(--bg)",
+            borderRadius: 12,
+            border: "1px solid var(--border)",
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+          }}
+        >
+          <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+            <span style={{ fontSize: 13, color: "var(--text-mid)" }}>
+              {adultosCount} {adultoNoun}
+              {numMenores > 0 && ` · ${numMenores} ${menorNoun}`}
             </span>
-            <span style={{ fontSize: 11, color: 'var(--text-low)' }}>Total: {total} {total === 1 ? 'persona' : 'personas'}</span>
+            <span style={{ fontSize: 11, color: "var(--text-low)" }}>
+              {t("guestsCount.total", { total, noun: personaNoun })}
+            </span>
           </div>
         </div>
 
         {/* ── Alertas contextuales ── */}
         {!modoReserva && total >= MAX_TOTAL && (
           <Alert variant="info" style={{ marginTop: 8 }}>
-            Máximo {MAX_TOTAL} personas por reserva online. Para grupos más grandes contacte con el hotel.
+            {t("guestsCount.max_limit", { max: MAX_TOTAL })}
           </Alert>
         )}
 
         {numMenores > 0 && (
           <Alert variant="warm" style={{ marginTop: 8 }}>
-            <strong>Aviso legal (Orden INT/1922/2003):</strong> Es obligatorio registrar los datos
-            de identificación de los menores y su relación de parentesco o tutela con cada
-            adulto del grupo.
+            <strong>{t("guestsCount.legal_warning_title")}</strong>{" "}
+            {t("guestsCount.legal_warning_text")}
           </Alert>
         )}
 
-        {numMenores > 0 && (modoReserva ? totalFijo - numMenores : numAdultos) > 1 && (
+        {numMenores > 0 && adultosCount > 1 && (
           <Alert variant="info" style={{ marginTop: 8 }}>
-            Se declarará la relación de {numMenores === 1 ? 'el menor' : 'cada menor'} con
-            cada uno de los {modoReserva ? totalFijo - numMenores : numAdultos} adultos del grupo.
+            {t("guestsCount.relation_declaration", {
+              minor_noun:
+                numMenores === 1
+                  ? t("guestsCount.the_minor_singular")
+                  : t("guestsCount.the_minor_plural"),
+              adults: adultosCount,
+            })}
           </Alert>
         )}
 
-        {error && <Alert variant="err" style={{ marginTop: 8 }}>{error}</Alert>}
+        {error && (
+          <Alert variant="err" style={{ marginTop: 8 }}>
+            {error}
+          </Alert>
+        )}
       </div>
 
       <div className="spacer" />
       <div className="btn-row">
         <Button variant="primary" iconRight="right" onClick={handleNext}>
-          Continuar con {total} {total === 1 ? 'persona' : 'personas'}
+          {t("guestsCount.btn_continue", { total, noun: personaNoun })}
         </Button>
       </div>
     </div>

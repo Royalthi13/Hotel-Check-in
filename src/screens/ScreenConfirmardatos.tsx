@@ -1,6 +1,7 @@
-import React from 'react';
-import { Button, ConfirmBlock, Alert, Icon } from '@/components/ui';
-import type { PartialGuestData } from '@/types';
+import React from "react";
+import { useTranslation } from "react-i18next"; // 1. Importar el hook
+import { Button, ConfirmBlock, Alert, Icon } from "@/components/ui";
+import type { PartialGuestData } from "@/types";
 
 interface Props {
   guest: PartialGuestData;
@@ -8,53 +9,67 @@ interface Props {
   onEdit: () => void;
 }
 
-export const ScreenConfirmarDatos: React.FC<Props> = ({ guest, onConfirm, onEdit }) => {
+export const ScreenConfirmarDatos: React.FC<Props> = ({
+  guest,
+  onConfirm,
+  onEdit,
+}) => {
+  const { t } = useTranslation(); // 2. Inicializar el traductor
+
   const fullName = [guest.nombre, guest.apellido, guest.apellido2]
     .filter(Boolean)
-    .join(' ');
+    .join(" ");
 
   return (
     <>
       <div className="sec-hdr">
-        <h2>Sus datos registrados</h2>
-        <p>
-          Hemos encontrado su perfil. Compruebe que los datos son correctos
-          antes de continuar.
-        </p>
+        <h2>{t("review.confirm_title")}</h2>
+        <p>{t("review.confirm_sub")}</p>
       </div>
 
-      <div style={{ padding: '12px 24px 0' }}>
+      <div style={{ padding: "12px 24px 0" }}>
         <Alert variant="info">
-          Si algún dato ha cambiado, pulse <strong>Editar</strong> para
-          actualizarlo.
+          {/* Aquí usamos la traducción completa que preparamos para esta alerta */}
+          {t("review.confirm_alert")}
         </Alert>
 
         <ConfirmBlock
-          title="Datos personales"
+          title={t("forms.personal_title")}
           rows={[
-            ['Nombre completo', fullName || null],
-            ['Sexo',            guest.sexo       ?? null],
-            ['Fecha nacimiento', guest.fechaNac   ?? null],
-            ['Nacionalidad',    guest.nacionalidad ?? null],
+            [t("forms.full_name"), fullName || null],
+            // Traducimos el valor del sexo usando las constantes
+            [
+              t("forms.gender"),
+              guest.sexo ? t(`constants.sexos.${guest.sexo}`) : null,
+            ],
+            [t("forms.birthdate_clean"), guest.fechaNac ?? null],
+            // Traducimos la nacionalidad usando las constantes
+            [
+              t("forms.nationality"),
+              guest.nacionalidad
+                ? t(`constants.nacionalidades.${guest.nacionalidad}`)
+                : null,
+            ],
           ]}
         />
 
         {guest.tipoDoc && (
           <ConfirmBlock
-            title="Documento de identidad"
+            title={t("forms.doc_title")}
             rows={[
-              ['Tipo',   guest.tipoDoc ?? null],
-              ['Número', guest.numDoc  ?? null],
+              // Traducimos el tipo de documento (DNI, Pasaporte, etc.)
+              [t("forms.doc_type"), t(`constants.documentos.${guest.tipoDoc}`)],
+              [t("forms.doc_number"), guest.numDoc ?? null],
             ]}
           />
         )}
 
         {guest.email && (
           <ConfirmBlock
-            title="Contacto"
+            title={t("forms.contact_title")}
             rows={[
-              ['Email',    guest.email    ?? null],
-              ['Teléfono', guest.telefono ?? null],
+              [t("forms.email"), guest.email ?? null],
+              [t("forms.phone"), guest.telefono ?? null],
             ]}
           />
         )}
@@ -63,16 +78,16 @@ export const ScreenConfirmarDatos: React.FC<Props> = ({ guest, onConfirm, onEdit
       <div className="spacer" />
       <div className="btn-row">
         <Button variant="primary" iconRight="right" onClick={onConfirm}>
-          Confirmar y continuar
+          {t("review.confirm_btn")}
         </Button>
         <Button variant="secondary" iconLeft="edit" onClick={onEdit}>
-          Editar datos
+          {t("review.edit_btn")}
         </Button>
       </div>
 
       <div className="privacy" style={{ paddingBottom: 20 }}>
         <Icon name="lock" size={11} />
-        Datos protegidos conforme al RGPD
+        {t("common.privacy_ssl")}
       </div>
     </>
   );

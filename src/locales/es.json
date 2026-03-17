@@ -1,4 +1,81 @@
 {
+  "constants": {
+    "paises": {
+      "España": "España",
+      "Reino Unido": "Reino Unido",
+      "Francia": "Francia",
+      "Alemania": "Alemania",
+      "Italia": "Italia",
+      "Países Bajos": "Países Bajos",
+      "Bélgica": "Bélgica",
+      "Portugal": "Portugal",
+      "Irlanda": "Irlanda",
+      "Estados Unidos": "Estados Unidos",
+      "Suiza": "Suiza",
+      "Suecia": "Suecia",
+      "Noruega": "Noruega",
+      "Dinamarca": "Dinamarca",
+      "Austria": "Austria",
+      "Polonia": "Polonia",
+      "Finlandia": "Finlandia",
+      "México": "México",
+      "Argentina": "Argentina",
+      "Colombia": "Colombia"
+    },
+    "nacionalidades": {
+      "Española": "Española",
+      "Alemana": "Alemana",
+      "Francesa": "Francesa",
+      "Italiana": "Italiana",
+      "Portuguesa": "Portuguesa",
+      "Inglesa": "Inglesa",
+      "Estadounidense": "Estadounidense",
+      "Argentina": "Argentina",
+      "Mexicana": "Mexicana",
+      "Otra": "Otra"
+    },
+    "documentos": {
+      "DNI": "DNI",
+      "NIF": "NIF",
+      "CIF": "CIF",
+      "Pasaporte": "Pasaporte",
+      "NIE": "NIE",
+      "Otro": "Otro"
+    },
+    "sexos": {
+      "Hombre": "Hombre",
+      "Mujer": "Mujer",
+      "No indicar": "No indicar"
+    },
+    "parentescos": {
+      "Hijo/a": "Hijo/a",
+      "Nieto/a": "Nieto/a",
+      "Sobrino/a": "Sobrino/a",
+      "Hermano/a": "Hermano/a",
+      "Primo/a": "Primo/a",
+      "Tutor legal": "Tutor legal",
+      "Padre/Madre adoptivo/a": "Padre/Madre adoptivo/a",
+      "Familia de acogida": "Familia de acogida",
+      "Otra relación familiar": "Otra relación familiar",
+      "Otra relación de tutela": "Otra relación de tutela",
+      "Otra": "Otra"
+    },
+    "horas": {
+      "No especificada": "No especificada",
+      "Después de medianoche": "Después de medianoche"
+    },
+    "steps": {
+      "bienvenida": "Bienvenida",
+      "num_personas": "Personas",
+      "form_personal": "Datos personales",
+      "form_contacto": "Contacto",
+      "form_documento": "Documento",
+      "form_extras": "Preferencias",
+      "revision": "Revisión",
+      "exito": "Completado"
+    }
+  },
+
   "common": {
     "continue": "Continuar",
     "finish": "Finalizar",
@@ -9,9 +86,19 @@
     "or": "o bien",
     "privacy_ssl": "Cifrado SSL · Datos protegidos conforme al RGPD",
     "main_guest": "(Titular)",
-    "not_specified": "No especificada"
+    "not_specified": "No especificada",
+    "summary": "Resumen"
   },
+
+  "appShell": {
+    "subtitle": "Complete su pre check-in y llegue al hotel sin esperas en recepción.",
+    "booking_summary": "Resumen de la reserva",
+    "privacy_short": "Cifrado SSL · RGPD"
+  },
+
   "validation": {
+    "min_adults": "Debe haber al menos 1 adulto.",
+    "min_adults_booking": "Debe haber al menos 1 adulto en la reserva.",
     "required_name": "El nombre es obligatorio",
     "required_surname": "El primer apellido es obligatorio",
     "required_gender": "Indique el sexo",
@@ -71,17 +158,47 @@
     "card_manual_sub_known": "Compruebe los datos que tenemos guardados y confírmelos o modifíquelos."
   },
   "guestsCount": {
-    "title": "¿Cuántas personas se hospedan?",
-    "subtitle": "Necesitamos los datos de identificación de cada huésped mayor de edad. Rellenaremos un formulario por persona.",
+    "title_booking": "Menores en la reserva",
+    "title_manual": "Composición del grupo",
+    "subtitle_booking": "Su reserva es para {{total}} {{noun}}. ¿Cuántas son menores de 18 años?",
+    "subtitle_manual": "Indique cuántos adultos y menores de edad se hospedan.",
+    "label_adults": "Adultos (18 años o más)",
+    "label_minors": "Menores de edad (menos de 18 años)",
+    "adult_singular": "adulto",
+    "adult_plural": "adultos",
+    "minor_singular": "menor",
+    "minor_plural": "menores",
     "person_singular": "persona",
     "person_plural": "personas",
+    "total": "Total: {{total}} {{noun}}",
+    "max_limit": "Máximo {{max}} personas por reserva online. Para grupos más grandes contacte con el hotel.",
+    "legal_warning_title": "Aviso legal (Orden INT/1922/2003):",
+    "legal_warning_text": "Es obligatorio registrar los datos de identificación de los menores y su relación de parentesco o tutela con cada adulto del grupo.",
+    "relation_declaration": "Se declarará la relación de {{minor_noun}} con cada uno de los {{adults}} adultos del grupo.",
+    "the_minor_singular": "el menor",
+    "the_minor_plural": "cada menor",
+    "btn_continue": "Continuar con {{total}} {{noun}}",
+    "title": "¿Cuántas personas se hospedan?",
+    "subtitle": "Necesitamos los datos de identificación de cada huésped mayor de edad. Rellenaremos un formulario por persona.",
     "info_single": "Solo el huésped principal. Se le pedirán datos de contacto además de los personales.",
     "info_multiple": "Se rellenarán los datos de {{count}} personas. El primer formulario corresponde al huésped principal (incluye email y dirección); los siguientes, a los acompañantes.",
     "info_minors": "Los menores de edad no necesitan formulario individual; podrá indicar su información en el apartado del huésped principal o acompañante adulto responsable.",
-    "wrong_number_hint": "Si el número de personas permitido por su reserva no es correcto, por favor, póngase en contacto con el hotel para gestionarlo.",
-    "btn_continue": "Continuar con {{count}} {{noun}}"
+    "wrong_number_hint": "Si el número de personas permitido por su reserva no es correcto, por favor, póngase en contacto con el hotel para gestionarlo."
   },
   "forms": {
+    "minor_data": "Datos del menor",
+    "main_guest_tag": " · Titular de la reserva",
+    "minor_tag": " · Menor de edad",
+    "main_guest_not_minor": "El titular no puede ser menor de edad.",
+    "enter_correct_date": "Por favor, introduzca la fecha correcta.",
+    "second_surname": "Segundo apellido",
+    "contact_subtitle": "Datos para la confirmación del registro.",
+    "address_habitual": "Dirección habitual",
+    "location": "Ubicación",
+    "main_guest_paren": " (Titular)",
+    "vat": "VAT",
+    "photo": "Foto",
+    "address": "Dirección",
     "personal_title": "Datos personales",
     "guest_counter": "Huésped {{current}} de {{total}}",
     "name": "Nombre",
@@ -105,7 +222,11 @@
     "doc_number": "Número",
     "upload_photo": "Subir foto del documento",
     "photo_uploaded": "Documento cargado",
-    "next_guest": "Siguiente huésped"
+    "next_guest": "Siguiente huésped",
+    "full_name": "Nombre completo",
+    "birthdate_clean": "Fecha de nacimiento",
+    "email": "Email",
+    "phone": "Teléfono"
   },
   "scan": {
     "title": "Escanear documento",
@@ -155,10 +276,35 @@
     "btn_complete": "Completar",
     "rgpd": "Acepto la política de privacidad y envío de datos.",
     "btn_sending": "Enviando...",
+    "requests_info": "Las peticiones son orientativas. El hotel hará lo posible por atenderlas, aunque no pueden garantizarse de antemano.",
+    "review_data_title": "Revise sus datos",
+    "review_data_sub": "Compruebe que toda la información es correcta antes de confirmar el pre check-in.",
+    "main_guest_personal": "Huésped principal — datos personales",
+    "companion_personal": "Acompañante {{count}} — datos personales",
+    "main_guest_doc": "Huésped principal — documento",
+    "companion_doc": "Acompañante {{count}} — documento",
+    "relation_adult": "Relación con adulto {{count}}",
+    "photo_attached": "✓ Adjuntada",
+    "contact_address": "Contacto y dirección",
+    "notes": "Notas",
+    "rgpd_long_1": "Confirmo que los datos son correctos y acepto la ",
+    "rgpd_long_2": "política de privacidad",
+    "rgpd_long_3": " y las ",
+    "rgpd_long_4": "condiciones del pre check-in",
+    "rgpd_long_5": " del hotel.",
+    "btn_complete_checkin": "Completar pre check-in",
     "btn_final": "Confirmar registro de todo el grupo"
   },
   "success": {
     "title": "¡Registro completado!",
+    "title_precheckin_1": "¡Pre check-in",
+    "title_precheckin_2": "completado!",
+    "subtitle_precheckin": "Sus datos han sido registrados. Al llegar al hotel, diríjase directamente a recepción para recoger su llave de habitación.",
+    "main_guest": "Huésped principal",
+    "total_guests": "Total huéspedes",
+    "expected_arrival": "Llegada prevista",
+    "btn_print": "Guardar / Imprimir confirmación",
+    "email_confirmation": "Recibirá una confirmación en su email",
     "subtitle": "Sus datos han sido enviados. Le esperamos en recepción.",
     "booking": "Reserva",
     "room": "Habitación",
@@ -169,9 +315,31 @@
   "disabled": {
     "title": "Pre-check-in no disponible",
     "default_reason": "Por razones de seguridad o políticas del alojamiento, esta reserva requiere una gestión presencial.",
-    "instruction": "Por favor, diríjase al mostrador de recepción donde nuestro equipo le ayudará a completar su registro en pocos minutos.",
+    "instruction_1": "Por favor, ",
+    "instruction_bold": "diríjase al mostrador de recepción",
+    "instruction_2": " donde nuestro equipo le ayudará a completar su registro en pocos minutos.",
     "li_1": "Es posible que falte un pago pendiente.",
     "li_2": "Su habitación requiere una verificación especial.",
     "li_3": "El registro ya ha sido completado previamente."
+  },
+  "errorBoundary": {
+    "title": "Algo ha salido mal",
+    "subtitle": "Se ha producido un error inesperado. Sus datos no se han perdido — puede intentar continuar o recargar la página.",
+    "btn_retry": "Intentar continuar",
+    "btn_reload": "Recargar página",
+    "footer": "Si el problema persiste, contacte con recepción del hotel."
+  },
+  "minors": {
+    "adult_fallback": "Adulto {{count}}",
+    "minor_fallback": "Menor {{count}}",
+    "relationship_title": "Relación de parentesco",
+    "declare_relationship_1": "Declare la relación de ",
+    "declare_relationship_2": " con cada adulto del grupo.",
+    "legal_warning_title": "Requisito legal (Orden INT/1922/2003):",
+    "legal_warning_text": " Los establecimientos hoteleros están obligados a registrar el parentesco o relación de tutela de los menores con los adultos acompañantes.",
+    "booking_holder": "Titular de la reserva",
+    "relation_with": "Relación con {{name}}",
+    "select_relationship": "— Seleccionar parentesco —",
+    "mandatory_legal_field": "Este campo es obligatorio por ley"
   }
 }

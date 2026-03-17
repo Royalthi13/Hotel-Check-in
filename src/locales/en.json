@@ -1,4 +1,81 @@
 {
+  "constants": {
+    "paises": {
+      "España": "Spain",
+      "Reino Unido": "United Kingdom",
+      "Francia": "France",
+      "Alemania": "Germany",
+      "Italia": "Italy",
+      "Países Bajos": "Netherlands",
+      "Bélgica": "Belgium",
+      "Portugal": "Portugal",
+      "Irlanda": "Ireland",
+      "Estados Unidos": "United States",
+      "Suiza": "Switzerland",
+      "Suecia": "Sweden",
+      "Noruega": "Norway",
+      "Dinamarca": "Denmark",
+      "Austria": "Austria",
+      "Polonia": "Poland",
+      "Finlandia": "Finland",
+      "México": "Mexico",
+      "Argentina": "Argentina",
+      "Colombia": "Colombia"
+    },
+    "nacionalidades": {
+      "Española": "Spanish",
+      "Alemana": "German",
+      "Francesa": "French",
+      "Italiana": "Italian",
+      "Portuguesa": "Portuguese",
+      "Inglesa": "British",
+      "Estadounidense": "American",
+      "Argentina": "Argentine",
+      "Mexicana": "Mexican",
+      "Otra": "Other"
+    },
+    "documentos": {
+      "DNI": "National ID (DNI)",
+      "NIF": "Tax ID (NIF)",
+      "CIF": "Company ID (CIF)",
+      "Pasaporte": "Passport",
+      "NIE": "Foreigner ID (NIE)",
+      "Otro": "Other"
+    },
+    "sexos": {
+      "Hombre": "Male",
+      "Mujer": "Female",
+      "No indicar": "Prefer not to say"
+    },
+    "parentescos": {
+      "Hijo/a": "Child",
+      "Nieto/a": "Grandchild",
+      "Sobrino/a": "Niece/Nephew",
+      "Hermano/a": "Sibling",
+      "Primo/a": "Cousin",
+      "Tutor legal": "Legal Guardian",
+      "Padre/Madre adoptivo/a": "Adoptive Parent",
+      "Familia de acogida": "Foster Family",
+      "Otra relación familiar": "Other family relationship",
+      "Otra relación de tutela": "Other guardianship",
+      "Otra": "Other"
+    },
+    "horas": {
+      "No especificada": "Not specified",
+      "Después de medianoche": "After midnight"
+    },
+    "steps": {
+      "bienvenida": "Welcome",
+      "num_personas": "Guests",
+      "form_personal": "Personal Details",
+      "form_contacto": "Contact",
+      "form_documento": "Document",
+      "form_extras": "Preferences",
+      "revision": "Review",
+      "exito": "Completed"
+    }
+  },
+
   "common": {
     "continue": "Continue",
     "finish": "Finish",
@@ -9,9 +86,19 @@
     "or": "or",
     "privacy_ssl": "SSL Encrypted · GDPR Compliant Data Protection",
     "main_guest": "(Main Guest)",
-    "not_specified": "Not specified"
+    "not_specified": "Not specified",
+    "summary": "Summary"
   },
+
+  "appShell": {
+    "subtitle": "Complete your pre check-in and arrive at the hotel without waiting at reception.",
+    "booking_summary": "Booking summary",
+    "privacy_short": "SSL Encrypted · GDPR"
+  },
+
   "validation": {
+    "min_adults": "There must be at least 1 adult.",
+    "min_adults_booking": "There must be at least 1 adult in the booking.",
     "required_name": "First name is required",
     "required_surname": "Last name is required",
     "required_gender": "Please specify gender",
@@ -35,6 +122,7 @@
     "doc_too_short": "Document number seems too short",
     "min_persons": "Indicate at least 1 person",
     "max_persons": "Maximum 10 people per booking",
+    "invalid_minor_age": "This guest is marked as a minor but the date indicates they are 18 or older",
     "missing_relationships": "Missing relationships in forms. Please review all guests' data."
   },
   "search": {
@@ -71,17 +159,44 @@
     "card_manual_sub_known": "Check the data we have saved and confirm or modify it."
   },
   "guestsCount": {
-    "title": "How many people are staying?",
-    "subtitle": "We need identification details for each adult guest. We will fill out one form per person.",
+    "title_booking": "Minors in the booking",
+    "title_manual": "Group composition",
+    "subtitle_booking": "Your booking is for {{total}} {{noun}}. How many are under 18 years old?",
+    "subtitle_manual": "Please indicate how many adults and minors are staying.",
+    "label_adults": "Adults (18 years or older)",
+    "label_minors": "Minors (under 18 years old)",
+    "adult_singular": "adult",
+    "adult_plural": "adults",
+    "minor_singular": "minor",
+    "minor_plural": "minors",
     "person_singular": "person",
     "person_plural": "people",
+    "total": "Total: {{total}} {{noun}}",
+    "max_limit": "Maximum {{max}} people per online booking. For larger groups, please contact the hotel.",
+    "legal_warning_title": "Legal Notice:",
+    "legal_warning_text": "It is mandatory to register the identification details of minors and their relationship or guardianship with each adult in the group.",
+    "relation_declaration": "The relationship of {{minor_noun}} with each of the {{adults}} adults in the group will be declared.",
+    "the_minor_singular": "the minor",
+    "the_minor_plural": "each minor",
+    "btn_continue": "Continue with {{total}} {{noun}}",
+    "title": "How many people are staying?",
+    "subtitle": "We need identification details for each adult guest. We will fill out one form per person.",
     "info_single": "Main guest only. You will be asked for contact details in addition to personal ones.",
     "info_multiple": "Details for {{count}} people will be filled in. The first form is for the main guest (includes email and address); the following are for companions.",
     "info_minors": "Minors do not need an individual form; you can provide their information in the main guest's or responsible adult's section.",
-    "wrong_number_hint": "If the number of guests allowed in your booking is incorrect, please contact the hotel directly to update your reservation.",
-    "btn_continue": "Continue with {{count}} {{noun}}"
+    "wrong_number_hint": "If the number of guests allowed in your booking is incorrect, please contact the hotel directly to update your reservation."
   },
   "forms": {
+    "minor_data": "Minor details",
+    "main_guest_tag": " · Booking holder",
+    "minor_tag": " · Minor",
+    "main_guest_not_minor": "The holder cannot be a minor.",
+    "enter_correct_date": "Please enter the correct date.",
+    "second_surname": "Second Last Name",
+    "contact_subtitle": "Details for registration confirmation.",
+    "address_habitual": "Usual address",
+    "location": "Location",
+    "main_guest_paren": " (Holder)",
     "personal_title": "Personal Details",
     "guest_counter": "Guest {{current}} of {{total}}",
     "name": "First Name",
@@ -105,7 +220,14 @@
     "doc_number": "Number",
     "upload_photo": "Upload document photo",
     "photo_uploaded": "Document uploaded",
-    "next_guest": "Next guest"
+    "next_guest": "Next guest",
+    "full_name": "Full Name",
+    "birthdate_clean": "Date of Birth",
+    "email": "Email",
+    "vat": "VAT Number",
+    "photo": "Photo",
+    "address": "Address",
+    "phone": "Phone Number"
   },
   "scan": {
     "title": "Scan document",
@@ -155,10 +277,35 @@
     "btn_complete": "Complete",
     "rgpd": "I accept the privacy policy and data submission.",
     "btn_sending": "Sending...",
+    "requests_info": "Requests are subject to availability. The hotel will do its best to accommodate them, but they cannot be guaranteed in advance.",
+    "review_data_title": "Review your details",
+    "review_data_sub": "Please check that all information is correct before confirming your pre check-in.",
+    "main_guest_personal": "Main guest — personal details",
+    "companion_personal": "Companion {{count}} — personal details",
+    "main_guest_doc": "Main guest — document",
+    "companion_doc": "Companion {{count}} — document",
+    "relation_adult": "Relationship to adult {{count}}",
+    "photo_attached": "✓ Attached",
+    "contact_address": "Contact and address",
+    "notes": "Notes",
+    "rgpd_long_1": "I confirm that the data is correct and I accept the ",
+    "rgpd_long_2": "privacy policy",
+    "rgpd_long_3": " and the hotel's ",
+    "rgpd_long_4": "pre check-in conditions",
+    "rgpd_long_5": ".",
+    "btn_complete_checkin": "Complete pre check-in",
     "btn_final": "Confirm registration for the entire group"
   },
   "success": {
     "title": "Registration completed!",
+    "title_precheckin_1": "Pre check-in",
+    "title_precheckin_2": "completed!",
+    "subtitle_precheckin": "Your details have been registered. Upon arriving at the hotel, please go directly to reception to collect your room key.",
+    "main_guest": "Main Guest",
+    "total_guests": "Total Guests",
+    "expected_arrival": "Expected Arrival",
+    "btn_print": "Save / Print confirmation",
+    "email_confirmation": "You will receive a confirmation in your email",
     "subtitle": "Your details have been sent. We look forward to welcoming you at reception.",
     "booking": "Booking",
     "room": "Room",
@@ -169,9 +316,31 @@
   "disabled": {
     "title": "Pre-check-in unavailable",
     "default_reason": "For security reasons or property policies, this booking requires in-person management.",
-    "instruction": "Please proceed to the reception desk where our team will help you complete your registration in a few minutes.",
+    "instruction_1": "Please ",
+    "instruction_bold": "proceed to the reception desk",
+    "instruction_2": " where our team will help you complete your registration in a few minutes.",
     "li_1": "There may be a pending payment.",
     "li_2": "Your room requires special verification.",
     "li_3": "Registration has already been completed previously."
+  },
+  "errorBoundary": {
+    "title": "Something went wrong",
+    "subtitle": "An unexpected error has occurred. Your data has not been lost — you can try to continue or reload the page.",
+    "btn_retry": "Try to continue",
+    "btn_reload": "Reload page",
+    "footer": "If the problem persists, please contact the hotel reception."
+  },
+  "minors": {
+    "adult_fallback": "Adult {{count}}",
+    "minor_fallback": "Minor {{count}}",
+    "relationship_title": "Relationship",
+    "declare_relationship_1": "Declare the relationship of ",
+    "declare_relationship_2": " to each adult in the group.",
+    "legal_warning_title": "Legal Requirement (Order INT/1922/2003):",
+    "legal_warning_text": " Hotels are required by law to register the relationship or guardianship of minors with their accompanying adults.",
+    "booking_holder": "Booking holder",
+    "relation_with": "Relationship to {{name}}",
+    "select_relationship": "— Select relationship —",
+    "mandatory_legal_field": "This field is legally required"
   }
 }
