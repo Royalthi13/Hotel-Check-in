@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from "react";
+import React from "react";
 import { Button, Alert, Icon } from "@/components/ui";
 import { useZipCode } from "@/hooks/useZipCode";
 import {
@@ -25,18 +25,9 @@ import {
   Autocomplete,
 } from "@mui/material";
 import { usePlaces } from "@/hooks/usePlaces";
+import { useDebounce } from "@/hooks/useDebounce";
 import dayjs from "dayjs";
 import "dayjs/locale/es";
-
-// ─── Debounce hook ────────────────────────────────────────────────────────────
-function useDebounce(fn: () => void, delay: number, deps: unknown[]) {
-  const fnRef = useRef(fn);
-  fnRef.current = fn;
-  useEffect(() => {
-    const t = setTimeout(() => fnRef.current(), delay);
-    return () => clearTimeout(t);
-  }, [...deps, delay]);
-}
 
 const inputSx = {
   "& .MuiInputBase-root": { borderRadius: "12px", backgroundColor: "#fff" },
@@ -293,8 +284,8 @@ export const ScreenFormPersonal: React.FC<
                     fullWidth
                     label={
                       esMenor
-                        ? `¿Qué es el menor de ${otro.nombre || "Huésped " + (otro.idx + 1)}?`
-                        : `Parentesco con el menor ${otro.nombre || "Huésped " + (otro.idx + 1)}`
+                        ? `Introduzca el parentesco del menor con el Huésped ${otro.idx + 1}`
+                        : `Parentesco del Huésped ${otro.idx + 1} con el menor`
                     }
                     value={data.parentescos?.[otro.idx] ?? ""}
                     onChange={(e) => updateRelacion(otro.idx, e.target.value)}
