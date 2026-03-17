@@ -1,19 +1,23 @@
-import { useState, useCallback } from 'react';
-import type { PartialGuestData, FormErrors } from '@/types';
-import dayjs from 'dayjs';
+import { useState, useCallback } from "react";
+import { useTranslation } from "react-i18next"; // 1. Importamos el hook
+import type { TFunction } from "i18next"; // Importamos el tipo para TypeScript
+import type { PartialGuestData, FormErrors } from "@/types";
+import dayjs from "dayjs";
 
-type ValidatorFn<T> = (data: T) => FormErrors;
+// 2. Modificamos el tipo para que el validador reciba la función 't'
+type ValidatorFn<T> = (data: T, t: TFunction) => FormErrors;
 
 export function useFormValidation<T>(validator: ValidatorFn<T>) {
+  const { t } = useTranslation(); // Extraemos el traductor aquí
   const [errors, setErrors] = useState<FormErrors>({});
 
   const validate = useCallback(
     (data: T): boolean => {
-      const errs = validator(data);
+      const errs = validator(data, t); // Le pasamos 't' al validador
       setErrors(errs);
       return Object.keys(errs).length === 0;
     },
-    [validator],
+    [validator, t],
   );
 
   const clearError = useCallback((key: string) => {
@@ -31,13 +35,10 @@ export function useFormValidation<T>(validator: ValidatorFn<T>) {
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-
-
 // ─── Validación de documentos de identidad españoles ─────────────────────────
 
-const LETRAS_DNI = 'TRWAGMYFPDXBNJZSQVHLCKE';
+const LETRAS_DNI = "TRWAGMYFPDXBNJZSQVHLCKE";
 
-/** Valida formato y letra de control de un DNI español (8 dígitos + letra) */
 function validarDNI(num: string): boolean {
   const match = num.toUpperCase().match(/^(\d{8})([A-Z])$/);
   if (!match) return false;
@@ -45,141 +46,128 @@ function validarDNI(num: string): boolean {
   return LETRAS_DNI[parseInt(digits, 10) % 23] === letra;
 }
 
-/** Valida formato y letra de control de un NIE español (X/Y/Z + 7 dígitos + letra) */
 function validarNIE(num: string): boolean {
   const upper = num.toUpperCase();
   const match = upper.match(/^([XYZ])(\d{7})([A-Z])$/);
   if (!match) return false;
   const [, prefix, digits, letra] = match;
-  const prefixNum = { X: '0', Y: '1', Z: '2' }[prefix]!;
+  const prefixNum = { X: "0", Y: "1", Z: "2" }[prefix]!;
   return LETRAS_DNI[parseInt(prefixNum + digits, 10) % 23] === letra;
 }
 
-/** Valida formato de pasaporte español (3 letras + 6 dígitos) o genérico internacional */
 function validarPasaporte(num: string): boolean {
-  // Pasaporte español: AAA123456
   if (/^[A-Z]{3}\d{6}$/.test(num.toUpperCase())) return true;
-  // Pasaporte genérico internacional: 6–9 alfanuméricos
   if (/^[A-Z0-9]{6,9}$/.test(num.toUpperCase())) return true;
   return false;
 }
 
-/** Valida NIF de empresa español (letra + 7 dígitos + letra/dígito) */
 function validarCIF(num: string): boolean {
   return /^[ABCDEFGHJKLMNPQRSUVW]\d{7}[0-9A-J]$/i.test(num);
 }
 
-/** Valida carnet de conducir español (1-2 letras opcionales + 8 dígitos + 1-2 letras) */
 function validarCarnet(num: string): boolean {
   return /^[A-Z]{0,2}\d{8}[A-Z]{1,2}$/i.test(num);
 }
 
 /**
  * Valida el número de documento según el tipo seleccionado.
- * Devuelve un mensaje de error o null si es válido.
+ * Añadimos 't' como tercer parámetro.
  */
-export function validarNumeroDocumento(tipo: string, num: string): string | null {
+export function validarNumeroDocumento(
+  tipo: string,
+  num: string,
+  t: TFunction,
+): string | null {
   const n = num.trim().toUpperCase();
-  if (!n) return 'El número de documento es obligatorio';
+  if (!n) return t("validation.required_doc_num");
 
   switch (tipo) {
-    case 'DNI':
-    case 'NIF':
-      if (!validarDNI(n)) {
-        return 'DNI no válido. Formato: 8 dígitos + letra (ej: 12345678Z)';
-      }
+    case "DNI":
+    case "NIF":
+      if (!validarDNI(n)) return t("validation.invalid_dni");
       break;
-
-    case 'NIE':
-      if (!validarNIE(n)) {
-        return 'NIE no válido. Formato: X/Y/Z + 7 dígitos + letra (ej: X1234567Z)';
-      }
+    case "NIE":
+      if (!validarNIE(n)) return t("validation.invalid_nie");
       break;
-
-    case 'Pasaporte':
-      if (!validarPasaporte(n)) {
-        return 'Pasaporte no válido. Formato: 3 letras + 6 dígitos (ej: AAA123456)';
-      }
+    case "Pasaporte":
+      if (!validarPasaporte(n)) return t("validation.invalid_passport");
       break;
-
-    case 'CIF':
-      if (!validarCIF(n)) {
-        return 'CIF no válido. Formato: letra + 7 dígitos + letra/dígito (ej: A1234567B)';
-      }
+    case "CIF":
+      if (!validarCIF(n)) return t("validation.invalid_cif");
       break;
-
-    case 'Carnet de conducir':
-      if (!validarCarnet(n)) {
-        return 'Carnet no válido. Formato esperado: hasta 2 letras + 8 dígitos + letras';
-      }
+    case "Carnet de conducir":
+      if (!validarCarnet(n)) return t("validation.invalid_license");
       break;
-
-    case 'Otro':
-      // Sin validación de formato para documentos extranjeros genéricos
-      if (n.length < 4) return 'El número de documento parece demasiado corto';
+    case "Otro":
+      if (n.length < 4) return t("validation.doc_too_short");
       break;
-
     default:
       break;
   }
-
-  return null; // válido
+  return null;
 }
 
 // ─── Validadores por pantalla ─────────────────────────────────────────────────
 
-export function validatePersonal(data: PartialGuestData): FormErrors {
+export function validatePersonal(
+  data: PartialGuestData,
+  t: TFunction,
+): FormErrors {
   const e: FormErrors = {};
 
-  if (!data.nombre?.trim()) e.nombre = "El nombre es obligatorio";
-  if (!data.apellido?.trim()) e.apellido = "El primer apellido es obligatorio";
-  if (!data.sexo) e.sexo = "Indique el sexo";
+  if (!data.nombre?.trim()) e.nombre = t("validation.required_name");
+  if (!data.apellido?.trim()) e.apellido = t("validation.required_surname");
+  if (!data.sexo) e.sexo = t("validation.required_gender");
 
   if (!data.fechaNac) {
-    e.fechaNac = "La fecha de nacimiento es obligatoria";
+    e.fechaNac = t("validation.required_birthdate");
   } else {
     const parsed = dayjs(data.fechaNac);
-    if (!parsed.isValid())            e.fechaNac = 'La fecha introducida no es válida';
-    else if (parsed.isAfter(dayjs())) e.fechaNac = 'La fecha de nacimiento no puede ser futura';
-    else if (parsed.year() < 1900)    e.fechaNac = 'Introduce un año válido (ej: 1980)';
-    else if (data.esMenor === true && dayjs().diff(parsed, 'years') >= 18) {
-      e.fechaNac = 'Este huésped está marcado como menor pero la fecha indica 18 años o más';
+    if (!parsed.isValid()) e.fechaNac = t("validation.invalid_birthdate");
+    else if (parsed.isAfter(dayjs()))
+      e.fechaNac = t("validation.future_birthdate");
+    else if (parsed.year() < 1900) e.fechaNac = t("validation.old_birthdate");
+    else if (data.esMenor === true && dayjs().diff(parsed, "years") >= 18) {
+      e.fechaNac = t("validation.invalid_minor_age");
     }
   }
 
-  // ❌ Se eliminó la validación de 'nombreMenor' y 'relacionMenor' de aquí.
-  // Ahora el flujo de menores se encarga de exigir la matriz de parentesco en ScreenRelacionesMenor.tsx
-
   return e;
 }
 
-export function validateContacto(data: PartialGuestData): FormErrors {
+export function validateContacto(
+  data: PartialGuestData,
+  t: TFunction,
+): FormErrors {
   const e: FormErrors = {};
-  if (!data.email?.trim()) e.email = "El email es obligatorio";
+  if (!data.email?.trim()) e.email = t("validation.required_email");
   else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email))
-    e.email = "Email no válido";
-  if (!data.telefono?.trim()) e.telefono = "El teléfono es obligatorio";
-  if (!data.pais) e.pais = "El país es obligatorio";
+    e.email = t("validation.invalid_email");
+  if (!data.telefono?.trim()) e.telefono = t("validation.required_phone");
+  if (!data.pais) e.pais = t("validation.required_country");
   return e;
 }
 
-export function validateDocumento(data: PartialGuestData): FormErrors {
+export function validateDocumento(
+  data: PartialGuestData,
+  t: TFunction,
+): FormErrors {
   const e: FormErrors = {};
 
   if (!data.tipoDoc) {
-    e.tipoDoc = 'Seleccione el tipo de documento';
-    return e; // sin tipo no podemos validar el número
+    e.tipoDoc = t("validation.required_doc_type");
+    return e;
   }
 
-  const errorNum = validarNumeroDocumento(data.tipoDoc, data.numDoc ?? '');
+  const errorNum = validarNumeroDocumento(data.tipoDoc, data.numDoc ?? "", t);
   if (errorNum) e.numDoc = errorNum;
 
   return e;
 }
 
-export function validateNumPersonas(n: number): FormErrors {
+export function validateNumPersonas(n: number, t: TFunction): FormErrors {
   const e: FormErrors = {};
-  if (!n || n < 1) e.numPersonas = "Indique al menos 1 persona";
-  if (n > 10) e.numPersonas = "Máximo 10 personas por reserva";
+  if (!n || n < 1) e.numPersonas = t("validation.min_persons");
+  if (n > 10) e.numPersonas = t("validation.max_persons");
   return e;
 }
