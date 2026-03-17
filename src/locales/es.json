@@ -78,6 +78,7 @@
     "info_single": "Solo el huésped principal. Se le pedirán datos de contacto además de los personales.",
     "info_multiple": "Se rellenarán los datos de {{count}} personas. El primer formulario corresponde al huésped principal (incluye email y dirección); los siguientes, a los acompañantes.",
     "info_minors": "Los menores de edad no necesitan formulario individual; podrá indicar su información en el apartado del huésped principal o acompañante adulto responsable.",
+    "wrong_number_hint": "Si el número de personas permitido por su reserva no es correcto, por favor, póngase en contacto con el hotel para gestionarlo.",
     "btn_continue": "Continuar con {{count}} {{noun}}"
   },
   "forms": {

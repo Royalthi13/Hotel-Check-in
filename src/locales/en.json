@@ -78,6 +78,7 @@
     "info_single": "Main guest only. You will be asked for contact details in addition to personal ones.",
     "info_multiple": "Details for {{count}} people will be filled in. The first form is for the main guest (includes email and address); the following are for companions.",
     "info_minors": "Minors do not need an individual form; you can provide their information in the main guest's or responsible adult's section.",
+    "wrong_number_hint": "If the number of guests allowed in your booking is incorrect, please contact the hotel directly to update your reservation.",
     "btn_continue": "Continue with {{count}} {{noun}}"
   },
   "forms": {
