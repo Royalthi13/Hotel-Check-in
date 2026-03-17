@@ -4,37 +4,53 @@ import type {
   Reserva,
   GuestData,
   PartialGuestData,
-} from '@/types';
+} from "@/types";
 
 // ─── Acciones ────────────────────────────────────────────────────────────────
 export type CheckinAction =
-  | { type: 'SET_KNOWN_GUEST';    guest: GuestData }
-  | { type: 'SET_RESERVA_TABLET'; reserva: Reserva }
-  | { type: 'SET_NUM_PERSONAS';   adultos: number; menores: number }
-  | { type: 'UPDATE_GUEST';       index: number; key: keyof PartialGuestData; value: unknown }
-  | { type: 'UPDATE_RELACION';    menorIndex: number; adultoIndex: number; parentesco: string }
-  | { type: 'APPLY_SCAN';         data: Partial<GuestData>; guestIdx: number }
-  | { type: 'SET_HORA_LLEGADA';   value: string }
-  | { type: 'SET_OBSERVACIONES';  value: string }
-  | { type: 'SET_RGPD';           value: boolean }
-  | { type: 'RESET' };
+  | { type: "SET_KNOWN_GUEST"; guest: GuestData }
+  | { type: "SET_RESERVA_TABLET"; reserva: Reserva }
+  | { type: "SET_NUM_PERSONAS"; adultos: number; menores: number }
+  | {
+      type: "UPDATE_GUEST";
+      index: number;
+      key: keyof PartialGuestData;
+      value: unknown;
+    }
+  | {
+      type: "UPDATE_RELACION";
+      menorIndex: number;
+      adultoIndex: number;
+      parentesco: string;
+    }
+  | { type: "APPLY_SCAN"; data: Partial<GuestData>; guestIdx: number }
+  | { type: "SET_HORA_LLEGADA"; value: string }
+  | { type: "SET_OBSERVACIONES"; value: string }
+  | { type: "SET_RGPD"; value: boolean }
+  | { type: "RESET" };
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
-const EMPTY_ADULT: PartialGuestData = { esMenor: false, relacionesConAdultos: [] };
-const EMPTY_MINOR: PartialGuestData = { esMenor: true,  relacionesConAdultos: [] };
+const EMPTY_ADULT: PartialGuestData = {
+  esMenor: false,
+  relacionesConAdultos: [],
+};
+const EMPTY_MINOR: PartialGuestData = {
+  esMenor: true,
+  relacionesConAdultos: [],
+};
 
 export function buildEmptyState(appMode: AppMode): CheckinState {
   return {
     appMode,
-    reserva:       null,
-    knownGuest:    null,
-    numAdultos:    1,
-    numMenores:    0,
-    numPersonas:   1, // 👈 AÑADIDO
-    guests:        [{ ...EMPTY_ADULT }],
-    horaLlegada:   '',
-    observaciones: '',
-    rgpdAcepted:   false,
+    reserva: null,
+    knownGuest: null,
+    numAdultos: 1,
+    numMenores: 0,
+    numPersonas: 1, // 👈 AÑADIDO
+    guests: [{ ...EMPTY_ADULT }],
+    horaLlegada: "",
+    observaciones: "",
+    rgpdAcepted: false,
   };
 }
 
@@ -45,7 +61,7 @@ function makeGuests(adultos: number, menores: number): PartialGuestData[] {
       ...EMPTY_MINOR,
       relacionesConAdultos: Array.from({ length: adultos }, (_, i) => ({
         adultoIndex: i,
-        parentesco: '',
+        parentesco: "",
       })),
     })),
   ];
@@ -64,8 +80,10 @@ function mergeGuests(
         ...existing,
         esMenor: true,
         relacionesConAdultos: Array.from({ length: adultos }, (_, ai) => {
-          const prevRel = (existing.relacionesConAdultos ?? []).find(r => r.adultoIndex === ai);
-          return prevRel ?? { adultoIndex: ai, parentesco: '' };
+          const prevRel = (existing.relacionesConAdultos ?? []).find(
+            (r) => r.adultoIndex === ai,
+          );
+          return prevRel ?? { adultoIndex: ai, parentesco: "" };
         }),
       };
     }
@@ -79,72 +97,85 @@ export function checkinReducer(
   action: CheckinAction,
 ): CheckinState {
   switch (action.type) {
-
-    case 'SET_KNOWN_GUEST':
+    case "SET_KNOWN_GUEST":
       return {
         ...state,
-        reserva:       null,
-        knownGuest:    action.guest,
-        numAdultos:    1,
-        numMenores:    0,
-        numPersonas:   1,
-        guests:        [{ ...action.guest, esMenor: false, relacionesConAdultos: [] }],
-        horaLlegada:   '',
-        observaciones: '',
-        rgpdAcepted:   false,
+        reserva: null,
+        knownGuest: action.guest,
+        numAdultos: 1,
+        numMenores: 0,
+        numPersonas: 1,
+        guests: [{ ...action.guest, esMenor: false, relacionesConAdultos: [] }],
+        horaLlegada: "",
+        observaciones: "",
+        rgpdAcepted: false,
       };
 
-    case 'SET_RESERVA_TABLET':
+    case "SET_RESERVA_TABLET":
       return {
         ...state,
-        reserva:       action.reserva,
-        numAdultos:    action.reserva.numHuespedes,
-        numMenores:    0,
-        numPersonas:   action.reserva.numHuespedes, // 👈 AÑADIDO
-        guests:        makeGuests(action.reserva.numHuespedes, 0),
-        horaLlegada:   '',
-        observaciones: '',
-        rgpdAcepted:   false,
+        reserva: action.reserva,
+        numAdultos: action.reserva.numHuespedes,
+        numMenores: 0,
+        numPersonas: action.reserva.numHuespedes, // 👈 AÑADIDO
+        guests: makeGuests(action.reserva.numHuespedes, 0),
+        horaLlegada: "",
+        observaciones: "",
+        rgpdAcepted: false,
       };
 
-    case 'SET_NUM_PERSONAS':
+    case "SET_NUM_PERSONAS": {
+      const { adultos, menores } = action;
+
+      const newGuests = mergeGuests(state.guests || [], adultos, menores);
+
       return {
         ...state,
-        numAdultos: action.adultos,
-        numMenores: action.menores,
-        numPersonas: action.adultos + action.menores, // 👈 SUMA AÑADIDA
-        guests: mergeGuests(state.guests, action.adultos, action.menores),
+        numAdultos: adultos,
+        numMenores: menores,
+        numPersonas: adultos + menores,
+        guests: newGuests,
       };
+    }
 
-    case 'UPDATE_GUEST': {
+    case "UPDATE_GUEST": {
       const guests = [...state.guests];
-      guests[action.index] = { ...guests[action.index], [action.key]: action.value };
+      guests[action.index] = {
+        ...guests[action.index],
+        [action.key]: action.value,
+      };
       return { ...state, guests };
     }
 
-    case 'UPDATE_RELACION': {
+    case "UPDATE_RELACION": {
       const realIndex = state.numAdultos + action.menorIndex;
       const guests = [...state.guests];
       const menor = { ...guests[realIndex] };
-      menor.relacionesConAdultos = (menor.relacionesConAdultos ?? []).map(r =>
-        r.adultoIndex === action.adultoIndex
-          ? { ...r, parentesco: action.parentesco }
-          : r
+      menor.relacionesConAdultos = (menor.relacionesConAdultos ?? []).map(
+        (r) =>
+          r.adultoIndex === action.adultoIndex
+            ? { ...r, parentesco: action.parentesco }
+            : r,
       );
       guests[realIndex] = menor;
       return { ...state, guests };
     }
 
-    case 'APPLY_SCAN': {
+    case "APPLY_SCAN": {
       const guests = [...state.guests];
       guests[action.guestIdx] = { ...guests[action.guestIdx], ...action.data };
       return { ...state, guests };
     }
 
-    case 'SET_HORA_LLEGADA':   return { ...state, horaLlegada:   action.value };
-    case 'SET_OBSERVACIONES':  return { ...state, observaciones: action.value };
-    case 'SET_RGPD':           return { ...state, rgpdAcepted:   action.value };
-    case 'RESET':              return buildEmptyState(state.appMode);
-    default:                   return state;
+    case "SET_HORA_LLEGADA":
+      return { ...state, horaLlegada: action.value };
+    case "SET_OBSERVACIONES":
+      return { ...state, observaciones: action.value };
+    case "SET_RGPD":
+      return { ...state, rgpdAcepted: action.value };
+    case "RESET":
+      return buildEmptyState(state.appMode);
+    default:
+      return state;
   }
 }

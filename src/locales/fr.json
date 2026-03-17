@@ -184,6 +184,10 @@
     "wrong_number_hint": "Si le nombre de personnes est incorrect, contactez l'hôtel."
   },
   "forms": {
+    "adult_tag": " - Adulte",
+    "invalid_date_title": "Date invalide !",
+    "adult_must_be_18": "Un adulte doit avoir au moins 18 ans.",
+    "minor_must_be_under_18": "Un mineur ne peut pas avoir 18 ans ou plus.",
     "minor_data": "Détails du mineur",
     "main_guest_tag": " · Titulaire",
     "minor_tag": " · Mineur",

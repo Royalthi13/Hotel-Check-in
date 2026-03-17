@@ -184,6 +184,10 @@
     "wrong_number_hint": "Se o número de hóspedes na sua reserva estiver incorreto, contacte o hotel diretamente."
   },
   "forms": {
+    "adult_tag": " - Adulto",
+    "invalid_date_title": "Data incorreta!",
+    "adult_must_be_18": "Um adulto deve ter pelo menos 18 anos.",
+    "minor_must_be_under_18": "Um menor de idade não pode ter 18 anos ou mais.",
     "minor_data": "Dados do menor",
     "main_guest_tag": " · Titular da reserva",
     "minor_tag": " · Menor",

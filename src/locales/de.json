@@ -184,9 +184,13 @@
     "wrong_number_hint": "Wenn die Personenzahl falsch ist, kontaktieren Sie das Hotel."
   },
   "forms": {
+    "adult_tag": " - Erwachsener",
+    "minor_tag": " - Minderjähriger",
+    "invalid_date_title": "Ungültiges Datum!",
+    "adult_must_be_18": "Ein Erwachsener muss mindestens 18 Jahre alt sein.",
+    "minor_must_be_under_18": "Ein Minderjähriger darf nicht 18 Jahre oder älter sein.",
     "minor_data": "Daten des Minderjährigen",
     "main_guest_tag": " · Hauptgast",
-    "minor_tag": " · Minderjährig",
     "main_guest_not_minor": "Der Hauptgast muss volljährig sein.",
     "enter_correct_date": "Bitte geben Sie ein korrektes Datum ein.",
     "second_surname": "Zweiter Nachname",

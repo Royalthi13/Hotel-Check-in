@@ -93,9 +93,14 @@ export const ScreenFormPersonal: React.FC<FormPersonalProps> = ({
   esMenor,
   onNext,
 }) => {
-  const { t } = useTranslation(); // 2. Inicializamos traductor
+  const { t } = useTranslation();
   const { errors, validate, clearError } = useFormValidation(validatePersonal);
+
   const fechaNac = data.fechaNac ? dayjs(data.fechaNac) : null;
+  const edad = fechaNac?.isValid() ? dayjs().diff(fechaNac, "years") : null;
+
+  const esErrorAdultoMenor = !esMenor && edad !== null && edad < 18;
+  const esErrorMenorAdulto = esMenor && edad !== null && edad >= 18;
 
   useDebounce(
     () => {
@@ -131,20 +136,27 @@ export const ScreenFormPersonal: React.FC<FormPersonalProps> = ({
             total: totalGuests,
           })}
           {isMainGuest && t("forms.main_guest_tag")}
-          {esMenor && t("forms.minor_tag")}
+          {esMenor ? t("forms.minor_tag") : t("forms.adult_tag")}
         </Typography>
       </div>
 
-      {isMainGuest &&
-        fechaNac?.isValid() &&
-        dayjs().diff(fechaNac, "years") < 18 && (
-          <div style={{ padding: "0 24px" }}>
-            <Alert variant="err" style={{ margin: "8px 0 0" }}>
-              <strong>{t("forms.main_guest_not_minor")}</strong>{" "}
-              {t("forms.enter_correct_date")}
-            </Alert>
-          </div>
+      <div style={{ padding: "0 24px" }}>
+        {esErrorAdultoMenor && (
+          <Alert variant="err" style={{ margin: "8px 0 0" }}>
+            <strong>{t("forms.invalid_date_title")}</strong>{" "}
+            {isMainGuest
+              ? t("forms.main_guest_not_minor")
+              : t("forms.adult_must_be_18")}
+          </Alert>
         )}
+
+        {esErrorMenorAdulto && (
+          <Alert variant="err" style={{ margin: "8px 0 0" }}>
+            <strong>{t("forms.invalid_date_title")}</strong>{" "}
+            {t("forms.minor_must_be_under_18")}
+          </Alert>
+        )}
+      </div>
 
       <Box
         style={{ padding: "0 var(--px)" }}
@@ -270,11 +282,7 @@ export const ScreenFormPersonal: React.FC<FormPersonalProps> = ({
       <div className="spacer" />
       <div className="btn-row">
         <Button
-          disabled={
-            isMainGuest &&
-            fechaNac?.isValid() &&
-            dayjs().diff(fechaNac, "years") < 18
-          }
+          disabled={esErrorAdultoMenor || esErrorMenorAdulto}
           onClick={() => {
             if (validate(data)) onNext();
           }}
@@ -286,7 +294,6 @@ export const ScreenFormPersonal: React.FC<FormPersonalProps> = ({
     </>
   );
 };
-
 // ═══════════════════════════════════════════════════════════════════════════
 // 2. SCREEN FORM CONTACTO
 // ═══════════════════════════════════════════════════════════════════════════
