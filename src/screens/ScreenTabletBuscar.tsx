@@ -1,78 +1,88 @@
-import React, { useState } from 'react';
-import { Field, Button, Alert, LoadingSpinner, Icon } from '@/components/ui';
-import type { Reserva } from '@/types';
-import { MOCK_RESERVAS } from '@/mocks/reservas-mock';
+import React, { useState } from "react";
+import { Field, Button, Alert, LoadingSpinner, Icon } from "@/components/ui";
+import type { Reserva } from "@/types";
+import { MOCK_RESERVAS } from "@/mocks/reservas-mock";
 
 interface Props {
   onFound: (reserva: Reserva) => void;
 }
 
-/**
- * Pantalla de búsqueda de reserva para el quiosco del hotel (modo tablet).
- *
- * Usa fetch('/api/reservas/:id') interceptado por MSW en desarrollo.
- * En producción, la misma URL apunta al backend real sin cambiar nada aquí.
- *
- * Números de prueba disponibles en mocks/reservas-mock.ts: 78432 y 99999
- */
 export const ScreenTabletBuscar: React.FC<Props> = ({ onFound }) => {
   const [num, setNum] = useState("");
   const [contacto, setContacto] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  // Añadimos 'async' aquí para poder usar await
   const buscar = async () => {
     const trimmedNum = num.trim();
     const trimmedContacto = contacto.trim();
 
-    if (!trimmedNum || !trimmedContacto) {
-      setError("Por favor, introduzca el número de reserva y su email o teléfono.");
+    if (!trimmedNum) {
+      setError("Por favor, introduzca su número de reserva.");
+      return;
+    }
+    if (!trimmedContacto) {
+      setError("Por favor, introduzca su email o teléfono de contacto.");
       return;
     }
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     const phoneRegex = /^\+?[\d\s-]{9,15}$/;
-    const isEmail = emailRegex.test(trimmedContacto);
-    const isPhone = phoneRegex.test(trimmedContacto);
 
-    if (!isEmail && !isPhone) {
-      setError("Formato de contacto inválido.");
-      return;
+    const pareceEmail = trimmedContacto.includes("@");
+
+    if (pareceEmail) {
+      if (!emailRegex.test(trimmedContacto)) {
+        setError(
+          "El formato del email no es válido (ejemplo: usuario@email.com).",
+        );
+        return;
+      }
+    } else {
+      if (!phoneRegex.test(trimmedContacto)) {
+        setError(
+          "El teléfono debe tener entre 9 y 15 dígitos y puede incluir el prefijo +.",
+        );
+        return;
+      }
     }
 
     setError("");
     setLoading(true);
 
     try {
-      // 1. INTENTO CON API REAL (o MSW)
-      const res = await fetch(`/api/reservas/${encodeURIComponent(trimmedNum)}`);
-      const data = await res.json() as { ok: boolean; reserva?: Reserva; message?: string };
+      const res = await fetch(
+        `/api/reservas/${encodeURIComponent(trimmedNum)}`,
+      );
+      const data = (await res.json()) as {
+        ok: boolean;
+        reserva?: Reserva;
+        message?: string;
+      };
 
       if (res.ok && data.ok && data.reserva) {
         onFound(data.reserva);
         return;
       }
-      
-      // 2. FALLBACK A MOCKS (Si falla la API o no encuentra nada)
-      const mockRes = MOCK_RESERVAS[trimmedNum as keyof typeof MOCK_RESERVAS];
-      if (mockRes) {
-        onFound(mockRes);
-      } else {
-        setError(data.message ?? 'No se encontró ninguna reserva con esos datos.');
-      }
 
-    } catch (e) {
-      // 3. SEGUNDO INTENTO CON MOCKS POR SI ES ERROR DE RED
       const mockRes = MOCK_RESERVAS[trimmedNum as keyof typeof MOCK_RESERVAS];
       if (mockRes) {
         onFound(mockRes);
       } else {
-        setError('Error de conexión y reserva no encontrada en local.');
+        setError(
+          data.message ?? "No se encontró ninguna reserva con esos datos.",
+        );
+      }
+    } catch {
+      const mockRes = MOCK_RESERVAS[trimmedNum as keyof typeof MOCK_RESERVAS];
+      if (mockRes) {
+        onFound(mockRes);
+      } else {
+        setError("Error de conexión. Por favor, inténtelo de nuevo.");
       }
     } finally {
       setLoading(false);
-    } // Aquí se cierra el bloque correctamente, sin el "}, 1500)"
+    }
   };
 
   const handleKey = (e: React.KeyboardEvent) => {
