@@ -20,6 +20,10 @@ i18n
       pt: { translation: pt },
     },
     fallbackLng: "es",
+    detection: {
+      order: ["querystring", "localStorage", "navigator", "htmlTag"],
+      caches: ["localStorage"],
+    },
     interpolation: {
       escapeValue: false,
     },
