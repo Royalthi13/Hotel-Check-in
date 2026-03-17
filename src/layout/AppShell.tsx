@@ -1,10 +1,8 @@
-import React from "react";
-import { useTranslation } from "react-i18next"; // 1. Importamos el hook
+import React, { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Header, DotsProgress, Icon, ReservationCard } from "../components/ui";
-// ✅ Ya no necesitamos importar DOT_LABELS, lo traduciremos dinámicamente
 import type { CheckinNav, CheckinActions, StepId, Reserva } from "../types";
 
-// 2. Quitamos el texto 'label' porque lo traduciremos en tiempo real
 const SIDE_STEPS: { id: StepId }[] = [
   { id: "bienvenida" },
   { id: "num_personas" },
@@ -42,17 +40,52 @@ export const AppShell: React.FC<AppShellProps> = ({
   onGoToRevision,
   children,
 }) => {
-  const { t } = useTranslation(); // 3. Inicializamos el traductor
+  const { t } = useTranslation();
 
-  // 4. Traducimos los dots usando la clave de constantes
-  const dotLabels = nav.dotSteps.map((s: StepId) => t(`constants.steps.${s}`));
+  const dotLabels = (nav.dotSteps || []).map((s: StepId) =>
+    t(`constants.steps.${s}`),
+  );
+
   const activeStep = getActiveSideStep(nav.step);
   const activeIdx = SIDE_STEPS.findIndex((s) => s.id === activeStep);
+
+  // 🧠 MEMORIA ESTRICTA: Nuestra "Marca de agua"
+  const [highestIdx, setHighestIdx] = useState(activeIdx);
+  const [prevActiveIdx, setPrevActiveIdx] = useState(activeIdx);
+
+  const [highestDotIdx, setHighestDotIdx] = useState(
+    nav.dotIndex >= 0 ? nav.dotIndex : 0,
+  );
+  const [prevDotIdx, setPrevDotIdx] = useState(nav.dotIndex);
+
+  // Solo se actualiza la marca de agua si el usuario navega a un paso NUEVO y LEGAL
+  if (activeIdx !== prevActiveIdx) {
+    setPrevActiveIdx(activeIdx);
+    if (
+      activeIdx > highestIdx &&
+      activeStep !== "revision" &&
+      activeStep !== "exito"
+    ) {
+      setHighestIdx(activeIdx);
+    }
+  }
+
+  // Esto controla a nivel de HUÉSPED (los puntitos)
+  if (nav.dotIndex !== prevDotIdx) {
+    setPrevDotIdx(nav.dotIndex);
+    if (
+      nav.dotIndex > highestDotIdx &&
+      nav.step !== "revision" &&
+      nav.step !== "exito"
+    ) {
+      setHighestDotIdx(nav.dotIndex);
+    }
+  }
 
   return (
     <div className="shell">
       <div className="card">
-        {/* Header — sticky, ancho completo */}
+        {/* Header */}
         <Header
           canGoBack={nav.canGoBack}
           onBack={actions.goBack}
@@ -67,20 +100,20 @@ export const AppShell: React.FC<AppShellProps> = ({
           }
         />
 
-        {/* Dots — solo móvil/tablet, en desktop los oculta el CSS */}
+        {/* Dots — Móvil/Tablet */}
         {showDots && nav.dotIndex >= 0 && (
           <DotsProgress
             steps={nav.dotSteps}
             labels={dotLabels}
             activeIndex={nav.dotIndex}
-            maxReachable={nav.dotIndex}
+            // 🔥 SOLUCIÓN HUÉSPEDES: El máximo clicable es estrictamente hasta donde ha llegado.
+            // Si no ha hecho el DNI del huésped 2, el punto del huésped 2 no es clicable.
+            maxReachable={highestDotIdx}
             onDotClick={actions.goToDotIndex}
           />
         )}
 
-        {/* body-row: panel lateral (desktop) + contenido principal */}
         <div className="body-row">
-          {/* Panel lateral — visible solo en desktop via CSS */}
           <aside className="side-panel">
             <div className="side-panel-inner">
               <div className="sp-logo">
@@ -89,16 +122,27 @@ export const AppShell: React.FC<AppShellProps> = ({
               </div>
               <p className="sp-sub">{t("appShell.subtitle")}</p>
 
-              <button
-                type="button"
-                className="sp-summary-btn"
-                onClick={onGoToRevision}
-                disabled={!onGoToRevision}
-              >
-                <Icon name="search" size={14} color="rgba(255,255,255,.8)" />
-                {t("appShell.booking_summary")}
-              </button>
+              <div className="sp-summary-wrapper">
+                <button
+                  type="button"
+                  className="sp-summary-btn sp-summary-btn--desktop"
+                  onClick={onGoToRevision}
+                  disabled={!onGoToRevision}
+                >
+                  <Icon name="search" size={14} color="rgba(255,255,255,.8)" />
+                  {t("appShell.booking_summary")}
+                </button>
 
+                <button
+                  type="button"
+                  className="sp-summary-btn-orange"
+                  onClick={onGoToRevision}
+                  disabled={!onGoToRevision}
+                >
+                  <Icon name="search" size={14} color="#fff" />
+                  {t("appShell.booking_summary")}
+                </button>
+              </div>
               {reserva && (
                 <div className="sp-reserva">
                   <div className="sp-reserva-title">
@@ -110,27 +154,49 @@ export const AppShell: React.FC<AppShellProps> = ({
 
               <nav className="sp-steps" aria-label="Progreso">
                 {SIDE_STEPS.map((s, i) => {
-                  const isDone = i < activeIdx;
                   const isActive = i === activeIdx;
+
+                  // 🔥 SOLUCIÓN MENÚ LATERAL:
+                  // 1. Solo tiene check si está por debajo de nuestra marca de agua real.
+                  const isDone = i < highestIdx;
+
+                  // 2. Es clicable solo si está dentro de lo que ya hemos visitado.
+                  // Se acabó el "pase VIP" por estar en la pantalla de revisión.
+                  const isClickable =
+                    i <= highestIdx && !isActive && s.id !== "exito";
+
                   return (
                     <div
                       key={s.id}
+                      onClick={() => {
+                        if (isClickable) {
+                          const targetIdx = nav.dotSteps.indexOf(s.id);
+                          if (targetIdx !== -1) {
+                            actions.goToDotIndex(targetIdx);
+                          }
+                        }
+                      }}
                       className={[
                         "sp-step",
                         isActive ? "sp-step--active" : "",
                         isDone ? "sp-step--done" : "",
+                        isClickable ? "sp-step--clickable" : "",
                       ]
                         .filter(Boolean)
                         .join(" ")}
+                      style={{
+                        cursor: isClickable ? "pointer" : "default",
+                        // Bloqueo visual estricto para lo que no se puede clicar
+                        opacity: isClickable || isActive || isDone ? 1 : 0.4,
+                      }}
                     >
                       <div className="sp-step-num">
-                        {isDone ? (
+                        {isDone && !isActive ? (
                           <Icon name="check" size={12} color="#fff" />
                         ) : (
                           i + 1
                         )}
                       </div>
-                      {/* Traducimos los pasos del menú lateral */}
                       <span className="sp-step-label">
                         {t(`constants.steps.${s.id}`)}
                       </span>
@@ -146,7 +212,6 @@ export const AppShell: React.FC<AppShellProps> = ({
             </div>
           </aside>
 
-          {/* Contenido de la pantalla */}
           <div className="screen-wrap">
             <div
               className={`screen ${nav.direction === "back" ? "back" : ""}`}

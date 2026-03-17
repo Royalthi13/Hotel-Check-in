@@ -1737,7 +1737,6 @@ body,
     padding-top: 56px;
   }
 }
-/* ── AUTOCOMPLETE FLOTANTE ── */
 .field-autocomplete {
   position: relative;
   width: 100%;
@@ -1752,7 +1751,7 @@ body,
   border: 1px solid var(--border);
   border-radius: 12px;
   box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
-  z-index: 2000; /* Para que flote sobre todo */
+  z-index: 2000;
   margin-top: 4px;
   max-height: 200px;
   overflow-y: auto;
@@ -1774,4 +1773,60 @@ body,
 
 .sug-opt:last-child {
   border-bottom: none;
+}
+
+/* =========================================================
+   BOTONES DE RESUMEN (PANEL LATERAL)
+   ========================================================= */
+.sp-summary-btn--desktop {
+  display: none;
+}
+
+.sp-summary-btn-orange {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 12px;
+  background-color: #ff7a00;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-family: "DM Sans", sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  margin-bottom: 14px;
+}
+
+.sp-summary-btn-orange:hover {
+  background-color: #e66a00;
+}
+
+.sp-summary-btn-orange:disabled {
+  background-color: #ccc;
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+/* =========================================================
+   ADAPTACIÓN A PANTALLA GRANDE / ESCRITORIO
+   ========================================================= */
+
+@media (min-width: 1024px) {
+  .hdr .hdr-action {
+    display: none !important;
+  }
+}
+
+@media (min-width: 1200px) {
+  .sp-summary-btn--desktop {
+    display: inline-flex;
+  }
+
+  .sp-summary-btn-orange {
+    display: none;
+  }
 }
