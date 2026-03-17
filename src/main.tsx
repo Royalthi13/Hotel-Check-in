@@ -11,7 +11,11 @@ import 'dayjs/locale/es';
 async function prepare() {
   if (import.meta.env.DEV) {
     const { worker } = await import('./mocks/browser');
-    await worker.start({ onUnhandledRequest: 'bypass' });
+    await worker.start({
+      serviceWorker: { url: '/mockServiceWorker.js' },
+      onUnhandledRequest: 'warn',
+    });
+    console.info('[MSW] mocking enabled');
   }
 }
 

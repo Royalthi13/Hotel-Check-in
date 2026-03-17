@@ -83,9 +83,15 @@ export function checkinReducer(
     case 'SET_KNOWN_GUEST':
       return {
         ...state,
-        knownGuest: action.guest,
-        numPersonas: 1, // 👈 AÑADIDO
-        guests: [{ ...action.guest, esMenor: false, relacionesConAdultos: [] }],
+        reserva:       null,
+        knownGuest:    action.guest,
+        numAdultos:    1,
+        numMenores:    0,
+        numPersonas:   1,
+        guests:        [{ ...action.guest, esMenor: false, relacionesConAdultos: [] }],
+        horaLlegada:   '',
+        observaciones: '',
+        rgpdAcepted:   false,
       };
 
     case 'SET_RESERVA_TABLET':

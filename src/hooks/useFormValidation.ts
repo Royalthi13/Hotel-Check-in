@@ -142,6 +142,9 @@ export function validatePersonal(data: PartialGuestData): FormErrors {
     if (!parsed.isValid())            e.fechaNac = 'La fecha introducida no es válida';
     else if (parsed.isAfter(dayjs())) e.fechaNac = 'La fecha de nacimiento no puede ser futura';
     else if (parsed.year() < 1900)    e.fechaNac = 'Introduce un año válido (ej: 1980)';
+    else if (data.esMenor === true && dayjs().diff(parsed, 'years') >= 18) {
+      e.fechaNac = 'Este huésped está marcado como menor pero la fecha indica 18 años o más';
+    }
   }
 
   // ❌ Se eliminó la validación de 'nombreMenor' y 'relacionMenor' de aquí.

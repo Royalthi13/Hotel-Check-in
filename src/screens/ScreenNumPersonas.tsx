@@ -26,7 +26,7 @@ export const ScreenNumPersonas: React.FC<Props> = ({
 
   const setMenores = (n: number) => {
     if (n < 0 || n > maxMenores) return;
-    const adultos = modoReserva ? totalFijo - n : numAdultos;
+    const adultos = totalFijo !== undefined ? totalFijo - n : numAdultos;
     onChange(adultos, n);
   };
 

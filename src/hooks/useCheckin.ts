@@ -37,12 +37,14 @@ function hydrateHistory(token: string): HistoryEntry[] {
   return [];
 }
 
-function hydrateAllowedSteps(token: string): Set<StepId> {
+function hydrateAllowedSteps(token: string, appMode: AppMode): Set<StepId> {
   try {
     const raw = sessionStorage.getItem(`allowedSteps_${token}`);
     if (raw) return new Set(JSON.parse(raw) as StepId[]);
   } catch { /* ignore */ }
-  return new Set<StepId>(['bienvenida', 'tablet_buscar']);
+  // Si no hay sesión previa, solo permitimos el entry-step correcto según modo.
+  // Evita bucles: en modo link (`token === 'new'`) `tablet_buscar` no aplica.
+  return new Set<StepId>(appMode === 'tablet' ? ['tablet_buscar'] : ['bienvenida']);
 }
 
 function pruneOldSessions(currentToken: string) {
@@ -79,10 +81,13 @@ export function useCheckin(
   const [direction,    setDirection]    = useState<NavDirection>('forward');
   const [isLoading,    setIsLoading]    = useState(token !== 'new');
   const [history,      setHistory]      = useState<HistoryEntry[]>(() => hydrateHistory(token));
-  const [allowedSteps, setAllowedSteps] = useState<Set<StepId>>(() => hydrateAllowedSteps(token));
+  const [allowedSteps, setAllowedSteps] = useState<Set<StepId>>(() => hydrateAllowedSteps(token, appMode));
 
   const allowedStepsRef = useRef(allowedSteps);
   useEffect(() => { allowedStepsRef.current = allowedSteps; }, [allowedSteps]);
+
+  const historyRef = useRef(history);
+  useEffect(() => { historyRef.current = history; }, [history]);
 
   // ── Fetch token ───────────────────────────────────────────────────────────
   useEffect(() => {
@@ -119,10 +124,30 @@ export function useCheckin(
       return;
     }
     if (!allowedStepsRef.current.has(step)) {
-      const last = history.length > 0 ? history[history.length - 1].step : 'bienvenida';
-      navigate(`/checkin/${token}/${last}`, { replace: true });
+      const h = historyRef.current;
+      const lastFromHistory = h.length > 0 ? h[h.length - 1].step : undefined;
+      const lastAllowed = lastFromHistory && allowedStepsRef.current.has(lastFromHistory)
+        ? lastFromHistory
+        : (allowedStepsRef.current.values().next().value as StepId | undefined);
+      const fallback: StepId = lastAllowed ?? (appMode === 'tablet' ? 'tablet_buscar' : 'bienvenida');
+      navigate(`/checkin/${token}/${fallback}`, { replace: true });
     }
-  }, [step, isLoading, navigate, token, history]);
+  }, [step, isLoading, navigate, token, appMode]);
+
+  // ── Botón físico "Atrás" (popstate) ───────────────────────────────────────
+  useEffect(() => {
+    const handlePopState = () => {
+      setHistory(h => {
+        if (!h.length) return h;
+        const prev = h[h.length - 1];
+        setDirection('back');
+        setGuestIndex(prev.guestIndex);
+        return h.slice(0, -1);
+      });
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
 
   // ── Dots ──────────────────────────────────────────────────────────────────
   const dotSteps = DOT_STEPS_BASE;
@@ -171,7 +196,7 @@ export function useCheckin(
 
   // ── Acciones ──────────────────────────────────────────────────────────────
   const setReservaFromTablet = useCallback((res: Reserva) => {
-    const fresh = new Set<StepId>(['bienvenida', 'tablet_buscar']);
+    const fresh = new Set<StepId>(['tablet_buscar', 'bienvenida']);
     allowedStepsRef.current = fresh;
     setAllowedSteps(fresh);
     dispatch({ type: 'SET_RESERVA_TABLET', reserva: res });
@@ -234,20 +259,19 @@ export function useCheckin(
     }
 
     else if (fromStep === 'form_documento') {
-      const nextIdx = currentIdx + 1;
-
-      if (nextIdx < totalAdultos) {
-        // Siguiente adulto
-        goTo('form_personal', 'forward', nextIdx);
-      } else if (currentIdx === totalAdultos - 1 && hasMenores) {
-        // Terminamos adultos → primer menor
-        goTo('form_personal', 'forward', totalAdultos);
-      } else if (currentIdx >= totalAdultos) {
-        // Estamos en un menor → relaciones con adultos
+      // CORRECCIÓN: primero comprobar si estamos en un menor
+      // (evita solapamiento con nextIdx < totalAdultos y casos borde).
+      if (currentIdx >= totalAdultos) {
         goTo('form_relaciones', 'forward', currentIdx);
       } else {
-        // Sin menores → extras
-        goTo('form_extras', 'forward', 0);
+        const nextIdx = currentIdx + 1;
+        if (nextIdx < totalAdultos) {
+          goTo('form_personal', 'forward', nextIdx);           // siguiente adulto
+        } else if (hasMenores) {
+          goTo('form_personal', 'forward', totalAdultos);      // primer menor
+        } else {
+          goTo('form_extras', 'forward', 0);                   // sin menores
+        }
       }
     }
 

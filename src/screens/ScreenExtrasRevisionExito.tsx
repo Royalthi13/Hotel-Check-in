@@ -99,18 +99,21 @@ export const ScreenRevision: React.FC<RevisionProps> = ({
                 ? 'Huésped principal — datos personales'
                 : `Acompañante ${idx + 1} — datos personales`}
               onEdit={() => onEditStep('form_personal')}
-              rows={[
+              rows={((): Array<[string, string | undefined | null]> => ([
                 ['Nombre',       fullName(g)        || null],
                 ['Sexo',         g.sexo             ?? null],
                 ['Nacimiento',   g.fechaNac          ?? null],
                 ['Nacionalidad', g.nacionalidad     ?? null],
                 ...(g.esMenor && (g.relacionesConAdultos ?? []).length > 0
-                  ? (g.relacionesConAdultos ?? []).map(r => (
-                      [`Relación con adulto ${r.adultoIndex + 1}`, r.parentesco || '—'] as [string, string]
-                    ))
+                  ? (g.relacionesConAdultos ?? []).map(r => {
+                      const label = `Relación con adulto ${r.adultoIndex + 1}`;
+                      const value = (r.parentesco ?? '').trim() ? r.parentesco : '—';
+                      const row: [string, string] = [label, value];
+                      return row;
+                    })
                   : []
                 ),
-              ]}
+              ]))()}
             />
             <ConfirmBlock
               title={idx === 0

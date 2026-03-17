@@ -44,6 +44,18 @@ function CheckinWizard() {
   const [state, nav, actions, isLoading] = useCheckin(token, step);
   const [submitError,  setSubmitError]  = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isOffline, setIsOffline] = useState(!navigator.onLine);
+
+  useEffect(() => {
+    const on = () => setIsOffline(false);
+    const off = () => setIsOffline(true);
+    window.addEventListener('online', on);
+    window.addEventListener('offline', off);
+    return () => {
+      window.removeEventListener('online', on);
+      window.removeEventListener('offline', off);
+    };
+  }, []);
 
   // Timeout de inactividad en modo tablet
   const tabletTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
@@ -55,6 +67,7 @@ function CheckinWizard() {
         sessionStorage.removeItem(`state_${token}`);
         sessionStorage.removeItem(`history_${token}`);
         sessionStorage.removeItem(`allowedSteps_${token}`);
+        sessionStorage.removeItem(`modoFlujo_${token}`);
         window.location.replace(`/checkin/${token}/tablet_buscar`);
       }, TABLET_TIMEOUT_MS);
     };
@@ -113,7 +126,16 @@ function CheckinWizard() {
           observaciones: state.observaciones,
         }),
       });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      let data: unknown = null;
+      try {
+        data = await res.json();
+      } catch {
+        // ignore
+      }
+      const parsed = data as { success?: boolean; error?: string } | null;
+      if (!res.ok || parsed?.success === false) {
+        throw new Error(parsed?.error ?? `HTTP ${res.status}`);
+      }
       goTo('exito');
     } catch (err) {
       console.error('Error al enviar check-in:', err);
@@ -136,6 +158,13 @@ function CheckinWizard() {
 
   return (
     <AppShell nav={nav} actions={{ goBack, goToDotIndex }} showDots={showDots}>
+      {isOffline && (
+        <div style={{ padding: '8px 24px 0' }}>
+          <Alert variant="warm">
+            Está sin conexión. Puede continuar rellenando datos, pero el envío podría fallar hasta recuperar Internet.
+          </Alert>
+        </div>
+      )}
 
       {currentStep === 'bienvenida' && (
         <ScreenBienvenida

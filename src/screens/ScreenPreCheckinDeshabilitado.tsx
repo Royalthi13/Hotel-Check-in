@@ -1,6 +1,6 @@
 import React from "react";
-import { Button, Icon } from "@/components/ui";
-import { Typography, Box, Alert } from "@mui/material";
+import { Button, Icon, Alert } from "@/components/ui";
+import { Typography, Box } from "@mui/material";
 
 interface Props {
   motivo?: string;
@@ -57,15 +57,17 @@ export const ScreenPrecheckinDeshabilitado: React.FC<Props> = ({
           le ayudará a completar su registro en pocos minutos.
         </Typography>
 
-        <Alert variant="info" style={{ textAlign: "left", marginBottom: 32 }}>
-          <ul style={{ margin: 0, paddingLeft: 20 }}>
-            <li>Es posible que falte un pago pendiente.</li>
-            <li>Su habitación requiere una verificación especial.</li>
-            <li>El registro ya ha sido completado previamente.</li>
-          </ul>
-        </Alert>
+        <div style={{ textAlign: "left", marginBottom: 32 }}>
+          <Alert variant="info">
+            <ul style={{ margin: 0, paddingLeft: 20 }}>
+              <li>Es posible que falte un pago pendiente.</li>
+              <li>Su habitación requiere una verificación especial.</li>
+              <li>El registro ya ha sido completado previamente.</li>
+            </ul>
+          </Alert>
+        </div>
 
-        <Button variant="secondary" onClick={onBack} fullWidth>
+        <Button variant="secondary" onClick={onBack}>
           Volver al inicio
         </Button>
       </Box>

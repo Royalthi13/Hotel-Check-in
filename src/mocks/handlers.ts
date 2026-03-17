@@ -15,6 +15,8 @@ export const handlers = [
   // GET /api/reservas/:id — busca reserva por número (modo tablet)
   http.get('/api/reservas/:id', async ({ params }) => {
     await delay(600);
+    // TODO: verificar que el contacto (email/teléfono) coincide con la reserva
+    // cuando exista backend real. Este mock no lo comprueba todavía.
     const reserva = MOCK_RESERVAS[params.id as string];
     if (!reserva) {
       return HttpResponse.json(

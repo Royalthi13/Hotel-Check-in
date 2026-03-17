@@ -3,8 +3,6 @@ import { Alert, Button, Icon } from '@/components/ui';
 import type { GuestData } from '@/types';
 
 interface Props {
-  guestIndex?: number;
- 
   onScanned: (data: Partial<GuestData>) => void;
   onSkip: () => void;
 }
