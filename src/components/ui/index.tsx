@@ -309,9 +309,10 @@ export const ConfirmBlock: React.FC<ConfirmBlockProps> = ({
 export interface HeaderProps {
   canGoBack: boolean;
   onBack: () => void;
+  rightAction?: { label: string; onClick: () => void; icon?: IconName };
 }
 
-export const Header: React.FC<HeaderProps> = ({ canGoBack, onBack }) => (
+export const Header: React.FC<HeaderProps> = ({ canGoBack, onBack, rightAction }) => (
   <div className="hdr">
     {canGoBack ? (
       <button type="button" className="hdr-back" onClick={onBack}>
@@ -327,7 +328,14 @@ export const Header: React.FC<HeaderProps> = ({ canGoBack, onBack }) => (
         <div className="hdr-sub">Hotels &amp; Resorts</div>
       </div>
     </div>
-    <div style={{ width: 62 }} />
+    {rightAction ? (
+      <button type="button" className="hdr-action" onClick={rightAction.onClick}>
+        {rightAction.icon && <Icon name={rightAction.icon} size={14} color="#fff" />}
+        {rightAction.label}
+      </button>
+    ) : (
+      <div style={{ width: 62 }} />
+    )}
   </div>
 );
 

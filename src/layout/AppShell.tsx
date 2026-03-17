@@ -1,8 +1,8 @@
 import React from 'react';
-import { Header, DotsProgress, Icon } from '../components/ui';
+import { Header, DotsProgress, Icon, ReservationCard } from '../components/ui';
 import { DOT_LABELS } from '../constants';
 // ✅ CheckinNav y CheckinActions viven en types/, no en el hook
-import type { CheckinNav, CheckinActions, StepId } from '../types';
+import type { CheckinNav, CheckinActions, StepId, Reserva } from '../types';
 
 const SIDE_STEPS: { id: StepId; label: string }[] = [
   { id: 'bienvenida',     label: 'Bienvenida'       },
@@ -28,10 +28,12 @@ interface AppShellProps {
   nav: CheckinNav;
   actions: Pick<CheckinActions, 'goBack' | 'goToDotIndex'>;
   showDots: boolean;
+  reserva?: Reserva | null;
+  onGoToRevision?: () => void;
   children: React.ReactNode;
 }
 
-export const AppShell: React.FC<AppShellProps> = ({ nav, actions, showDots, children }) => {
+export const AppShell: React.FC<AppShellProps> = ({ nav, actions, showDots, reserva, onGoToRevision, children }) => {
   const dotLabels  = nav.dotSteps.map((s: StepId) => DOT_LABELS[s] ?? s);
   const activeStep = getActiveSideStep(nav.step);
   const activeIdx  = SIDE_STEPS.findIndex(s => s.id === activeStep);
@@ -41,7 +43,11 @@ export const AppShell: React.FC<AppShellProps> = ({ nav, actions, showDots, chil
       <div className="card">
 
         {/* Header — sticky, ancho completo */}
-        <Header canGoBack={nav.canGoBack} onBack={actions.goBack} />
+        <Header
+          canGoBack={nav.canGoBack}
+          onBack={actions.goBack}
+          rightAction={onGoToRevision ? { label: 'Resumen', icon: 'users', onClick: onGoToRevision } : undefined}
+        />
 
         {/* Dots — solo móvil/tablet, en desktop los oculta el CSS */}
         {showDots && nav.dotIndex >= 0 && (
@@ -67,6 +73,23 @@ export const AppShell: React.FC<AppShellProps> = ({ nav, actions, showDots, chil
               <p className="sp-sub">
                 Complete su pre check-in y llegue al hotel sin esperas en recepción.
               </p>
+
+              <button
+                type="button"
+                className="sp-summary-btn"
+                onClick={onGoToRevision}
+                disabled={!onGoToRevision}
+              >
+                <Icon name="search" size={14} color="rgba(255,255,255,.8)" />
+                Resumen de la reserva
+              </button>
+
+              {reserva && (
+                <div className="sp-reserva">
+                  <div className="sp-reserva-title">Resumen de la reserva</div>
+                  <ReservationCard reserva={reserva} />
+                </div>
+              )}
 
               <nav className="sp-steps" aria-label="Progreso">
                 {SIDE_STEPS.map((s, i) => {

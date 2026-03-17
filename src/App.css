@@ -305,6 +305,50 @@ body,
   position: relative;
 }
 
+.sp-reserva {
+  width: 100%;
+  position: relative;
+  margin: 0 0 18px;
+}
+.sp-reserva-title {
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.55);
+  margin: 0 0 10px;
+  text-align: left;
+}
+.sp-reserva .res-card {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #fff;
+}
+.sp-reserva .res-card-eyebrow {
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.sp-summary-btn {
+  width: 100%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  color: rgba(255, 255, 255, 0.85);
+  font-family: "DM Sans", sans-serif;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.15s;
+  margin: 0 0 14px;
+}
+.sp-summary-btn:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+}
+
 /* Lista de pasos en el panel */
 .sp-steps {
   width: 100%;
@@ -451,6 +495,47 @@ body,
   background: rgba(255, 255, 255, 0.08);
   color: #fff;
 }
+
+.hdr-action {
+  background: var(--primary);
+  border: none;
+  cursor: pointer;
+  color: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-family: "DM Sans", sans-serif;
+  font-size: var(--fs-xs);
+  padding: 7px 12px;
+  border-radius: 999px;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+.hdr-action:hover {
+  background: var(--primary-d);
+}
+
+.hdr-action {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  cursor: pointer;
+  color: rgba(255, 255, 255, 0.85);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: "DM Sans", sans-serif;
+  font-size: var(--fs-xs);
+  padding: 7px 12px;
+  border-radius: 999px;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+.hdr-action:hover {
+  background: rgba(255, 255, 255, 0.14);
+  color: #fff;
+}
+/* (hdr-action en desuso; el header ya no muestra CTA derecha) */
 
 @media (min-width: 768px) {
   .hdr {

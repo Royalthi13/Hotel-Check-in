@@ -174,14 +174,16 @@ export function useCheckin(
   }, [step, guestIndex, token, navigate]);
 
   const goBack = useCallback(() => {
-    setHistory(h => {
-      if (!h.length) { navigate(-1); return h; }
-      const prev = h[h.length - 1];
-      setDirection('back');
-      setGuestIndex(prev.guestIndex);
-      navigate(`/checkin/${token}/${prev.step}`);
-      return h.slice(0, -1);
-    });
+    const h = historyRef.current;
+    if (!h.length) {
+      navigate(-1);
+      return;
+    }
+    const prev = h[h.length - 1];
+    setDirection('back');
+    setGuestIndex(prev.guestIndex);
+    setHistory(hh => (hh.length ? hh.slice(0, -1) : hh));
+    navigate(`/checkin/${token}/${prev.step}`);
   }, [navigate, token]);
 
   const goToDotIndex = useCallback((idx: number) => {

@@ -2,8 +2,8 @@ import {
   BrowserRouter,
   Routes,
   Route,
-  Navigate,
   useParams,
+  useNavigate,
 } from 'react-router-dom';
 import './App.css';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
@@ -36,7 +36,19 @@ const TABLET_TIMEOUT_MS  = 5 * 60 * 1000;
 
 function RedirectToBienvenida() {
   const { token } = useParams();
-  return <Navigate to={`/checkin/${token}/bienvenida`} replace />;
+  const navigate = useNavigate();
+  useEffect(() => {
+    navigate(`/checkin/${token}/bienvenida`, { replace: true });
+  }, [navigate, token]);
+  return null;
+}
+
+function RedirectToDefault() {
+  const navigate = useNavigate();
+  useEffect(() => {
+    navigate('/checkin/new/bienvenida', { replace: true });
+  }, [navigate]);
+  return null;
 }
 
 function CheckinWizard() {
@@ -157,7 +169,13 @@ function CheckinWizard() {
   }
 
   return (
-    <AppShell nav={nav} actions={{ goBack, goToDotIndex }} showDots={showDots}>
+    <AppShell
+      nav={nav}
+      actions={{ goBack, goToDotIndex }}
+      showDots={showDots}
+      reserva={state.reserva}
+      onGoToRevision={() => goTo('revision', 'back')}
+    >
       {isOffline && (
         <div style={{ padding: '8px 24px 0' }}>
           <Alert variant="warm">
@@ -304,7 +322,7 @@ export default function App() {
       <Routes>
         <Route path="/checkin/:token"       element={<RedirectToBienvenida />} />
         <Route path="/checkin/:token/:step" element={<ErrorBoundary><CheckinWizard /></ErrorBoundary>} />
-        <Route path="*"                     element={<Navigate to="/checkin/new/bienvenida" replace />} />
+        <Route path="*"                     element={<RedirectToDefault />} />
       </Routes>
     </BrowserRouter>
   );
