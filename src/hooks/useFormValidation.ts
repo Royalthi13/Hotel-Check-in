@@ -140,14 +140,26 @@ export function validateContacto(
   t: TFunction,
 ): FormErrors {
   const e: FormErrors = {};
-  if (!data.email?.trim()) e.email = t("validation.required_email");
-  else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email))
+
+  if (!data.email?.trim()) {
+    e.email = t("validation.required_email");
+  } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email)) {
     e.email = t("validation.invalid_email");
-  if (!data.telefono?.trim()) e.telefono = t("validation.required_phone");
-  if (!data.pais) e.pais = t("validation.required_country");
+  }
+
+  const phoneRegex = /^\+?[\d]{7,15}$/;
+  if (!data.telefono?.trim()) {
+    e.telefono = t("validation.required_phone");
+  } else if (!phoneRegex.test(data.telefono.replace(/\s/g, ""))) {
+    e.telefono = t("validation.invalid_phone");
+  }
+
+  if (!data.pais) {
+    e.pais = t("validation.required_country");
+  }
+
   return e;
 }
-
 export function validateDocumento(
   data: PartialGuestData,
   t: TFunction,

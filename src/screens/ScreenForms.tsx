@@ -10,7 +10,7 @@ import {
   validateDocumento,
   validarNumeroDocumento,
 } from "@/hooks/useFormValidation";
-import type { PartialGuestData } from "@/types";
+import type { PartialGuestData, CheckinActions } from "@/types";
 import { DatePicker } from "@mui/x-date-pickers";
 import {
   TextField,
@@ -52,6 +52,8 @@ interface FormContactoProps {
   data: PartialGuestData;
   onChange: (key: keyof PartialGuestData, value: unknown) => void;
   onNext: () => void;
+  actions: CheckinActions;
+  guestIndex: number;
 }
 interface FormDocumentoProps {
   data: PartialGuestData;
