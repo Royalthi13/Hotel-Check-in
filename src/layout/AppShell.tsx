@@ -3,13 +3,11 @@ import { useTranslation } from "react-i18next";
 import { Header, DotsProgress, Icon, ReservationCard } from "../components/ui";
 import type { CheckinNav, CheckinActions, StepId, Reserva } from "../types";
 
-// ─── CONFIGURACIÓN DE PASOS ──────────────────────────────────────────────────
 const SIDE_STEPS: { id: StepId }[] = [
   { id: "bienvenida" },
   { id: "num_personas" },
   { id: "form_personal" },
   { id: "form_contacto" },
-  { id: "form_documento" },
   { id: "form_extras" },
   { id: "revision" },
   { id: "exito" },
@@ -18,6 +16,7 @@ const SIDE_STEPS: { id: StepId }[] = [
 const DOT_FOR: Partial<Record<StepId, StepId>> = {
   escanear: "form_personal",
   confirmar_datos: "form_personal",
+  form_relaciones: "form_personal",
 };
 
 function getActiveSideStep(step: StepId): StepId {
@@ -53,13 +52,17 @@ export const AppShell: React.FC<AppShellProps> = ({
     setMaxDotReached(nav.dotIndex);
   }
 
+  // 🔥 COMPROBACIÓN INTELIGENTE DE PASOS DESBLOQUEADOS
   const isStepUnlocked = (stepId: StepId, index: number) => {
-    if (nav.allowedSteps) {
-      return nav.allowedSteps.has(stepId);
+    // Si lo tenemos guardado en memoria (hook)
+    if (nav.allowedSteps && nav.allowedSteps.has(stepId)) {
+      return true;
     }
+    // Si ya estamos en revisión o éxito, todo lo anterior está libre
     if (activeStep === "revision" || activeStep === "exito") {
-      return stepId === "bienvenida" || stepId === activeStep;
+      return stepId !== "exito" || activeStep === "exito";
     }
+    // Lógica por defecto basada en el índice
     return index <= activeIdx;
   };
 
@@ -104,7 +107,6 @@ export const AppShell: React.FC<AppShellProps> = ({
               <p className="sp-sub">{t("appShell.subtitle")}</p>
 
               <div className="sp-summary-wrapper">
-                {/* Botón Desktop */}
                 <button
                   type="button"
                   className="sp-summary-btn sp-summary-btn--desktop"
@@ -119,7 +121,6 @@ export const AppShell: React.FC<AppShellProps> = ({
                   {t("appShell.booking_summary")}
                 </button>
 
-                {/* Botón Tablet/Móvil */}
                 <button
                   type="button"
                   className="sp-summary-btn-orange"
@@ -147,12 +148,9 @@ export const AppShell: React.FC<AppShellProps> = ({
               <nav className="sp-steps" aria-label="Progreso">
                 {SIDE_STEPS.map((s, i) => {
                   const isActive = i === activeIdx;
-
                   const isUnlocked = isStepUnlocked(s.id, i);
-
                   const isClickable =
                     isUnlocked && !isActive && s.id !== "exito";
-
                   const isDone =
                     isUnlocked &&
                     !isActive &&
@@ -171,6 +169,7 @@ export const AppShell: React.FC<AppShellProps> = ({
                             actions.goTo(
                               s.id,
                               i < activeIdx ? "back" : "forward",
+                              0, // Si navegas por el sidebar, empiezas por el Huésped 1 (índice 0)
                             );
                           }
                         }
@@ -183,12 +182,10 @@ export const AppShell: React.FC<AppShellProps> = ({
                       ]
                         .filter(Boolean)
                         .join(" ")}
-                      style={
-                        {
-                          cursor: isClickable ? "pointer" : "default",
-                          opacity: isUnlocked ? 1 : 0.4,
-                        } as React.CSSProperties
-                      }
+                      style={{
+                        cursor: isClickable ? "pointer" : "default",
+                        opacity: isUnlocked ? 1 : 0.4,
+                      }}
                     >
                       <div className="sp-step-num">
                         {isDone ? (

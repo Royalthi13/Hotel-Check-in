@@ -1,5 +1,5 @@
 import React from "react";
-import { useTranslation } from "react-i18next"; // 1. Importamos el hook
+import { useTranslation } from "react-i18next";
 import { Field, Button, Alert, ConfirmBlock, Icon } from "@/components/ui";
 import { ReservationCard } from "@/components/ui";
 import { HORAS_LLEGADA } from "@/constants";
@@ -78,7 +78,8 @@ export const ScreenFormExtras: React.FC<FormExtrasProps> = ({
 interface RevisionProps {
   state: CheckinState;
   isSubmitting: boolean;
-  onEditStep: (step: string) => void;
+  // 🔥 AÑADIDO: onEditStep ahora recibe también el guestIndex para saber a dónde ir
+  onEditStep: (step: string, guestIndex?: number) => void;
   onSubmit: () => Promise<void>;
   onRgpdChange: (v: boolean) => void;
 }
@@ -119,7 +120,8 @@ export const ScreenRevision: React.FC<RevisionProps> = ({
                   ? t("review.main_guest_personal")
                   : t("review.companion_personal", { count: idx + 1 })
               }
-              onEdit={() => onEditStep("form_personal")}
+              // 🔥 PASAMOS EL ÍNDICE EXACTO AQUÍ
+              onEdit={() => onEditStep("form_personal", idx)}
               rows={((): Array<[string, string | undefined | null]> => [
                 [t("forms.full_name"), fullName(g) || null],
                 [
@@ -147,13 +149,14 @@ export const ScreenRevision: React.FC<RevisionProps> = ({
                   : []),
               ])()}
             />
+            {/* Como FormDocumento se integró en FormPersonal, redirigimos ahí */}
             <ConfirmBlock
               title={
                 idx === 0
                   ? t("review.main_guest_doc")
                   : t("review.companion_doc", { count: idx + 1 })
               }
-              onEdit={() => onEditStep("form_documento")}
+              onEdit={() => onEditStep("form_personal", idx)}
               rows={[
                 [
                   t("forms.doc_type"),
@@ -172,7 +175,7 @@ export const ScreenRevision: React.FC<RevisionProps> = ({
 
         <ConfirmBlock
           title={t("review.contact_address")}
-          onEdit={() => onEditStep("form_contacto")}
+          onEdit={() => onEditStep("form_contacto", 0)} // El contacto siempre es del Titular (0)
           rows={[
             [t("forms.email"), main.email ?? null],
             [t("forms.phone"), main.telefono ?? null],

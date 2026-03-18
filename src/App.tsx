@@ -10,30 +10,26 @@ import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { useCheckin } from "@/hooks/useCheckin";
 import { AppShell } from "@/layout/AppShell";
 import { LoadingSpinner, Alert } from "@/components/ui";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 
-// --- IMPORTACIÓN DE TODAS TUS PANTALLAS ---
+// --- PANTALLAS ---
 import { ScreenTabletBuscar } from "@/screens/ScreenTabletBuscar";
-import { ScreenCheckinInicio } from "@/screens/ScreenCheckinInicio"; // Tu nueva pantalla legal
+import { ScreenCheckinInicio } from "@/screens/ScreenCheckinInicio";
 import { ScreenNumPersonas } from "@/screens/ScreenNumPersonas";
 import { ScreenEscanear } from "@/screens/ScreenEscanear";
 import { ScreenConfirmarDatos } from "@/screens/ScreenConfirmardatos";
 import { ScreenRelacionesMenor } from "@/screens/ScreenRelacionesMenor";
-import {
-  ScreenFormPersonal,
-  ScreenFormContacto,
-  ScreenFormDocumento,
-} from "@/screens/ScreenForms";
+import { ScreenFormPersonal, ScreenFormContacto } from "@/screens/ScreenForms";
 import {
   ScreenFormExtras,
   ScreenRevision,
   ScreenExito,
 } from "@/screens/ScreenExtrasRevisionExito";
 
-import type { Reserva, StepId } from "@/types";
+import type { Reserva, StepId, PartialGuestData } from "@/types";
 
 const STEPS_WITHOUT_DOTS = new Set<StepId>(["tablet_buscar", "exito"]);
-const TABLET_TIMEOUT_MS = 5 * 60 * 1000;
 
 function RedirectToBienvenida() {
   const { token } = useParams();
@@ -44,15 +40,8 @@ function RedirectToBienvenida() {
   return null;
 }
 
-function RedirectToDefault() {
-  const navigate = useNavigate();
-  useEffect(() => {
-    navigate("/checkin/new/bienvenida", { replace: true });
-  }, [navigate]);
-  return null;
-}
-
 function CheckinWizard() {
+  const { t } = useTranslation();
   const { token, step } = useParams();
   const [state, nav, actions, isLoading] = useCheckin(token, step);
   const [submitError, setSubmitError] = useState("");
@@ -70,38 +59,16 @@ function CheckinWizard() {
     };
   }, []);
 
-  const tabletTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(
-    undefined,
-  );
-  useEffect(() => {
-    if (state.appMode !== "tablet") return;
-    const reset = () => {
-      clearTimeout(tabletTimeoutRef.current);
-      tabletTimeoutRef.current = setTimeout(() => {
-        sessionStorage.removeItem(`state_${token}`);
-        sessionStorage.removeItem(`history_${token}`);
-        sessionStorage.removeItem(`allowedSteps_${token}`);
-        sessionStorage.removeItem(`modoFlujo_${token}`);
-        window.location.replace(`/checkin/${token}/tablet_buscar`);
-      }, TABLET_TIMEOUT_MS);
-    };
-    reset();
-    window.addEventListener("pointerdown", reset);
-    window.addEventListener("keydown", reset);
-    return () => {
-      clearTimeout(tabletTimeoutRef.current);
-      window.removeEventListener("pointerdown", reset);
-      window.removeEventListener("keydown", reset);
-    };
-  }, [state.appMode, token]);
-
-  if (isLoading) {
+  if (
+    isLoading ||
+    (!state.reserva && token !== "new" && nav.step !== "tablet_buscar")
+  ) {
     return (
       <div
         className="shell"
         style={{ alignItems: "center", justifyContent: "center" }}
       >
-        <LoadingSpinner text="Recuperando su reserva de forma segura…" />
+        <LoadingSpinner text={t("common.loading")} />
       </div>
     );
   }
@@ -110,22 +77,16 @@ function CheckinWizard() {
     goTo,
     goBack,
     goToDotIndex,
-    setReservaFromTablet,
     setNumPersonas,
     updateGuest,
     updateRelacion,
-    applyScannedData,
-    setHoraLlegada,
-    setObservaciones,
     nextGuest,
     setRgpdAcepted,
   } = actions;
-
   const currentStep = nav.step || "bienvenida";
   const showDots = !STEPS_WITHOUT_DOTS.has(currentStep);
   const isMainGuest = nav.guestIndex === 0;
   const currentGuest = state.guests[nav.guestIndex] ?? {};
-  const totalGuests = state.numAdultos + state.numMenores;
 
   const handleSubmit = async (): Promise<void> => {
     setSubmitError("");
@@ -136,8 +97,8 @@ function CheckinWizard() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           reserva: state.reserva,
-          guests: state.guests.map((guest) => {
-            const copia = { ...guest };
+          guests: state.guests.map((g) => {
+            const copia = { ...g };
             delete copia.docFile;
             return copia;
           }),
@@ -156,19 +117,27 @@ function CheckinWizard() {
         throw new Error(data?.error ?? `HTTP ${res.status}`);
       }
       goTo("exito");
-    } catch (err) {
-      console.error("Error al enviar:", err);
+    } catch (err: unknown) {
+      setSubmitError(
+        err instanceof Error ? err.message : t("errorBoundary.title"),
+      );
       goTo("exito");
     } finally {
       setIsSubmitting(false);
     }
   };
 
+  const adultosConIndice = state.guests
+    .map((g, i) => ({ ...g, originalIndex: i }))
+    .filter((g) => !g.esMenor);
+
   if (currentStep === "tablet_buscar") {
     return (
       <div className="shell">
         <div className="card">
-          <ScreenTabletBuscar onFound={(res) => setReservaFromTablet(res)} />
+          <ScreenTabletBuscar
+            onFound={(res) => actions.setReservaFromTablet(res)}
+          />
         </div>
       </div>
     );
@@ -184,22 +153,20 @@ function CheckinWizard() {
     >
       {isOffline && (
         <div style={{ padding: "8px 24px 0" }}>
-          <Alert variant="warm">
-            Está sin conexión. El envío podría fallar.
-          </Alert>
+          <Alert variant="warm">{t("search.error_connection")}</Alert>
         </div>
       )}
 
-      {/* --- STEP 1: INICIO LEGAL (Sustituye a Bienvenida antigua) --- */}
       {currentStep === "bienvenida" && (
         <ScreenCheckinInicio
           reserva={
             state.reserva ||
             ({
               id: "---",
+              localizador: "---",
               numHuespedes: 0,
-              confirmacion: "---",
-              habitacion: "---",
+              confirmacion: "",
+              habitacion: "",
               fechaEntrada: "",
               fechaSalida: "",
               numNoches: 0,
@@ -207,39 +174,34 @@ function CheckinWizard() {
           }
           onNext={(hayMenores: boolean) => {
             sessionStorage.setItem(`modoFlujo_${token}`, "manual");
-            if (hayMenores) {
-              goTo("num_personas");
-            } else {
-              setNumPersonas(state.reserva?.numHuespedes || 1, 0);
+            if (hayMenores) goTo("num_personas");
+            else {
+              setNumPersonas(state.reserva?.numHuespedes || 1);
               goTo("form_personal", "forward", 0);
             }
           }}
         />
       )}
 
-      {/* --- STEP 2: NÚMERO DE PERSONAS (Si hay menores) --- */}
       {currentStep === "num_personas" && (
         <ScreenNumPersonas
-          numAdultos={state.numAdultos}
-          numMenores={state.numMenores}
+          numPersonas={state.numPersonas}
           onChange={setNumPersonas}
           onNext={() => goTo("form_personal", "forward", 0)}
           totalFijo={state.reserva?.numHuespedes}
         />
       )}
 
-      {/* --- STEP 3: ESCANEAR --- */}
       {currentStep === "escanear" && (
         <ScreenEscanear
           onScanned={(data) => {
-            applyScannedData(data, nav.guestIndex);
+            actions.applyScannedData(data, nav.guestIndex);
             goTo("form_personal");
           }}
           onSkip={() => goTo("form_personal")}
         />
       )}
 
-      {/* --- STEP 4: CONFIRMAR DATOS (Si es conocido) --- */}
       {currentStep === "confirmar_datos" && (
         <ScreenConfirmarDatos
           guest={currentGuest}
@@ -248,76 +210,51 @@ function CheckinWizard() {
         />
       )}
 
-      {/* --- STEP 5: FORMULARIO PERSONAL --- */}
       {currentStep === "form_personal" && (
         <ScreenFormPersonal
           data={currentGuest}
-          onChange={(key, value) => updateGuest(nav.guestIndex, key, value)}
+          onChange={(k: keyof PartialGuestData, v: unknown) =>
+            updateGuest(nav.guestIndex, k, v)
+          }
           guestIndex={nav.guestIndex}
-          totalGuests={totalGuests}
+          totalGuests={state.numPersonas}
           isMainGuest={isMainGuest}
           esMenor={!!currentGuest.esMenor}
           onNext={() => nextGuest(nav.guestIndex, "form_personal")}
         />
       )}
 
-      {/* --- STEP 6: FORMULARIO CONTACTO --- */}
       {currentStep === "form_contacto" && (
         <ScreenFormContacto
           data={currentGuest}
-          onChange={(key, value) => updateGuest(nav.guestIndex, key, value)}
+          onChange={(k: keyof PartialGuestData, v: unknown) =>
+            updateGuest(nav.guestIndex, k, v)
+          }
           onNext={() => nextGuest(nav.guestIndex, "form_contacto")}
         />
       )}
 
-      {/* --- STEP 7: FORMULARIO DOCUMENTO --- */}
-      {currentStep === "form_documento" && (
-        <ScreenFormDocumento
-          data={currentGuest}
-          onChange={(key, value) => updateGuest(nav.guestIndex, key, value)}
-          guestIndex={nav.guestIndex}
-          totalGuests={totalGuests}
-          isMainGuest={isMainGuest}
-          onNext={() => nextGuest(nav.guestIndex, "form_documento")}
-          modoFlujo={
-            (sessionStorage.getItem(`modoFlujo_${token}`) as
-              | "manual"
-              | "escaneo") || "manual"
+      {currentStep === "form_relaciones" && (
+        <ScreenRelacionesMenor
+          menor={currentGuest}
+          adultos={adultosConIndice}
+          onRelacionChange={(aIdx, p) =>
+            updateRelacion(nav.guestIndex, aIdx, p)
           }
+          onNext={() => nextGuest(nav.guestIndex, "form_relaciones")}
         />
       )}
 
-      {/* --- STEP 8: RELACIONES (Solo para menores) --- */}
-      {currentStep === "form_relaciones" &&
-        (() => {
-          const menorRelIdx = nav.guestIndex - state.numAdultos;
-          const adultos = state.guests.slice(0, state.numAdultos);
-          return (
-            <ScreenRelacionesMenor
-              menor={currentGuest}
-              menorIndex={menorRelIdx}
-              menorRealIndex={nav.guestIndex}
-              adultos={adultos}
-              onRelacionChange={(aIdx: number, p: string) =>
-                updateRelacion(menorRelIdx, aIdx, p)
-              }
-              onNext={() => nextGuest(nav.guestIndex, "form_relaciones")}
-            />
-          );
-        })()}
-
-      {/* --- STEP 9: EXTRAS --- */}
       {currentStep === "form_extras" && (
         <ScreenFormExtras
           horaLlegada={state.horaLlegada}
           observaciones={state.observaciones}
-          onHoraChange={setHoraLlegada}
-          onObsChange={setObservaciones}
+          onHoraChange={actions.setHoraLlegada}
+          onObsChange={actions.setObservaciones}
           onNext={() => goTo("revision")}
         />
       )}
 
-      {/* --- STEP 10: REVISIÓN --- */}
       {currentStep === "revision" && (
         <>
           {submitError && (
@@ -328,14 +265,16 @@ function CheckinWizard() {
           <ScreenRevision
             state={state}
             isSubmitting={isSubmitting}
-            onEditStep={(targetStep) => goTo(targetStep as StepId, "back")}
+            // 🔥 AHORA LE PASAMOS EL GUEST_INDEX PARA NAVEGAR EXACTAMENTE AL HUÉSPED QUE QUEREMOS EDITAR
+            onEditStep={(targetStep, gIdx) =>
+              goTo(targetStep as StepId, "back", gIdx)
+            }
             onSubmit={handleSubmit}
             onRgpdChange={setRgpdAcepted}
           />
         </>
       )}
 
-      {/* --- STEP 11: ÉXITO --- */}
       {currentStep === "exito" && (
         <ScreenExito
           state={state}
@@ -359,7 +298,10 @@ export default function App() {
             </ErrorBoundary>
           }
         />
-        <Route path="*" element={<RedirectToDefault />} />
+        <Route
+          path="*"
+          element={<Route path="/" element={<RedirectToBienvenida />} />}
+        />
       </Routes>
     </BrowserRouter>
   );

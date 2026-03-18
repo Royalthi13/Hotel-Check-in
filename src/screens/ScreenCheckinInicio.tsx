@@ -34,8 +34,15 @@ export const ScreenCheckinInicio: React.FC<Props> = ({ reserva, onNext }) => {
   }) as LegalSection[];
   const sectionsArray = Array.isArray(legalSections) ? legalSections : [];
 
-  // 🔥 SOLUCIÓN AL ERROR DE CONVERSIÓN:
   const reservaData = reserva as unknown as Record<string, unknown>;
+
+  // 🔥 TRADUCCIÓN ROBUSTA: Usa tu clave "title_new_1" de es.json, o si no existe, extrae la primera palabra de "title"
+  const title1 = t("welcome.title_new_1", {
+    defaultValue: t("welcome.title").split(" ")[0],
+  });
+  const title2 = t("welcome.title_new_2", {
+    defaultValue: t("welcome.title").split(" ").slice(1).join(" "),
+  });
 
   return (
     <Box
@@ -51,7 +58,7 @@ export const ScreenCheckinInicio: React.FC<Props> = ({ reserva, onNext }) => {
           variant="h4"
           sx={{ fontFamily: "Cormorant Garamond, serif", mb: 1 }}
         >
-          {t("welcome.title")}
+          {title1} <span style={{ color: "var(--primary)" }}>{title2}</span>
         </Typography>
       </div>
 
@@ -76,10 +83,10 @@ export const ScreenCheckinInicio: React.FC<Props> = ({ reserva, onNext }) => {
           }}
         >
           <Typography variant="body2">
-            {/* Acceso seguro a las propiedades */}
             <strong>{t("welcome.reservation")}:</strong>{" "}
             {(reservaData.localizador as string) ||
               (reservaData.id as string) ||
+              (reservaData.confirmacion as string) ||
               "---"}
           </Typography>
           <Typography variant="body2">

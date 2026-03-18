@@ -1,20 +1,20 @@
 // ─── Modos de entrada ────────────────────────────────────────────────────────
-export type AppMode = 'link' | 'tablet';
+export type AppMode = "link" | "tablet";
 
 // ─── Pasos del flujo ──────────────────────────────────────────────────────────
 export type StepId =
-  | 'tablet_buscar'
-  | 'bienvenida'
-  | 'num_personas'
-  | 'confirmar_datos'
-  | 'escanear'
-  | 'form_personal'
-  | 'form_contacto'
-  | 'form_documento'
-  | 'form_relaciones'
-  | 'form_extras'
-  | 'revision'
-  | 'exito';
+  | "tablet_buscar"
+  | "bienvenida"
+  | "num_personas"
+  | "confirmar_datos"
+  | "escanear"
+  | "form_personal"
+  | "form_contacto"
+  | "form_documento"
+  | "form_relaciones"
+  | "form_extras"
+  | "revision"
+  | "exito";
 
 // ─── Reserva ──────────────────────────────────────────────────────────────────
 export interface Reserva {
@@ -28,8 +28,8 @@ export interface Reserva {
 
 // ─── Relación de un menor con un adulto del grupo ─────────────────────────────
 export interface RelacionConAdulto {
-  adultoIndex: number; 
-  parentesco: string;  
+  adultoIndex: number;
+  parentesco: string;
 }
 
 // ─── Datos de un huésped ──────────────────────────────────────────────────────
@@ -42,12 +42,12 @@ export interface GuestData {
   nacionalidad: string;
 
   esMenor: boolean;
-  
+
   // --- NUEVOS CAMPOS PARA LA LÓGICA DE MENORES ---
-  vengoConMenores?: boolean;      // Para el checkbox del titular
-  tienesMenor?: boolean;          // Para saber si mostrar datos de menor en la revisión
-  nombreMenor?: string;           // Nombre del responsable (usado en validación)
-  relacionMenor?: string;         // Parentesco simple (usado en validación)
+  vengoConMenores?: boolean; // Para el checkbox del titular
+  tienesMenor?: boolean; // Para saber si mostrar datos de menor en la revisión
+  nombreMenor?: string; // Nombre del responsable (usado en validación)
+  relacionMenor?: string; // Parentesco simple (usado en validación)
   relacionesConAdultos: RelacionConAdulto[]; // Matriz completa de parentescos
 
   // Contacto (Huésped principal)
@@ -75,7 +75,7 @@ export interface CheckinState {
   reserva: Reserva | null;
   knownGuest: GuestData | null;
 
-numAdultos: number;
+  numAdultos: number;
   numMenores: number;
   numPersonas: number; // 👈 ¡ESTO ES LO QUE TE FALTA!
   guests: PartialGuestData[];
@@ -87,7 +87,7 @@ numAdultos: number;
 
 // ─── Validación, Navegación y Hook ───────────────────────────────────────────
 export type FormErrors = Record<string, string>;
-export type NavDirection = 'forward' | 'back';
+export type NavDirection = "forward" | "back";
 
 export interface CheckinNav {
   step: StepId;
@@ -104,8 +104,16 @@ export interface CheckinActions {
   goToDotIndex: (dotIdx: number) => void;
   setReservaFromTablet: (res: Reserva) => void;
   setNumPersonas: (adultos: number, menores: number) => void;
-  updateGuest: (index: number, key: keyof PartialGuestData, value: unknown) => void;
-  updateRelacion: (menorIndex: number, adultoIndex: number, parentesco: string) => void;
+  updateGuest: (
+    index: number,
+    key: keyof PartialGuestData,
+    value: unknown,
+  ) => void;
+  updateRelacion: (
+    menorIndex: number,
+    adultoIndex: number,
+    parentesco: string,
+  ) => void;
   confirmKnownGuest: () => void;
   applyScannedData: (data: Partial<GuestData>, guestIdx?: number) => void;
   setHoraLlegada: (v: string) => void;

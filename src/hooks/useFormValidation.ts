@@ -1,19 +1,18 @@
 import { useState, useCallback } from "react";
-import { useTranslation } from "react-i18next"; // 1. Importamos el hook
-import type { TFunction } from "i18next"; // Importamos el tipo para TypeScript
+import { useTranslation } from "react-i18next";
+import type { TFunction } from "i18next";
 import type { PartialGuestData, FormErrors } from "@/types";
 import dayjs from "dayjs";
 
-// 2. Modificamos el tipo para que el validador reciba la función 't'
 type ValidatorFn<T> = (data: T, t: TFunction) => FormErrors;
 
 export function useFormValidation<T>(validator: ValidatorFn<T>) {
-  const { t } = useTranslation(); // Extraemos el traductor aquí
+  const { t } = useTranslation();
   const [errors, setErrors] = useState<FormErrors>({});
 
   const validate = useCallback(
     (data: T): boolean => {
-      const errs = validator(data, t); // Le pasamos 't' al validador
+      const errs = validator(data, t);
       setErrors(errs);
       return Object.keys(errs).length === 0;
     },
@@ -34,8 +33,6 @@ export function useFormValidation<T>(validator: ValidatorFn<T>) {
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
-
-// ─── Validación de documentos de identidad españoles ─────────────────────────
 
 const LETRAS_DNI = "TRWAGMYFPDXBNJZSQVHLCKE";
 
@@ -69,10 +66,6 @@ function validarCarnet(num: string): boolean {
   return /^[A-Z]{0,2}\d{8}[A-Z]{1,2}$/i.test(num);
 }
 
-/**
- * Valida el número de documento según el tipo seleccionado.
- * Añadimos 't' como tercer parámetro.
- */
 export function validarNumeroDocumento(
   tipo: string,
   num: string,
@@ -110,7 +103,8 @@ export function validarNumeroDocumento(
 // ─── Validadores por pantalla ─────────────────────────────────────────────────
 
 export function validatePersonal(
-  data: PartialGuestData,
+  // Aceptamos un flag temporal para saber si es el titular
+  data: PartialGuestData & { isTitular?: boolean },
   t: TFunction,
 ): FormErrors {
   const e: FormErrors = {};
@@ -127,9 +121,23 @@ export function validatePersonal(
     else if (parsed.isAfter(dayjs()))
       e.fechaNac = t("validation.future_birthdate");
     else if (parsed.year() < 1900) e.fechaNac = t("validation.old_birthdate");
-    else if (data.esMenor === true && dayjs().diff(parsed, "years") >= 18) {
-      e.fechaNac = t("validation.invalid_minor_age");
+    else {
+      const edad = dayjs().diff(parsed, "years");
+      // Solo prohibimos si es el Titular y tiene menos de 18
+      if (data.isTitular && edad < 18) {
+        e.fechaNac = t(
+          "validation.adult_must_be_18",
+          "El titular debe ser mayor de edad",
+        );
+      }
     }
+  }
+
+  if (!data.tipoDoc) {
+    e.tipoDoc = t("validation.required_doc_type");
+  } else {
+    const errorNum = validarNumeroDocumento(data.tipoDoc, data.numDoc ?? "", t);
+    if (errorNum) e.numDoc = errorNum;
   }
 
   return e;
@@ -158,28 +166,5 @@ export function validateContacto(
     e.pais = t("validation.required_country");
   }
 
-  return e;
-}
-export function validateDocumento(
-  data: PartialGuestData,
-  t: TFunction,
-): FormErrors {
-  const e: FormErrors = {};
-
-  if (!data.tipoDoc) {
-    e.tipoDoc = t("validation.required_doc_type");
-    return e;
-  }
-
-  const errorNum = validarNumeroDocumento(data.tipoDoc, data.numDoc ?? "", t);
-  if (errorNum) e.numDoc = errorNum;
-
-  return e;
-}
-
-export function validateNumPersonas(n: number, t: TFunction): FormErrors {
-  const e: FormErrors = {};
-  if (!n || n < 1) e.numPersonas = t("validation.min_persons");
-  if (n > 10) e.numPersonas = t("validation.max_persons");
   return e;
 }
