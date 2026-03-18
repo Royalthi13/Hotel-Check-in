@@ -77,6 +77,9 @@
   },
 
   "common": {
+    "no": "No",
+    "yes": "Sí",
+    "start_checkin": "Comenzar Check-in",
     "continue": "Continuar",
     "finish": "Finalizar",
     "finish_register": "Finalizar Registro",
@@ -140,7 +143,14 @@
     "error_connection": "Error de conexión. Por favor, inténtelo de nuevo."
   },
   "welcome": {
+    "summary_title": "Datos de su estancia",
+    "reservation": "Referencia",
+    "guests_booked": "Personas reservadas",
+    "error_notice": "Si el número de personas es incorrecto o desea modificar su reserva, por favor, contacte con el hotel antes de continuar.",
+    "question_minors": "¿Se alojan menores de edad en esta reserva?",
+    "start_btn": "Comenzar Check-in",
     "eyebrow": "Pre Check-in Online",
+    "title": "Bienvenido a Lumina Hotels",
     "title_new_1": "Bienvenido a",
     "title_new_2": "Lumina",
     "title_known_1": "Bienvenido",
@@ -345,5 +355,26 @@
     "relation_with": "Relación con {{name}}",
     "select_relationship": "— Seleccionar parentesco —",
     "mandatory_legal_field": "Este campo es obligatorio por ley"
+  },
+  "legal": {
+    "title": "Información Legal y Privacidad",
+    "intro": "De conformidad con el Reglamento (UE) 2016/679 (RGPD) y la normativa vigente:",
+    "sections": [
+      {
+        "h": "1. Registro de Viajeros",
+        "p": "Según la Ley Orgánica 4/2015, todos los huéspedes mayores de 14 años deben ser registrados ante las autoridades competentes."
+      },
+      {
+        "h": "2. Conservación de Datos",
+        "p": "Los datos del libro-registro de entrada de viajeros se conservarán durante un plazo de 4 años, a disposición de las Fuerzas y Cuerpos de Seguridad."
+      },
+      {
+        "h": "3. Finalidad",
+        "p": "Sus datos se utilizarán exclusivamente para la gestión de su estancia y el cumplimiento de obligaciones legales de seguridad ciudadana."
+      }
+    ],
+    "footer": "Para más detalles, puede solicitar el documento completo en recepción.",
+    "download_btn": "Descargar PDF Legal",
+    "accept_check": "He leído la información legal y acepto el tratamiento de mis datos."
   }
 }

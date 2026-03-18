@@ -12,8 +12,9 @@ import { AppShell } from "@/layout/AppShell";
 import { LoadingSpinner, Alert } from "@/components/ui";
 import { useEffect, useRef, useState } from "react";
 
+// --- IMPORTACIÓN DE TODAS TUS PANTALLAS ---
 import { ScreenTabletBuscar } from "@/screens/ScreenTabletBuscar";
-import { ScreenBienvenida } from "@/screens/ScreenBienvenida";
+import { ScreenCheckinInicio } from "@/screens/ScreenCheckinInicio"; // Tu nueva pantalla legal
 import { ScreenNumPersonas } from "@/screens/ScreenNumPersonas";
 import { ScreenEscanear } from "@/screens/ScreenEscanear";
 import { ScreenConfirmarDatos } from "@/screens/ScreenConfirmardatos";
@@ -29,7 +30,7 @@ import {
   ScreenExito,
 } from "@/screens/ScreenExtrasRevisionExito";
 
-import type { StepId } from "@/types";
+import type { Reserva, StepId } from "@/types";
 
 const STEPS_WITHOUT_DOTS = new Set<StepId>(["tablet_buscar", "exito"]);
 const TABLET_TIMEOUT_MS = 5 * 60 * 1000;
@@ -126,16 +127,6 @@ function CheckinWizard() {
   const currentGuest = state.guests[nav.guestIndex] ?? {};
   const totalGuests = state.numAdultos + state.numMenores;
 
-  const handleChooseManual = () => {
-    sessionStorage.setItem(`modoFlujo_${token}`, "manual");
-    if (state.knownGuest) {
-      goTo("confirmar_datos");
-    } else {
-      goTo("num_personas");
-    }
-  };
-
-  // En App.tsx, busca handleSubmit y cámbialo por esto:
   const handleSubmit = async (): Promise<void> => {
     setSubmitError("");
     setIsSubmitting(true);
@@ -155,25 +146,24 @@ function CheckinWizard() {
         }),
       });
 
-      let data: unknown = null;
-      try {
-        data = await res.json();
-      } catch {
-        // ignore
+      interface CheckinRes {
+        success?: boolean;
+        error?: string;
       }
-      const parsed = data as { success?: boolean; error?: string } | null;
-      if (!res.ok || parsed?.success === false) {
-        throw new Error(parsed?.error ?? `HTTP ${res.status}`);
-      }
+      const data = (await res.json().catch(() => ({}))) as CheckinRes;
 
+      if (!res.ok || data?.success === false) {
+        throw new Error(data?.error ?? `HTTP ${res.status}`);
+      }
       goTo("exito");
     } catch (err) {
-      console.error("Error al enviar check-in:", err);
+      console.error("Error al enviar:", err);
       goTo("exito");
     } finally {
       setIsSubmitting(false);
     }
   };
+
   if (currentStep === "tablet_buscar") {
     return (
       <div className="shell">
@@ -195,24 +185,39 @@ function CheckinWizard() {
       {isOffline && (
         <div style={{ padding: "8px 24px 0" }}>
           <Alert variant="warm">
-            Está sin conexión. Puede continuar rellenando datos, pero el envío
-            podría fallar hasta recuperar Internet.
+            Está sin conexión. El envío podría fallar.
           </Alert>
         </div>
       )}
 
+      {/* --- STEP 1: INICIO LEGAL (Sustituye a Bienvenida antigua) --- */}
       {currentStep === "bienvenida" && (
-        <ScreenBienvenida
-          knownGuest={state.knownGuest}
-          reserva={state.reserva}
-          onChooseScan={() => {
-            sessionStorage.setItem(`modoFlujo_${token}`, "escaneo");
-            goTo("escanear");
+        <ScreenCheckinInicio
+          reserva={
+            state.reserva ||
+            ({
+              id: "---",
+              numHuespedes: 0,
+              confirmacion: "---",
+              habitacion: "---",
+              fechaEntrada: "",
+              fechaSalida: "",
+              numNoches: 0,
+            } as unknown as Reserva)
+          }
+          onNext={(hayMenores: boolean) => {
+            sessionStorage.setItem(`modoFlujo_${token}`, "manual");
+            if (hayMenores) {
+              goTo("num_personas");
+            } else {
+              setNumPersonas(state.reserva?.numHuespedes || 1, 0);
+              goTo("form_personal", "forward", 0);
+            }
           }}
-          onChooseManual={handleChooseManual}
         />
       )}
 
+      {/* --- STEP 2: NÚMERO DE PERSONAS (Si hay menores) --- */}
       {currentStep === "num_personas" && (
         <ScreenNumPersonas
           numAdultos={state.numAdultos}
@@ -223,6 +228,18 @@ function CheckinWizard() {
         />
       )}
 
+      {/* --- STEP 3: ESCANEAR --- */}
+      {currentStep === "escanear" && (
+        <ScreenEscanear
+          onScanned={(data) => {
+            applyScannedData(data, nav.guestIndex);
+            goTo("form_personal");
+          }}
+          onSkip={() => goTo("form_personal")}
+        />
+      )}
+
+      {/* --- STEP 4: CONFIRMAR DATOS (Si es conocido) --- */}
       {currentStep === "confirmar_datos" && (
         <ScreenConfirmarDatos
           guest={currentGuest}
@@ -231,16 +248,7 @@ function CheckinWizard() {
         />
       )}
 
-      {currentStep === "escanear" && (
-        <ScreenEscanear
-          onScanned={(data) => {
-            applyScannedData(data, nav.guestIndex);
-            goTo("num_personas");
-          }}
-          onSkip={() => goTo("num_personas")}
-        />
-      )}
-
+      {/* --- STEP 5: FORMULARIO PERSONAL --- */}
       {currentStep === "form_personal" && (
         <ScreenFormPersonal
           data={currentGuest}
@@ -252,6 +260,8 @@ function CheckinWizard() {
           onNext={() => nextGuest(nav.guestIndex, "form_personal")}
         />
       )}
+
+      {/* --- STEP 6: FORMULARIO CONTACTO --- */}
       {currentStep === "form_contacto" && (
         <ScreenFormContacto
           data={currentGuest}
@@ -260,6 +270,7 @@ function CheckinWizard() {
         />
       )}
 
+      {/* --- STEP 7: FORMULARIO DOCUMENTO --- */}
       {currentStep === "form_documento" && (
         <ScreenFormDocumento
           data={currentGuest}
@@ -271,11 +282,12 @@ function CheckinWizard() {
           modoFlujo={
             (sessionStorage.getItem(`modoFlujo_${token}`) as
               | "manual"
-              | "escaneo") || "escaneo"
+              | "escaneo") || "manual"
           }
         />
       )}
 
+      {/* --- STEP 8: RELACIONES (Solo para menores) --- */}
       {currentStep === "form_relaciones" &&
         (() => {
           const menorRelIdx = nav.guestIndex - state.numAdultos;
@@ -286,14 +298,15 @@ function CheckinWizard() {
               menorIndex={menorRelIdx}
               menorRealIndex={nav.guestIndex}
               adultos={adultos}
-              onRelacionChange={(adultoIndex: number, parentesco: string) =>
-                updateRelacion(menorRelIdx, adultoIndex, parentesco)
+              onRelacionChange={(aIdx: number, p: string) =>
+                updateRelacion(menorRelIdx, aIdx, p)
               }
               onNext={() => nextGuest(nav.guestIndex, "form_relaciones")}
             />
           );
         })()}
 
+      {/* --- STEP 9: EXTRAS --- */}
       {currentStep === "form_extras" && (
         <ScreenFormExtras
           horaLlegada={state.horaLlegada}
@@ -304,6 +317,7 @@ function CheckinWizard() {
         />
       )}
 
+      {/* --- STEP 10: REVISIÓN --- */}
       {currentStep === "revision" && (
         <>
           {submitError && (
@@ -321,6 +335,7 @@ function CheckinWizard() {
         </>
       )}
 
+      {/* --- STEP 11: ÉXITO --- */}
       {currentStep === "exito" && (
         <ScreenExito
           state={state}
