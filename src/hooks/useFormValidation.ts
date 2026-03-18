@@ -32,7 +32,6 @@ export function useFormValidation<T>(validator: ValidatorFn<T>) {
   return { errors, validate, clearError, clearAll };
 }
 
-// --- Helpers de validación de documentos ---
 const LETRAS_DNI = "TRWAGMYFPDXBNJZSQVHLCKE";
 
 function validarDNI(num: string): boolean {
@@ -68,7 +67,6 @@ export function validarNumeroDocumento(
   return null;
 }
 
-// --- Validador de Datos Personales con tus etiquetas ---
 export function validatePersonal(
   data: PartialGuestData & { isTitular?: boolean },
   t: TFunction,
@@ -100,6 +98,15 @@ export function validatePersonal(
   } else {
     const errorNum = validarNumeroDocumento(data.tipoDoc, data.numDoc ?? "", t);
     if (errorNum) e.numDoc = errorNum;
+
+    // 🔥 NUEVO: Validación del Número de Soporte solo para DNI y NIE
+    if (data.tipoDoc === "DNI" || data.tipoDoc === "NIE") {
+      if (!data.soporteDoc?.trim()) {
+        e.soporteDoc = t("validation.required_doc_support", {
+          defaultValue: "El número de soporte es obligatorio",
+        });
+      }
+    }
   }
 
   return e;

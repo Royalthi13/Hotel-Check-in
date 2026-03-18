@@ -1,6 +1,6 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Button, Icon } from "@/components/ui";
+import { Button, Icon, Alert } from "@/components/ui";
 import { useZipCode } from "@/hooks/useZipCode";
 import { TIPOS_DOCUMENTO, SEXOS, PAISES } from "@/constants";
 import {
@@ -40,6 +40,7 @@ const inputSx = {
 
 interface FormPersonalProps {
   data: PartialGuestData;
+  allGuests: PartialGuestData[];
   onChange: (key: keyof PartialGuestData, value: unknown) => void;
   guestIndex: number;
   totalGuests: number;
@@ -79,6 +80,7 @@ const FieldError: React.FC<{ msg?: string }> = ({ msg }) =>
 
 export const ScreenFormPersonal: React.FC<FormPersonalProps> = ({
   data,
+  allGuests,
   onChange,
   guestIndex,
   totalGuests,
@@ -90,9 +92,13 @@ export const ScreenFormPersonal: React.FC<FormPersonalProps> = ({
 }) => {
   const { t } = useTranslation();
   const { errors, validate, clearError } = useFormValidation(validatePersonal);
+  const [duplicateError, setDuplicateError] = useState("");
+
   const modoFlujo = sessionStorage.getItem(`modoFlujo`) || "manual";
   const mostrarCargaFoto = modoFlujo !== "manual";
   const fechaNac = data.fechaNac ? dayjs(data.fechaNac) : null;
+
+  const isDniOrNie = data.tipoDoc === "DNI" || data.tipoDoc === "NIE";
 
   useDebounce(
     () => {
@@ -104,6 +110,30 @@ export const ScreenFormPersonal: React.FC<FormPersonalProps> = ({
   );
 
   const hasNextGuest = guestIndex < totalGuests - 1;
+
+  const checkAndProceed = (action: () => void) => {
+    setDuplicateError("");
+    if (!validate({ ...data, isTitular: isMainGuest })) return;
+
+    const currentDoc = data.numDoc?.trim().toUpperCase();
+    if (currentDoc) {
+      const isDuplicate = allGuests.some(
+        (g, i) =>
+          i !== guestIndex && g.numDoc?.trim().toUpperCase() === currentDoc,
+      );
+
+      if (isDuplicate) {
+        setDuplicateError(
+          t("validation.duplicate_doc", {
+            defaultValue:
+              "Este documento ya ha sido registrado en otro huésped.",
+          }),
+        );
+        return;
+      }
+    }
+    action();
+  };
 
   return (
     <>
@@ -139,10 +169,11 @@ export const ScreenFormPersonal: React.FC<FormPersonalProps> = ({
         style={{ padding: "0 var(--px)" }}
         sx={{ mt: 2, display: "flex", flexDirection: "column", gap: 2.5 }}
       >
+        {/* 🔥 AÑADIDO: Nombre, Primer Apellido y Segundo Apellido en 3 columnas */}
         <Box
           sx={{
             display: "grid",
-            gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" },
+            gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr 1fr" },
             gap: 2,
           }}
         >
@@ -175,6 +206,18 @@ export const ScreenFormPersonal: React.FC<FormPersonalProps> = ({
               sx={inputSx}
             />
             <FieldError msg={errors.apellido} />
+          </div>
+          <div>
+            {/* El segundo apellido no es required para evitar bloquear a huéspedes extranjeros */}
+            <TextField
+              label={t("forms.second_surname")}
+              fullWidth
+              value={data.apellido2 ?? ""}
+              onChange={(e) => {
+                onChange("apellido2", e.target.value);
+              }}
+              sx={inputSx}
+            />
           </div>
         </Box>
 
@@ -238,7 +281,10 @@ export const ScreenFormPersonal: React.FC<FormPersonalProps> = ({
         <Box
           sx={{
             display: "grid",
-            gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" },
+            gridTemplateColumns: {
+              xs: "1fr",
+              sm: isDniOrNie ? "1fr 1fr 1fr" : "1fr 1fr",
+            },
             gap: 2,
           }}
         >
@@ -252,6 +298,7 @@ export const ScreenFormPersonal: React.FC<FormPersonalProps> = ({
               onChange={(e) => {
                 onChange("tipoDoc", e.target.value);
                 clearError("tipoDoc");
+                clearError("soporteDoc");
               }}
               error={!!errors.tipoDoc}
               sx={inputSx}
@@ -273,12 +320,31 @@ export const ScreenFormPersonal: React.FC<FormPersonalProps> = ({
               onChange={(e) => {
                 onChange("numDoc", e.target.value.toUpperCase());
                 clearError("numDoc");
+                setDuplicateError("");
               }}
               error={!!errors.numDoc}
               sx={inputSx}
             />
             <FieldError msg={errors.numDoc} />
           </div>
+          {isDniOrNie && (
+            <div>
+              <TextField
+                label={t("forms.doc_support", { defaultValue: "Soporte" })}
+                required
+                fullWidth
+                value={data.soporteDoc ?? ""}
+                onChange={(e) => {
+                  onChange("soporteDoc", e.target.value.toUpperCase());
+                  clearError("soporteDoc");
+                }}
+                error={!!errors.soporteDoc}
+                sx={inputSx}
+                placeholder="Ej: IDESP..."
+              />
+              <FieldError msg={errors.soporteDoc} />
+            </div>
+          )}
         </Box>
 
         {mostrarCargaFoto && (
@@ -313,8 +379,13 @@ export const ScreenFormPersonal: React.FC<FormPersonalProps> = ({
         )}
       </Box>
 
+      {duplicateError && (
+        <Box sx={{ padding: "0 var(--px)", mt: 2 }}>
+          <Alert variant="err">{duplicateError}</Alert>
+        </Box>
+      )}
+
       <div className="spacer" />
-      {/* 🔥 NUEVOS BOTONES DE ACCIÓN */}
       <div
         className="btn-row"
         style={{
@@ -324,13 +395,10 @@ export const ScreenFormPersonal: React.FC<FormPersonalProps> = ({
           justifyContent: "flex-end",
         }}
       >
-        {hasNextGuest && (
+        {!isMainGuest && hasNextGuest && (
           <Button
             variant="secondary"
-            onClick={() => {
-              if (validate({ ...data, isTitular: isMainGuest }))
-                onPartialSave();
-            }}
+            onClick={() => checkAndProceed(onPartialSave)}
             disabled={isSubmitting}
             style={{ flex: 1, minWidth: "200px" }}
           >
@@ -343,9 +411,7 @@ export const ScreenFormPersonal: React.FC<FormPersonalProps> = ({
         )}
         <Button
           variant="primary"
-          onClick={() => {
-            if (validate({ ...data, isTitular: isMainGuest })) onNext();
-          }}
+          onClick={() => checkAndProceed(onNext)}
           iconRight="right"
           disabled={isSubmitting}
           style={{ flex: 1, minWidth: "200px" }}
@@ -605,7 +671,6 @@ export const ScreenFormContacto: React.FC<FormContactoProps> = ({
       </Box>
 
       <div className="spacer" />
-      {/* 🔥 NUEVOS BOTONES DE ACCIÓN */}
       <div
         className="btn-row"
         style={{

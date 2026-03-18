@@ -61,6 +61,7 @@ export interface GuestData {
   // Documento
   tipoDoc: string;
   numDoc: string;
+  soporteDoc?: string;
   vat?: string;
   docFile?: File | null;
   docUploaded?: boolean;

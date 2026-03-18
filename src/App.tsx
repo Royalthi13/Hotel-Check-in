@@ -51,7 +51,6 @@ function CheckinWizard() {
 
   const [isPartialSuccess, setIsPartialSuccess] = useState(false);
 
-  // ESTADOS PERSISTENTES: Flujo inicial
   const [legalPassed, setLegalPassed] = useState(
     () => sessionStorage.getItem(`legalPassed_${token}`) === "true",
   );
@@ -108,7 +107,6 @@ function CheckinWizard() {
   const isMainGuest = nav.guestIndex === 0;
   const currentGuest = state.guests[nav.guestIndex] ?? {};
 
-  // NAVEGACIÓN INTELIGENTE: Botón "Atrás" en la pantalla de elegir
   const customNav = {
     ...nav,
     canGoBack: nav.canGoBack || (currentStep === "bienvenida" && legalPassed),
@@ -122,19 +120,15 @@ function CheckinWizard() {
     }
   };
 
-  // 🔥 LÓGICA DE DECISIÓN CORREGIDA: Si elige "Escanear", se va directo a escanear.
   const handleChooseMethod = (method: "scan" | "manual") => {
     sessionStorage.setItem(`modoFlujo_${token}`, method);
 
     if (hasMinorsFlag) {
-      // Si hay menores, primero hay que preguntar cuántos son
       goTo("num_personas", "forward", 0);
     } else {
-      // Si NO hay menores, seteamos 1 adulto (o lo que dicte la reserva) y avanzamos según método
       setNumPersonas(state.reserva?.numHuespedes || 1);
-
       if (method === "scan") {
-        goTo("escanear", "forward", 0); // Va directo a escanear
+        goTo("escanear", "forward", 0);
       } else if (state.knownGuest) {
         goTo("confirmar_datos", "forward", 0);
       } else {
@@ -255,7 +249,6 @@ function CheckinWizard() {
         </div>
       )}
 
-      {/* 1. Inicio: Resumen + Pregunta de Menores + Legal */}
       {currentStep === "bienvenida" && !legalPassed && (
         <ScreenCheckinInicio
           reserva={
@@ -271,12 +264,11 @@ function CheckinWizard() {
           }
           onNext={(hayMenores: boolean) => {
             setHasMinorsFlag(hayMenores);
-            setLegalPassed(true); // Pasamos a la siguiente fase interna de "bienvenida"
+            setLegalPassed(true);
           }}
         />
       )}
 
-      {/* 2. Bienvenida: Elegir método Escanear o Manual */}
       {currentStep === "bienvenida" && legalPassed && (
         <ScreenBienvenida
           knownGuest={state.knownGuest}
@@ -286,13 +278,11 @@ function CheckinWizard() {
         />
       )}
 
-      {/* 3. Número de Personas (Solo si se declararon menores) */}
       {currentStep === "num_personas" && (
         <ScreenNumPersonas
           numPersonas={state.numPersonas}
           onChange={setNumPersonas}
           onNext={() => {
-            // Cuando terminas de elegir cuántos menores son, comprobamos qué método elegiste
             const flujo = sessionStorage.getItem(`modoFlujo_${token}`);
             if (flujo === "scan") goTo("escanear", "forward", 0);
             else if (state.knownGuest) goTo("confirmar_datos", "forward", 0);
@@ -323,6 +313,8 @@ function CheckinWizard() {
       {currentStep === "form_personal" && (
         <ScreenFormPersonal
           data={currentGuest}
+          // 🔥 AQUÍ ESTÁ EL ARREGLO
+          allGuests={state.guests}
           onChange={(k: keyof PartialGuestData, v: unknown) =>
             updateGuest(nav.guestIndex, k, v)
           }
@@ -357,6 +349,12 @@ function CheckinWizard() {
             updateRelacion(nav.guestIndex, aIdx, p)
           }
           onNext={() => nextGuest(nav.guestIndex, "form_relaciones")}
+          onPartialSave={handlePartialSubmit}
+          hasNextMinor={
+            state.guests.findIndex((g, i) => i > nav.guestIndex && g.esMenor) >=
+            0
+          }
+          isSubmitting={isSubmitting}
         />
       )}
 
