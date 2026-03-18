@@ -1,5 +1,5 @@
 import React from "react";
-import { useTranslation } from "react-i18next"; // 1. Importar el hook
+import { useTranslation } from "react-i18next";
 import { Button, ConfirmBlock, Alert, Icon } from "@/components/ui";
 import type { PartialGuestData } from "@/types";
 
@@ -14,7 +14,7 @@ export const ScreenConfirmarDatos: React.FC<Props> = ({
   onConfirm,
   onEdit,
 }) => {
-  const { t } = useTranslation(); // 2. Inicializar el traductor
+  const { t } = useTranslation();
 
   const fullName = [guest.nombre, guest.apellido, guest.apellido2]
     .filter(Boolean)
@@ -28,22 +28,17 @@ export const ScreenConfirmarDatos: React.FC<Props> = ({
       </div>
 
       <div style={{ padding: "12px 24px 0" }}>
-        <Alert variant="info">
-          {/* Aquí usamos la traducción completa que preparamos para esta alerta */}
-          {t("review.confirm_alert")}
-        </Alert>
+        <Alert variant="info">{t("review.confirm_alert")}</Alert>
 
         <ConfirmBlock
           title={t("forms.personal_title")}
           rows={[
             [t("forms.full_name"), fullName || null],
-            // Traducimos el valor del sexo usando las constantes
             [
               t("forms.gender"),
               guest.sexo ? t(`constants.sexos.${guest.sexo}`) : null,
             ],
             [t("forms.birthdate_clean"), guest.fechaNac ?? null],
-            // Traducimos la nacionalidad usando las constantes
             [
               t("forms.nationality"),
               guest.nacionalidad
@@ -57,7 +52,6 @@ export const ScreenConfirmarDatos: React.FC<Props> = ({
           <ConfirmBlock
             title={t("forms.doc_title")}
             rows={[
-              // Traducimos el tipo de documento (DNI, Pasaporte, etc.)
               [t("forms.doc_type"), t(`constants.documentos.${guest.tipoDoc}`)],
               [t("forms.doc_number"), guest.numDoc ?? null],
             ]}

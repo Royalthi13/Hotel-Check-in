@@ -24,7 +24,7 @@ function getActiveSideStep(step: StepId): StepId {
 }
 
 interface AppShellProps {
-  nav: CheckinNav & { allowedSteps?: Set<StepId> };
+  nav: CheckinNav;
   actions: Pick<CheckinActions, "goBack" | "goToDotIndex" | "goTo">;
   showDots: boolean;
   reserva?: Reserva | null;
@@ -52,24 +52,16 @@ export const AppShell: React.FC<AppShellProps> = ({
     setMaxDotReached(nav.dotIndex);
   }
 
-  // 🔥 COMPROBACIÓN INTELIGENTE DE PASOS DESBLOQUEADOS
   const isStepUnlocked = (stepId: StepId, index: number) => {
-    // Si lo tenemos guardado en memoria (hook)
-    if (nav.allowedSteps && nav.allowedSteps.has(stepId)) {
-      return true;
-    }
-    // Si ya estamos en revisión o éxito, todo lo anterior está libre
-    if (activeStep === "revision" || activeStep === "exito") {
+    if (nav.allowedSteps && nav.allowedSteps.has(stepId)) return true;
+    if (activeStep === "revision" || activeStep === "exito")
       return stepId !== "exito" || activeStep === "exito";
-    }
-    // Lógica por defecto basada en el índice
     return index <= activeIdx;
   };
 
   return (
     <div className="shell">
       <div className="card">
-        {/* Header */}
         <Header
           canGoBack={nav.canGoBack}
           onBack={actions.goBack}
@@ -86,7 +78,6 @@ export const AppShell: React.FC<AppShellProps> = ({
           }
         />
 
-        {/* Dots (Móvil/Tablet) */}
         {showDots && nav.dotIndex >= 0 && (
           <DotsProgress
             steps={nav.dotSteps}
@@ -117,21 +108,7 @@ export const AppShell: React.FC<AppShellProps> = ({
                     activeStep === "exito"
                   }
                 >
-                  <Icon name="search" size={14} color="rgba(255,255,255,.8)" />
-                  {t("appShell.booking_summary")}
-                </button>
-
-                <button
-                  type="button"
-                  className="sp-summary-btn-orange"
-                  onClick={onGoToRevision}
-                  disabled={
-                    !onGoToRevision ||
-                    activeStep === "revision" ||
-                    activeStep === "exito"
-                  }
-                >
-                  <Icon name="search" size={14} color="#fff" />
+                  <Icon name="search" size={14} color="rgba(255,255,255,.8)" />{" "}
                   {t("appShell.booking_summary")}
                 </button>
               </div>
@@ -145,7 +122,7 @@ export const AppShell: React.FC<AppShellProps> = ({
                 </div>
               )}
 
-              <nav className="sp-steps" aria-label="Progreso">
+              <nav className="sp-steps">
                 {SIDE_STEPS.map((s, i) => {
                   const isActive = i === activeIdx;
                   const isUnlocked = isStepUnlocked(s.id, i);
@@ -160,20 +137,14 @@ export const AppShell: React.FC<AppShellProps> = ({
                   return (
                     <div
                       key={s.id}
-                      onClick={() => {
-                        if (isClickable) {
-                          const dotIdxInNav = nav.dotSteps.indexOf(s.id);
-                          if (dotIdxInNav !== -1) {
-                            actions.goToDotIndex(dotIdxInNav);
-                          } else {
-                            actions.goTo(
-                              s.id,
-                              i < activeIdx ? "back" : "forward",
-                              0, // Si navegas por el sidebar, empiezas por el Huésped 1 (índice 0)
-                            );
-                          }
-                        }
-                      }}
+                      onClick={() =>
+                        isClickable &&
+                        actions.goTo(
+                          s.id,
+                          i < activeIdx ? "back" : "forward",
+                          0,
+                        )
+                      }
                       className={[
                         "sp-step",
                         isActive ? "sp-step--active" : "",
@@ -201,11 +172,6 @@ export const AppShell: React.FC<AppShellProps> = ({
                   );
                 })}
               </nav>
-
-              <div className="sp-footer">
-                <Icon name="lock" size={12} color="rgba(255,255,255,.3)" />
-                <span>{t("appShell.privacy_short")}</span>
-              </div>
             </div>
           </aside>
 

@@ -93,7 +93,6 @@ export interface CheckinNav {
   dotSteps: StepId[];
   dotIndex: number;
   canGoBack: boolean;
-  // 🔥 ESTA ES LA PROPIEDAD QUE FALTABA:
   allowedSteps: Set<StepId>;
 }
 

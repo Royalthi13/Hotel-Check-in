@@ -29,20 +29,15 @@ export const ScreenCheckinInicio: React.FC<Props> = ({ reserva, onNext }) => {
   const [acceptedLegal, setAcceptedLegal] = useState(false);
   const [hayMenores, setHayMenores] = useState<string | null>(null);
 
-  const legalSections = t("legal.sections", {
-    returnObjects: true,
-  }) as LegalSection[];
-  const sectionsArray = Array.isArray(legalSections) ? legalSections : [];
+  const legalSections = t("legal.sections", { returnObjects: true });
+  const sectionsArray = Array.isArray(legalSections)
+    ? (legalSections as LegalSection[])
+    : [];
 
-  const reservaData = reserva as unknown as Record<string, unknown>;
+  const rData = reserva as unknown as Record<string, unknown>;
 
-  // 🔥 TRADUCCIÓN ROBUSTA: Usa tu clave "title_new_1" de es.json, o si no existe, extrae la primera palabra de "title"
-  const title1 = t("welcome.title_new_1", {
-    defaultValue: t("welcome.title").split(" ")[0],
-  });
-  const title2 = t("welcome.title_new_2", {
-    defaultValue: t("welcome.title").split(" ").slice(1).join(" "),
-  });
+  const title1 = t("welcome.title_new_1");
+  const title2 = t("welcome.title_new_2");
 
   return (
     <Box
@@ -53,7 +48,7 @@ export const ScreenCheckinInicio: React.FC<Props> = ({ reserva, onNext }) => {
         gap: 3,
       }}
     >
-      <div className="sec-hdr">
+      <div className="sec-hdr" style={{ padding: 0 }}>
         <Typography
           variant="h4"
           sx={{ fontFamily: "Cormorant Garamond, serif", mb: 1 }}
@@ -70,9 +65,14 @@ export const ScreenCheckinInicio: React.FC<Props> = ({ reserva, onNext }) => {
           border: "1px solid var(--border)",
         }}
       >
-        <Typography variant="overline" color="text.secondary">
+        <Typography
+          variant="overline"
+          color="text.secondary"
+          sx={{ fontWeight: 600 }}
+        >
           {t("welcome.summary_title")}
         </Typography>
+
         <Box
           sx={{
             display: "flex",
@@ -84,16 +84,24 @@ export const ScreenCheckinInicio: React.FC<Props> = ({ reserva, onNext }) => {
         >
           <Typography variant="body2">
             <strong>{t("welcome.reservation")}:</strong>{" "}
-            {(reservaData.localizador as string) ||
-              (reservaData.id as string) ||
-              (reservaData.confirmacion as string) ||
-              "---"}
+            {String(rData.confirmacion || rData.localizador || "---")}
           </Typography>
           <Typography variant="body2">
             <strong>{t("welcome.guests_booked")}:</strong>{" "}
             {reserva.numHuespedes}
           </Typography>
         </Box>
+
+        <Box sx={{ mt: 1.5, display: "flex", alignItems: "center", gap: 1 }}>
+          <Icon name="calendar" size={14} color="var(--primary)" />
+          <Typography
+            variant="body2"
+            sx={{ color: "var(--text-mid)", fontWeight: 500 }}
+          >
+            {reserva.fechaEntrada || "---"} — {reserva.fechaSalida || "---"}
+          </Typography>
+        </Box>
+
         <Typography
           variant="caption"
           sx={{
@@ -151,10 +159,6 @@ export const ScreenCheckinInicio: React.FC<Props> = ({ reserva, onNext }) => {
         <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: "bold" }}>
           {t("legal.title")}
         </Typography>
-        <Typography variant="caption" sx={{ display: "block", mb: 2 }}>
-          {t("legal.intro")}
-        </Typography>
-
         {sectionsArray.map((section, idx) => (
           <Box key={idx} sx={{ mb: 2 }}>
             <Typography
@@ -168,10 +172,6 @@ export const ScreenCheckinInicio: React.FC<Props> = ({ reserva, onNext }) => {
             </Typography>
           </Box>
         ))}
-
-        <Typography variant="caption" sx={{ fontStyle: "italic" }}>
-          {t("legal.footer")}
-        </Typography>
       </Box>
 
       <Box>
@@ -207,12 +207,14 @@ export const ScreenCheckinInicio: React.FC<Props> = ({ reserva, onNext }) => {
               cursor: "pointer",
               color: "var(--primary)",
               fontSize: "0.75rem",
+              display: "flex",
+              alignItems: "center",
+              gap: "4px",
             }}
           >
             <Icon name="upload" size={12} /> {t("legal.download_btn")}
           </button>
         </Box>
-
         <Button
           disabled={!acceptedLegal || hayMenores === null}
           onClick={() => onNext(hayMenores === "yes")}

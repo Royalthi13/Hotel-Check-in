@@ -13,6 +13,7 @@ import type {
 } from "@/types";
 import { FLOW_STEPS_LINK, DOT_STEPS_BASE } from "@/constants";
 
+// ─── Acciones ────────────────────────────────────────────────────────────────
 export type CheckinAction =
   | { type: "SET_KNOWN_GUEST"; guest: GuestData }
   | { type: "SET_RESERVA_TABLET"; reserva: Reserva }
@@ -35,6 +36,7 @@ export type CheckinAction =
   | { type: "SET_RGPD"; value: boolean }
   | { type: "RESET" };
 
+// ─── Helpers ─────────────────────────────────────────────────────────────────
 export function buildEmptyState(appMode: AppMode): CheckinState {
   return {
     appMode,
@@ -66,6 +68,7 @@ function mergeGuests(
   });
 }
 
+// ─── Reducer ─────────────────────────────────────────────────────────────────
 export function checkinReducer(
   state: CheckinState,
   action: CheckinAction,
@@ -196,6 +199,7 @@ export function checkinReducer(
   }
 }
 
+// ─── Hook Principal ──────────────────────────────────────────────────────────
 export function useCheckin(tokenUrl?: string, stepUrl?: string) {
   const navigate = useNavigate();
 

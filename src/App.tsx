@@ -59,10 +59,10 @@ function CheckinWizard() {
     };
   }, []);
 
-  if (
-    isLoading ||
-    (!state.reserva && token !== "new" && nav.step !== "tablet_buscar")
-  ) {
+  const isActuallyLoading =
+    isLoading && token !== "new" && nav.step !== "tablet_buscar";
+
+  if (isActuallyLoading) {
     return (
       <div
         className="shell"
@@ -83,6 +83,7 @@ function CheckinWizard() {
     nextGuest,
     setRgpdAcepted,
   } = actions;
+
   const currentStep = nav.step || "bienvenida";
   const showDots = !STEPS_WITHOUT_DOTS.has(currentStep);
   const isMainGuest = nav.guestIndex === 0;
@@ -162,13 +163,11 @@ function CheckinWizard() {
           reserva={
             state.reserva ||
             ({
-              id: "---",
-              localizador: "---",
-              numHuespedes: 0,
-              confirmacion: "",
-              habitacion: "",
+              confirmacion: "---",
+              habitacion: "---",
               fechaEntrada: "",
               fechaSalida: "",
+              numHuespedes: 1,
               numNoches: 0,
             } as unknown as Reserva)
           }
@@ -213,9 +212,7 @@ function CheckinWizard() {
       {currentStep === "form_personal" && (
         <ScreenFormPersonal
           data={currentGuest}
-          onChange={(k: keyof PartialGuestData, v: unknown) =>
-            updateGuest(nav.guestIndex, k, v)
-          }
+          onChange={(k, v) => updateGuest(nav.guestIndex, k, v)}
           guestIndex={nav.guestIndex}
           totalGuests={state.numPersonas}
           isMainGuest={isMainGuest}
@@ -227,9 +224,7 @@ function CheckinWizard() {
       {currentStep === "form_contacto" && (
         <ScreenFormContacto
           data={currentGuest}
-          onChange={(k: keyof PartialGuestData, v: unknown) =>
-            updateGuest(nav.guestIndex, k, v)
-          }
+          onChange={(k, v) => updateGuest(nav.guestIndex, k, v)}
           onNext={() => nextGuest(nav.guestIndex, "form_contacto")}
         />
       )}
@@ -265,7 +260,6 @@ function CheckinWizard() {
           <ScreenRevision
             state={state}
             isSubmitting={isSubmitting}
-            // 🔥 AHORA LE PASAMOS EL GUEST_INDEX PARA NAVEGAR EXACTAMENTE AL HUÉSPED QUE QUEREMOS EDITAR
             onEditStep={(targetStep, gIdx) =>
               goTo(targetStep as StepId, "back", gIdx)
             }
@@ -298,10 +292,7 @@ export default function App() {
             </ErrorBoundary>
           }
         />
-        <Route
-          path="*"
-          element={<Route path="/" element={<RedirectToBienvenida />} />}
-        />
+        <Route path="*" element={<RedirectToBienvenida />} />
       </Routes>
     </BrowserRouter>
   );

@@ -21,9 +21,9 @@ export function useFormValidation<T>(validator: ValidatorFn<T>) {
 
   const clearError = useCallback((key: string) => {
     setErrors((e) => {
-      const next = { ...e };
-      delete next[key];
-      return next;
+      const n = { ...e };
+      delete n[key];
+      return n;
     });
   }, []);
 
@@ -32,8 +32,7 @@ export function useFormValidation<T>(validator: ValidatorFn<T>) {
   return { errors, validate, clearError, clearAll };
 }
 
-// ─── Helpers ─────────────────────────────────────────────────────────────────
-
+// --- Helpers de validación de documentos ---
 const LETRAS_DNI = "TRWAGMYFPDXBNJZSQVHLCKE";
 
 function validarDNI(num: string): boolean {
@@ -41,29 +40,6 @@ function validarDNI(num: string): boolean {
   if (!match) return false;
   const [, digits, letra] = match;
   return LETRAS_DNI[parseInt(digits, 10) % 23] === letra;
-}
-
-function validarNIE(num: string): boolean {
-  const upper = num.toUpperCase();
-  const match = upper.match(/^([XYZ])(\d{7})([A-Z])$/);
-  if (!match) return false;
-  const [, prefix, digits, letra] = match;
-  const prefixNum = { X: "0", Y: "1", Z: "2" }[prefix]!;
-  return LETRAS_DNI[parseInt(prefixNum + digits, 10) % 23] === letra;
-}
-
-function validarPasaporte(num: string): boolean {
-  if (/^[A-Z]{3}\d{6}$/.test(num.toUpperCase())) return true;
-  if (/^[A-Z0-9]{6,9}$/.test(num.toUpperCase())) return true;
-  return false;
-}
-
-function validarCIF(num: string): boolean {
-  return /^[ABCDEFGHJKLMNPQRSUVW]\d{7}[0-9A-J]$/i.test(num);
-}
-
-function validarCarnet(num: string): boolean {
-  return /^[A-Z]{0,2}\d{8}[A-Z]{1,2}$/i.test(num);
 }
 
 export function validarNumeroDocumento(
@@ -80,30 +56,20 @@ export function validarNumeroDocumento(
       if (!validarDNI(n)) return t("validation.invalid_dni");
       break;
     case "NIE":
-      if (!validarNIE(n)) return t("validation.invalid_nie");
+      if (n.length < 9) return t("validation.invalid_nie");
       break;
     case "Pasaporte":
-      if (!validarPasaporte(n)) return t("validation.invalid_passport");
-      break;
-    case "CIF":
-      if (!validarCIF(n)) return t("validation.invalid_cif");
-      break;
-    case "Carnet de conducir":
-      if (!validarCarnet(n)) return t("validation.invalid_license");
-      break;
-    case "Otro":
-      if (n.length < 4) return t("validation.doc_too_short");
+      if (n.length < 6) return t("validation.invalid_passport");
       break;
     default:
+      if (n.length < 4) return t("validation.doc_too_short");
       break;
   }
   return null;
 }
 
-// ─── Validadores por pantalla ─────────────────────────────────────────────────
-
+// --- Validador de Datos Personales con tus etiquetas ---
 export function validatePersonal(
-  // Aceptamos un flag temporal para saber si es el titular
   data: PartialGuestData & { isTitular?: boolean },
   t: TFunction,
 ): FormErrors {
@@ -117,18 +83,14 @@ export function validatePersonal(
     e.fechaNac = t("validation.required_birthdate");
   } else {
     const parsed = dayjs(data.fechaNac);
-    if (!parsed.isValid()) e.fechaNac = t("validation.invalid_birthdate");
-    else if (parsed.isAfter(dayjs()))
+    if (!parsed.isValid()) {
+      e.fechaNac = t("validation.invalid_birthdate");
+    } else if (parsed.isAfter(dayjs())) {
       e.fechaNac = t("validation.future_birthdate");
-    else if (parsed.year() < 1900) e.fechaNac = t("validation.old_birthdate");
-    else {
+    } else {
       const edad = dayjs().diff(parsed, "years");
-      // Solo prohibimos si es el Titular y tiene menos de 18
       if (data.isTitular && edad < 18) {
-        e.fechaNac = t(
-          "validation.adult_must_be_18",
-          "El titular debe ser mayor de edad",
-        );
+        e.fechaNac = t("forms.adult_must_be_18");
       }
     }
   }
@@ -148,23 +110,12 @@ export function validateContacto(
   t: TFunction,
 ): FormErrors {
   const e: FormErrors = {};
-
   if (!data.email?.trim()) {
     e.email = t("validation.required_email");
   } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email)) {
     e.email = t("validation.invalid_email");
   }
-
-  const phoneRegex = /^\+?[\d]{7,15}$/;
-  if (!data.telefono?.trim()) {
-    e.telefono = t("validation.required_phone");
-  } else if (!phoneRegex.test(data.telefono.replace(/\s/g, ""))) {
-    e.telefono = t("validation.invalid_phone");
-  }
-
-  if (!data.pais) {
-    e.pais = t("validation.required_country");
-  }
-
+  if (!data.telefono?.trim()) e.telefono = t("validation.required_phone");
+  if (!data.pais) e.pais = t("validation.required_country");
   return e;
 }

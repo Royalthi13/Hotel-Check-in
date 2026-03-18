@@ -61,7 +61,6 @@ export const ScreenTabletBuscar: React.FC<Props> = ({ onFound }) => {
         return;
       }
 
-      // 2. FALLBACK A MOCKS (Si falla la API o no encuentra nada)
       const mockRes = MOCK_RESERVAS[trimmedNum as keyof typeof MOCK_RESERVAS];
       if (mockRes) {
         onFound(mockRes);
@@ -71,7 +70,6 @@ export const ScreenTabletBuscar: React.FC<Props> = ({ onFound }) => {
         setError(t("search.error_not_found"));
       }
     } catch {
-      // 3. SEGUNDO INTENTO CON MOCKS POR SI ES ERROR DE RED
       const mockRes = MOCK_RESERVAS[trimmedNum as keyof typeof MOCK_RESERVAS];
       if (mockRes) {
         onFound(mockRes);

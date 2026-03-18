@@ -22,7 +22,6 @@ import { usePlaces } from "@/hooks/usePlaces";
 import dayjs from "dayjs";
 import "dayjs/locale/es";
 
-// --- Debounce hook rescrito para no dar errores en ESLint ---
 function useDebounce(fn: () => void, delay: number, watchValue: unknown) {
   const fnRef = useRef(fn);
   useEffect(() => {
@@ -73,7 +72,6 @@ const FieldError: React.FC<{ msg?: string }> = ({ msg }) =>
     </span>
   ) : null;
 
-// 1. SCREEN FORM PERSONAL
 export const ScreenFormPersonal: React.FC<FormPersonalProps> = ({
   data,
   onChange,
@@ -85,7 +83,6 @@ export const ScreenFormPersonal: React.FC<FormPersonalProps> = ({
 }) => {
   const { t } = useTranslation();
   const { errors, validate, clearError } = useFormValidation(validatePersonal);
-
   const modoFlujo = sessionStorage.getItem(`modoFlujo`) || "manual";
   const mostrarCargaFoto = modoFlujo !== "manual";
   const fechaNac = data.fechaNac ? dayjs(data.fechaNac) : null;
@@ -102,6 +99,7 @@ export const ScreenFormPersonal: React.FC<FormPersonalProps> = ({
   return (
     <>
       <div className="sec-hdr">
+        {/* LÓGICA DE TÍTULOS*/}
         <Typography
           variant="h2"
           sx={{
@@ -109,15 +107,24 @@ export const ScreenFormPersonal: React.FC<FormPersonalProps> = ({
             fontSize: "var(--fs-2xl)",
           }}
         >
-          {esMenor ? t("forms.minor_data") : t("forms.personal_title")}
+          {isMainGuest
+            ? t("forms.personal_title")
+            : esMenor
+              ? t("forms.minor_data")
+              : t("forms.personal_title")}
         </Typography>
+
         <Typography variant="body2" color="var(--text-low)">
           {t("forms.guest_counter", {
             current: guestIndex + 1,
             total: totalGuests,
           })}
-          {isMainGuest && t("forms.main_guest_tag")}
-          {esMenor ? t("forms.minor_tag") : t("forms.adult_tag")}
+          {/* Si es el Huésped 1, ponemos la etiqueta de Titular. Si es otro, ponemos si es adulto o menor */}
+          {isMainGuest
+            ? ` · ${t("forms.main_guest_tag").replace("·", "").trim()}`
+            : esMenor
+              ? t("forms.minor_tag")
+              : t("forms.adult_tag")}
         </Typography>
       </div>
 
@@ -199,10 +206,8 @@ export const ScreenFormPersonal: React.FC<FormPersonalProps> = ({
               value={fechaNac}
               disableFuture
               onChange={(v) => {
-                onChange(
-                  "fechaNac",
-                  v?.isValid() ? v.format("YYYY-MM-DD") : "",
-                );
+                const formatted = v?.isValid() ? v.format("YYYY-MM-DD") : "";
+                onChange("fechaNac", formatted);
                 clearError("fechaNac");
               }}
               slotProps={{
@@ -316,7 +321,6 @@ export const ScreenFormPersonal: React.FC<FormPersonalProps> = ({
   );
 };
 
-// 2. SCREEN FORM CONTACTO
 export const ScreenFormContacto: React.FC<FormContactoProps> = ({
   data,
   onChange,
@@ -556,7 +560,6 @@ export const ScreenFormContacto: React.FC<FormContactoProps> = ({
           </div>
         </Box>
       </Box>
-
       <div className="spacer" />
       <div className="btn-row">
         <Button

@@ -5,7 +5,6 @@ import { Button, Alert, Icon } from "@/components/ui";
 import { PARENTESCOS_MENOR } from "@/constants";
 import type { PartialGuestData } from "@/types";
 
-// Extensión para saber el índice original en el array global
 type AdultoData = PartialGuestData & { originalIndex: number };
 
 interface Props {
@@ -67,7 +66,6 @@ export const ScreenRelacionesMenor: React.FC<Props> = ({
         </Alert>
 
         {adultos.map((adulto) => {
-          // Usamos el originalIndex para guardar el parentesco en el array real
           const realIdx = adulto.originalIndex;
           const relacionActual =
             relaciones.find((r) => r.adultoIndex === realIdx)?.parentesco ?? "";

@@ -1,4 +1,3 @@
-// src/hooks/useZipCode.ts
 import { useState } from "react";
 
 export const useZipCode = (onChange: (key: any, value: any) => void) => {
@@ -37,7 +36,6 @@ export const useZipCode = (onChange: (key: any, value: any) => void) => {
     try {
       if (paisElegido === "España") {
         console.log("Consultando CP para España: ", cp);
-        // Aquí meterás tu futura API para España
       } else {
         const res = await fetch(`https://api.zippopotam.us/${codigoIso}/${cp}`);
         if (res.ok) {

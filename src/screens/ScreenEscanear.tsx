@@ -1,5 +1,5 @@
 import React, { useRef, useState } from "react";
-import { useTranslation } from "react-i18next"; // 1. Importamos el hook de traducción
+import { useTranslation } from "react-i18next";
 import { Alert, Button, Icon } from "@/components/ui";
 import type { GuestData } from "@/types";
 
@@ -13,7 +13,7 @@ const MOCK_SCAN_DATA: Partial<GuestData> = {
   apellido: "García",
   apellido2: "López",
   tipoDoc: "DNI",
-  numDoc: "12345678M", // ← letra correcta: 12345678 % 23 = 6 → M
+  numDoc: "12345678M",
   fechaNac: "1985-03-22",
   nacionalidad: "Española",
   sexo: "Hombre",
@@ -40,7 +40,6 @@ export const ScreenEscanear: React.FC<Props> = ({ onScanned, onSkip }) => {
     if (!file) return;
 
     if (file.size > 20971520) {
-      // 3. Traducimos el alert nativo (o puedes usar tu componente Alert)
       alert(t("scan.error_size"));
       e.target.value = "";
       return;
@@ -78,7 +77,6 @@ export const ScreenEscanear: React.FC<Props> = ({ onScanned, onSkip }) => {
 
         setTimeout(() => onScanned(dataPayload), 800);
       } else {
-        // 4. Traducimos el error de lectura
         setError(t("scan.error_read"));
       }
     }, 2500);

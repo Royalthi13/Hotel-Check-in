@@ -1,6 +1,3 @@
-// ─── NOTA: MOCK_RESERVAS movido a /mocks/mockData.ts ─────────────────────────
-// constants/index.ts solo contiene constantes reales de la app.
-
 import type { GuestData, StepId } from "@/types";
 
 export const COLORS = {
@@ -25,21 +22,21 @@ export const COLORS = {
 } as const;
 
 export const MOCK_KNOWN_GUEST: GuestData = {
-  nombre: "Carlos",
-  apellido: "García",
-  apellido2: "López",
-  sexo: "Hombre",
-  fechaNac: "1985-03-22",
+  nombre: "",
+  apellido: "",
+  apellido2: "",
+  sexo: "",
+  fechaNac: "",
   nacionalidad: "Española",
-  email: "carlos.garcia@email.es",
-  telefono: "+34 612 345 678",
-  direccion: "Calle Mayor, 42, 3.º A",
-  ciudad: "Madrid",
-  provincia: "Madrid",
-  cp: "28001",
+  email: "",
+  telefono: "",
+  direccion: "",
+  ciudad: "",
+  provincia: "",
+  cp: "",
   pais: "España",
   tipoDoc: "DNI",
-  numDoc: "12345678M", // ← letra correcta: 12345678 % 23 = 6 → M
+  numDoc: "",
   vat: "",
   esMenor: false,
   relacionesConAdultos: [],
@@ -92,23 +89,44 @@ export const TIPOS_DOCUMENTO = [
 
 export const HORAS_LLEGADA = [
   "No especificada",
-  "08:00", "08:30", "09:00", "09:30",
-  "10:00", "10:30", "11:00", "11:30",
-  "12:00", "12:30", "13:00", "13:30",
-  "14:00", "14:30", "15:00", "15:30",
-  "16:00", "16:30", "17:00", "17:30",
-  "18:00", "18:30", "19:00", "19:30",
-  "20:00", "20:30", "21:00", "21:30",
-  "22:00", "22:30", "23:00",
+  "08:00",
+  "08:30",
+  "09:00",
+  "09:30",
+  "10:00",
+  "10:30",
+  "11:00",
+  "11:30",
+  "12:00",
+  "12:30",
+  "13:00",
+  "13:30",
+  "14:00",
+  "14:30",
+  "15:00",
+  "15:30",
+  "16:00",
+  "16:30",
+  "17:00",
+  "17:30",
+  "18:00",
+  "18:30",
+  "19:00",
+  "19:30",
+  "20:00",
+  "20:30",
+  "21:00",
+  "21:30",
+  "22:00",
+  "22:30",
+  "23:00",
   "Después de medianoche",
 ];
 
 export const SEXOS = ["Hombre", "Mujer", "No indicar"];
 
-// Usado en ScreenForms (campo relacionMenor legacy, por compatibilidad)
 export const RELACIONES_MENOR = ["Hijo/a", "Sobrino/a", "Tutor legal", "Otra"];
 
-// Lista completa para ScreenRelacionesMenor (Orden INT/1922/2003)
 export const PARENTESCOS_MENOR = [
   "Hijo/a",
   "Nieto/a",
@@ -128,32 +146,28 @@ export const FLOW_STEPS_LINK: StepId[] = [
   "escanear",
   "form_personal",
   "form_contacto",
-  "form_documento",
   "form_relaciones",
   "form_extras",
   "revision",
   "exito",
 ];
 
-// form_relaciones no aparece en los dots — se mapea a form_personal visualmente
 export const DOT_STEPS_BASE: StepId[] = [
   "bienvenida",
   "num_personas",
   "form_personal",
   "form_contacto",
-  "form_documento",
   "form_extras",
   "revision",
   "exito",
 ];
 
 export const DOT_LABELS: Partial<Record<StepId, string>> = {
-  bienvenida:     "Bienvenida",
-  num_personas:   "Personas",
-  form_personal:  "Datos personales",
-  form_contacto:  "Contacto",
-  form_documento: "Documento",
-  form_extras:    "Preferencias",
-  revision:       "Revisión",
-  exito:          "Completado",
+  bienvenida: "Bienvenida",
+  num_personas: "Personas",
+  form_personal: "Datos personales",
+  form_contacto: "Contacto",
+  form_extras: "Preferencias",
+  revision: "Revisión",
+  exito: "Completado",
 };
