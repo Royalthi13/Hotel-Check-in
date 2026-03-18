@@ -422,7 +422,7 @@ export function useCheckin(tokenUrl?: string, stepUrl?: string) {
     dotSteps,
     dotIndex,
     canGoBack: history.length > 1 && actualStep !== "exito",
-    allowedSteps, // 🔥 Exponemos allowedSteps para que la sidebar funcione
+    allowedSteps,
   };
 
   const checkinActions = {

@@ -43,12 +43,11 @@ export interface GuestData {
 
   esMenor: boolean;
 
-  // --- NUEVOS CAMPOS PARA LA LÓGICA DE MENORES ---
-  vengoConMenores?: boolean; // Para el checkbox del titular
-  tienesMenor?: boolean; // Para saber si mostrar datos de menor en la revisión
-  nombreMenor?: string; // Nombre del responsable (usado en validación)
-  relacionMenor?: string; // Parentesco simple (usado en validación)
-  relacionesConAdultos: RelacionConAdulto[]; // Matriz completa de parentescos
+  vengoConMenores?: boolean;
+  tienesMenor?: boolean;
+  nombreMenor?: string;
+  relacionMenor?: string;
+  relacionesConAdultos: RelacionConAdulto[];
 
   // Contacto (Huésped principal)
   email?: string;
@@ -74,12 +73,10 @@ export interface CheckinState {
   appMode: AppMode;
   reserva: Reserva | null;
   knownGuest: GuestData | null;
-
   numAdultos: number;
   numMenores: number;
-  numPersonas: number; // 👈 ¡ESTO ES LO QUE TE FALTA!
+  numPersonas: number;
   guests: PartialGuestData[];
-
   horaLlegada: string;
   observaciones: string;
   rgpdAcepted: boolean;
@@ -96,6 +93,8 @@ export interface CheckinNav {
   dotSteps: StepId[];
   dotIndex: number;
   canGoBack: boolean;
+  // 🔥 ESTA ES LA PROPIEDAD QUE FALTABA:
+  allowedSteps: Set<StepId>;
 }
 
 export interface CheckinActions {
@@ -103,7 +102,7 @@ export interface CheckinActions {
   goBack: () => void;
   goToDotIndex: (dotIdx: number) => void;
   setReservaFromTablet: (res: Reserva) => void;
-  setNumPersonas: (adultos: number, menores: number) => void;
+  setNumPersonas: (total: number) => void;
   updateGuest: (
     index: number,
     key: keyof PartialGuestData,
@@ -120,4 +119,5 @@ export interface CheckinActions {
   setObservaciones: (v: string) => void;
   nextGuest: (currentGuestIndex: number, fromStep: StepId) => void;
   setRgpdAcepted: (v: boolean) => void;
+  handleSubmit?: () => Promise<void>;
 }
