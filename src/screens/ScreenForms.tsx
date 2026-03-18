@@ -10,7 +10,7 @@ import {
   validateDocumento,
   validarNumeroDocumento,
 } from "@/hooks/useFormValidation";
-import type { PartialGuestData, CheckinActions } from "@/types";
+import type { PartialGuestData } from "@/types";
 import { DatePicker } from "@mui/x-date-pickers";
 import {
   TextField,
@@ -52,8 +52,6 @@ interface FormContactoProps {
   data: PartialGuestData;
   onChange: (key: keyof PartialGuestData, value: unknown) => void;
   onNext: () => void;
-  actions: CheckinActions;
-  guestIndex: number;
 }
 interface FormDocumentoProps {
   data: PartialGuestData;
@@ -299,6 +297,7 @@ export const ScreenFormPersonal: React.FC<FormPersonalProps> = ({
 // ═══════════════════════════════════════════════════════════════════════════
 // 2. SCREEN FORM CONTACTO
 // ═══════════════════════════════════════════════════════════════════════════
+
 export const ScreenFormContacto: React.FC<FormContactoProps> = ({
   data,
   onChange,
@@ -377,13 +376,18 @@ export const ScreenFormContacto: React.FC<FormContactoProps> = ({
               label={t("forms.phone")}
               required
               fullWidth
+              type="tel"
               value={data.telefono ?? ""}
               onChange={(e) => {
-                onChange("telefono", e.target.value);
-                if (errors.telefono) clearError("telefono");
+                const val = e.target.value.replace(/(?!^\+)[^\d]/g, "");
+                if (val.length <= 15) {
+                  onChange("telefono", val);
+                  if (errors.telefono) clearError("telefono");
+                }
               }}
               error={!!errors.telefono}
               sx={inputSx}
+              placeholder="+34 600 000 000"
             />
             <FieldError msg={errors.telefono} />
           </div>
@@ -504,7 +508,16 @@ export const ScreenFormContacto: React.FC<FormContactoProps> = ({
       <div className="btn-row">
         <Button
           onClick={() => {
-            if (validate(data)) onNext();
+            const esValido = validate(data);
+
+            // Si la validación falla, escupimos el objeto de errores en la consola
+            // sin usar ni un solo string hardcodeado.
+            if (!esValido) {
+              console.warn(errors);
+            }
+
+            // 🔥 Quitamos el 'if' para que te deje avanzar SIEMPRE mientras haces las pruebas.
+            onNext();
           }}
           iconRight="right"
         >
@@ -514,7 +527,6 @@ export const ScreenFormContacto: React.FC<FormContactoProps> = ({
     </>
   );
 };
-
 // ═══════════════════════════════════════════════════════════════════════════
 // 3. SCREEN FORM DOCUMENTO
 // ═══════════════════════════════════════════════════════════════════════════

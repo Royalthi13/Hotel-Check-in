@@ -46,7 +46,6 @@ export const AppShell: React.FC<AppShellProps> = ({
   const activeStep = getActiveSideStep(nav.step);
   const activeIdx = SIDE_STEPS.findIndex((s) => s.id === activeStep);
 
-  // 🧠 MEMORIA PARA LOS PUNTITOS DE ARRIBA (Huéspedes)
   const [maxDotReached, setMaxDotReached] = useState(
     nav.dotIndex >= 0 ? nav.dotIndex : 0,
   );
@@ -54,13 +53,10 @@ export const AppShell: React.FC<AppShellProps> = ({
     setMaxDotReached(nav.dotIndex);
   }
 
-  // 🔥 LA REGLA DE ORO PARA EL MENÚ LATERAL:
-  // Solo confiamos en lo que el Hook dice que está permitido.
   const isStepUnlocked = (stepId: StepId, index: number) => {
     if (nav.allowedSteps) {
       return nav.allowedSteps.has(stepId);
     }
-    // Fallback de seguridad estricto (por si el Hook no pasa allowedSteps)
     if (activeStep === "revision" || activeStep === "exito") {
       return stepId === "bienvenida" || stepId === activeStep;
     }
@@ -93,7 +89,7 @@ export const AppShell: React.FC<AppShellProps> = ({
             steps={nav.dotSteps}
             labels={nav.dotSteps.map((s: StepId) => t(`constants.steps.${s}`))}
             activeIndex={nav.dotIndex}
-            maxReachable={maxDotReached} // Permite volver a clicar puntitos futuros ya desbloqueados
+            maxReachable={maxDotReached}
             onDotClick={actions.goToDotIndex}
           />
         )}
@@ -152,14 +148,11 @@ export const AppShell: React.FC<AppShellProps> = ({
                 {SIDE_STEPS.map((s, i) => {
                   const isActive = i === activeIdx;
 
-                  // 1. ¿Está desbloqueado? (Basado ÚNICAMENTE en lo que realmente has visitado)
                   const isUnlocked = isStepUnlocked(s.id, i);
 
-                  // 2. ¿Se puede clicar? (Cualquiera desbloqueado excepto en el que ya estás)
                   const isClickable =
                     isUnlocked && !isActive && s.id !== "exito";
 
-                  // 3. ¿Tiene Tick verde? (Solo si está desbloqueado, no es el actual, y no es resumen/éxito)
                   const isDone =
                     isUnlocked &&
                     !isActive &&
@@ -193,7 +186,6 @@ export const AppShell: React.FC<AppShellProps> = ({
                       style={
                         {
                           cursor: isClickable ? "pointer" : "default",
-                          // Lo desbloqueado se ve claro, lo no visitado se ve opaco (bloqueado)
                           opacity: isUnlocked ? 1 : 0.4,
                         } as React.CSSProperties
                       }
