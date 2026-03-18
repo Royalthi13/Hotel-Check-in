@@ -1,6 +1,9 @@
 import { useState } from "react";
+import type { PartialGuestData } from "@/types";
 
-export const useZipCode = (onChange: (key: any, value: any) => void) => {
+type OnChangeFn = (key: keyof PartialGuestData, value: unknown) => void;
+
+export const useZipCode = (onChange: OnChangeFn) => {
   const [isSearching, setIsSearching] = useState(false);
 
   const mapaPaises: Record<string, string> = {

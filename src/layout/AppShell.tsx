@@ -24,7 +24,7 @@ function getActiveSideStep(step: StepId): StepId {
 }
 
 interface AppShellProps {
-  nav: CheckinNav;
+  nav: CheckinNav & { allowedSteps?: Set<StepId> };
   actions: Pick<CheckinActions, "goBack" | "goToDotIndex" | "goTo">;
   showDots: boolean;
   reserva?: Reserva | null;
@@ -46,22 +46,34 @@ export const AppShell: React.FC<AppShellProps> = ({
   const activeIdx = SIDE_STEPS.findIndex((s) => s.id === activeStep);
 
   const [maxDotReached, setMaxDotReached] = useState(
-    nav.dotIndex >= 0 ? nav.dotIndex : 0,
+    nav.dotIndex >= 0 && nav.step !== "revision" && nav.step !== "exito"
+      ? nav.dotIndex
+      : 0,
   );
-  if (nav.dotIndex > maxDotReached && nav.step !== "exito") {
+
+  if (
+    nav.dotIndex > maxDotReached &&
+    nav.step !== "exito" &&
+    (nav.step !== "revision" ||
+      (nav.allowedSteps && nav.allowedSteps.has("form_extras")))
+  ) {
     setMaxDotReached(nav.dotIndex);
   }
 
   const isStepUnlocked = (stepId: StepId, index: number) => {
-    if (nav.allowedSteps && nav.allowedSteps.has(stepId)) return true;
-    if (activeStep === "revision" || activeStep === "exito")
-      return stepId !== "exito" || activeStep === "exito";
+    if (nav.allowedSteps) {
+      return nav.allowedSteps.has(stepId);
+    }
+    if (activeStep === "revision" || activeStep === "exito") {
+      return stepId === "bienvenida" || stepId === activeStep;
+    }
     return index <= activeIdx;
   };
 
   return (
     <div className="shell">
       <div className="card">
+        {/* Header */}
         <Header
           canGoBack={nav.canGoBack}
           onBack={actions.goBack}
@@ -78,6 +90,7 @@ export const AppShell: React.FC<AppShellProps> = ({
           }
         />
 
+        {/* Dots (Móvil/Tablet) */}
         {showDots && nav.dotIndex >= 0 && (
           <DotsProgress
             steps={nav.dotSteps}
@@ -108,7 +121,21 @@ export const AppShell: React.FC<AppShellProps> = ({
                     activeStep === "exito"
                   }
                 >
-                  <Icon name="search" size={14} color="rgba(255,255,255,.8)" />{" "}
+                  <Icon name="search" size={14} color="rgba(255,255,255,.8)" />
+                  {t("appShell.booking_summary")}
+                </button>
+
+                <button
+                  type="button"
+                  className="sp-summary-btn-orange"
+                  onClick={onGoToRevision}
+                  disabled={
+                    !onGoToRevision ||
+                    activeStep === "revision" ||
+                    activeStep === "exito"
+                  }
+                >
+                  <Icon name="search" size={14} color="#fff" />
                   {t("appShell.booking_summary")}
                 </button>
               </div>
@@ -122,7 +149,7 @@ export const AppShell: React.FC<AppShellProps> = ({
                 </div>
               )}
 
-              <nav className="sp-steps">
+              <nav className="sp-steps" aria-label="Progreso">
                 {SIDE_STEPS.map((s, i) => {
                   const isActive = i === activeIdx;
                   const isUnlocked = isStepUnlocked(s.id, i);
@@ -137,14 +164,20 @@ export const AppShell: React.FC<AppShellProps> = ({
                   return (
                     <div
                       key={s.id}
-                      onClick={() =>
-                        isClickable &&
-                        actions.goTo(
-                          s.id,
-                          i < activeIdx ? "back" : "forward",
-                          0,
-                        )
-                      }
+                      onClick={() => {
+                        if (isClickable) {
+                          const dotIdxInNav = nav.dotSteps.indexOf(s.id);
+                          if (dotIdxInNav !== -1) {
+                            actions.goToDotIndex(dotIdxInNav);
+                          } else {
+                            actions.goTo(
+                              s.id,
+                              i < activeIdx ? "back" : "forward",
+                              0,
+                            );
+                          }
+                        }
+                      }}
                       className={[
                         "sp-step",
                         isActive ? "sp-step--active" : "",
@@ -172,6 +205,11 @@ export const AppShell: React.FC<AppShellProps> = ({
                   );
                 })}
               </nav>
+
+              <div className="sp-footer">
+                <Icon name="lock" size={12} color="rgba(255,255,255,.3)" />
+                <span>{t("appShell.privacy_short")}</span>
+              </div>
             </div>
           </aside>
 

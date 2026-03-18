@@ -212,7 +212,10 @@ function CheckinWizard() {
       {currentStep === "form_personal" && (
         <ScreenFormPersonal
           data={currentGuest}
-          onChange={(k, v) => updateGuest(nav.guestIndex, k, v)}
+          // 🔥 Tipado correcto usando keyof PartialGuestData y unknown
+          onChange={(k: keyof PartialGuestData, v: unknown) =>
+            updateGuest(nav.guestIndex, k, v)
+          }
           guestIndex={nav.guestIndex}
           totalGuests={state.numPersonas}
           isMainGuest={isMainGuest}
@@ -224,7 +227,10 @@ function CheckinWizard() {
       {currentStep === "form_contacto" && (
         <ScreenFormContacto
           data={currentGuest}
-          onChange={(k, v) => updateGuest(nav.guestIndex, k, v)}
+          // 🔥 Tipado correcto usando keyof PartialGuestData y unknown
+          onChange={(k: keyof PartialGuestData, v: unknown) =>
+            updateGuest(nav.guestIndex, k, v)
+          }
           onNext={() => nextGuest(nav.guestIndex, "form_contacto")}
         />
       )}
@@ -233,7 +239,7 @@ function CheckinWizard() {
         <ScreenRelacionesMenor
           menor={currentGuest}
           adultos={adultosConIndice}
-          onRelacionChange={(aIdx, p) =>
+          onRelacionChange={(aIdx: number, p: string) =>
             updateRelacion(nav.guestIndex, aIdx, p)
           }
           onNext={() => nextGuest(nav.guestIndex, "form_relaciones")}
