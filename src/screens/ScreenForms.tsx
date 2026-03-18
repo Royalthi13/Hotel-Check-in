@@ -46,12 +46,17 @@ interface FormPersonalProps {
   isMainGuest: boolean;
   esMenor?: boolean;
   onNext: () => void;
+  onPartialSave: () => void;
+  isSubmitting: boolean;
 }
 
 interface FormContactoProps {
   data: PartialGuestData;
   onChange: (key: keyof PartialGuestData, value: unknown) => void;
   onNext: () => void;
+  onPartialSave: () => void;
+  hasNextGuest: boolean;
+  isSubmitting: boolean;
 }
 
 const FieldError: React.FC<{ msg?: string }> = ({ msg }) =>
@@ -80,6 +85,8 @@ export const ScreenFormPersonal: React.FC<FormPersonalProps> = ({
   isMainGuest,
   esMenor,
   onNext,
+  onPartialSave,
+  isSubmitting,
 }) => {
   const { t } = useTranslation();
   const { errors, validate, clearError } = useFormValidation(validatePersonal);
@@ -96,10 +103,11 @@ export const ScreenFormPersonal: React.FC<FormPersonalProps> = ({
     data.nombre,
   );
 
+  const hasNextGuest = guestIndex < totalGuests - 1;
+
   return (
     <>
       <div className="sec-hdr">
-        {/* LÓGICA DE TÍTULOS*/}
         <Typography
           variant="h2"
           sx={{
@@ -119,7 +127,6 @@ export const ScreenFormPersonal: React.FC<FormPersonalProps> = ({
             current: guestIndex + 1,
             total: totalGuests,
           })}
-          {/* Si es el Huésped 1, ponemos la etiqueta de Titular. Si es otro, ponemos si es adulto o menor */}
           {isMainGuest
             ? ` · ${t("forms.main_guest_tag").replace("·", "").trim()}`
             : esMenor
@@ -307,14 +314,47 @@ export const ScreenFormPersonal: React.FC<FormPersonalProps> = ({
       </Box>
 
       <div className="spacer" />
-      <div className="btn-row">
+      {/* 🔥 NUEVOS BOTONES DE ACCIÓN */}
+      <div
+        className="btn-row"
+        style={{
+          display: "flex",
+          gap: "10px",
+          flexWrap: "wrap",
+          justifyContent: "flex-end",
+        }}
+      >
+        {hasNextGuest && (
+          <Button
+            variant="secondary"
+            onClick={() => {
+              if (validate({ ...data, isTitular: isMainGuest }))
+                onPartialSave();
+            }}
+            disabled={isSubmitting}
+            style={{ flex: 1, minWidth: "200px" }}
+          >
+            {isSubmitting
+              ? "..."
+              : t("common.save_partial", {
+                  defaultValue: "Guardar y seguir luego",
+                })}
+          </Button>
+        )}
         <Button
+          variant="primary"
           onClick={() => {
             if (validate({ ...data, isTitular: isMainGuest })) onNext();
           }}
           iconRight="right"
+          disabled={isSubmitting}
+          style={{ flex: 1, minWidth: "200px" }}
         >
-          {t("common.continue")}
+          {isSubmitting
+            ? "..."
+            : hasNextGuest
+              ? t("common.next_guest", { defaultValue: "Siguiente persona" })
+              : t("common.continue")}
         </Button>
       </div>
     </>
@@ -325,6 +365,9 @@ export const ScreenFormContacto: React.FC<FormContactoProps> = ({
   data,
   onChange,
   onNext,
+  onPartialSave,
+  hasNextGuest,
+  isSubmitting,
 }) => {
   const { t } = useTranslation();
   const { errors, validate, clearError } = useFormValidation(validateContacto);
@@ -560,15 +603,48 @@ export const ScreenFormContacto: React.FC<FormContactoProps> = ({
           </div>
         </Box>
       </Box>
+
       <div className="spacer" />
-      <div className="btn-row">
+      {/* 🔥 NUEVOS BOTONES DE ACCIÓN */}
+      <div
+        className="btn-row"
+        style={{
+          display: "flex",
+          gap: "10px",
+          flexWrap: "wrap",
+          justifyContent: "flex-end",
+        }}
+      >
+        {hasNextGuest && (
+          <Button
+            variant="secondary"
+            onClick={() => {
+              if (validate(data)) onPartialSave();
+            }}
+            disabled={isSubmitting}
+            style={{ flex: 1, minWidth: "200px" }}
+          >
+            {isSubmitting
+              ? "..."
+              : t("common.save_partial", {
+                  defaultValue: "Guardar y seguir luego",
+                })}
+          </Button>
+        )}
         <Button
+          variant="primary"
           onClick={() => {
             if (validate(data)) onNext();
           }}
           iconRight="right"
+          disabled={isSubmitting}
+          style={{ flex: 1, minWidth: "200px" }}
         >
-          {t("common.continue")}
+          {isSubmitting
+            ? "..."
+            : hasNextGuest
+              ? t("common.next_guest", { defaultValue: "Siguiente persona" })
+              : t("common.continue")}
         </Button>
       </div>
     </>

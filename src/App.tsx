@@ -48,6 +48,8 @@ function CheckinWizard() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isOffline, setIsOffline] = useState(!navigator.onLine);
 
+  const [isPartialSuccess, setIsPartialSuccess] = useState(false);
+
   useEffect(() => {
     const on = () => setIsOffline(false);
     const off = () => setIsOffline(true);
@@ -105,6 +107,7 @@ function CheckinWizard() {
           }),
           horaLlegada: state.horaLlegada,
           observaciones: state.observaciones,
+          isPartial: false,
         }),
       });
 
@@ -117,11 +120,53 @@ function CheckinWizard() {
       if (!res.ok || data?.success === false) {
         throw new Error(data?.error ?? `HTTP ${res.status}`);
       }
+      setIsPartialSuccess(false);
       goTo("exito");
     } catch (err: unknown) {
       setSubmitError(
         err instanceof Error ? err.message : t("errorBoundary.title"),
       );
+      setIsPartialSuccess(false);
+      goTo("exito");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handlePartialSubmit = async (): Promise<void> => {
+    setSubmitError("");
+    setIsSubmitting(true);
+    try {
+      const res = await fetch(`/api/checkin/${token}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          reserva: state.reserva,
+          guests: state.guests.map((g) => {
+            const copia = { ...g };
+            delete copia.docFile;
+            return copia;
+          }),
+          isPartial: true,
+        }),
+      });
+
+      interface CheckinRes {
+        success?: boolean;
+        error?: string;
+      }
+      const data = (await res.json().catch(() => ({}))) as CheckinRes;
+
+      if (!res.ok || data?.success === false) {
+        throw new Error(data?.error ?? `HTTP ${res.status}`);
+      }
+      setIsPartialSuccess(true);
+      goTo("exito");
+    } catch (err: unknown) {
+      setSubmitError(
+        err instanceof Error ? err.message : t("errorBoundary.title"),
+      );
+      setIsPartialSuccess(true);
       goTo("exito");
     } finally {
       setIsSubmitting(false);
@@ -212,7 +257,6 @@ function CheckinWizard() {
       {currentStep === "form_personal" && (
         <ScreenFormPersonal
           data={currentGuest}
-          // 🔥 Tipado correcto usando keyof PartialGuestData y unknown
           onChange={(k: keyof PartialGuestData, v: unknown) =>
             updateGuest(nav.guestIndex, k, v)
           }
@@ -221,17 +265,21 @@ function CheckinWizard() {
           isMainGuest={isMainGuest}
           esMenor={!!currentGuest.esMenor}
           onNext={() => nextGuest(nav.guestIndex, "form_personal")}
+          onPartialSave={handlePartialSubmit}
+          isSubmitting={isSubmitting}
         />
       )}
 
       {currentStep === "form_contacto" && (
         <ScreenFormContacto
           data={currentGuest}
-          // 🔥 Tipado correcto usando keyof PartialGuestData y unknown
           onChange={(k: keyof PartialGuestData, v: unknown) =>
             updateGuest(nav.guestIndex, k, v)
           }
           onNext={() => nextGuest(nav.guestIndex, "form_contacto")}
+          onPartialSave={handlePartialSubmit}
+          hasNextGuest={state.numPersonas > 1}
+          isSubmitting={isSubmitting}
         />
       )}
 
@@ -279,6 +327,7 @@ function CheckinWizard() {
         <ScreenExito
           state={state}
           onAddHora={() => goTo("form_extras", "back")}
+          isPartial={isPartialSuccess}
         />
       )}
     </AppShell>

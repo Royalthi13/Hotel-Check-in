@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Field, Button, Alert, ConfirmBlock, Icon } from "@/components/ui";
 import { ReservationCard } from "@/components/ui";
@@ -78,7 +78,6 @@ export const ScreenFormExtras: React.FC<FormExtrasProps> = ({
 interface RevisionProps {
   state: CheckinState;
   isSubmitting: boolean;
-  // 🔥 AÑADIDO: onEditStep ahora recibe también el guestIndex para saber a dónde ir
   onEditStep: (step: string, guestIndex?: number) => void;
   onSubmit: () => Promise<void>;
   onRgpdChange: (v: boolean) => void;
@@ -120,7 +119,6 @@ export const ScreenRevision: React.FC<RevisionProps> = ({
                   ? t("review.main_guest_personal")
                   : t("review.companion_personal", { count: idx + 1 })
               }
-              // 🔥 PASAMOS EL ÍNDICE EXACTO AQUÍ
               onEdit={() => onEditStep("form_personal", idx)}
               rows={((): Array<[string, string | undefined | null]> => [
                 [t("forms.full_name"), fullName(g) || null],
@@ -149,7 +147,6 @@ export const ScreenRevision: React.FC<RevisionProps> = ({
                   : []),
               ])()}
             />
-            {/* Como FormDocumento se integró en FormPersonal, redirigimos ahí */}
             <ConfirmBlock
               title={
                 idx === 0
@@ -175,7 +172,7 @@ export const ScreenRevision: React.FC<RevisionProps> = ({
 
         <ConfirmBlock
           title={t("review.contact_address")}
-          onEdit={() => onEditStep("form_contacto", 0)} // El contacto siempre es del Titular (0)
+          onEdit={() => onEditStep("form_contacto", 0)}
           rows={[
             [t("forms.email"), main.email ?? null],
             [t("forms.phone"), main.telefono ?? null],
@@ -255,13 +252,68 @@ export const ScreenRevision: React.FC<RevisionProps> = ({
 interface ExitoProps {
   state: CheckinState;
   onAddHora?: () => void;
+  isPartial?: boolean;
 }
 
-export const ScreenExito: React.FC<ExitoProps> = ({ state, onAddHora }) => {
+export const ScreenExito: React.FC<ExitoProps> = ({
+  state,
+  onAddHora,
+  isPartial,
+}) => {
   const { t } = useTranslation();
   const { reserva, guests, horaLlegada } = state;
   const main = guests[0] ?? {};
   const nombreCompleto = [main.nombre, main.apellido].filter(Boolean).join(" ");
+
+  const [copied, setCopied] = useState(false);
+
+  const handleCopyLink = () => {
+    navigator.clipboard.writeText(window.location.href);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 3000);
+  };
+
+  if (isPartial) {
+    return (
+      <div className="success-wrap">
+        <div className="success-ring" style={{ borderColor: "var(--primary)" }}>
+          <Icon name="checkC" size={42} color="var(--primary)" />
+        </div>
+
+        <h1 className="success-title">
+          {t("success.partial_title", { defaultValue: "¡Progreso guardado!" })}
+        </h1>
+        <p className="success-sub">
+          {t("success.partial_sub", {
+            defaultValue:
+              "Los datos se han guardado correctamente. Comparta este enlace con el resto de acompañantes para que completen su registro de forma rápida y segura.",
+          })}
+        </p>
+
+        <div
+          style={{
+            marginTop: 24,
+            width: "100%",
+            display: "flex",
+            flexDirection: "column",
+            gap: 10,
+          }}
+        >
+          <Button
+            variant="primary"
+            onClick={handleCopyLink}
+            iconLeft={copied ? "check" : undefined}
+          >
+            {copied
+              ? t("common.copied", { defaultValue: "¡Enlace copiado!" })
+              : t("common.copy_link", {
+                  defaultValue: "Copiar enlace para compartir",
+                })}
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <>
