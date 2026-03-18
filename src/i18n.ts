@@ -22,6 +22,7 @@ i18n
     fallbackLng: "es",
     detection: {
       order: ["querystring", "localStorage", "navigator", "htmlTag"],
+      lookupQuerystring: "lang",
       caches: ["localStorage"],
     },
     interpolation: {

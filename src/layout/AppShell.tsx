@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React from "react";
 import { useTranslation } from "react-i18next";
 import { Header, DotsProgress, Icon, ReservationCard } from "../components/ui";
 import type { CheckinNav, CheckinActions, StepId, Reserva } from "../types";
@@ -24,8 +24,8 @@ function getActiveSideStep(step: StepId): StepId {
 }
 
 interface AppShellProps {
-  nav: CheckinNav;
-  actions: Pick<CheckinActions, "goBack" | "goToDotIndex">;
+  nav: CheckinNav & { allowedSteps?: Set<StepId> };
+  actions: Pick<CheckinActions, "goBack" | "goToDotIndex" | "goTo">;
   showDots: boolean;
   reserva?: Reserva | null;
   onGoToRevision?: () => void;
@@ -42,55 +42,36 @@ export const AppShell: React.FC<AppShellProps> = ({
 }) => {
   const { t } = useTranslation();
 
-  const dotLabels = (nav.dotSteps || []).map((s: StepId) =>
-    t(`constants.steps.${s}`),
-  );
-
   const activeStep = getActiveSideStep(nav.step);
   const activeIdx = SIDE_STEPS.findIndex((s) => s.id === activeStep);
 
-  // 🧠 MEMORIA ESTRICTA: Nuestra "Marca de agua"
-  const [highestIdx, setHighestIdx] = useState(activeIdx);
-  const [prevActiveIdx, setPrevActiveIdx] = useState(activeIdx);
+  // 🧠 CERO ESTADOS LOCALES. LEEMOS LA VERDAD DEL HOOK DIRECTAMENTE.
+  const allowed = nav.allowedSteps;
 
-  const [highestDotIdx, setHighestDotIdx] = useState(
+  // Calculamos cuál es el paso más lejano (índice) que está permitido.
+  // Esto nos dirá hasta dónde poner los Ticks verdes.
+  const highestAllowedIdx = SIDE_STEPS.reduce((max, s, i) => {
+    return allowed?.has(s.id) ? Math.max(max, i) : max;
+  }, activeIdx);
+
+  // Lo mismo para los puntitos de arriba
+  const highestDotIdx = nav.dotSteps.reduce(
+    (max, s, i) => {
+      return allowed?.has(s) ? Math.max(max, i) : max;
+    },
     nav.dotIndex >= 0 ? nav.dotIndex : 0,
   );
-  const [prevDotIdx, setPrevDotIdx] = useState(nav.dotIndex);
-
-  // Solo se actualiza la marca de agua si el usuario navega a un paso NUEVO y LEGAL
-  if (activeIdx !== prevActiveIdx) {
-    setPrevActiveIdx(activeIdx);
-    if (
-      activeIdx > highestIdx &&
-      activeStep !== "revision" &&
-      activeStep !== "exito"
-    ) {
-      setHighestIdx(activeIdx);
-    }
-  }
-
-  // Esto controla a nivel de HUÉSPED (los puntitos)
-  if (nav.dotIndex !== prevDotIdx) {
-    setPrevDotIdx(nav.dotIndex);
-    if (
-      nav.dotIndex > highestDotIdx &&
-      nav.step !== "revision" &&
-      nav.step !== "exito"
-    ) {
-      setHighestDotIdx(nav.dotIndex);
-    }
-  }
 
   return (
     <div className="shell">
       <div className="card">
-        {/* Header */}
         <Header
           canGoBack={nav.canGoBack}
           onBack={actions.goBack}
           rightAction={
-            onGoToRevision
+            onGoToRevision &&
+            activeStep !== "revision" &&
+            activeStep !== "exito"
               ? {
                   label: t("common.summary"),
                   icon: "users",
@@ -100,14 +81,11 @@ export const AppShell: React.FC<AppShellProps> = ({
           }
         />
 
-        {/* Dots — Móvil/Tablet */}
         {showDots && nav.dotIndex >= 0 && (
           <DotsProgress
             steps={nav.dotSteps}
-            labels={dotLabels}
+            labels={nav.dotSteps.map((s: StepId) => t(`constants.steps.${s}`))}
             activeIndex={nav.dotIndex}
-            // 🔥 SOLUCIÓN HUÉSPEDES: El máximo clicable es estrictamente hasta donde ha llegado.
-            // Si no ha hecho el DNI del huésped 2, el punto del huésped 2 no es clicable.
             maxReachable={highestDotIdx}
             onDotClick={actions.goToDotIndex}
           />
@@ -125,24 +103,19 @@ export const AppShell: React.FC<AppShellProps> = ({
               <div className="sp-summary-wrapper">
                 <button
                   type="button"
-                  className="sp-summary-btn sp-summary-btn--desktop"
-                  onClick={onGoToRevision}
-                  disabled={!onGoToRevision}
-                >
-                  <Icon name="search" size={14} color="rgba(255,255,255,.8)" />
-                  {t("appShell.booking_summary")}
-                </button>
-
-                <button
-                  type="button"
                   className="sp-summary-btn-orange"
                   onClick={onGoToRevision}
-                  disabled={!onGoToRevision}
+                  disabled={
+                    !onGoToRevision ||
+                    activeStep === "revision" ||
+                    activeStep === "exito"
+                  }
                 >
                   <Icon name="search" size={14} color="#fff" />
                   {t("appShell.booking_summary")}
                 </button>
               </div>
+
               {reserva && (
                 <div className="sp-reserva">
                   <div className="sp-reserva-title">
@@ -156,23 +129,33 @@ export const AppShell: React.FC<AppShellProps> = ({
                 {SIDE_STEPS.map((s, i) => {
                   const isActive = i === activeIdx;
 
-                  // 🔥 SOLUCIÓN MENÚ LATERAL:
-                  // 1. Solo tiene check si está por debajo de nuestra marca de agua real.
-                  const isDone = i < highestIdx;
+                  // 1. ¿Está permitido? (El hook lo sabe)
+                  const isUnlocked = allowed?.has(s.id) || i <= activeIdx;
 
-                  // 2. Es clicable solo si está dentro de lo que ya hemos visitado.
-                  // Se acabó el "pase VIP" por estar en la pantalla de revisión.
+                  // 2. ¿Se puede clicar? (Cualquiera permitido menos en el que estoy)
                   const isClickable =
-                    i <= highestIdx && !isActive && s.id !== "exito";
+                    isUnlocked && !isActive && s.id !== "exito";
+
+                  // 3. ¿Lleva el check verde? (Si está detrás del paso más lejano alcanzado)
+                  const isDone =
+                    i < highestAllowedIdx &&
+                    !isActive &&
+                    s.id !== "revision" &&
+                    s.id !== "exito";
 
                   return (
                     <div
                       key={s.id}
                       onClick={() => {
                         if (isClickable) {
-                          const targetIdx = nav.dotSteps.indexOf(s.id);
-                          if (targetIdx !== -1) {
-                            actions.goToDotIndex(targetIdx);
+                          const dotIdxInNav = nav.dotSteps.indexOf(s.id);
+                          if (dotIdxInNav !== -1) {
+                            actions.goToDotIndex(dotIdxInNav);
+                          } else {
+                            actions.goTo(
+                              s.id,
+                              i < activeIdx ? "back" : "forward",
+                            );
                           }
                         }
                       }}
@@ -184,14 +167,15 @@ export const AppShell: React.FC<AppShellProps> = ({
                       ]
                         .filter(Boolean)
                         .join(" ")}
-                      style={{
-                        cursor: isClickable ? "pointer" : "default",
-                        // Bloqueo visual estricto para lo que no se puede clicar
-                        opacity: isClickable || isActive || isDone ? 1 : 0.4,
-                      }}
+                      style={
+                        {
+                          cursor: isClickable ? "pointer" : "default",
+                          opacity: isUnlocked ? 1 : 0.4,
+                        } as React.CSSProperties
+                      }
                     >
                       <div className="sp-step-num">
-                        {isDone && !isActive ? (
+                        {isDone ? (
                           <Icon name="check" size={12} color="#fff" />
                         ) : (
                           i + 1

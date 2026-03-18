@@ -128,7 +128,6 @@ export function checkinReducer(
       const { adultos, menores } = action;
 
       const newGuests = mergeGuests(state.guests || [], adultos, menores);
-
       return {
         ...state,
         numAdultos: adultos,

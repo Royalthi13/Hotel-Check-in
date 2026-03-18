@@ -147,12 +147,22 @@ export function useCheckin(
   // ── Route guard ───────────────────────────────────────────────────────────
   useEffect(() => {
     if (isLoading) return;
+
+    // Si estamos en revisión o éxito, siempre permitirlos
+    if (step === "revision" || step === "exito") {
+      if (!allowedStepsRef.current.has(step)) {
+        setAllowedSteps((prev) => new Set(prev).add(step));
+      }
+      return;
+    }
+
     const isEntry = step === "bienvenida" || step === "tablet_buscar";
     if (isEntry) {
       if (!allowedStepsRef.current.has(step))
         setAllowedSteps((prev) => new Set(prev).add(step));
       return;
     }
+
     if (!allowedStepsRef.current.has(step)) {
       const h = historyRef.current;
       const lastFromHistory = h.length > 0 ? h[h.length - 1].step : undefined;
@@ -198,12 +208,18 @@ export function useCheckin(
     history.length > 0;
 
   // ── Navegación ────────────────────────────────────────────────────────────
+  // En useCheckin.ts
   const goTo = useCallback(
     (nextStep: StepId, dir: NavDirection = "forward", gIdx?: number) => {
+      // Si volvemos de revisión, el gIdx podría ser undefined, aseguramos el actual o 0
+      const targetIdx = gIdx !== undefined ? gIdx : guestIndex;
+
       setHistory((h) => [...h, { step, guestIndex }]);
       setDirection(dir);
-      if (gIdx !== undefined) setGuestIndex(gIdx);
+      setGuestIndex(targetIdx);
+
       setAllowedSteps((prev) => new Set(prev).add(nextStep));
+
       navigate(`/checkin/${token}/${nextStep}`);
     },
     [step, guestIndex, token, navigate],
@@ -224,11 +240,10 @@ export function useCheckin(
 
   const goToDotIndex = useCallback(
     (idx: number) => {
-      if (idx > dotIndex) return;
       const target = dotSteps[idx];
       setAllowedSteps((prev) => new Set(prev).add(target));
       setHistory((h) => [...h, { step, guestIndex }]);
-      setDirection("back");
+      setDirection(idx < dotIndex ? "back" : "forward");
       setGuestIndex(0);
       navigate(`/checkin/${token}/${target}`);
     },
@@ -326,13 +341,16 @@ export function useCheckin(
         // Desde contacto, SIEMPRE pasamos a documento con el mismo huésped
         goTo("form_documento", "forward", currentIdx);
       } else if (fromStep === "form_documento") {
-        if (currentIdx >= totalAdultos) {
+        if (isCurrentMinor) {
+          // Si es menor y acaba de poner el DNI, directos a declarar relaciones
           goTo("form_relaciones", "forward", currentIdx);
         } else {
+          // Es adulto
           const nextIdx = currentIdx + 1;
           if (nextIdx < totalAdultos) {
             goTo("form_personal", "forward", nextIdx);
           } else if (hasMenores) {
+            // Si no hay más adultos pero sí menores, saltamos al primer menor
             goTo("form_personal", "forward", totalAdultos);
           } else {
             goTo("form_extras", "forward", 0);
@@ -340,7 +358,8 @@ export function useCheckin(
         }
       } else if (fromStep === "form_relaciones") {
         const nextIdx = currentIdx + 1;
-        if (nextIdx < totalAdultos + totalMenores) {
+        // ¿Hay más menores? (total = adultos + menores)
+        if (nextIdx < state.numPersonas) {
           goTo("form_personal", "forward", nextIdx);
         } else {
           goTo("form_extras", "forward", 0);
@@ -351,15 +370,15 @@ export function useCheckin(
   );
 
   // ─────────────────────────────────────────────────────────────────────────
-  const nav: CheckinNav = {
+  const nav: CheckinNav & { allowedSteps?: Set<StepId> } = {
     step,
     guestIndex,
     direction,
     dotSteps,
     dotIndex,
     canGoBack,
+    allowedSteps,
   };
-
   const actions: CheckinActions = {
     goTo,
     goBack,
