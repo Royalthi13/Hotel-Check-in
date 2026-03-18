@@ -100,13 +100,21 @@ export function checkinReducer(
 
     case "UPDATE_GUEST": {
       const guests = [...state.guests];
-      const updated = { ...guests[action.index], [action.key]: action.value };
-      if (action.key === "fechaNac" && typeof action.value === "string") {
-        const parsed = dayjs(action.value);
+
+      let finalValue = action.value;
+      if (typeof finalValue === "string") {
+        finalValue = finalValue.replace(/\s+/g, " ").trim();
+      }
+
+      const updated = { ...guests[action.index], [action.key]: finalValue };
+
+      if (action.key === "fechaNac" && typeof finalValue === "string") {
+        const parsed = dayjs(finalValue);
         if (parsed.isValid()) {
           updated.esMenor = dayjs().diff(parsed, "years") < 18;
         }
       }
+
       guests[action.index] = updated;
       return { ...state, guests };
     }

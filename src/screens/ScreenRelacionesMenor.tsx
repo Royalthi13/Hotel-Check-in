@@ -1,10 +1,18 @@
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
-import type { TFunction } from "i18next";
 import { Button, Alert, Icon } from "@/components/ui";
 import { PARENTESCOS_MENOR } from "@/constants";
 import type { PartialGuestData } from "@/types";
-import { Checkbox, FormControlLabel, FormGroup } from "@mui/material";
+import {
+  Box,
+  Typography,
+  Paper,
+  Checkbox,
+  FormControl,
+  Select,
+  MenuItem,
+  InputLabel,
+} from "@mui/material";
 
 type AdultoData = PartialGuestData & { originalIndex: number };
 
@@ -18,16 +26,6 @@ interface Props {
   isSubmitting?: boolean;
 }
 
-function nombreAdulto(adulto: PartialGuestData, t: TFunction): string {
-  const nombre = [adulto.nombre, adulto.apellido].filter(Boolean).join(" ");
-  return nombre || t("minors.adult_fallback", { count: 1 });
-}
-
-function nombreMenor(menor: PartialGuestData, t: TFunction): string {
-  const nombre = [menor.nombre, menor.apellido].filter(Boolean).join(" ");
-  return nombre || t("minors.minor_fallback", { count: 1 });
-}
-
 export const ScreenRelacionesMenor: React.FC<Props> = ({
   menor,
   adultos,
@@ -39,263 +37,167 @@ export const ScreenRelacionesMenor: React.FC<Props> = ({
 }) => {
   const { t } = useTranslation();
   const [touched, setTouched] = useState(false);
+  const nombreMenor =
+    [menor.nombre, menor.apellido].filter(Boolean).join(" ") ||
+    t("minors.minor_fallback", { count: 1 });
 
   const relaciones = menor.relacionesConAdultos ?? [];
+  const adultosSeleccionadosIds = relaciones.map((r) => r.adultoIndex);
 
-  // 🔥 Mantenemos en memoria qué adultos hemos marcado que duermen en la misma habitación
-  const [adultosEnHabitacion, setAdultosEnHabitacion] = useState<number[]>(
-    relaciones.map((r) => r.adultoIndex),
-  );
-
-  const toggleAdult = (idx: number) => {
-    setAdultosEnHabitacion((prev) => {
-      if (prev.includes(idx)) {
-        onRelacionChange(idx, ""); // Si lo desmarcamos, borramos el parentesco
-        return prev.filter((i) => i !== idx);
-      } else {
-        return [...prev, idx];
-      }
-    });
+  const toggleAdulto = (idx: number) => {
+    if (adultosSeleccionadosIds.includes(idx)) {
+      onRelacionChange(idx, ""); // Al desmarcar, vaciamos parentesco
+    } else {
+      onRelacionChange(idx, "Hijo/a"); // Valor por defecto común para agilizar
+    }
   };
 
-  const errorSinAdultos = touched && adultosEnHabitacion.length === 0;
-
-  // Verificamos que todos los adultos marcados tengan un parentesco elegido
-  const todosRellenos =
-    adultosEnHabitacion.length > 0 &&
-    adultosEnHabitacion.every((idx) => {
-      const rel = relaciones.find((r) => r.adultoIndex === idx);
-      return rel && rel.parentesco.trim() !== "";
-    });
-
-  const handleNext = () => {
-    setTouched(true);
-    if (todosRellenos) onNext();
-  };
-
-  const handlePartial = () => {
-    setTouched(true);
-    if (todosRellenos && onPartialSave) onPartialSave();
-  };
-
-  const nombreDelMenor = nombreMenor(menor, t);
+  const esValido =
+    adultosSeleccionadosIds.length > 0 &&
+    relaciones.every((r) => r.parentesco !== "");
 
   return (
-    <div className="screen">
-      <div className="sec-hdr">
-        <h2>{t("minors.relationship_title")}</h2>
-        <p>
-          {t("minors.declare_relationship_room", {
-            defaultValue: `Indique qué adultos duermen en la misma habitación que ${nombreDelMenor} y cuál es su parentesco.`,
-          })}
-        </p>
-      </div>
+    <Box sx={{ display: "flex", flexDirection: "column", minHeight: "100%" }}>
+      <Box className="sec-hdr" sx={{ p: { xs: 2, sm: 3 }, pb: 0 }}>
+        <Typography
+          variant="h4"
+          sx={{ fontFamily: "Cormorant Garamond, serif", mb: 1 }}
+        >
+          {t("minors.relationship_title")}
+        </Typography>
+        <Typography variant="body1" color="text.secondary">
+          ¿Con qué adultos comparte habitación <strong>{nombreMenor}</strong>?
+        </Typography>
+      </Box>
 
-      <div style={{ padding: "8px 24px 0" }}>
-        <Alert variant="warm" style={{ marginBottom: 16 }}>
+      <Box sx={{ p: { xs: 2, sm: 3 }, flex: 1 }}>
+        <Alert variant="warm" style={{ marginBottom: 20 }}>
           <Icon name="info" size={14} />
-          <span>
-            <strong>{t("minors.legal_warning_title")}</strong>
-            {t("minors.legal_warning_text")}
-          </span>
+          <span>{t("minors.legal_warning_text")}</span>
         </Alert>
 
-        {/* 🔥 PASO 1: Checkboxes para seleccionar adultos en la habitación */}
-        <div
-          style={{
-            marginBottom: 24,
-            padding: "16px",
-            background: "var(--bg)",
-            borderRadius: 12,
-            border: `1.5px solid ${errorSinAdultos ? "var(--err)" : "var(--border)"}`,
-          }}
-        >
-          <div
-            style={{
-              fontSize: 14,
-              fontWeight: 600,
-              color: "var(--text)",
-              marginBottom: 8,
-            }}
-          >
-            ¿Qué adultos duermen en la misma habitación?
-          </div>
-          <FormGroup>
-            {adultos.map((adulto) => (
-              <FormControlLabel
+        <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+          {adultos.map((adulto) => {
+            const isSelected = adultosSeleccionadosIds.includes(
+              adulto.originalIndex,
+            );
+            const parentesco =
+              relaciones.find((r) => r.adultoIndex === adulto.originalIndex)
+                ?.parentesco || "";
+
+            return (
+              <Paper
                 key={adulto.originalIndex}
-                control={
-                  <Checkbox
-                    checked={adultosEnHabitacion.includes(adulto.originalIndex)}
-                    onChange={() => toggleAdult(adulto.originalIndex)}
-                    size="small"
-                    sx={{
-                      color: "var(--primary)",
-                      "&.Mui-checked": { color: "var(--primaryD)" },
-                    }}
-                  />
-                }
-                label={
-                  <span style={{ fontSize: 14 }}>
-                    {nombreAdulto(adulto, t)}
-                  </span>
-                }
-              />
-            ))}
-          </FormGroup>
-          {errorSinAdultos && (
-            <span
-              className="field-err"
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 4,
-                marginTop: 4,
-              }}
-            >
-              <Icon name="warn" size={11} />{" "}
-              {t("validation.min_adults", {
-                defaultValue: "Debe seleccionar al menos un adulto.",
-              })}
-            </span>
-          )}
-        </div>
-
-        {/* 🔥 PASO 2: Desplegables de parentesco SOLO para los adultos marcados */}
-        {adultosEnHabitacion.map((realIdx) => {
-          const adulto = adultos.find((a) => a.originalIndex === realIdx);
-          if (!adulto) return null;
-
-          const relacionActual =
-            relaciones.find((r) => r.adultoIndex === realIdx)?.parentesco ?? "";
-          const sinRelacion = touched && relacionActual.trim() === "";
-
-          return (
-            <div
-              key={realIdx}
-              style={{
-                marginBottom: 16,
-                padding: "16px",
-                background: "var(--bg)",
-                borderRadius: 12,
-                border: `1.5px solid ${sinRelacion ? "var(--err)" : "var(--border)"}`,
-              }}
-            >
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 10,
-                  marginBottom: 12,
+                elevation={isSelected ? 3 : 0}
+                onClick={() => toggleAdulto(adulto.originalIndex)}
+                sx={{
+                  p: 2,
+                  borderRadius: "16px",
+                  border: "2px solid",
+                  borderColor: isSelected
+                    ? "var(--primary)"
+                    : "var(--border-lt)",
+                  transition: "all 0.2s ease",
+                  cursor: "pointer",
+                  bgcolor: isSelected ? "var(--primary-lt)" : "#fff",
+                  "&:hover": { borderColor: "var(--primary)" },
                 }}
               >
-                <div
-                  style={{
-                    width: 36,
-                    height: 36,
-                    borderRadius: "50%",
-                    background: "var(--secondary)",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    flexShrink: 0,
-                  }}
-                >
-                  <Icon name="user" size={18} color="#fff" />
-                </div>
-                <div>
-                  <div
-                    style={{
-                      fontSize: 14,
-                      fontWeight: 500,
-                      color: "var(--text)",
+                <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+                  <Checkbox
+                    checked={isSelected}
+                    sx={{
+                      p: 0,
+                      color: "var(--primary)",
+                      "&.Mui-checked": { color: "var(--primary)" },
                     }}
-                  >
-                    {nombreAdulto(adulto, t)}
-                  </div>
-                  <div style={{ fontSize: 11, color: "var(--text-low)" }}>
-                    {realIdx === 0
-                      ? t("minors.booking_holder")
-                      : t("minors.adult_fallback", { count: realIdx + 1 })}
-                  </div>
-                </div>
-              </div>
+                  />
+                  <Box sx={{ flex: 1 }}>
+                    <Typography
+                      variant="subtitle1"
+                      sx={{ fontWeight: 600, lineHeight: 1.2 }}
+                    >
+                      {[adulto.nombre, adulto.apellido].join(" ")}
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      {adulto.originalIndex === 0
+                        ? t("common.main_guest")
+                        : t("forms.adult_tag")}
+                    </Typography>
+                  </Box>
+                </Box>
 
-              <div className="field">
-                <label>
-                  {t("minors.relation_with", { name: nombreDelMenor })}
-                  <span style={{ color: "var(--primary)", marginLeft: 2 }}>
-                    *
-                  </span>
-                </label>
-                <select
-                  value={relacionActual}
-                  onChange={(e) => onRelacionChange(realIdx, e.target.value)}
-                  className={sinRelacion ? "err" : ""}
-                  style={{ height: 46 }}
-                >
-                  <option value="">{t("minors.select_relationship")}</option>
-                  {PARENTESCOS_MENOR.map((p) => (
-                    <option key={p} value={p}>
-                      {t(`constants.parentescos.${p}`)}
-                    </option>
-                  ))}
-                </select>
-                {sinRelacion && (
-                  <span
-                    className="field-err"
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 4,
-                      marginTop: 4,
+                {isSelected && (
+                  <Box
+                    sx={{
+                      mt: 2,
+                      pt: 2,
+                      borderTop: "1px solid rgba(0,0,0,0.05)",
                     }}
+                    onClick={(e) => e.stopPropagation()} // Evita desmarcar al clickar el select
                   >
-                    <Icon name="warn" size={11} />{" "}
-                    {t("minors.mandatory_legal_field")}
-                  </span>
+                    <FormControl fullWidth size="small">
+                      <InputLabel id={`label-rel-${adulto.originalIndex}`}>
+                        {t("minors.relationship_title")}
+                      </InputLabel>
+                      <Select
+                        labelId={`label-rel-${adulto.originalIndex}`}
+                        value={parentesco}
+                        label={t("minors.relationship_title")}
+                        onChange={(e) =>
+                          onRelacionChange(adulto.originalIndex, e.target.value)
+                        }
+                        sx={{ borderRadius: "8px", bgcolor: "#fff" }}
+                      >
+                        {PARENTESCOS_MENOR.map((p) => (
+                          <MenuItem key={p} value={p}>
+                            {t(`constants.parentescos.${p}`)}
+                          </MenuItem>
+                        ))}
+                      </Select>
+                    </FormControl>
+                  </Box>
                 )}
-              </div>
-            </div>
-          );
-        })}
-      </div>
+              </Paper>
+            );
+          })}
+        </Box>
+      </Box>
 
-      <div className="spacer" />
-      <div
+      <Box
         className="btn-row"
-        style={{
+        sx={{
+          p: 3,
+          bgcolor: "rgba(255,255,255,0.8)",
+          backdropFilter: "blur(10px)",
+          borderTop: "1px solid var(--border-lt)",
           display: "flex",
-          gap: "10px",
-          flexWrap: "wrap",
-          justifyContent: "flex-end",
+          gap: 2,
         }}
       >
-        {/* 🔥 Botón "Guardar" para Menores si hay más menores detrás de este */}
         {hasNextMinor && onPartialSave && (
           <Button
             variant="secondary"
-            onClick={handlePartial}
+            onClick={onPartialSave}
             disabled={isSubmitting}
-            style={{ flex: 1, minWidth: "200px" }}
+            style={{ flex: 1 }}
           >
-            {isSubmitting
-              ? "..."
-              : t("common.save_partial", {
-                  defaultValue: "Guardar y seguir luego",
-                })}
+            {isSubmitting ? "..." : t("common.save_partial")}
           </Button>
         )}
         <Button
           variant="primary"
+          onClick={() => {
+            setTouched(true);
+            if (esValido) onNext();
+          }}
+          disabled={isSubmitting || (touched && !esValido)}
           iconRight="right"
-          onClick={handleNext}
-          disabled={isSubmitting}
-          style={{ flex: 1, minWidth: "200px" }}
+          style={{ flex: 2 }}
         >
-          {isSubmitting ? "..." : t("common.continue")}
+          {t("common.continue")}
         </Button>
-      </div>
-    </div>
+      </Box>
+    </Box>
   );
 };
