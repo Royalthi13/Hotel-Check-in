@@ -223,12 +223,13 @@ export const Alert: React.FC<AlertProps> = ({
 // ═══════════════════════════════════════════════════════════════════════════
 // DOTS PROGRESS
 // ═══════════════════════════════════════════════════════════════════════════
-export interface DotsProgressProps {
+
+interface DotsProgressProps {
   steps: string[];
   labels: string[];
   activeIndex: number;
   maxReachable: number;
-  onDotClick: (idx: number) => void;
+  onDotClick: (index: number) => void;
 }
 
 export const DotsProgress: React.FC<DotsProgressProps> = ({
@@ -237,37 +238,40 @@ export const DotsProgress: React.FC<DotsProgressProps> = ({
   activeIndex,
   maxReachable,
   onDotClick,
-}) => (
-  <div className="dots-bar">
-    {steps.map((_step, i) => {
-      const isDone = i < activeIndex;
-      const isActive = i === activeIndex;
-      const isFuture = i > maxReachable;
+}) => {
+  return (
+    <div className="dots-bar">
+      {steps.map((_, i) => {
+        const isActive = i === activeIndex;
 
-      return (
-        <button
-          key={i}
-          type="button"
-          tabIndex={-1}
-          className={[
-            "dot",
-            isDone ? "dot-done" : "",
-            isActive ? "dot-active" : "",
-            isFuture ? "dot-future" : "",
-          ]
-            .filter(Boolean)
-            .join(" ")}
-          onClick={() => {
-            if (!isFuture && !isActive) onDotClick(i);
-          }}
-          data-label={!isActive ? labels[i] : undefined}
-          aria-label={labels[i]}
-          title={!isActive ? labels[i] : undefined}
-        />
-      );
-    })}
-  </div>
-);
+        const isDone = i <= maxReachable && !isActive;
+
+        const isFuture = i > maxReachable;
+
+        let className = "dot";
+        if (isActive) className += " dot-active";
+        else if (isDone) className += " dot-done";
+        else if (isFuture) className += " dot-future";
+
+        return (
+          <button
+            key={i}
+            type="button"
+            className={className}
+            data-label={labels[i] || `Huésped ${i + 1}`}
+            onClick={() => {
+              if (!isFuture && !isActive) {
+                onDotClick(i);
+              }
+            }}
+            disabled={isFuture}
+            aria-label={`Ir al paso ${i + 1}`}
+          />
+        );
+      })}
+    </div>
+  );
+};
 
 // ═══════════════════════════════════════════════════════════════════════════
 // CONFIRM BLOCK
@@ -312,7 +316,11 @@ export interface HeaderProps {
   rightAction?: { label: string; onClick: () => void; icon?: IconName };
 }
 
-export const Header: React.FC<HeaderProps> = ({ canGoBack, onBack, rightAction }) => (
+export const Header: React.FC<HeaderProps> = ({
+  canGoBack,
+  onBack,
+  rightAction,
+}) => (
   <div className="hdr">
     {canGoBack ? (
       <button type="button" className="hdr-back" onClick={onBack}>
@@ -329,8 +337,14 @@ export const Header: React.FC<HeaderProps> = ({ canGoBack, onBack, rightAction }
       </div>
     </div>
     {rightAction ? (
-      <button type="button" className="hdr-action" onClick={rightAction.onClick}>
-        {rightAction.icon && <Icon name={rightAction.icon} size={14} color="#fff" />}
+      <button
+        type="button"
+        className="hdr-action"
+        onClick={rightAction.onClick}
+      >
+        {rightAction.icon && (
+          <Icon name={rightAction.icon} size={14} color="#fff" />
+        )}
         {rightAction.label}
       </button>
     ) : (
