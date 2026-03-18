@@ -15,6 +15,7 @@ import { useTranslation } from "react-i18next";
 
 // --- PANTALLAS ---
 import { ScreenTabletBuscar } from "@/screens/ScreenTabletBuscar";
+import { ScreenBienvenida } from "@/screens/ScreenBienvenida";
 import { ScreenCheckinInicio } from "@/screens/ScreenCheckinInicio";
 import { ScreenNumPersonas } from "@/screens/ScreenNumPersonas";
 import { ScreenEscanear } from "@/screens/ScreenEscanear";
@@ -49,6 +50,22 @@ function CheckinWizard() {
   const [isOffline, setIsOffline] = useState(!navigator.onLine);
 
   const [isPartialSuccess, setIsPartialSuccess] = useState(false);
+
+  // ESTADOS PERSISTENTES: Flujo inicial
+  const [legalPassed, setLegalPassed] = useState(
+    () => sessionStorage.getItem(`legalPassed_${token}`) === "true",
+  );
+  const [hasMinorsFlag, setHasMinorsFlag] = useState(
+    () => sessionStorage.getItem(`hasMinors_${token}`) === "true",
+  );
+
+  useEffect(() => {
+    sessionStorage.setItem(`legalPassed_${token}`, String(legalPassed));
+  }, [legalPassed, token]);
+
+  useEffect(() => {
+    sessionStorage.setItem(`hasMinors_${token}`, String(hasMinorsFlag));
+  }, [hasMinorsFlag, token]);
 
   useEffect(() => {
     const on = () => setIsOffline(false);
@@ -90,6 +107,41 @@ function CheckinWizard() {
   const showDots = !STEPS_WITHOUT_DOTS.has(currentStep);
   const isMainGuest = nav.guestIndex === 0;
   const currentGuest = state.guests[nav.guestIndex] ?? {};
+
+  // NAVEGACIÓN INTELIGENTE: Botón "Atrás" en la pantalla de elegir
+  const customNav = {
+    ...nav,
+    canGoBack: nav.canGoBack || (currentStep === "bienvenida" && legalPassed),
+  };
+
+  const handleSmartGoBack = () => {
+    if (currentStep === "bienvenida" && legalPassed) {
+      setLegalPassed(false);
+    } else {
+      goBack();
+    }
+  };
+
+  // 🔥 LÓGICA DE DECISIÓN CORREGIDA: Si elige "Escanear", se va directo a escanear.
+  const handleChooseMethod = (method: "scan" | "manual") => {
+    sessionStorage.setItem(`modoFlujo_${token}`, method);
+
+    if (hasMinorsFlag) {
+      // Si hay menores, primero hay que preguntar cuántos son
+      goTo("num_personas", "forward", 0);
+    } else {
+      // Si NO hay menores, seteamos 1 adulto (o lo que dicte la reserva) y avanzamos según método
+      setNumPersonas(state.reserva?.numHuespedes || 1);
+
+      if (method === "scan") {
+        goTo("escanear", "forward", 0); // Va directo a escanear
+      } else if (state.knownGuest) {
+        goTo("confirmar_datos", "forward", 0);
+      } else {
+        goTo("form_personal", "forward", 0);
+      }
+    }
+  };
 
   const handleSubmit = async (): Promise<void> => {
     setSubmitError("");
@@ -191,8 +243,8 @@ function CheckinWizard() {
 
   return (
     <AppShell
-      nav={nav}
-      actions={{ goBack, goToDotIndex, goTo }}
+      nav={customNav}
+      actions={{ goBack: handleSmartGoBack, goToDotIndex, goTo }}
       showDots={showDots}
       reserva={state.reserva}
       onGoToRevision={() => goTo("revision", "back")}
@@ -203,7 +255,8 @@ function CheckinWizard() {
         </div>
       )}
 
-      {currentStep === "bienvenida" && (
+      {/* 1. Inicio: Resumen + Pregunta de Menores + Legal */}
+      {currentStep === "bienvenida" && !legalPassed && (
         <ScreenCheckinInicio
           reserva={
             state.reserva ||
@@ -217,21 +270,34 @@ function CheckinWizard() {
             } as unknown as Reserva)
           }
           onNext={(hayMenores: boolean) => {
-            sessionStorage.setItem(`modoFlujo_${token}`, "manual");
-            if (hayMenores) goTo("num_personas");
-            else {
-              setNumPersonas(state.reserva?.numHuespedes || 1);
-              goTo("form_personal", "forward", 0);
-            }
+            setHasMinorsFlag(hayMenores);
+            setLegalPassed(true); // Pasamos a la siguiente fase interna de "bienvenida"
           }}
         />
       )}
 
+      {/* 2. Bienvenida: Elegir método Escanear o Manual */}
+      {currentStep === "bienvenida" && legalPassed && (
+        <ScreenBienvenida
+          knownGuest={state.knownGuest}
+          reserva={state.reserva}
+          onChooseScan={() => handleChooseMethod("scan")}
+          onChooseManual={() => handleChooseMethod("manual")}
+        />
+      )}
+
+      {/* 3. Número de Personas (Solo si se declararon menores) */}
       {currentStep === "num_personas" && (
         <ScreenNumPersonas
           numPersonas={state.numPersonas}
           onChange={setNumPersonas}
-          onNext={() => goTo("form_personal", "forward", 0)}
+          onNext={() => {
+            // Cuando terminas de elegir cuántos menores son, comprobamos qué método elegiste
+            const flujo = sessionStorage.getItem(`modoFlujo_${token}`);
+            if (flujo === "scan") goTo("escanear", "forward", 0);
+            else if (state.knownGuest) goTo("confirmar_datos", "forward", 0);
+            else goTo("form_personal", "forward", 0);
+          }}
           totalFijo={state.reserva?.numHuespedes}
         />
       )}
