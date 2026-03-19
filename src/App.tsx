@@ -4,6 +4,7 @@ import {
   Route,
   useParams,
   useNavigate,
+  Navigate,
 } from "react-router-dom";
 import "./App.css";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
@@ -402,6 +403,10 @@ export default function App() {
   return (
     <BrowserRouter>
       <Routes>
+        <Route
+          path="/tablet_buscar"
+          element={<Navigate to="/checkin/kiosko/tablet_buscar" replace />}
+        />
         <Route path="/checkin/:token" element={<RedirectToBienvenida />} />
         <Route
           path="/checkin/:token/:step"
