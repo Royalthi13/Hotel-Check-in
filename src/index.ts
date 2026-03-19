@@ -2,10 +2,8 @@
 //
 // REGLA: solo exportar lo que un consumidor EXTERNO necesita conocer.
 //
-// ✅ Bien: exportar el hook (la función) y los tipos públicos
-// ❌ Mal: export * de módulos con implementación — filtra tipos internos
 
-// Tipos públicos — todos viven en types/, desacoplados de su implementación
+// Tipos públicos
 export type {
   AppMode,
   StepId,
@@ -15,14 +13,14 @@ export type {
   CheckinState,
   FormErrors,
   NavDirection,
-  CheckinNav, // contrato público del hook, definido en types/
-  CheckinActions, // contrato público del hook, definido en types/
+  CheckinNav,
+  CheckinActions,
 } from "./types";
 
-// Hook — solo la función, no sus tipos internos (HistoryEntry, etc.)
+// Hook
 export { useCheckin } from "./hooks/useCheckin";
 
-// Validación — solo las funciones públicas
+// Validación — solo las funciones que realmente existen
 export {
   useFormValidation,
   validatePersonal,
@@ -42,8 +40,6 @@ export {
   FLOW_STEPS_LINK,
   MOCK_KNOWN_GUEST,
 } from "./constants";
-// MOCK_RESERVAS no se exporta aquí — es un mock de desarrollo.
-// Importar desde './mocks/reservas-mock' si se necesita directamente.
 
 // Componentes UI
 export * from "./components/ui";
@@ -57,7 +53,10 @@ export { ScreenBienvenida } from "./screens/ScreenBienvenida";
 export { ScreenNumPersonas } from "./screens/ScreenNumPersonas";
 export { ScreenEscanear } from "./screens/ScreenEscanear";
 export { ScreenConfirmarDatos } from "./screens/ScreenConfirmardatos";
-export { ScreenFormPersonal, ScreenFormContacto } from "./screens/ScreenForms";
+export {
+  ScreenFormPersonal,
+  ScreenFormContacto,
+} from "./screens/ScreenForms";
 export {
   ScreenFormExtras,
   ScreenRevision,

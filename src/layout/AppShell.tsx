@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { Header, DotsProgress, Icon, ReservationCard } from "../components/ui";
 import type { CheckinNav, CheckinActions, StepId, Reserva } from "../types";
@@ -57,6 +57,35 @@ export const AppShell: React.FC<AppShellProps> = ({
   const activeStep = getActiveSideStep(nav.step);
   const activeIdx = SIDE_STEPS.findIndex((s) => s.id === activeStep);
 
+  const [maxDotReached, setMaxDotReached] = useState(() =>
+    nav.dotIndex >= 0 && nav.step !== "revision" && nav.step !== "exito"
+      ? nav.dotIndex
+      : 0,
+  );
+
+  // FIX BUG HIGH #1: setState durante render → movido a useEffect
+  // Antes: el if con setMaxDotReached estaba en el cuerpo del componente,
+  // fuera de cualquier efecto. React 18 en Strict Mode detecta esto como
+  // "setState during render" y puede generar renders infinitos o warnings.
+  useEffect(() => {
+    if (
+      nav.dotIndex > maxDotReached &&
+      nav.step !== "exito" &&
+      (nav.step !== "revision" ||
+        (nav.allowedSteps && nav.allowedSteps.has("form_extras")))
+    ) {
+      setMaxDotReached(nav.dotIndex);
+    }
+  }, [nav.dotIndex, nav.step, nav.allowedSteps, maxDotReached]);
+
+  const isStepUnlocked = (stepId: StepId, index: number) => {
+    if (nav.allowedSteps) {
+      return nav.allowedSteps.has(stepId);
+    }
+    if (activeStep === "revision" || activeStep === "exito") {
+      return stepId === "bienvenida" || stepId === activeStep;
+    }
+    return index <= activeIdx;
   const isStepUnlocked = (stepId: StepId) => {
     return nav.allowedSteps?.has(stepId) || stepId === "bienvenida";
   };
@@ -64,6 +93,7 @@ export const AppShell: React.FC<AppShellProps> = ({
   return (
     <div className="shell">
       <div className="card">
+        {/* Header */}
         <Header
           canGoBack={nav.canGoBack}
           onBack={actions.goBack}
@@ -82,10 +112,13 @@ export const AppShell: React.FC<AppShellProps> = ({
           }
         />
 
+        {/* Dots (Móvil/Tablet) */}
         {showDots && nav.dotIndex >= 0 && (
           <DotsProgress
             steps={nav.dotSteps}
-            labels={nav.dotSteps.map((s: StepId) => t(`constants.steps.${s}`))}
+            labels={nav.dotSteps.map((s: StepId) =>
+              t(`constants.steps.${s}`),
+            )}
             activeIndex={nav.dotIndex}
             maxReachable={nav.dotIndex} // Simplificado para que los puntos reflejen donde estas
             onDotClick={actions.goToDotIndex}
@@ -112,6 +145,34 @@ export const AppShell: React.FC<AppShellProps> = ({
                   }
                 >
                   <Icon name="search" size={14} color="rgba(255,255,255,.8)" />{" "}
+                  {t("appShell.booking_summary")}
+                </button>
+
+                <button
+                  type="button"
+                  className="sp-summary-btn-orange"
+                  onClick={onGoToRevision}
+                  disabled={
+                    !onGoToRevision ||
+                    activeStep === "revision" ||
+                    activeStep === "exito"
+                  }
+                >
+                  <Icon name="search" size={14} color="#fff" />
+                  {t("appShell.booking_summary")}
+                </button>
+
+                <button
+                  type="button"
+                  className="sp-summary-btn-orange"
+                  onClick={onGoToRevision}
+                  disabled={
+                    !onGoToRevision ||
+                    activeStep === "revision" ||
+                    activeStep === "exito"
+                  }
+                >
+                  <Icon name="search" size={14} color="#fff" />
                   {t("appShell.booking_summary")}
                 </button>
               </div>
@@ -149,6 +210,14 @@ export const AppShell: React.FC<AppShellProps> = ({
                         }
                       }}
                       className={`sp-step ${isActive ? "sp-step--active" : ""} ${isDone ? "sp-step--done" : ""} ${isUnlocked && !isActive ? "sp-step--clickable" : ""}`}
+                      className={[
+                        "sp-step",
+                        isActive ? "sp-step--active" : "",
+                        isDone ? "sp-step--done" : "",
+                        isClickable ? "sp-step--clickable" : "",
+                      ]
+                        .filter(Boolean)
+                        .join(" ")}
                       style={{
                         cursor: isUnlocked && !isActive ? "pointer" : "default",
                         opacity: isUnlocked ? 1 : 0.4,
@@ -168,6 +237,11 @@ export const AppShell: React.FC<AppShellProps> = ({
                   );
                 })}
               </nav>
+
+              <div className="sp-footer">
+                <Icon name="lock" size={12} color="rgba(255,255,255,.3)" />
+                <span>{t("appShell.privacy_short")}</span>
+              </div>
             </div>
           </aside>
 
@@ -203,6 +277,14 @@ export const AppShell: React.FC<AppShellProps> = ({
               </motion.div>
             </AnimatePresence>
           </main>
+          <div className="screen-wrap">
+            <div
+              className={`screen ${nav.direction === "back" ? "back" : ""}`}
+              key={nav.step}
+            >
+              {children}
+            </div>
+          </div>
         </div>
       </div>
     </div>
