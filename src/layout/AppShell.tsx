@@ -92,7 +92,6 @@ export const AppShell: React.FC<AppShellProps> = ({
           extraContent={<LanguageSelector />}
           name={reserva?.confirmacion}
           room={reserva?.habitacion}
-          extraContent={<LanguageSelector />}
           rightAction={
             onGoToRevision &&
             activeStep !== "revision" &&
