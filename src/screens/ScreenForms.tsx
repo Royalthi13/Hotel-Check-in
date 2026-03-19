@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { Button, Icon, Alert } from "@/components/ui";
 import { useZipCode } from "@/hooks/useZipCode";
@@ -25,6 +25,8 @@ import {
   DialogActions,
 } from "@mui/material";
 import { usePlaces } from "@/hooks/usePlaces";
+import { useStreetAutocomplete } from "@/hooks/useStreetAutocomplete";
+
 import dayjs from "dayjs";
 import "dayjs/locale/es";
 import { useDebounce } from "@/hooks/useDebounce";
@@ -78,6 +80,9 @@ const FieldError: React.FC<{ msg?: string }> = ({ msg }) =>
     </span>
   ) : null;
 
+// ═══════════════════════════════════════════════════════════════════════════
+// FORM PERSONAL
+// ═══════════════════════════════════════════════════════════════════════════
 export const ScreenFormPersonal: React.FC<FormPersonalProps> = ({
   data,
   allGuests,
@@ -386,6 +391,9 @@ export const ScreenFormPersonal: React.FC<FormPersonalProps> = ({
   );
 };
 
+// ═══════════════════════════════════════════════════════════════════════════
+// FORM CONTACTO — CON AUTOCOMPLETADO CUSTOM CORREGIDO
+// ═══════════════════════════════════════════════════════════════════════════
 export const ScreenFormContacto: React.FC<FormContactoProps> = ({
   data,
   onChange,
@@ -404,7 +412,24 @@ export const ScreenFormContacto: React.FC<FormContactoProps> = ({
     cargarProvincias,
     cargarMunicipios,
   } = usePlaces();
+
+  const {
+    suggestions: streetSuggestions,
+    loading: streetLoading,
+    search: searchStreet,
+    clear: clearStreet,
+  } = useStreetAutocomplete();
+
   const [showSaveModal, setShowSaveModal] = useState(false);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+
+  // Ref para detectar si el puntero está sobre la caja de sugerencias,
+  // evitando que onBlur cierre la lista antes de que onMouseDown procese el click.
+  const suggBoxRef = useRef<boolean>(false);
+  // Ref al input nativo de dirección — necesario porque usamos defaultValue
+  // (input no controlado) para evitar que los re-renders se traguen el espacio.
+  const direccionInputRef = useRef<HTMLInputElement>(null);
+
   const esEspana = data.pais === "España";
 
   useDebounce(
@@ -436,10 +461,12 @@ export const ScreenFormContacto: React.FC<FormContactoProps> = ({
         </Typography>
         <p>{t("forms.contact_subtitle")}</p>
       </div>
+
       <Box
         style={{ padding: "0 var(--px)" }}
         sx={{ mt: 2, display: "flex", flexDirection: "column", gap: 2.5 }}
       >
+        {/* ── Email + Teléfono ── */}
         <Box
           sx={{
             display: "grid",
@@ -483,20 +510,120 @@ export const ScreenFormContacto: React.FC<FormContactoProps> = ({
             <FieldError msg={errors.telefono} />
           </div>
         </Box>
-        <div>
+
+        {/* ── DIRECCIÓN ── */}
+        <div className={esEspana ? "field-autocomplete" : ""}>
           <TextField
-            label={t("forms.address_habitual")}
+            label={t("forms.address")}
             fullWidth
-            value={data.direccion ?? ""}
+            // FIX ESPACIO: input completamente NO controlado desde el padre.
+            // Usamos defaultValue + inputRef para leer el valor cuando hace falta,
+            // en lugar de value={data.direccion} que provoca re-renders síncronos
+            // que el navegador interpreta como "tecla consumida" y traga el espacio.
+            defaultValue={data.direccion ?? ""}
+            inputRef={direccionInputRef}
+            autoComplete="off"
+            // FIX ESPACIO: inputProps nativo — spellCheck y autoCorrect off
+            // evitan que el browser haga sustituciones que también se comen espacios.
+            inputProps={{
+              spellCheck: false,
+              autoCorrect: "off",
+              autoCapitalize: "off",
+            }}
             onChange={(e) => {
-              onChange("direccion", e.target.value);
+              const val = e.target.value;
+              // Propagar al padre sin transformar NADA
+              onChange("direccion", val);
               clearError("direccion");
+
+              if (esEspana) {
+                if (val.length >= 4) {
+                  setShowSuggestions(true);
+                  searchStreet(val);
+                } else {
+                  setShowSuggestions(false);
+                  clearStreet();
+                }
+              }
+            }}
+            onFocus={() => {
+              if (esEspana && (direccionInputRef.current?.value?.length ?? 0) >= 4) {
+                setShowSuggestions(true);
+              }
+            }}
+            onBlur={() => {
+              if (!suggBoxRef.current) {
+                setShowSuggestions(false);
+              }
             }}
             error={!!errors.direccion}
             sx={inputSx}
+            InputProps={
+              esEspana && streetLoading
+                ? {
+                    endAdornment: (
+                      <InputAdornment position="end">
+                        <CircularProgress
+                          size={16}
+                          thickness={4}
+                          sx={{ color: "var(--primary)" }}
+                        />
+                      </InputAdornment>
+                    ),
+                  }
+                : undefined
+            }
           />
+
+          {/* CAJA DE SUGERENCIAS */}
+          {esEspana && showSuggestions && streetSuggestions.length > 0 && (
+            <div
+              className="sug-box"
+              // FIX: marcar el ref en onMouseDown/Up del contenedor completo.
+              // Así aunque el puntero entre por los gaps entre items, el onBlur
+              // del input no cierra la lista prematuramente.
+              onMouseDown={() => { suggBoxRef.current = true; }}
+              onMouseUp={() => { suggBoxRef.current = false; }}
+            >
+              {streetSuggestions.map((sug, idx) => (
+                <div
+                  key={`${sug.direccion}-${idx}`}
+                  className="sug-opt"
+                  // FIX: onMouseDown en lugar de onClick.
+                  // onClick se dispara DESPUÉS de onBlur → la lista ya está cerrada.
+                  // onMouseDown se dispara ANTES → la selección funciona siempre.
+                  onMouseDown={(e) => {
+                    e.preventDefault(); // impide que el input pierda el foco
+                    onChange("direccion", sug.direccion);
+                    // Escribir en el input nativo (no controlado por value=)
+                    if (direccionInputRef.current) {
+                      direccionInputRef.current.value = sug.direccion;
+                    }
+                    clearError("direccion");
+                    setShowSuggestions(false);
+                    clearStreet();
+                    suggBoxRef.current = false;
+                  }}
+                >
+                  <Typography
+                    variant="body2"
+                    sx={{ fontWeight: 600, color: "var(--text)" }}
+                  >
+                    {sug.direccion}
+                  </Typography>
+                  {(sug.ciudad || sug.provincia || sug.cp) && (
+                    <Typography variant="caption" sx={{ color: "var(--text-low)" }}>
+                      {[sug.cp, sug.ciudad, sug.provincia].filter(Boolean).join(" • ")}
+                    </Typography>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
           <FieldError msg={errors.direccion} />
         </div>
+
+        {/* ── Ubicación ── */}
         <div className="divlabel">{t("forms.location")}</div>
         <Box
           sx={{
@@ -515,6 +642,8 @@ export const ScreenFormContacto: React.FC<FormContactoProps> = ({
               onChange={(e) => {
                 onChange("pais", e.target.value);
                 clearError("pais");
+                clearStreet();
+                setShowSuggestions(false);
               }}
               error={!!errors.pais}
               sx={inputSx}
@@ -537,11 +666,14 @@ export const ScreenFormContacto: React.FC<FormContactoProps> = ({
                   buscarCP(data.cp, data.pais);
               }}
               onKeyDown={(e) => {
-                if (e.key === "Enter" || e.key === "Escape") {
-                  if (e.key === "Enter") e.preventDefault();
-                  if (data.cp && data.pais && !esEspana)
-                    buscarCP(data.cp, data.pais);
-                }
+                if (e.key === "Enter") e.preventDefault();
+                if (
+                  (e.key === "Enter" || e.key === "Escape") &&
+                  data.cp &&
+                  data.pais &&
+                  !esEspana
+                )
+                  buscarCP(data.cp, data.pais);
               }}
               InputProps={{
                 endAdornment: isSearching ? (
@@ -560,6 +692,8 @@ export const ScreenFormContacto: React.FC<FormContactoProps> = ({
             <FieldError msg={errors.cp} />
           </div>
         </Box>
+
+        {/* ── Provincia + Ciudad ── */}
         <Box
           sx={{
             display: "grid",
@@ -613,7 +747,7 @@ export const ScreenFormContacto: React.FC<FormContactoProps> = ({
                   <TextField
                     {...p}
                     label={t("forms.city")}
-                    error={!!errors.city}
+                    error={!!errors.ciudad}
                     sx={inputSx}
                   />
                 )}
@@ -627,7 +761,7 @@ export const ScreenFormContacto: React.FC<FormContactoProps> = ({
                 sx={inputSx}
               />
             )}
-            <FieldError msg={errors.city} />
+            <FieldError msg={errors.ciudad} />
           </div>
         </Box>
       </Box>
@@ -659,6 +793,7 @@ export const ScreenFormContacto: React.FC<FormContactoProps> = ({
         </Button>
       </div>
 
+      {/* ── Modal guardar para después ── */}
       <Dialog
         open={showSaveModal}
         onClose={() => setShowSaveModal(false)}
