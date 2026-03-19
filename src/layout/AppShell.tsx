@@ -92,6 +92,7 @@ export const AppShell: React.FC<AppShellProps> = ({
           extraContent={<LanguageSelector />}
           name={reserva?.confirmacion}
           room={reserva?.habitacion}
+          extraContent={<LanguageSelector />}
           rightAction={
             onGoToRevision &&
             activeStep !== "revision" &&
@@ -106,6 +107,7 @@ export const AppShell: React.FC<AppShellProps> = ({
         />
 
         {/* Dots (Móvil/Tablet) - Dentro del card */}
+        {/* Progreso en puntos para móvil/tablet */}
         {showDots && nav.dotIndex >= 0 && (
           <DotsProgress
             steps={nav.dotSteps}

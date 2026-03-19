@@ -1978,26 +1978,27 @@ body {
   position: relative;
 }
 
-/* Botón trigger */
+/* Botón trigger
+   Móvil/tablet: píldora igual que .hdr-action para consistencia visual
+   Desktop: compacto con border-radius menor, ya que hdr-action está oculto */
 .lang-btn {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 6px 10px 6px 8px;
+  padding: 7px 12px 7px 10px;
   background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 999px;
   color: rgba(255, 255, 255, 0.85);
   font-family: "DM Sans", sans-serif;
-  font-size: 12px;
-  font-weight: 500;
+  font-size: var(--fs-xs);
+  font-weight: 400;
   cursor: pointer;
   transition:
     background 0.15s,
     border-color 0.15s,
     color 0.15s;
   white-space: nowrap;
-  /* Touch target mínimo recomendado */
   min-height: 36px;
 }
 
@@ -2009,8 +2010,20 @@ body {
 
 .lang-btn--open {
   background: rgba(255, 255, 255, 0.14);
-  border-color: rgba(255, 255, 255, 0.3);
+  border-color: rgba(255, 255, 255, 0.28);
   color: #fff;
+}
+
+/* Desktop: hdr-action está oculto, lang-btn queda solo.
+   Estilo más refinado y compacto para no sobrecargar el header. */
+@media (min-width: 1024px) {
+  .lang-btn {
+    padding: 5px 10px 5px 8px;
+    border-radius: 8px;
+    font-size: 11px;
+    min-height: 30px;
+    gap: 5px;
+  }
 }
 
 .lang-code {
@@ -2070,10 +2083,6 @@ body {
     right: 12px;
     left: 12px;
     border-radius: 14px;
-  }
-
-  .lang-btn {
-    padding: 8px 10px;
   }
 
   .lang-option {
