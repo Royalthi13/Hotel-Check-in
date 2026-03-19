@@ -34,6 +34,9 @@ export type CheckinAction =
   | { type: "SET_HORA_LLEGADA"; value: string }
   | { type: "SET_OBSERVACIONES"; value: string }
   | { type: "SET_RGPD"; value: boolean }
+  | { type: "SET_LEGAL_PASSED"; value: boolean }
+  | { type: "SET_HAS_MINORS_FLAG"; value: boolean }
+  | { type: "RESTORE_FULL_STATE"; payload: CheckinState }
   | { type: "RESET" };
 
 // ─── Estado vacío ─────────────────────────────────────────────────────────────
@@ -49,6 +52,8 @@ export function buildEmptyState(appMode: AppMode): CheckinState {
     horaLlegada: "",
     observaciones: "",
     rgpdAcepted: false,
+    legalPassed: false,
+    hasMinorsFlag: false,
   };
 }
 
@@ -162,6 +167,12 @@ export function checkinReducer(
       return { ...state, observaciones: action.value };
     case "SET_RGPD":
       return { ...state, rgpdAcepted: action.value };
+    case "SET_LEGAL_PASSED":
+      return { ...state, legalPassed: action.value };
+    case "SET_HAS_MINORS_FLAG":
+      return { ...state, hasMinorsFlag: action.value };
+    case "RESTORE_FULL_STATE":
+      return { ...state, ...action.payload };
     case "RESET":
       return buildEmptyState(state.appMode);
     default:
@@ -259,8 +270,34 @@ export function useCheckin(tokenUrl?: string, stepUrl?: string) {
     async function load() {
       try {
         const res = await fetch(`/api/checkin/${token}`);
-        const data = (await res.json()) as { data?: GuestData };
-        if (data.data) dispatch({ type: "SET_KNOWN_GUEST", guest: data.data });
+        const data = (await res.json()) as any;
+
+        if (data.status === "partial_recovery" && data.state) {
+          dispatch({ type: "RESTORE_FULL_STATE", payload: data.state });
+
+          const stepsToUnlock: StepId[] = [
+            "inicio",
+            "bienvenida",
+            "num_personas",
+            "escanear",
+            "form_personal",
+            "form_contacto",
+            "form_documento",
+            "form_relaciones",
+            "form_extras",
+            "revision",
+          ];
+
+          setAllowedSteps(new Set(stepsToUnlock));
+
+          setHistory([
+            { step: "inicio", guestIndex: 0 },
+            { step: "revision", guestIndex: 0 },
+          ]);
+          navigate(`/checkin/${token}/revision`, { replace: true });
+        } else if (data.data) {
+          dispatch({ type: "SET_KNOWN_GUEST", guest: data.data });
+        }
       } catch (err) {
         console.error("[useCheckin] Error loading:", err);
       } finally {
@@ -318,14 +355,14 @@ export function useCheckin(tokenUrl?: string, stepUrl?: string) {
     [navigate, token, activeGuestIndex],
   );
 
-  
   const goBack = useCallback(() => {
-  if (history.length <= 1) return;
-  const target = history[history.length - 2];
-  setHistory((prev) => prev.slice(0, -1));
-  setNavDirection("back");
-  if (target) navigate(`/checkin/${token}/${target.step}`, { replace: false });
-}, [navigate, token, history]);
+    if (history.length <= 1) return;
+    const target = history[history.length - 2];
+    setHistory((prev) => prev.slice(0, -1));
+    setNavDirection("back");
+    if (target)
+      navigate(`/checkin/${token}/${target.step}`, { replace: false });
+  }, [navigate, token, history]);
 
   const dotSteps = state.appMode === "link" ? FLOW_STEPS_LINK : DOT_STEPS_BASE;
 
@@ -446,6 +483,10 @@ export function useCheckin(tokenUrl?: string, stepUrl?: string) {
     nextGuest,
 
     setRgpdAcepted: (v: boolean) => dispatch({ type: "SET_RGPD", value: v }),
+    setLegalPassed: (v: boolean) =>
+      dispatch({ type: "SET_LEGAL_PASSED", value: v }),
+    setHasMinorsFlag: (v: boolean) =>
+      dispatch({ type: "SET_HAS_MINORS_FLAG", value: v }),
   };
 
   return [state, nav, actions, isLoading] as const;

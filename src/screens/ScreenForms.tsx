@@ -48,6 +48,7 @@ interface FormPersonalProps {
   onNext: () => void;
   isSubmitting: boolean;
   token: string;
+  onPartialSave?: () => void;
 }
 
 interface FormContactoProps {

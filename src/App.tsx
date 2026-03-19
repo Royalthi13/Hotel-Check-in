@@ -34,7 +34,6 @@ import type { StepId, PartialGuestData } from "@/types";
 const STEPS_WITHOUT_DOTS = new Set<StepId>(["tablet_buscar", "exito"]);
 
 function RedirectToNew() {
-  // Redirección base: siempre al inicio del flujo manual
   return <Navigate to="/checkin/new/inicio" replace />;
 }
 
@@ -42,7 +41,6 @@ function RedirectToBienvenida() {
   const { token } = useParams();
   const navigate = useNavigate();
   useEffect(() => {
-    // Si entran solo con el token, los mandamos al inicio real
     navigate(`/checkin/${token}/inicio`, { replace: true });
   }, [navigate, token]);
   return null;
@@ -57,21 +55,9 @@ function CheckinWizard() {
   const [isOffline, setIsOffline] = useState(!navigator.onLine);
   const [isPartialSuccess, setIsPartialSuccess] = useState(false);
 
-  // Mantenemos estas banderas solo para persistencia, pero el enrutamiento manda
-  const [legalPassed, setLegalPassed] = useState(
-    () => sessionStorage.getItem(`legalPassed_${token}`) === "true",
-  );
-  const [hasMinorsFlag, setHasMinorsFlag] = useState(
-    () => sessionStorage.getItem(`hasMinors_${token}`) === "true",
-  );
-
-  useEffect(() => {
-    sessionStorage.setItem(`legalPassed_${token}`, String(legalPassed));
-  }, [legalPassed, token]);
-
-  useEffect(() => {
-    sessionStorage.setItem(`hasMinors_${token}`, String(hasMinorsFlag));
-  }, [hasMinorsFlag, token]);
+  // ✅ CAMBIO 1: Quitamos los useState/useEffect antiguos.
+  // Ahora sacamos estas variables directamente del estado centralizado.
+  const { hasMinorsFlag } = state;
 
   useEffect(() => {
     const on = () => setIsOffline(false);
@@ -98,6 +84,7 @@ function CheckinWizard() {
     );
   }
 
+  // ✅ CAMBIO 2: Añadimos las dos nuevas funciones a las acciones que extraemos
   const {
     goTo,
     goBack,
@@ -107,6 +94,8 @@ function CheckinWizard() {
     updateRelacion,
     nextGuest,
     setRgpdAcepted,
+    setLegalPassed,
+    setHasMinorsFlag,
   } = actions;
 
   const currentStep = nav.step || "inicio";
@@ -114,10 +103,7 @@ function CheckinWizard() {
   const isMainGuest = nav.guestIndex === 0;
   const currentGuest = state.guests[nav.guestIndex] ?? {};
 
-  const customNav = {
-    ...nav,
-    canGoBack: nav.canGoBack,
-  };
+  const customNav = { ...nav, canGoBack: nav.canGoBack };
 
   const handleSmartGoBack = () => {
     goBack();
@@ -125,18 +111,13 @@ function CheckinWizard() {
 
   const handleChooseMethod = (method: "scan" | "manual") => {
     sessionStorage.setItem(`modoFlujo_${token}`, method);
-
     if (hasMinorsFlag) {
       goTo("num_personas", "forward", 0);
     } else {
       setNumPersonas(state.reserva?.numHuespedes || 1);
-      if (method === "scan") {
-        goTo("escanear", "forward", 0);
-      } else if (state.knownGuest) {
-        goTo("confirmar_datos", "forward", 0);
-      } else {
-        goTo("form_personal", "forward", 0);
-      }
+      if (method === "scan") goTo("escanear", "forward", 0);
+      else if (state.knownGuest) goTo("confirmar_datos", "forward", 0);
+      else goTo("form_personal", "forward", 0);
     }
   };
 
@@ -145,15 +126,9 @@ function CheckinWizard() {
     setIsSubmitting(true);
     try {
       const payload = {
-        reserva: state.reserva,
+        ...state, // ✅ Esto ahora enviará TODO (incluyendo legalPassed y hasMinorsFlag)
         guests: state.guests.map(({ docFile, ...rest }) => rest),
         isPartial,
-        ...(isPartial
-          ? {}
-          : {
-              horaLlegada: state.horaLlegada,
-              observaciones: state.observaciones,
-            }),
       };
 
       const res = await fetch(`/api/checkin/${token}`, {
@@ -226,8 +201,9 @@ function CheckinWizard() {
 
       {currentStep === "inicio" && (
         <ScreenCheckinInicio
-          reserva={state.reserva}
+          reserva={state.reserva as any}
           onNext={(hayMenores: boolean) => {
+            // ✅ CAMBIO 3: Usamos las acciones que definimos arriba
             setHasMinorsFlag(hayMenores);
             setLegalPassed(true);
             goTo("bienvenida", "forward");
@@ -290,6 +266,9 @@ function CheckinWizard() {
           onNext={() => nextGuest(nav.guestIndex, "form_personal")}
           isSubmitting={isSubmitting}
           token={token || "new"}
+          onPartialSave={
+            handlePartialSubmit
+          } /* ✅ CAMBIO 4: Pasamos la función al componente */
         />
       )}
 
