@@ -26,12 +26,12 @@ function getActiveSideStep(step: StepId): StepId {
 
 const variants = {
   enter: (direction: string) => ({
-    x: direction === "forward" ? 100 : -100,
+    x: direction === "forward" ? 80 : -80,
     opacity: 0,
   }),
   center: { x: 0, opacity: 1 },
   exit: (direction: string) => ({
-    x: direction === "forward" ? -100 : 100,
+    x: direction === "forward" ? -80 : 80,
     opacity: 0,
   }),
 };
@@ -63,10 +63,7 @@ export const AppShell: React.FC<AppShellProps> = ({
       : 0,
   );
 
-  // FIX BUG HIGH #1: setState durante render → movido a useEffect
-  // Antes: el if con setMaxDotReached estaba en el cuerpo del componente,
-  // fuera de cualquier efecto. React 18 en Strict Mode detecta esto como
-  // "setState during render" y puede generar renders infinitos o warnings.
+  // Mantenemos el progreso de los "Dots" actualizado sin errores de renderizado
   useEffect(() => {
     if (
       nav.dotIndex > maxDotReached &&
@@ -78,14 +75,7 @@ export const AppShell: React.FC<AppShellProps> = ({
     }
   }, [nav.dotIndex, nav.step, nav.allowedSteps, maxDotReached]);
 
-  const isStepUnlocked = (stepId: StepId, index: number) => {
-    if (nav.allowedSteps) {
-      return nav.allowedSteps.has(stepId);
-    }
-    if (activeStep === "revision" || activeStep === "exito") {
-      return stepId === "bienvenida" || stepId === activeStep;
-    }
-    return index <= activeIdx;
+  // Lógica de navegación: Solo permite ir a pasos ya visitados (desbloqueados)
   const isStepUnlocked = (stepId: StepId) => {
     return nav.allowedSteps?.has(stepId) || stepId === "bienvenida";
   };
@@ -93,7 +83,7 @@ export const AppShell: React.FC<AppShellProps> = ({
   return (
     <div className="shell">
       <div className="card">
-        {/* Header */}
+        {/* Header con información de reserva */}
         <Header
           canGoBack={nav.canGoBack}
           onBack={actions.goBack}
@@ -112,20 +102,19 @@ export const AppShell: React.FC<AppShellProps> = ({
           }
         />
 
-        {/* Dots (Móvil/Tablet) */}
+        {/* Progreso en puntos para móvil/tablet */}
         {showDots && nav.dotIndex >= 0 && (
           <DotsProgress
             steps={nav.dotSteps}
-            labels={nav.dotSteps.map((s: StepId) =>
-              t(`constants.steps.${s}`),
-            )}
+            labels={nav.dotSteps.map((s: StepId) => t(`constants.steps.${s}`))}
             activeIndex={nav.dotIndex}
-            maxReachable={nav.dotIndex} // Simplificado para que los puntos reflejen donde estas
+            maxReachable={maxDotReached}
             onDotClick={actions.goToDotIndex}
           />
         )}
 
         <div className="body-row">
+          {/* Panel Lateral Desktop */}
           <aside className="side-panel">
             <div className="side-panel-inner">
               <div className="sp-logo">
@@ -133,6 +122,7 @@ export const AppShell: React.FC<AppShellProps> = ({
                 <em>Hotels</em>
               </div>
               <p className="sp-sub">{t("appShell.subtitle")}</p>
+
               <div className="sp-summary-wrapper">
                 <button
                   type="button"
@@ -144,38 +134,11 @@ export const AppShell: React.FC<AppShellProps> = ({
                     activeStep === "exito"
                   }
                 >
-                  <Icon name="search" size={14} color="rgba(255,255,255,.8)" />{" "}
-                  {t("appShell.booking_summary")}
-                </button>
-
-                <button
-                  type="button"
-                  className="sp-summary-btn-orange"
-                  onClick={onGoToRevision}
-                  disabled={
-                    !onGoToRevision ||
-                    activeStep === "revision" ||
-                    activeStep === "exito"
-                  }
-                >
-                  <Icon name="search" size={14} color="#fff" />
-                  {t("appShell.booking_summary")}
-                </button>
-
-                <button
-                  type="button"
-                  className="sp-summary-btn-orange"
-                  onClick={onGoToRevision}
-                  disabled={
-                    !onGoToRevision ||
-                    activeStep === "revision" ||
-                    activeStep === "exito"
-                  }
-                >
-                  <Icon name="search" size={14} color="#fff" />
+                  <Icon name="search" size={14} color="rgba(255,255,255,.8)" />
                   {t("appShell.booking_summary")}
                 </button>
               </div>
+
               {reserva && (
                 <div className="sp-reserva">
                   <div className="sp-reserva-title">
@@ -184,20 +147,24 @@ export const AppShell: React.FC<AppShellProps> = ({
                   <ReservationCard reserva={reserva} />
                 </div>
               )}
-              <nav className="sp-steps">
+
+              <nav className="sp-steps" aria-label="Progreso">
                 {SIDE_STEPS.map((s, i) => {
                   const isActive = i === activeIdx;
                   const isUnlocked = isStepUnlocked(s.id);
+                  const isClickable =
+                    isUnlocked && !isActive && s.id !== "exito";
                   const isDone =
                     isUnlocked &&
                     !isActive &&
                     s.id !== "revision" &&
                     s.id !== "exito";
+
                   return (
                     <div
                       key={s.id}
                       onClick={() => {
-                        if (isUnlocked && !isActive) {
+                        if (isClickable) {
                           const dotIdxInNav = nav.dotSteps.indexOf(s.id);
                           if (dotIdxInNav !== -1)
                             actions.goToDotIndex(dotIdxInNav);
@@ -209,7 +176,6 @@ export const AppShell: React.FC<AppShellProps> = ({
                             );
                         }
                       }}
-                      className={`sp-step ${isActive ? "sp-step--active" : ""} ${isDone ? "sp-step--done" : ""} ${isUnlocked && !isActive ? "sp-step--clickable" : ""}`}
                       className={[
                         "sp-step",
                         isActive ? "sp-step--active" : "",
@@ -219,7 +185,7 @@ export const AppShell: React.FC<AppShellProps> = ({
                         .filter(Boolean)
                         .join(" ")}
                       style={{
-                        cursor: isUnlocked && !isActive ? "pointer" : "default",
+                        cursor: isClickable ? "pointer" : "default",
                         opacity: isUnlocked ? 1 : 0.4,
                       }}
                     >
@@ -245,6 +211,7 @@ export const AppShell: React.FC<AppShellProps> = ({
             </div>
           </aside>
 
+          {/* Área de contenido con animaciones Framer Motion */}
           <main
             className="screen-wrap"
             style={{
@@ -256,7 +223,7 @@ export const AppShell: React.FC<AppShellProps> = ({
           >
             <AnimatePresence mode="wait" initial={false} custom={nav.direction}>
               <motion.div
-                key={nav.step + (nav.guestIndex || 0)} // Key unica para que la animación salte entre huéspedes
+                key={nav.step + (nav.guestIndex || 0)}
                 custom={nav.direction}
                 variants={variants}
                 initial="enter"
@@ -268,7 +235,7 @@ export const AppShell: React.FC<AppShellProps> = ({
                 }}
                 style={{
                   width: "100%",
-                  flex: 1,
+                  height: "100%",
                   display: "flex",
                   flexDirection: "column",
                 }}
@@ -277,14 +244,6 @@ export const AppShell: React.FC<AppShellProps> = ({
               </motion.div>
             </AnimatePresence>
           </main>
-          <div className="screen-wrap">
-            <div
-              className={`screen ${nav.direction === "back" ? "back" : ""}`}
-              key={nav.step}
-            >
-              {children}
-            </div>
-          </div>
         </div>
       </div>
     </div>
