@@ -33,6 +33,13 @@ import type { Reserva, StepId, PartialGuestData } from "@/types";
 
 const STEPS_WITHOUT_DOTS = new Set<StepId>(["tablet_buscar", "exito"]);
 
+// FIX BUG MEDIUM #5: wildcard redirige a token "undefined"
+// Antes: useParams() devolvía undefined para rutas sin :token → "/checkin/undefined/bienvenida"
+// Ahora: redirige siempre a /checkin/new/bienvenida como fallback seguro
+function RedirectToNew() {
+  return <Navigate to="/checkin/new/bienvenida" replace />;
+}
+
 function RedirectToBienvenida() {
   const { token } = useParams();
   const navigate = useNavigate();
@@ -49,7 +56,6 @@ function CheckinWizard() {
   const [submitError, setSubmitError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isOffline, setIsOffline] = useState(!navigator.onLine);
-
   const [isPartialSuccess, setIsPartialSuccess] = useState(false);
 
   const [legalPassed, setLegalPassed] = useState(
@@ -122,6 +128,8 @@ function CheckinWizard() {
   };
 
   const handleChooseMethod = (method: "scan" | "manual") => {
+    // FIX BUG HIGH #5: guardar modoFlujo CON token para que ScreenForms lo lea bien
+    // (ver también fix en ScreenForms donde se lee con token)
     sessionStorage.setItem(`modoFlujo_${token}`, method);
 
     if (hasMinorsFlag) {
@@ -138,6 +146,9 @@ function CheckinWizard() {
     }
   };
 
+  // FIX BUG MEDIUM #2: handleSubmit no navega a "exito" en el catch
+  // Antes: el catch hacía goTo("exito") → el usuario veía pantalla de éxito aunque fallara.
+  // Ahora: en caso de error solo muestra el mensaje, no navega.
   const handleSubmit = async (): Promise<void> => {
     setSubmitError("");
     setIsSubmitting(true);
@@ -168,13 +179,12 @@ function CheckinWizard() {
         throw new Error(data?.error ?? `HTTP ${res.status}`);
       }
       setIsPartialSuccess(false);
-      goTo("exito");
+      goTo("exito", "forward");
     } catch (err: unknown) {
+      // FIX: ya no hacemos goTo("exito") en el catch
       setSubmitError(
         err instanceof Error ? err.message : t("errorBoundary.title"),
       );
-      setIsPartialSuccess(false);
-      goTo("exito");
     } finally {
       setIsSubmitting(false);
     }
@@ -208,18 +218,19 @@ function CheckinWizard() {
         throw new Error(data?.error ?? `HTTP ${res.status}`);
       }
       setIsPartialSuccess(true);
-      goTo("exito");
+      goTo("exito", "forward");
     } catch (err: unknown) {
+      // FIX: ya no hacemos goTo("exito") en el catch
       setSubmitError(
         err instanceof Error ? err.message : t("errorBoundary.title"),
       );
-      setIsPartialSuccess(true);
-      goTo("exito");
     } finally {
       setIsSubmitting(false);
     }
   };
 
+  // FIX BUG HIGH #3: adultosConIndice — los índices son del array global de guests
+  // Esto es correcto: originalIndex = índice real en state.guests
   const adultosConIndice = state.guests
     .map((g, i) => ({ ...g, originalIndex: i }))
     .filter((g) => !g.esMenor);
@@ -284,6 +295,7 @@ function CheckinWizard() {
           numPersonas={state.numPersonas}
           onChange={setNumPersonas}
           onNext={() => {
+            // FIX BUG HIGH #5: leer modoFlujo CON token
             const flujo = sessionStorage.getItem(`modoFlujo_${token}`);
             if (flujo === "scan") goTo("escanear", "forward", 0);
             else if (state.knownGuest) goTo("confirmar_datos", "forward", 0);
@@ -297,24 +309,23 @@ function CheckinWizard() {
         <ScreenEscanear
           onScanned={(data) => {
             actions.applyScannedData(data, nav.guestIndex);
-            goTo("form_personal");
+            goTo("form_personal", "forward");
           }}
-          onSkip={() => goTo("form_personal")}
+          onSkip={() => goTo("form_personal", "forward")}
         />
       )}
 
       {currentStep === "confirmar_datos" && (
         <ScreenConfirmarDatos
           guest={currentGuest}
-          onConfirm={() => goTo("form_contacto")}
-          onEdit={() => goTo("form_personal")}
+          onConfirm={() => goTo("form_contacto", "forward")}
+          onEdit={() => goTo("form_personal", "forward")}
         />
       )}
 
       {currentStep === "form_personal" && (
         <ScreenFormPersonal
           data={currentGuest}
-          // 🔥 AQUÍ ESTÁ EL ARREGLO
           allGuests={state.guests}
           onChange={(k: keyof PartialGuestData, v: unknown) =>
             updateGuest(nav.guestIndex, k, v)
@@ -326,6 +337,8 @@ function CheckinWizard() {
           onNext={() => nextGuest(nav.guestIndex, "form_personal")}
           onPartialSave={handlePartialSubmit}
           isSubmitting={isSubmitting}
+          // FIX BUG HIGH #5: pasar token para leer modoFlujo correctamente
+          token={token}
         />
       )}
 
@@ -347,13 +360,16 @@ function CheckinWizard() {
           menor={currentGuest}
           adultos={adultosConIndice}
           onRelacionChange={(aIdx: number, p: string) =>
+            // FIX BUG HIGH #3: nav.guestIndex ES el índice real del menor en state.guests
+            // adultosConIndice ya tiene originalIndex = índice real en state.guests
             updateRelacion(nav.guestIndex, aIdx, p)
           }
           onNext={() => nextGuest(nav.guestIndex, "form_relaciones")}
           onPartialSave={handlePartialSubmit}
           hasNextMinor={
-            state.guests.findIndex((g, i) => i > nav.guestIndex && g.esMenor) >=
-            0
+            state.guests.findIndex(
+              (g, i) => i > nav.guestIndex && g.esMenor,
+            ) >= 0
           }
           isSubmitting={isSubmitting}
         />
@@ -365,7 +381,7 @@ function CheckinWizard() {
           observaciones={state.observaciones}
           onHoraChange={actions.setHoraLlegada}
           onObsChange={actions.setObservaciones}
-          onNext={() => goTo("revision")}
+          onNext={() => goTo("revision", "forward")}
         />
       )}
 
@@ -416,7 +432,8 @@ export default function App() {
             </ErrorBoundary>
           }
         />
-        <Route path="*" element={<RedirectToBienvenida />} />
+        {/* FIX BUG MEDIUM #5: wildcard ya no usa RedirectToBienvenida (token undefined) */}
+        <Route path="*" element={<RedirectToNew />} />
       </Routes>
     </BrowserRouter>
   );

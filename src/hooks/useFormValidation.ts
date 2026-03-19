@@ -99,12 +99,11 @@ export function validatePersonal(
     const errorNum = validarNumeroDocumento(data.tipoDoc, data.numDoc ?? "", t);
     if (errorNum) e.numDoc = errorNum;
 
-    // 🔥 NUEVO: Validación del Número de Soporte solo para DNI y NIE
+    // FIX BUG MEDIUM #6: usar clave i18n correcta (sin defaultValue hardcodeado en ES)
+    // La clave "validation.required_doc_support" ahora existe en todos los locales
     if (data.tipoDoc === "DNI" || data.tipoDoc === "NIE") {
       if (!data.soporteDoc?.trim()) {
-        e.soporteDoc = t("validation.required_doc_support", {
-          defaultValue: "El número de soporte es obligatorio",
-        });
+        e.soporteDoc = t("validation.required_doc_support");
       }
     }
   }

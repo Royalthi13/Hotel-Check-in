@@ -1,8 +1,7 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { Header, DotsProgress, Icon, ReservationCard } from "../components/ui";
 import type { CheckinNav, CheckinActions, StepId, Reserva } from "../types";
-import { motion, AnimatePresence } from "framer-motion"; // Importamos la librería
 
 const SIDE_STEPS: { id: StepId }[] = [
   { id: "bienvenida" },
@@ -23,22 +22,6 @@ const DOT_FOR: Partial<Record<StepId, StepId>> = {
 function getActiveSideStep(step: StepId): StepId {
   return DOT_FOR[step] ?? step;
 }
-
-// Variantes para la animación de entrada y salida
-const variants = {
-  enter: (direction: string) => ({
-    x: direction === "forward" ? 30 : -30,
-    opacity: 0,
-  }),
-  center: {
-    x: 0,
-    opacity: 1,
-  },
-  exit: (direction: string) => ({
-    x: direction === "forward" ? -30 : 30,
-    opacity: 0,
-  }),
-};
 
 interface AppShellProps {
   nav: CheckinNav & { allowedSteps?: Set<StepId> };
@@ -62,23 +45,27 @@ export const AppShell: React.FC<AppShellProps> = ({
   const activeStep = getActiveSideStep(nav.step);
   const activeIdx = SIDE_STEPS.findIndex((s) => s.id === activeStep);
 
-  // Mantenemos tu lógica original de puntos de progreso
-  const [maxDotReached, setMaxDotReached] = useState(
+  const [maxDotReached, setMaxDotReached] = useState(() =>
     nav.dotIndex >= 0 && nav.step !== "revision" && nav.step !== "exito"
       ? nav.dotIndex
       : 0,
   );
 
-  if (
-    nav.dotIndex > maxDotReached &&
-    nav.step !== "exito" &&
-    (nav.step !== "revision" ||
-      (nav.allowedSteps && nav.allowedSteps.has("form_extras")))
-  ) {
-    setMaxDotReached(nav.dotIndex);
-  }
+  // FIX BUG HIGH #1: setState durante render → movido a useEffect
+  // Antes: el if con setMaxDotReached estaba en el cuerpo del componente,
+  // fuera de cualquier efecto. React 18 en Strict Mode detecta esto como
+  // "setState during render" y puede generar renders infinitos o warnings.
+  useEffect(() => {
+    if (
+      nav.dotIndex > maxDotReached &&
+      nav.step !== "exito" &&
+      (nav.step !== "revision" ||
+        (nav.allowedSteps && nav.allowedSteps.has("form_extras")))
+    ) {
+      setMaxDotReached(nav.dotIndex);
+    }
+  }, [nav.dotIndex, nav.step, nav.allowedSteps, maxDotReached]);
 
-  // Lógica crítica: Solo permite navegar a pasos que están en allowedSteps
   const isStepUnlocked = (stepId: StepId, index: number) => {
     if (nav.allowedSteps) {
       return nav.allowedSteps.has(stepId);
@@ -92,11 +79,10 @@ export const AppShell: React.FC<AppShellProps> = ({
   return (
     <div className="shell">
       <div className="card">
+        {/* Header */}
         <Header
           canGoBack={nav.canGoBack}
           onBack={actions.goBack}
-          name={reserva?.confirmacion} // Pasamos confirmación al header
-          room={reserva?.habitacion} // Pasamos habitación al header
           rightAction={
             onGoToRevision &&
             activeStep !== "revision" &&
@@ -110,10 +96,13 @@ export const AppShell: React.FC<AppShellProps> = ({
           }
         />
 
+        {/* Dots (Móvil/Tablet) */}
         {showDots && nav.dotIndex >= 0 && (
           <DotsProgress
             steps={nav.dotSteps}
-            labels={nav.dotSteps.map((s: StepId) => t(`constants.steps.${s}`))}
+            labels={nav.dotSteps.map((s: StepId) =>
+              t(`constants.steps.${s}`),
+            )}
             activeIndex={nav.dotIndex}
             maxReachable={maxDotReached}
             onDotClick={actions.goToDotIndex}
@@ -141,6 +130,20 @@ export const AppShell: React.FC<AppShellProps> = ({
                   }
                 >
                   <Icon name="search" size={14} color="rgba(255,255,255,.8)" />
+                  {t("appShell.booking_summary")}
+                </button>
+
+                <button
+                  type="button"
+                  className="sp-summary-btn-orange"
+                  onClick={onGoToRevision}
+                  disabled={
+                    !onGoToRevision ||
+                    activeStep === "revision" ||
+                    activeStep === "exito"
+                  }
+                >
+                  <Icon name="search" size={14} color="#fff" />
                   {t("appShell.booking_summary")}
                 </button>
               </div>
@@ -183,7 +186,14 @@ export const AppShell: React.FC<AppShellProps> = ({
                           }
                         }
                       }}
-                      className={`sp-step ${isActive ? "sp-step--active" : ""} ${isDone ? "sp-step--done" : ""} ${isClickable ? "sp-step--clickable" : ""}`}
+                      className={[
+                        "sp-step",
+                        isActive ? "sp-step--active" : "",
+                        isDone ? "sp-step--done" : "",
+                        isClickable ? "sp-step--clickable" : "",
+                      ]
+                        .filter(Boolean)
+                        .join(" ")}
                       style={{
                         cursor: isClickable ? "pointer" : "default",
                         opacity: isUnlocked ? 1 : 0.4,
@@ -203,32 +213,22 @@ export const AppShell: React.FC<AppShellProps> = ({
                   );
                 })}
               </nav>
+
+              <div className="sp-footer">
+                <Icon name="lock" size={12} color="rgba(255,255,255,.3)" />
+                <span>{t("appShell.privacy_short")}</span>
+              </div>
             </div>
           </aside>
 
-          {/* Aplicamos AnimatePresence aquí para las transiciones entre pantallas */}
-          <main
-            className="screen-wrap"
-            style={{ position: "relative", overflowX: "hidden" }}
-          >
-            <AnimatePresence mode="wait" initial={false} custom={nav.direction}>
-              <motion.div
-                key={nav.step + (nav.guestIndex || 0)} // Key única para disparar la animación
-                custom={nav.direction}
-                variants={variants}
-                initial="enter"
-                animate="center"
-                exit="exit"
-                transition={{
-                  x: { type: "spring", stiffness: 300, damping: 30 },
-                  opacity: { duration: 0.2 },
-                }}
-                className="screen"
-              >
-                {children}
-              </motion.div>
-            </AnimatePresence>
-          </main>
+          <div className="screen-wrap">
+            <div
+              className={`screen ${nav.direction === "back" ? "back" : ""}`}
+              key={nav.step}
+            >
+              {children}
+            </div>
+          </div>
         </div>
       </div>
     </div>

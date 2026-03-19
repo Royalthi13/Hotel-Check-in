@@ -79,7 +79,6 @@
       "exito": "Completado"
     }
   },
-
   "common": {
     "no": "No",
     "yes": "Sí",
@@ -94,15 +93,17 @@
     "privacy_ssl": "Cifrado SSL · Datos protegidos conforme al RGPD",
     "main_guest": "(Titular)",
     "not_specified": "No especificada",
-    "summary": "Resumen"
+    "summary": "Resumen",
+    "save_partial": "Guardar y seguir luego",
+    "next_guest": "Siguiente persona",
+    "copy_link": "Copiar enlace para compartir",
+    "copied": "¡Enlace copiado!"
   },
-
   "appShell": {
     "subtitle": "Complete su pre check-in y llegue al hotel sin esperas en recepción.",
     "booking_summary": "Resumen de la reserva",
     "privacy_short": "Cifrado SSL · RGPD"
   },
-
   "validation": {
     "min_adults": "Debe haber al menos 1 adulto.",
     "min_adults_booking": "Debe haber al menos 1 adulto en la reserva.",
@@ -121,6 +122,7 @@
     "required_country": "El país es obligatorio",
     "required_doc_type": "Seleccione el tipo de documento",
     "required_doc_num": "El número de documento es obligatorio",
+    "required_doc_support": "El número de soporte es obligatorio para DNI y NIE",
     "invalid_dni": "DNI no válido. Formato: 8 dígitos + letra (ej: 12345678Z)",
     "invalid_nie": "NIE no válido. Formato: X/Y/Z + 7 dígitos + letra (ej: X1234567Z)",
     "invalid_passport": "Pasaporte no válido. Formato: 3 letras + 6 dígitos (ej: AAA123456)",
@@ -129,7 +131,8 @@
     "doc_too_short": "El número de documento parece demasiado corto",
     "min_persons": "Indique al menos 1 persona",
     "max_persons": "Máximo 10 personas por reserva",
-    "missing_relationships": "Faltan parentescos por rellenar en los formularios. Revise los datos de todos los huéspedes."
+    "missing_relationships": "Faltan parentescos por rellenar en los formularios. Revise los datos de todos los huéspedes.",
+    "duplicate_doc": "Este documento ya ha sido registrado en otro huésped."
   },
   "search": {
     "title_1": "Bienvenido al",
@@ -238,6 +241,7 @@
     "doc_subtitle": "Identificación huésped {{current}} de {{total}}",
     "doc_type": "Tipo de documento",
     "doc_number": "Número",
+    "doc_support": "Número de soporte",
     "upload_photo": "Subir foto de la parte trasera de tu documento",
     "photo_uploaded": "Documento cargado",
     "next_guest": "Siguiente huésped",
@@ -318,6 +322,8 @@
     "title_precheckin_1": "¡Pre check-in",
     "title_precheckin_2": "completado!",
     "subtitle_precheckin": "Sus datos han sido registrados. Al llegar al hotel, diríjase directamente a recepción para recoger su llave de habitación.",
+    "partial_title": "¡Progreso guardado!",
+    "partial_sub": "Los datos se han guardado correctamente. Comparta este enlace con el resto de acompañantes para que completen su registro de forma rápida y segura.",
     "main_guest": "Huésped principal",
     "total_guests": "Total huéspedes",
     "expected_arrival": "Llegada prevista",

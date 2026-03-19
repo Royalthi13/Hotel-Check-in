@@ -22,15 +22,14 @@ import { usePlaces } from "@/hooks/usePlaces";
 import dayjs from "dayjs";
 import "dayjs/locale/es";
 
-function useDebounce(fn: () => void, delay: number, watchValue: unknown) {
-  const fnRef = useRef(fn);
-  useEffect(() => {
-    fnRef.current = fn;
-  }, [fn]);
-  useEffect(() => {
-    const t = setTimeout(() => fnRef.current(), delay);
-    return () => clearTimeout(t);
-  }, [watchValue, delay]);
+// FIX BUG MEDIUM #3: eliminado useDebounce local duplicado.
+// Se importa el centralizado de hooks/useDebounce.ts
+import { useDebounce } from "@/hooks/useDebounce";
+
+// Wrapper que adapta la firma del hook centralizado (acepta deps[])
+// al patrón de uso local (un único watchValue)
+function useDebounceValue(fn: () => void, delay: number, watchValue: unknown) {
+  useDebounce(fn, delay, [watchValue]);
 }
 
 const inputSx = {
@@ -49,6 +48,8 @@ interface FormPersonalProps {
   onNext: () => void;
   onPartialSave: () => void;
   isSubmitting: boolean;
+  // FIX BUG HIGH #5: token necesario para leer modoFlujo con la clave correcta
+  token?: string;
 }
 
 interface FormContactoProps {
@@ -89,18 +90,25 @@ export const ScreenFormPersonal: React.FC<FormPersonalProps> = ({
   onNext,
   onPartialSave,
   isSubmitting,
+  token,
 }) => {
   const { t } = useTranslation();
   const { errors, validate, clearError } = useFormValidation(validatePersonal);
   const [duplicateError, setDuplicateError] = useState("");
 
-  const modoFlujo = sessionStorage.getItem(`modoFlujo`) || "manual";
+  // FIX BUG HIGH #5: leer modoFlujo CON token para que coincida con la clave de escritura
+  // Antes: sessionStorage.getItem("modoFlujo") → siempre null → mostrarCargaFoto siempre true
+  // Ahora: sessionStorage.getItem(`modoFlujo_${token}`) → valor correcto
+  const modoFlujo = sessionStorage.getItem(
+    token ? `modoFlujo_${token}` : "modoFlujo",
+  ) || "manual";
   const mostrarCargaFoto = modoFlujo !== "manual";
-  const fechaNac = data.fechaNac ? dayjs(data.fechaNac) : null;
 
+  const fechaNac = data.fechaNac ? dayjs(data.fechaNac) : null;
   const isDniOrNie = data.tipoDoc === "DNI" || data.tipoDoc === "NIE";
 
-  useDebounce(
+  // FIX BUG MEDIUM #3: usar wrapper del hook centralizado en lugar del local
+  useDebounceValue(
     () => {
       if ((data.nombre?.length ?? 0) >= 2)
         validate({ ...data, isTitular: isMainGuest });
@@ -121,7 +129,6 @@ export const ScreenFormPersonal: React.FC<FormPersonalProps> = ({
         (g, i) =>
           i !== guestIndex && g.numDoc?.trim().toUpperCase() === currentDoc,
       );
-
       if (isDuplicate) {
         setDuplicateError(
           t("validation.duplicate_doc", {
@@ -169,7 +176,6 @@ export const ScreenFormPersonal: React.FC<FormPersonalProps> = ({
         style={{ padding: "0 var(--px)" }}
         sx={{ mt: 2, display: "flex", flexDirection: "column", gap: 2.5 }}
       >
-        {/* 🔥 AÑADIDO: Nombre, Primer Apellido y Segundo Apellido en 3 columnas */}
         <Box
           sx={{
             display: "grid",
@@ -208,14 +214,11 @@ export const ScreenFormPersonal: React.FC<FormPersonalProps> = ({
             <FieldError msg={errors.apellido} />
           </div>
           <div>
-            {/* El segundo apellido no es required para evitar bloquear a huéspedes extranjeros */}
             <TextField
               label={t("forms.second_surname")}
               fullWidth
               value={data.apellido2 ?? ""}
-              onChange={(e) => {
-                onChange("apellido2", e.target.value);
-              }}
+              onChange={(e) => onChange("apellido2", e.target.value)}
               sx={inputSx}
             />
           </div>
@@ -330,7 +333,7 @@ export const ScreenFormPersonal: React.FC<FormPersonalProps> = ({
           {isDniOrNie && (
             <div>
               <TextField
-                label={t("forms.doc_support", { defaultValue: "Soporte" })}
+                label={t("forms.doc_support")}
                 required
                 fullWidth
                 value={data.soporteDoc ?? ""}
@@ -402,11 +405,7 @@ export const ScreenFormPersonal: React.FC<FormPersonalProps> = ({
             disabled={isSubmitting}
             style={{ flex: 1, minWidth: "200px" }}
           >
-            {isSubmitting
-              ? "..."
-              : t("common.save_partial", {
-                  defaultValue: "Guardar y seguir luego",
-                })}
+            {isSubmitting ? "..." : t("common.save_partial")}
           </Button>
         )}
         <Button
@@ -419,7 +418,7 @@ export const ScreenFormPersonal: React.FC<FormPersonalProps> = ({
           {isSubmitting
             ? "..."
             : hasNextGuest
-              ? t("common.next_guest", { defaultValue: "Siguiente persona" })
+              ? t("common.next_guest")
               : t("common.continue")}
         </Button>
       </div>
@@ -446,14 +445,15 @@ export const ScreenFormContacto: React.FC<FormContactoProps> = ({
   } = usePlaces();
   const esEspana = data.pais === "España";
 
-  useDebounce(
+  // FIX BUG MEDIUM #3: usar wrapper del hook centralizado
+  useDebounceValue(
     () => {
       if (data.email?.includes("@")) validate(data);
     },
     500,
     data.email,
   );
-  useDebounce(
+  useDebounceValue(
     () => {
       if ((data.telefono?.length ?? 0) >= 7) validate(data);
     },
@@ -689,11 +689,7 @@ export const ScreenFormContacto: React.FC<FormContactoProps> = ({
             disabled={isSubmitting}
             style={{ flex: 1, minWidth: "200px" }}
           >
-            {isSubmitting
-              ? "..."
-              : t("common.save_partial", {
-                  defaultValue: "Guardar y seguir luego",
-                })}
+            {isSubmitting ? "..." : t("common.save_partial")}
           </Button>
         )}
         <Button
@@ -708,7 +704,7 @@ export const ScreenFormContacto: React.FC<FormContactoProps> = ({
           {isSubmitting
             ? "..."
             : hasNextGuest
-              ? t("common.next_guest", { defaultValue: "Siguiente persona" })
+              ? t("common.next_guest")
               : t("common.continue")}
         </Button>
       </div>
