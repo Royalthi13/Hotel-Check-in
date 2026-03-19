@@ -313,7 +313,7 @@ function CheckinWizard() {
         <ScreenFormPersonal
           data={currentGuest}
           allGuests={state.guests}
-          onChange={(k: keyof PartialGuestData, v: unknown) =>
+          onChange={(k: keyof PartialGuestData, v: any) =>
             updateGuest(nav.guestIndex, k, v)
           }
           guestIndex={nav.guestIndex}
@@ -321,7 +321,6 @@ function CheckinWizard() {
           isMainGuest={isMainGuest}
           esMenor={!!currentGuest.esMenor}
           onNext={() => nextGuest(nav.guestIndex, "form_personal")}
-          onPartialSave={handlePartialSubmit}
           isSubmitting={isSubmitting}
           token={token || "new"}
         />
@@ -330,11 +329,14 @@ function CheckinWizard() {
       {currentStep === "form_contacto" && (
         <ScreenFormContacto
           data={currentGuest}
-          onChange={(k, v) => updateGuest(nav.guestIndex, k, v)}
+          onChange={(k: keyof PartialGuestData, v: any) =>
+            updateGuest(nav.guestIndex, k, v)
+          }
           onNext={() => nextGuest(nav.guestIndex, "form_contacto")}
           onPartialSave={handlePartialSubmit}
           hasNextGuest={state.numPersonas > 1}
           isSubmitting={isSubmitting}
+          token={token || "new"}
         />
       )}
 

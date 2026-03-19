@@ -17,40 +17,47 @@ import {
   Typography,
   Autocomplete,
   Divider,
+  InputAdornment,
+  CircularProgress,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
 } from "@mui/material";
 import { usePlaces } from "@/hooks/usePlaces";
 import dayjs from "dayjs";
 import "dayjs/locale/es";
-
-// ✅ CORRECCIÓN ARQUITECTÓNICA: Importación directa del hook centralizado
 import { useDebounce } from "@/hooks/useDebounce";
 
 const inputSx = {
-  "& .MuiInputBase-root": { borderRadius: "12px", backgroundColor: "#fff" },
+  "& :not(.MuiInputAdornment-root) > .MuiInputBase-root": {
+    borderRadius: "12px",
+    backgroundColor: "#fff",
+  },
   "& .MuiOutlinedInput-notchedOutline": { borderColor: "var(--border)" },
 };
 
 interface FormPersonalProps {
   data: PartialGuestData;
   allGuests: PartialGuestData[];
-  onChange: (key: keyof PartialGuestData, value: unknown) => void;
+  onChange: (key: keyof PartialGuestData, value: any) => void;
   guestIndex: number;
   totalGuests: number;
   isMainGuest: boolean;
   esMenor?: boolean;
   onNext: () => void;
-  onPartialSave: () => void;
   isSubmitting: boolean;
-  token: string; // ✅ OBLIGATORIO: Para evitar errores en sessionStorage
+  token: string;
 }
 
 interface FormContactoProps {
   data: PartialGuestData;
-  onChange: (key: keyof PartialGuestData, value: unknown) => void;
+  onChange: (key: keyof PartialGuestData, value: any) => void;
   onNext: () => void;
-  onPartialSave: () => void;
+  onPartialSave: () => Promise<void>;
   hasNextGuest: boolean;
   isSubmitting: boolean;
+  token: string;
 }
 
 const FieldError: React.FC<{ msg?: string }> = ({ msg }) =>
@@ -80,7 +87,6 @@ export const ScreenFormPersonal: React.FC<FormPersonalProps> = ({
   isMainGuest,
   esMenor,
   onNext,
-  onPartialSave,
   isSubmitting,
   token,
 }) => {
@@ -90,11 +96,9 @@ export const ScreenFormPersonal: React.FC<FormPersonalProps> = ({
 
   const modoFlujo = sessionStorage.getItem(`modoFlujo_${token}`) || "manual";
   const mostrarCargaFoto = modoFlujo !== "manual";
-
   const fechaNac = data.fechaNac ? dayjs(data.fechaNac) : null;
   const isDniOrNie = data.tipoDoc === "DNI" || data.tipoDoc === "NIE";
 
-  // ✅ CORRECCIÓN: Uso directo del hook sin wrappers innecesarios
   useDebounce(
     () => {
       if ((data.nombre?.length ?? 0) >= 2)
@@ -109,14 +113,12 @@ export const ScreenFormPersonal: React.FC<FormPersonalProps> = ({
   const checkAndProceed = (action: () => void) => {
     setDuplicateError("");
     if (!validate({ ...data, isTitular: isMainGuest })) return;
-
     const currentDoc = data.numDoc?.trim().toUpperCase();
     if (currentDoc) {
       const isDuplicate = allGuests.some(
         (g, i) =>
           i !== guestIndex && g.numDoc?.trim().toUpperCase() === currentDoc,
       );
-
       if (isDuplicate) {
         setDuplicateError(t("validation.duplicate_doc"));
         return;
@@ -367,31 +369,12 @@ export const ScreenFormPersonal: React.FC<FormPersonalProps> = ({
       )}
 
       <div className="spacer" />
-      <div
-        className="btn-row"
-        style={{
-          display: "flex",
-          gap: "10px",
-          flexWrap: "wrap",
-          justifyContent: "flex-end",
-        }}
-      >
-        {!isMainGuest && hasNextGuest && (
-          <Button
-            variant="secondary"
-            onClick={() => checkAndProceed(onPartialSave)}
-            disabled={isSubmitting}
-            style={{ flex: 1, minWidth: "200px" }}
-          >
-            {isSubmitting ? "..." : t("common.save_partial")}
-          </Button>
-        )}
+      <div className="btn-row">
         <Button
           variant="primary"
           onClick={() => checkAndProceed(onNext)}
           iconRight="right"
           disabled={isSubmitting}
-          style={{ flex: 1, minWidth: "200px" }}
         >
           {isSubmitting
             ? "..."
@@ -411,6 +394,7 @@ export const ScreenFormContacto: React.FC<FormContactoProps> = ({
   onPartialSave,
   hasNextGuest,
   isSubmitting,
+  token,
 }) => {
   const { t } = useTranslation();
   const { errors, validate, clearError } = useFormValidation(validateContacto);
@@ -421,9 +405,9 @@ export const ScreenFormContacto: React.FC<FormContactoProps> = ({
     cargarProvincias,
     cargarMunicipios,
   } = usePlaces();
+  const [showSaveModal, setShowSaveModal] = useState(false);
   const esEspana = data.pais === "España";
 
-  // ✅ CORRECCIÓN: Uso directo del hook también aquí
   useDebounce(
     () => {
       if (data.email?.includes("@")) validate(data);
@@ -431,13 +415,13 @@ export const ScreenFormContacto: React.FC<FormContactoProps> = ({
     500,
     [data.email],
   );
-  useDebounce(
-    () => {
-      if ((data.telefono?.length ?? 0) >= 7) validate(data);
-    },
-    500,
-    [data.telefono],
-  );
+
+  const handleSaveLater = async () => {
+    if (validate(data)) {
+      await onPartialSave();
+      setShowSaveModal(true);
+    }
+  };
 
   return (
     <>
@@ -556,18 +540,15 @@ export const ScreenFormContacto: React.FC<FormContactoProps> = ({
               onKeyDown={(e) => {
                 if (e.key === "Enter" || e.key === "Escape") {
                   if (e.key === "Enter") e.preventDefault();
-
-                  if (data.cp && data.pais && !esEspana) {
+                  if (data.cp && data.pais && !esEspana)
                     buscarCP(data.cp, data.pais);
-                  }
                 }
               }}
               InputProps={{
                 endAdornment: isSearching ? (
-                  <div
-                    className="spinner"
-                    style={{ width: 16, height: 16, borderWidth: 2 }}
-                  />
+                  <InputAdornment position="end">
+                    <CircularProgress size={18} thickness={5} />
+                  </InputAdornment>
                 ) : null,
               }}
               onChange={(e) => {
@@ -612,11 +593,7 @@ export const ScreenFormContacto: React.FC<FormContactoProps> = ({
                 label={t("forms.province")}
                 fullWidth
                 value={data.provincia ?? ""}
-                onChange={(e) => {
-                  onChange("provincia", e.target.value);
-                  clearError("provincia");
-                }}
-                error={!!errors.provincia}
+                onChange={(e) => onChange("provincia", e.target.value)}
                 sx={inputSx}
               />
             )}
@@ -637,7 +614,7 @@ export const ScreenFormContacto: React.FC<FormContactoProps> = ({
                   <TextField
                     {...p}
                     label={t("forms.city")}
-                    error={!!errors.ciudad}
+                    error={!!errors.city}
                     sx={inputSx}
                   />
                 )}
@@ -647,37 +624,22 @@ export const ScreenFormContacto: React.FC<FormContactoProps> = ({
                 label={t("forms.city")}
                 fullWidth
                 value={data.ciudad ?? ""}
-                onChange={(e) => {
-                  onChange("ciudad", e.target.value);
-                  clearError("ciudad");
-                }}
-                error={!!errors.ciudad}
+                onChange={(e) => onChange("ciudad", e.target.value)}
                 sx={inputSx}
               />
             )}
-            <FieldError msg={errors.ciudad} />
+            <FieldError msg={errors.city} />
           </div>
         </Box>
       </Box>
 
       <div className="spacer" />
-      <div
-        className="btn-row"
-        style={{
-          display: "flex",
-          gap: "10px",
-          flexWrap: "wrap",
-          justifyContent: "flex-end",
-        }}
-      >
+      <div className="btn-row">
         {hasNextGuest && (
           <Button
             variant="secondary"
-            onClick={() => {
-              if (validate(data)) onPartialSave();
-            }}
+            onClick={handleSaveLater}
             disabled={isSubmitting}
-            style={{ flex: 1, minWidth: "200px" }}
           >
             {isSubmitting ? "..." : t("common.save_partial")}
           </Button>
@@ -689,7 +651,6 @@ export const ScreenFormContacto: React.FC<FormContactoProps> = ({
           }}
           iconRight="right"
           disabled={isSubmitting}
-          style={{ flex: 1, minWidth: "200px" }}
         >
           {isSubmitting
             ? "..."
@@ -698,6 +659,46 @@ export const ScreenFormContacto: React.FC<FormContactoProps> = ({
               : t("common.continue")}
         </Button>
       </div>
+
+      <Dialog
+        open={showSaveModal}
+        onClose={() => setShowSaveModal(false)}
+        PaperProps={{ sx: { borderRadius: "20px", padding: 1 } }}
+      >
+        <DialogTitle
+          sx={{ fontFamily: "Cormorant Garamond, serif", fontSize: "1.8rem" }}
+        >
+          {t("success.partial_title")}
+        </DialogTitle>
+        <DialogContent>
+          <Typography variant="body1">{t("success.partial_sub")}</Typography>
+          <Box
+            sx={{
+              mt: 2,
+              p: 2,
+              bgcolor: "#f5f5f5",
+              borderRadius: "12px",
+              border: "1px dashed #ccc",
+              wordBreak: "break-all",
+              textAlign: "center",
+            }}
+          >
+            <Typography
+              variant="body2"
+              sx={{ color: "var(--primary)", fontWeight: "bold" }}
+            >{`${window.location.origin}/checkin/${token}`}</Typography>
+          </Box>
+        </DialogContent>
+        <DialogActions sx={{ p: 3 }}>
+          <Button
+            variant="primary"
+            onClick={() => setShowSaveModal(false)}
+            style={{ width: "100%" }}
+          >
+            {t("common.continue")}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </>
   );
 };
