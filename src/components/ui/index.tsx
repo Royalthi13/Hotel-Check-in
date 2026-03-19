@@ -266,6 +266,7 @@ export interface HeaderProps {
   canGoBack: boolean;
   onBack: () => void;
   rightAction?: { label: string; onClick: () => void; icon?: IconName };
+  extraContent?: React.ReactNode; // 👈 Nuevo Slot
   name?: string;
   room?: string;
 }
@@ -274,17 +275,23 @@ export const Header: React.FC<HeaderProps> = ({
   canGoBack,
   onBack,
   rightAction,
+  extraContent,
   name,
   room,
 }) => (
   <div className="hdr">
-    {canGoBack ? (
-      <button type="button" className="hdr-back" onClick={onBack}>
-        <Icon name="left" size={15} /> Atrás
-      </button>
-    ) : (
-      <div style={{ width: 62 }} />
-    )}
+    {/* Slot 1: Navegación */}
+    <div className="hdr-side">
+      {canGoBack ? (
+        <button type="button" className="hdr-back" onClick={onBack}>
+          <Icon name="left" size={15} /> Atrás
+        </button>
+      ) : (
+        <div style={{ width: 62 }} />
+      )}
+    </div>
+
+    {/* Slot 2: Brand (Centro) */}
     <div className="hdr-brand">
       <div className="hdr-logo">L</div>
       <div>
@@ -292,20 +299,25 @@ export const Header: React.FC<HeaderProps> = ({
         <div className="hdr-sub">{room || "Hotels & Resorts"}</div>
       </div>
     </div>
-    {rightAction ? (
-      <button
-        type="button"
-        className="hdr-action"
-        onClick={rightAction.onClick}
-      >
-        {rightAction.icon && (
-          <Icon name={rightAction.icon} size={14} color="#fff" />
-        )}
-        {rightAction.label}
-      </button>
-    ) : (
-      <div style={{ width: 62 }} />
-    )}
+
+    {/* Slot 3: Acciones (Derecha) */}
+    <div className="hdr-side hdr-actions-group">
+      {extraContent} {/* 👈 Aquí irá el selector de idiomas */}
+      {rightAction ? (
+        <button
+          type="button"
+          className="hdr-action"
+          onClick={rightAction.onClick}
+        >
+          {rightAction.icon && (
+            <Icon name={rightAction.icon} size={14} color="#fff" />
+          )}
+          {rightAction.label}
+        </button>
+      ) : (
+        !extraContent && <div style={{ width: 62 }} />
+      )}
+    </div>
   </div>
 );
 

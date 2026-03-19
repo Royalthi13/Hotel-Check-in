@@ -29,7 +29,7 @@ import {
   ScreenExito,
 } from "@/screens/ScreenExtrasRevisionExito";
 
-import type { Reserva, StepId, PartialGuestData } from "@/types";
+import type { StepId, PartialGuestData } from "@/types";
 
 const STEPS_WITHOUT_DOTS = new Set<StepId>(["tablet_buscar", "exito"]);
 
@@ -109,7 +109,6 @@ function CheckinWizard() {
     setRgpdAcepted,
   } = actions;
 
-  // ✅ CORRECCIÓN 1: El paso por defecto ahora es "inicio"
   const currentStep = nav.step || "inicio";
   const showDots = !STEPS_WITHOUT_DOTS.has(currentStep);
   const isMainGuest = nav.guestIndex === 0;
@@ -120,7 +119,6 @@ function CheckinWizard() {
     canGoBack: nav.canGoBack,
   };
 
-  // ✅ CORRECCIÓN 2: El botón atrás ahora es simple navegación entre rutas
   const handleSmartGoBack = () => {
     goBack();
   };
@@ -142,82 +140,59 @@ function CheckinWizard() {
     }
   };
 
-  const handleSubmit = async (): Promise<void> => {
+  const submitToServer = async (isPartial: boolean): Promise<void> => {
     setSubmitError("");
     setIsSubmitting(true);
     try {
+      const payload = {
+        reserva: state.reserva,
+        guests: state.guests.map(({ docFile, ...rest }) => rest),
+        isPartial,
+        ...(isPartial
+          ? {}
+          : {
+              horaLlegada: state.horaLlegada,
+              observaciones: state.observaciones,
+            }),
+      };
+
       const res = await fetch(`/api/checkin/${token}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          reserva: state.reserva,
-          guests: state.guests.map((g) => {
-            const copia = { ...g };
-            delete copia.docFile;
-            return copia;
-          }),
-          horaLlegada: state.horaLlegada,
-          observaciones: state.observaciones,
-          isPartial: false,
-        }),
+        body: JSON.stringify(payload),
       });
 
       const data = await res.json().catch(() => ({}));
-      if (!res.ok || data?.success === false)
+      if (!res.ok || data?.success === false) {
         throw new Error(data?.error || `HTTP ${res.status}`);
+      }
 
-      const keysToClear = [
-        `state_${token}`,
-        `history_${token}`,
-        `allowedSteps_${token}`,
-        `legalPassed_${token}`,
-        `hasMinors_${token}`,
-        `modoFlujo_${token}`,
-      ];
-      keysToClear.forEach((key) => sessionStorage.removeItem(key));
+      setIsPartialSuccess(isPartial);
 
-      setIsPartialSuccess(false);
-      goTo("exito", "forward");
+      if (!isPartial) {
+        const keysToClear = [
+          `state_${token}`,
+          `history_${token}`,
+          `allowedSteps_${token}`,
+          `legalPassed_${token}`,
+          `hasMinors_${token}`,
+          `modoFlujo_${token}`,
+        ];
+        keysToClear.forEach((key) => sessionStorage.removeItem(key));
+        goTo("exito", "forward");
+      }
     } catch (err: unknown) {
-      setSubmitError(
-        err instanceof Error ? err.message : t("errorBoundary.title"),
-      );
+      const errMsg =
+        err instanceof Error ? err.message : t("errorBoundary.title");
+      setSubmitError(errMsg);
+      throw err;
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const handlePartialSubmit = async (): Promise<void> => {
-    setSubmitError("");
-    setIsSubmitting(true);
-    try {
-      const res = await fetch(`/api/checkin/${token}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          reserva: state.reserva,
-          guests: state.guests.map((g) => {
-            const copia = { ...g };
-            delete copia.docFile;
-            return copia;
-          }),
-          isPartial: true,
-        }),
-      });
-
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok || data?.success === false)
-        throw new Error(data?.error || `HTTP ${res.status}`);
-      setIsPartialSuccess(true);
-      goTo("exito", "forward");
-    } catch (err: unknown) {
-      setSubmitError(
-        err instanceof Error ? err.message : t("errorBoundary.title"),
-      );
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
+  const handleSubmit = () => submitToServer(false);
+  const handlePartialSubmit = () => submitToServer(true);
 
   const adultosConIndice = state.guests
     .map((g, i) => ({ ...g, originalIndex: i }))
@@ -249,21 +224,13 @@ function CheckinWizard() {
         </div>
       )}
 
-      {/* ✅ CORRECCIÓN 3: Pantallas separadas limpiamente por paso */}
       {currentStep === "inicio" && (
         <ScreenCheckinInicio
-          reserva={
-            state.reserva ||
-            ({
-              confirmacion: "---",
-              habitacion: "---",
-              numHuespedes: 1,
-            } as unknown as Reserva)
-          }
+          reserva={state.reserva}
           onNext={(hayMenores: boolean) => {
             setHasMinorsFlag(hayMenores);
             setLegalPassed(true);
-            goTo("bienvenida", "forward"); // Navegación real a la siguiente ruta
+            goTo("bienvenida", "forward");
           }}
         />
       )}

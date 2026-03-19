@@ -69,6 +69,7 @@
       "Después de medianoche": "After midnight"
     },
     "steps": {
+      "inicio": "Start",
       "bienvenida": "Welcome",
       "num_personas": "Guests",
       "form_personal": "Personal details",

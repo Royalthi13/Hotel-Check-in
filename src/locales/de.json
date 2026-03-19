@@ -69,6 +69,7 @@
       "Después de medianoche": "Nach Mitternacht"
     },
     "steps": {
+      "inicio": "Start",
       "bienvenida": "Willkommen",
       "num_personas": "Personen",
       "form_personal": "Persönliche Daten",

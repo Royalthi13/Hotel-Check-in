@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { Header, DotsProgress, Icon, ReservationCard } from "../components/ui";
 import type { CheckinNav, CheckinActions, StepId, Reserva } from "../types";
 import { motion, AnimatePresence } from "framer-motion";
+import { LanguageSelector } from "../components/LanguageSelector";
 
 const SIDE_STEPS: { id: StepId }[] = [
   { id: "inicio" },
@@ -88,6 +89,7 @@ export const AppShell: React.FC<AppShellProps> = ({
         <Header
           canGoBack={nav.canGoBack}
           onBack={actions.goBack}
+          extraContent={<LanguageSelector />}
           name={reserva?.confirmacion}
           room={reserva?.habitacion}
           rightAction={
@@ -103,7 +105,7 @@ export const AppShell: React.FC<AppShellProps> = ({
           }
         />
 
-        {/* Progreso en puntos para móvil/tablet */}
+        {/* Dots (Móvil/Tablet) - Dentro del card */}
         {showDots && nav.dotIndex >= 0 && (
           <DotsProgress
             steps={nav.dotSteps}
@@ -138,6 +140,20 @@ export const AppShell: React.FC<AppShellProps> = ({
                   <Icon name="search" size={14} color="rgba(255,255,255,.8)" />
                   {t("appShell.booking_summary")}
                 </button>
+
+                <button
+                  type="button"
+                  className="sp-summary-btn-orange"
+                  onClick={onGoToRevision}
+                  disabled={
+                    !onGoToRevision ||
+                    activeStep === "revision" ||
+                    activeStep === "exito"
+                  }
+                >
+                  <Icon name="search" size={14} color="#fff" />
+                  {t("appShell.booking_summary")}
+                </button>
               </div>
 
               {reserva && (
@@ -167,14 +183,15 @@ export const AppShell: React.FC<AppShellProps> = ({
                       onClick={() => {
                         if (isClickable) {
                           const dotIdxInNav = nav.dotSteps.indexOf(s.id);
-                          if (dotIdxInNav !== -1)
+                          if (dotIdxInNav !== -1) {
                             actions.goToDotIndex(dotIdxInNav);
-                          else
+                          } else {
                             actions.goTo(
                               s.id,
                               i < activeIdx ? "back" : "forward",
                               0,
                             );
+                          }
                         }
                       }}
                       className={[
