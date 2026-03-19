@@ -6,7 +6,7 @@ import "./i18n";
 // LocalizationProvider al nivel raíz — se monta UNA sola vez, nunca se remonta
 import { LocalizationProvider } from "@mui/x-date-pickers";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
-
+import "flag-icons/css/flag-icons.min.css";
 import "dayjs/locale/es";
 import "dayjs/locale/en";
 

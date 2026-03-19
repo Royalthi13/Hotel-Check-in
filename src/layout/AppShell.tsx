@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { Header, DotsProgress, Icon, ReservationCard } from "../components/ui";
 import type { CheckinNav, CheckinActions, StepId, Reserva } from "../types";
+import { LanguageSelector } from "../components/LanguageSelector";
 
 const SIDE_STEPS: { id: StepId }[] = [
   { id: "bienvenida" },
@@ -77,12 +78,14 @@ export const AppShell: React.FC<AppShellProps> = ({
   };
 
   return (
+
     <div className="shell">
       <div className="card">
-        {/* Header */}
+        {/* ✅ INTEGRACIÓN ÚNICA Y LIMPIA */}
         <Header
           canGoBack={nav.canGoBack}
           onBack={actions.goBack}
+          extraContent={<LanguageSelector />} 
           rightAction={
             onGoToRevision &&
             activeStep !== "revision" &&
@@ -96,13 +99,11 @@ export const AppShell: React.FC<AppShellProps> = ({
           }
         />
 
-        {/* Dots (Móvil/Tablet) */}
+        {/* Dots (Móvil/Tablet) - Dentro del card */}
         {showDots && nav.dotIndex >= 0 && (
           <DotsProgress
             steps={nav.dotSteps}
-            labels={nav.dotSteps.map((s: StepId) =>
-              t(`constants.steps.${s}`),
-            )}
+            labels={nav.dotSteps.map((s: StepId) => t(`constants.steps.${s}`))}
             activeIndex={nav.dotIndex}
             maxReachable={maxDotReached}
             onDotClick={actions.goToDotIndex}
@@ -123,11 +124,7 @@ export const AppShell: React.FC<AppShellProps> = ({
                   type="button"
                   className="sp-summary-btn sp-summary-btn--desktop"
                   onClick={onGoToRevision}
-                  disabled={
-                    !onGoToRevision ||
-                    activeStep === "revision" ||
-                    activeStep === "exito"
-                  }
+                  disabled={!onGoToRevision || activeStep === "revision" || activeStep === "exito"}
                 >
                   <Icon name="search" size={14} color="rgba(255,255,255,.8)" />
                   {t("appShell.booking_summary")}
@@ -137,11 +134,7 @@ export const AppShell: React.FC<AppShellProps> = ({
                   type="button"
                   className="sp-summary-btn-orange"
                   onClick={onGoToRevision}
-                  disabled={
-                    !onGoToRevision ||
-                    activeStep === "revision" ||
-                    activeStep === "exito"
-                  }
+                  disabled={!onGoToRevision || activeStep === "revision" || activeStep === "exito"}
                 >
                   <Icon name="search" size={14} color="#fff" />
                   {t("appShell.booking_summary")}
@@ -150,9 +143,7 @@ export const AppShell: React.FC<AppShellProps> = ({
 
               {reserva && (
                 <div className="sp-reserva">
-                  <div className="sp-reserva-title">
-                    {t("appShell.booking_summary")}
-                  </div>
+                  <div className="sp-reserva-title">{t("appShell.booking_summary")}</div>
                   <ReservationCard reserva={reserva} />
                 </div>
               )}
@@ -161,54 +152,18 @@ export const AppShell: React.FC<AppShellProps> = ({
                 {SIDE_STEPS.map((s, i) => {
                   const isActive = i === activeIdx;
                   const isUnlocked = isStepUnlocked(s.id, i);
-                  const isClickable =
-                    isUnlocked && !isActive && s.id !== "exito";
-                  const isDone =
-                    isUnlocked &&
-                    !isActive &&
-                    s.id !== "revision" &&
-                    s.id !== "exito";
+                  const isClickable = isUnlocked && !isActive && s.id !== "exito";
+                  const isDone = isUnlocked && !isActive && s.id !== "revision" && s.id !== "exito";
 
                   return (
                     <div
                       key={s.id}
-                      onClick={() => {
-                        if (isClickable) {
-                          const dotIdxInNav = nav.dotSteps.indexOf(s.id);
-                          if (dotIdxInNav !== -1) {
-                            actions.goToDotIndex(dotIdxInNav);
-                          } else {
-                            actions.goTo(
-                              s.id,
-                              i < activeIdx ? "back" : "forward",
-                              0,
-                            );
-                          }
-                        }
-                      }}
-                      className={[
-                        "sp-step",
-                        isActive ? "sp-step--active" : "",
-                        isDone ? "sp-step--done" : "",
-                        isClickable ? "sp-step--clickable" : "",
-                      ]
-                        .filter(Boolean)
-                        .join(" ")}
-                      style={{
-                        cursor: isClickable ? "pointer" : "default",
-                        opacity: isUnlocked ? 1 : 0.4,
-                      }}
+                      onClick={() => isClickable && (nav.dotSteps.indexOf(s.id) !== -1 ? actions.goToDotIndex(nav.dotSteps.indexOf(s.id)) : actions.goTo(s.id, i < activeIdx ? "back" : "forward", 0))}
+                      className={["sp-step", isActive ? "sp-step--active" : "", isDone ? "sp-step--done" : "", isClickable ? "sp-step--clickable" : ""].filter(Boolean).join(" ")}
+                      style={{ cursor: isClickable ? "pointer" : "default", opacity: isUnlocked ? 1 : 0.4 }}
                     >
-                      <div className="sp-step-num">
-                        {isDone ? (
-                          <Icon name="check" size={12} color="#fff" />
-                        ) : (
-                          i + 1
-                        )}
-                      </div>
-                      <span className="sp-step-label">
-                        {t(`constants.steps.${s.id}`)}
-                      </span>
+                      <div className="sp-step-num">{isDone ? <Icon name="check" size={12} color="#fff" /> : i + 1}</div>
+                      <span className="sp-step-label">{t(`constants.steps.${s.id}`)}</span>
                     </div>
                   );
                 })}
@@ -222,15 +177,12 @@ export const AppShell: React.FC<AppShellProps> = ({
           </aside>
 
           <div className="screen-wrap">
-            <div
-              className={`screen ${nav.direction === "back" ? "back" : ""}`}
-              key={nav.step}
-            >
+            <div className={`screen ${nav.direction === "back" ? "back" : ""}`} key={nav.step}>
               {children}
             </div>
           </div>
-        </div>
-      </div>
-    </div>
+        </div> {/* body-row */}
+      </div> {/* card */}
+    </div> /* shell */
   );
 };
