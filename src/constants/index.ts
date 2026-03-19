@@ -146,6 +146,7 @@ export const PARENTESCOS_MENOR = [
 ];
 
 export const FLOW_STEPS_LINK: StepId[] = [
+  "inicio",
   "bienvenida",
   "num_personas",
   "escanear",
@@ -158,6 +159,7 @@ export const FLOW_STEPS_LINK: StepId[] = [
 ];
 
 export const DOT_STEPS_BASE: StepId[] = [
+  "inicio",
   "bienvenida",
   "num_personas",
   "form_personal",
@@ -168,6 +170,7 @@ export const DOT_STEPS_BASE: StepId[] = [
 ];
 
 export const DOT_LABELS: Partial<Record<StepId, string>> = {
+  inicio: "Inicio",
   bienvenida: "Bienvenida",
   num_personas: "Personas",
   form_personal: "Datos personales",

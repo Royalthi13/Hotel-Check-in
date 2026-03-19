@@ -4,6 +4,7 @@ export type AppMode = "link" | "tablet";
 // ─── Pasos del flujo ──────────────────────────────────────────────────────────
 export type StepId =
   | "tablet_buscar"
+  | "inicio"
   | "bienvenida"
   | "num_personas"
   | "confirmar_datos"

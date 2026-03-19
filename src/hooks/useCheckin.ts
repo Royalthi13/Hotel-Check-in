@@ -211,15 +211,14 @@ export function useCheckin(tokenUrl?: string, stepUrl?: string) {
     } catch (err) {
       console.warn("[useCheckin] Error restoring allowedSteps:", err);
     }
-    return new Set<StepId>(["bienvenida", "tablet_buscar"]);
+    return new Set<StepId>(["inicio", "tablet_buscar"]);
   });
 
   const [isLoading, setIsLoading] = useState(token !== "new");
   const [navDirection, setNavDirection] = useState<NavDirection>("forward");
 
   const dispatch = useCallback(
-    (action: CheckinAction) =>
-      setState((prev) => checkinReducer(prev, action)),
+    (action: CheckinAction) => setState((prev) => checkinReducer(prev, action)),
     [],
   );
 
@@ -271,9 +270,10 @@ export function useCheckin(tokenUrl?: string, stepUrl?: string) {
     load();
   }, [token, dispatch]);
 
+  // 1. Cambiamos el paso por defecto en la carga inicial (alrededor de la línea 193)
   const actualStep =
     (stepUrl as StepId) ||
-    (initialMode === "tablet" ? "tablet_buscar" : "bienvenida");
+    (initialMode === "tablet" ? "tablet_buscar" : "inicio"); // ← Cambiado bienvenida por inicio
 
   const activeGuestIndex =
     history.length > 0 ? history[history.length - 1].guestIndex : 0;
@@ -332,8 +332,7 @@ export function useCheckin(tokenUrl?: string, stepUrl?: string) {
     });
   }, [navigate, token]);
 
-  const dotSteps =
-    state.appMode === "link" ? FLOW_STEPS_LINK : DOT_STEPS_BASE;
+  const dotSteps = state.appMode === "link" ? FLOW_STEPS_LINK : DOT_STEPS_BASE;
 
   let currentDotIndex = dotSteps.indexOf(actualStep);
   if (
@@ -418,11 +417,8 @@ export function useCheckin(tokenUrl?: string, stepUrl?: string) {
     setNumPersonas: (total: number) =>
       dispatch({ type: "SET_NUM_PERSONAS", total }),
 
-    updateGuest: (
-      index: number,
-      key: keyof PartialGuestData,
-      value: unknown,
-    ) => dispatch({ type: "UPDATE_GUEST", index, key, value }),
+    updateGuest: (index: number, key: keyof PartialGuestData, value: unknown) =>
+      dispatch({ type: "UPDATE_GUEST", index, key, value }),
 
     updateRelacion: (mIdx: number, aIdx: number, p: string) =>
       dispatch({

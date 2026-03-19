@@ -5,6 +5,7 @@ import type { CheckinNav, CheckinActions, StepId, Reserva } from "../types";
 import { motion, AnimatePresence } from "framer-motion";
 
 const SIDE_STEPS: { id: StepId }[] = [
+  { id: "inicio" },
   { id: "bienvenida" },
   { id: "num_personas" },
   { id: "form_personal" },

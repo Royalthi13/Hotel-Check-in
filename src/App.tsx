@@ -33,18 +33,17 @@ import type { Reserva, StepId, PartialGuestData } from "@/types";
 
 const STEPS_WITHOUT_DOTS = new Set<StepId>(["tablet_buscar", "exito"]);
 
-// FIX BUG MEDIUM #5: wildcard redirige a token "undefined"
-// Antes: useParams() devolvía undefined para rutas sin :token → "/checkin/undefined/bienvenida"
-// Ahora: redirige siempre a /checkin/new/bienvenida como fallback seguro
 function RedirectToNew() {
-  return <Navigate to="/tablet_buscar" replace />;
+  // Redirección base: siempre al inicio del flujo manual
+  return <Navigate to="/checkin/new/inicio" replace />;
 }
 
 function RedirectToBienvenida() {
   const { token } = useParams();
   const navigate = useNavigate();
   useEffect(() => {
-    navigate(`/checkin/${token}/bienvenida`, { replace: true });
+    // Si entran solo con el token, los mandamos al inicio real
+    navigate(`/checkin/${token}/inicio`, { replace: true });
   }, [navigate, token]);
   return null;
 }
@@ -58,6 +57,7 @@ function CheckinWizard() {
   const [isOffline, setIsOffline] = useState(!navigator.onLine);
   const [isPartialSuccess, setIsPartialSuccess] = useState(false);
 
+  // Mantenemos estas banderas solo para persistencia, pero el enrutamiento manda
   const [legalPassed, setLegalPassed] = useState(
     () => sessionStorage.getItem(`legalPassed_${token}`) === "true",
   );
@@ -109,27 +109,23 @@ function CheckinWizard() {
     setRgpdAcepted,
   } = actions;
 
-  const currentStep = nav.step || "bienvenida";
+  // ✅ CORRECCIÓN 1: El paso por defecto ahora es "inicio"
+  const currentStep = nav.step || "inicio";
   const showDots = !STEPS_WITHOUT_DOTS.has(currentStep);
   const isMainGuest = nav.guestIndex === 0;
   const currentGuest = state.guests[nav.guestIndex] ?? {};
 
   const customNav = {
     ...nav,
-    canGoBack: nav.canGoBack || (currentStep === "bienvenida" && legalPassed),
+    canGoBack: nav.canGoBack,
   };
 
+  // ✅ CORRECCIÓN 2: El botón atrás ahora es simple navegación entre rutas
   const handleSmartGoBack = () => {
-    if (currentStep === "bienvenida" && legalPassed) {
-      setLegalPassed(false);
-    } else {
-      goBack();
-    }
+    goBack();
   };
 
   const handleChooseMethod = (method: "scan" | "manual") => {
-    // FIX BUG HIGH #5: guardar modoFlujo CON token para que ScreenForms lo lea bien
-    // (ver también fix en ScreenForms donde se lee con token)
     sessionStorage.setItem(`modoFlujo_${token}`, method);
 
     if (hasMinorsFlag) {
@@ -146,9 +142,6 @@ function CheckinWizard() {
     }
   };
 
-  // FIX BUG MEDIUM #2: handleSubmit no navega a "exito" en el catch
-  // Antes: el catch hacía goTo("exito") → el usuario veía pantalla de éxito aunque fallara.
-  // Ahora: en caso de error solo muestra el mensaje, no navega.
   const handleSubmit = async (): Promise<void> => {
     setSubmitError("");
     setIsSubmitting(true);
@@ -160,7 +153,7 @@ function CheckinWizard() {
           reserva: state.reserva,
           guests: state.guests.map((g) => {
             const copia = { ...g };
-            delete copia.docFile; // El archivo no se envía en el JSON
+            delete copia.docFile;
             return copia;
           }),
           horaLlegada: state.horaLlegada,
@@ -169,27 +162,19 @@ function CheckinWizard() {
         }),
       });
 
-      interface CheckinRes {
-        success?: boolean;
-        error?: string;
-      }
-      const data = (await res.json().catch(() => ({}))) as CheckinRes;
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || data?.success === false)
+        throw new Error(data?.error || `HTTP ${res.status}`);
 
-      if (!res.ok || data?.success === false) {
-        throw new Error(data?.error ?? `HTTP ${res.status}`);
-      }
-
-      // ✅ LIMPIEZA DE SESSION STORAGE (Severidad Baja)
-      // Eliminamos todas las claves vinculadas a este token específico
       const keysToClear = [
         `state_${token}`,
         `history_${token}`,
         `allowedSteps_${token}`,
         `legalPassed_${token}`,
         `hasMinors_${token}`,
-        `modoFlujo_${token}`
+        `modoFlujo_${token}`,
       ];
-      keysToClear.forEach(key => sessionStorage.removeItem(key));
+      keysToClear.forEach((key) => sessionStorage.removeItem(key));
 
       setIsPartialSuccess(false);
       goTo("exito", "forward");
@@ -220,19 +205,12 @@ function CheckinWizard() {
         }),
       });
 
-      interface CheckinRes {
-        success?: boolean;
-        error?: string;
-      }
-      const data = (await res.json().catch(() => ({}))) as CheckinRes;
-
-      if (!res.ok || data?.success === false) {
-        throw new Error(data?.error ?? `HTTP ${res.status}`);
-      }
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || data?.success === false)
+        throw new Error(data?.error || `HTTP ${res.status}`);
       setIsPartialSuccess(true);
       goTo("exito", "forward");
     } catch (err: unknown) {
-      // FIX: ya no hacemos goTo("exito") en el catch
       setSubmitError(
         err instanceof Error ? err.message : t("errorBoundary.title"),
       );
@@ -241,8 +219,6 @@ function CheckinWizard() {
     }
   };
 
-  // FIX BUG HIGH #3: adultosConIndice — los índices son del array global de guests
-  // Esto es correcto: originalIndex = índice real en state.guests
   const adultosConIndice = state.guests
     .map((g, i) => ({ ...g, originalIndex: i }))
     .filter((g) => !g.esMenor);
@@ -273,27 +249,26 @@ function CheckinWizard() {
         </div>
       )}
 
-      {currentStep === "bienvenida" && !legalPassed && (
+      {/* ✅ CORRECCIÓN 3: Pantallas separadas limpiamente por paso */}
+      {currentStep === "inicio" && (
         <ScreenCheckinInicio
           reserva={
             state.reserva ||
             ({
               confirmacion: "---",
               habitacion: "---",
-              fechaEntrada: "",
-              fechaSalida: "",
               numHuespedes: 1,
-              numNoches: 0,
             } as unknown as Reserva)
           }
           onNext={(hayMenores: boolean) => {
             setHasMinorsFlag(hayMenores);
             setLegalPassed(true);
+            goTo("bienvenida", "forward"); // Navegación real a la siguiente ruta
           }}
         />
       )}
 
-      {currentStep === "bienvenida" && legalPassed && (
+      {currentStep === "bienvenida" && (
         <ScreenBienvenida
           knownGuest={state.knownGuest}
           reserva={state.reserva}
@@ -307,7 +282,6 @@ function CheckinWizard() {
           numPersonas={state.numPersonas}
           onChange={setNumPersonas}
           onNext={() => {
-            // FIX BUG HIGH #5: leer modoFlujo CON token
             const flujo = sessionStorage.getItem(`modoFlujo_${token}`);
             if (flujo === "scan") goTo("escanear", "forward", 0);
             else if (state.knownGuest) goTo("confirmar_datos", "forward", 0);
@@ -349,17 +323,14 @@ function CheckinWizard() {
           onNext={() => nextGuest(nav.guestIndex, "form_personal")}
           onPartialSave={handlePartialSubmit}
           isSubmitting={isSubmitting}
-          // FIX BUG HIGH #5: pasar token para leer modoFlujo correctamente
-         token={token || "new"}
+          token={token || "new"}
         />
       )}
 
       {currentStep === "form_contacto" && (
         <ScreenFormContacto
           data={currentGuest}
-          onChange={(k: keyof PartialGuestData, v: unknown) =>
-            updateGuest(nav.guestIndex, k, v)
-          }
+          onChange={(k, v) => updateGuest(nav.guestIndex, k, v)}
           onNext={() => nextGuest(nav.guestIndex, "form_contacto")}
           onPartialSave={handlePartialSubmit}
           hasNextGuest={state.numPersonas > 1}
@@ -371,17 +342,14 @@ function CheckinWizard() {
         <ScreenRelacionesMenor
           menor={currentGuest}
           adultos={adultosConIndice}
-          onRelacionChange={(aIdx: number, p: string) =>
-            // FIX BUG HIGH #3: nav.guestIndex ES el índice real del menor en state.guests
-            // adultosConIndice ya tiene originalIndex = índice real en state.guests
+          onRelacionChange={(aIdx, p) =>
             updateRelacion(nav.guestIndex, aIdx, p)
           }
           onNext={() => nextGuest(nav.guestIndex, "form_relaciones")}
           onPartialSave={handlePartialSubmit}
           hasNextMinor={
-            state.guests.findIndex(
-              (g, i) => i > nav.guestIndex && g.esMenor,
-            ) >= 0
+            state.guests.findIndex((g, i) => i > nav.guestIndex && g.esMenor) >=
+            0
           }
           isSubmitting={isSubmitting}
         />
@@ -444,7 +412,6 @@ export default function App() {
             </ErrorBoundary>
           }
         />
-        {/* FIX BUG MEDIUM #5: wildcard ya no usa RedirectToBienvenida (token undefined) */}
         <Route path="*" element={<RedirectToNew />} />
       </Routes>
     </BrowserRouter>
