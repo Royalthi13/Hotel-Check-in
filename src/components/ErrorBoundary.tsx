@@ -1,5 +1,5 @@
 import React from "react";
-import { Translation } from "react-i18next"; // 1. Importamos el componente Translation
+import { Translation } from "react-i18next";
 
 interface Props {
   children: React.ReactNode;

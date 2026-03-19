@@ -48,17 +48,21 @@
       "No indicar": "Non précisé"
     },
     "parentescos": {
+      "Abuelo/a": "Grand-père/Grand-mère",
+      "Bisabuelo/a": "Arrière-grand-père/Arrière-grand-mère",
+      "Bisnieto/a": "Arrière-petit-fils/Arrière-petite-fille",
+      "Cuñado/a": "Beau-frère/Belle-sœur",
+      "Cónyuge/a": "Conjoint(e)",
       "Hijo/a": "Fils/Fille",
-      "Nieto/a": "Petit-fils/Petite-fille",
-      "Sobrino/a": "Neveu/Nièce",
       "Hermano/a": "Frère/Sœur",
-      "Primo/a": "Cousin/Cousine",
-      "Tutor legal": "Tuteur légal",
-      "Padre/Madre adoptivo/a": "Parent adoptif",
-      "Familia de acogida": "Famille d'accueil",
-      "Otra relación familiar": "Autre lien familial",
-      "Otra relación de tutela": "Autre lien de tutelle",
-      "Otra": "Autre"
+      "Nieto/a": "Petit-fils/Petite-fille",
+      "Padre o Madre": "Père ou Mère",
+      "Sobrino/a": "Neveu/Nièce",
+      "Suegro/a": "Beau-père/Belle-mère",
+      "Tío/a": "Oncle/Tante",
+      "Yerno o nuera": "Gendre/Belle-fille",
+      "Tutor/a": "Tuteur/Tutrice",
+      "Otro": "Autre"
     },
     "horas": {
       "No especificada": "Non spécifiée",

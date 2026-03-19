@@ -48,17 +48,21 @@
       "No indicar": "Prefer not to say"
     },
     "parentescos": {
+      "Abuelo/a": "Grandfather/Grandmother",
+      "Bisabuelo/a": "Great-grandfather/Great-grandmother",
+      "Bisnieto/a": "Great-grandchild",
+      "Cuñado/a": "Brother-in-law/Sister-in-law",
+      "Cónyuge/a": "Spouse",
       "Hijo/a": "Son/Daughter",
-      "Nieto/a": "Grandchild",
-      "Sobrino/a": "Nephew/Niece",
       "Hermano/a": "Brother/Sister",
-      "Primo/a": "Cousin",
-      "Tutor legal": "Legal guardian",
-      "Padre/Madre adoptivo/a": "Adoptive parent",
-      "Familia de acogida": "Foster family",
-      "Otra relación familiar": "Other family relationship",
-      "Otra relación de tutela": "Other guardianship relationship",
-      "Otra": "Other"
+      "Nieto/a": "Grandchild",
+      "Padre o Madre": "Father or Mother",
+      "Sobrino/a": "Nephew/Niece",
+      "Suegro/a": "Father-in-law/Mother-in-law",
+      "Tío/a": "Uncle/Aunt",
+      "Yerno o nuera": "Son-in-law/Daughter-in-law",
+      "Tutor/a": "Guardian",
+      "Otro": "Other"
     },
     "horas": {
       "No especificada": "Not specified",

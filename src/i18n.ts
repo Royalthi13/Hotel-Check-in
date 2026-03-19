@@ -19,10 +19,11 @@ i18n
       de: { translation: de },
       pt: { translation: pt },
     },
+    supportedLngs: ["es", "en", "fr", "de", "pt"],
     fallbackLng: "es",
+    load: "languageOnly",
     detection: {
-      order: ["querystring", "localStorage", "navigator", "htmlTag"],
-      lookupQuerystring: "lang",
+      order: ["navigator", "localStorage", "querystring", "htmlTag"],
       caches: ["localStorage"],
     },
     interpolation: {

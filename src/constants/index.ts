@@ -128,16 +128,21 @@ export const SEXOS = ["Hombre", "Mujer", "No indicar"];
 export const RELACIONES_MENOR = ["Hijo/a", "Sobrino/a", "Tutor legal", "Otra"];
 
 export const PARENTESCOS_MENOR = [
+  "Abuelo/a",
+  "Bisabuelo/a",
+  "Bisnieto/a",
+  "Cuñado/a",
+  "Cónyuge/a",
   "Hijo/a",
-  "Nieto/a",
-  "Sobrino/a",
   "Hermano/a",
-  "Primo/a",
-  "Tutor legal",
-  "Padre/Madre adoptivo/a",
-  "Familia de acogida",
-  "Otra relación familiar",
-  "Otra relación de tutela",
+  "Nieto/a",
+  "Padre o Madre",
+  "Sobrino/a",
+  "Suegro/a",
+  "Tío/a",
+  "Yerno o nuera",
+  "Tutor/a",
+  "Otro",
 ];
 
 export const FLOW_STEPS_LINK: StepId[] = [

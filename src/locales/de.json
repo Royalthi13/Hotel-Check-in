@@ -48,17 +48,21 @@
       "No indicar": "Keine Angabe"
     },
     "parentescos": {
-      "Hijo/a": "Kind",
-      "Nieto/a": "Enkelkind",
+      "Abuelo/a": "Großvater/Großmutter",
+      "Bisabuelo/a": "Urgroßvater/Urgroßmutter",
+      "Bisnieto/a": "Urenkel/in",
+      "Cuñado/a": "Schwager/Schwägerin",
+      "Cónyuge/a": "Ehepartner/in",
+      "Hijo/a": "Sohn/Tochter",
+      "Hermano/a": "Bruder/Schwester",
+      "Nieto/a": "Enkel/in",
+      "Padre o Madre": "Vater oder Mutter",
       "Sobrino/a": "Neffe/Nichte",
-      "Hermano/a": "Geschwister",
-      "Primo/a": "Cousin/Cousine",
-      "Tutor legal": "Gesetzlicher Vertreter",
-      "Padre/Madre adoptivo/a": "Adoptivelternteil",
-      "Familia de acogida": "Pflegefamilie",
-      "Otra relación familiar": "Andere familiäre Beziehung",
-      "Otra relación de tutela": "Andere Vormundschaftsbeziehung",
-      "Otra": "Andere"
+      "Suegro/a": "Schwiegervater/Schwiegermutter",
+      "Tío/a": "Onkel/Tante",
+      "Yerno o nuera": "Schwiegersohn/Schwiegertochter",
+      "Tutor/a": "Vormund",
+      "Otro": "Andere"
     },
     "horas": {
       "No especificada": "Nicht angegeben",

@@ -48,17 +48,21 @@
       "No indicar": "No indicar"
     },
     "parentescos": {
+      "Abuelo/a": "Abuelo/a",
+      "Bisabuelo/a": "Bisabuelo/a",
+      "Bisnieto/a": "Bisnieto/a",
+      "Cuñado/a": "Cuñado/a",
+      "Cónyuge/a": "Cónyuge/a",
       "Hijo/a": "Hijo/a",
-      "Nieto/a": "Nieto/a",
-      "Sobrino/a": "Sobrino/a",
       "Hermano/a": "Hermano/a",
-      "Primo/a": "Primo/a",
-      "Tutor legal": "Tutor legal",
-      "Padre/Madre adoptivo/a": "Padre/Madre adoptivo/a",
-      "Familia de acogida": "Familia de acogida",
-      "Otra relación familiar": "Otra relación familiar",
-      "Otra relación de tutela": "Otra relación de tutela",
-      "Otra": "Otra"
+      "Nieto/a": "Nieto/a",
+      "Padre o Madre": "Padre o Madre",
+      "Sobrino/a": "Sobrino/a",
+      "Suegro/a": "Suegro/a",
+      "Tío/a": "Tío/a",
+      "Yerno o nuera": "Yerno o nuera",
+      "Tutor/a": "Tutor/a",
+      "Otro": "Otro"
     },
     "horas": {
       "No especificada": "No especificada",
