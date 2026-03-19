@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Header, DotsProgress, Icon, ReservationCard } from "../components/ui";
 import type { CheckinNav, CheckinActions, StepId, Reserva } from "../types";
-import { motion, AnimatePresence } from "framer-motion"; // Importamos la librería
+import { motion, AnimatePresence } from "framer-motion";
 
 const SIDE_STEPS: { id: StepId }[] = [
   { id: "bienvenida" },
@@ -24,18 +24,14 @@ function getActiveSideStep(step: StepId): StepId {
   return DOT_FOR[step] ?? step;
 }
 
-// Variantes para la animación de entrada y salida
 const variants = {
   enter: (direction: string) => ({
-    x: direction === "forward" ? 30 : -30,
+    x: direction === "forward" ? 100 : -100,
     opacity: 0,
   }),
-  center: {
-    x: 0,
-    opacity: 1,
-  },
+  center: { x: 0, opacity: 1 },
   exit: (direction: string) => ({
-    x: direction === "forward" ? -30 : 30,
+    x: direction === "forward" ? -100 : 100,
     opacity: 0,
   }),
 };
@@ -58,35 +54,11 @@ export const AppShell: React.FC<AppShellProps> = ({
   children,
 }) => {
   const { t } = useTranslation();
-
   const activeStep = getActiveSideStep(nav.step);
   const activeIdx = SIDE_STEPS.findIndex((s) => s.id === activeStep);
 
-  // Mantenemos tu lógica original de puntos de progreso
-  const [maxDotReached, setMaxDotReached] = useState(
-    nav.dotIndex >= 0 && nav.step !== "revision" && nav.step !== "exito"
-      ? nav.dotIndex
-      : 0,
-  );
-
-  if (
-    nav.dotIndex > maxDotReached &&
-    nav.step !== "exito" &&
-    (nav.step !== "revision" ||
-      (nav.allowedSteps && nav.allowedSteps.has("form_extras")))
-  ) {
-    setMaxDotReached(nav.dotIndex);
-  }
-
-  // Lógica crítica: Solo permite navegar a pasos que están en allowedSteps
-  const isStepUnlocked = (stepId: StepId, index: number) => {
-    if (nav.allowedSteps) {
-      return nav.allowedSteps.has(stepId);
-    }
-    if (activeStep === "revision" || activeStep === "exito") {
-      return stepId === "bienvenida" || stepId === activeStep;
-    }
-    return index <= activeIdx;
+  const isStepUnlocked = (stepId: StepId) => {
+    return nav.allowedSteps?.has(stepId) || stepId === "bienvenida";
   };
 
   return (
@@ -95,8 +67,8 @@ export const AppShell: React.FC<AppShellProps> = ({
         <Header
           canGoBack={nav.canGoBack}
           onBack={actions.goBack}
-          name={reserva?.confirmacion} // Pasamos confirmación al header
-          room={reserva?.habitacion} // Pasamos habitación al header
+          name={reserva?.confirmacion}
+          room={reserva?.habitacion}
           rightAction={
             onGoToRevision &&
             activeStep !== "revision" &&
@@ -115,7 +87,7 @@ export const AppShell: React.FC<AppShellProps> = ({
             steps={nav.dotSteps}
             labels={nav.dotSteps.map((s: StepId) => t(`constants.steps.${s}`))}
             activeIndex={nav.dotIndex}
-            maxReachable={maxDotReached}
+            maxReachable={nav.dotIndex} // Simplificado para que los puntos reflejen donde estas
             onDotClick={actions.goToDotIndex}
           />
         )}
@@ -128,7 +100,6 @@ export const AppShell: React.FC<AppShellProps> = ({
                 <em>Hotels</em>
               </div>
               <p className="sp-sub">{t("appShell.subtitle")}</p>
-
               <div className="sp-summary-wrapper">
                 <button
                   type="button"
@@ -140,11 +111,10 @@ export const AppShell: React.FC<AppShellProps> = ({
                     activeStep === "exito"
                   }
                 >
-                  <Icon name="search" size={14} color="rgba(255,255,255,.8)" />
+                  <Icon name="search" size={14} color="rgba(255,255,255,.8)" />{" "}
                   {t("appShell.booking_summary")}
                 </button>
               </div>
-
               {reserva && (
                 <div className="sp-reserva">
                   <div className="sp-reserva-title">
@@ -153,39 +123,34 @@ export const AppShell: React.FC<AppShellProps> = ({
                   <ReservationCard reserva={reserva} />
                 </div>
               )}
-
-              <nav className="sp-steps" aria-label="Progreso">
+              <nav className="sp-steps">
                 {SIDE_STEPS.map((s, i) => {
                   const isActive = i === activeIdx;
-                  const isUnlocked = isStepUnlocked(s.id, i);
-                  const isClickable =
-                    isUnlocked && !isActive && s.id !== "exito";
+                  const isUnlocked = isStepUnlocked(s.id);
                   const isDone =
                     isUnlocked &&
                     !isActive &&
                     s.id !== "revision" &&
                     s.id !== "exito";
-
                   return (
                     <div
                       key={s.id}
                       onClick={() => {
-                        if (isClickable) {
+                        if (isUnlocked && !isActive) {
                           const dotIdxInNav = nav.dotSteps.indexOf(s.id);
-                          if (dotIdxInNav !== -1) {
+                          if (dotIdxInNav !== -1)
                             actions.goToDotIndex(dotIdxInNav);
-                          } else {
+                          else
                             actions.goTo(
                               s.id,
                               i < activeIdx ? "back" : "forward",
                               0,
                             );
-                          }
                         }
                       }}
-                      className={`sp-step ${isActive ? "sp-step--active" : ""} ${isDone ? "sp-step--done" : ""} ${isClickable ? "sp-step--clickable" : ""}`}
+                      className={`sp-step ${isActive ? "sp-step--active" : ""} ${isDone ? "sp-step--done" : ""} ${isUnlocked && !isActive ? "sp-step--clickable" : ""}`}
                       style={{
-                        cursor: isClickable ? "pointer" : "default",
+                        cursor: isUnlocked && !isActive ? "pointer" : "default",
                         opacity: isUnlocked ? 1 : 0.4,
                       }}
                     >
@@ -206,24 +171,33 @@ export const AppShell: React.FC<AppShellProps> = ({
             </div>
           </aside>
 
-          {/* Aplicamos AnimatePresence aquí para las transiciones entre pantallas */}
           <main
             className="screen-wrap"
-            style={{ position: "relative", overflowX: "hidden" }}
+            style={{
+              position: "relative",
+              overflowX: "hidden",
+              display: "flex",
+              flex: 1,
+            }}
           >
             <AnimatePresence mode="wait" initial={false} custom={nav.direction}>
               <motion.div
-                key={nav.step + (nav.guestIndex || 0)} // Key única para disparar la animación
+                key={nav.step + (nav.guestIndex || 0)} // Key unica para que la animación salte entre huéspedes
                 custom={nav.direction}
                 variants={variants}
                 initial="enter"
                 animate="center"
                 exit="exit"
                 transition={{
-                  x: { type: "spring", stiffness: 300, damping: 30 },
+                  x: { type: "spring", stiffness: 260, damping: 26 },
                   opacity: { duration: 0.2 },
                 }}
-                className="screen"
+                style={{
+                  width: "100%",
+                  flex: 1,
+                  display: "flex",
+                  flexDirection: "column",
+                }}
               >
                 {children}
               </motion.div>

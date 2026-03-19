@@ -289,26 +289,34 @@ export const ScreenFormPersonal: React.FC<FormPersonalProps> = ({
           }}
         >
           <div>
-            <TextField
-              select
-              label={t("forms.doc_type")}
-              required
-              fullWidth
-              value={data.tipoDoc ?? ""}
-              onChange={(e) => {
-                onChange("tipoDoc", e.target.value);
-                clearError("tipoDoc");
-                clearError("soporteDoc");
-              }}
-              error={!!errors.tipoDoc}
-              sx={inputSx}
-            >
-              {TIPOS_DOCUMENTO.map((doc) => (
-                <MenuItem key={doc} value={doc}>
-                  {t(`constants.documentos.${doc}`)}
+            <div>
+              <TextField
+                select
+                label={t("forms.doc_type")}
+                required
+                fullWidth
+                value={data.tipoDoc ?? ""}
+                onChange={(e) => {
+                  onChange("tipoDoc", e.target.value);
+                  clearError("tipoDoc");
+                  clearError("soporteDoc");
+                }}
+                error={!!errors.tipoDoc}
+                sx={inputSx}
+              >
+                {/* Placeholder para que no salga DNI por defecto */}
+                <MenuItem value="" disabled>
+                  <em>Seleccione tipo de documento</em>
                 </MenuItem>
-              ))}
-            </TextField>
+
+                {TIPOS_DOCUMENTO.map((doc) => (
+                  <MenuItem key={doc} value={doc}>
+                    {t(`constants.documentos.${doc}`)}
+                  </MenuItem>
+                ))}
+              </TextField>
+              <FieldError msg={errors.tipoDoc} />
+            </div>
             <FieldError msg={errors.tipoDoc} />
           </div>
           <div>
