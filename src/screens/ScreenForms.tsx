@@ -367,7 +367,6 @@ export const ScreenFormPersonal: React.FC<FormPersonalProps> = ({
           <Alert variant="err">{duplicateError}</Alert>
         </Box>
       )}
-
       <div className="spacer" />
       <div className="btn-row">
         <Button
@@ -378,7 +377,7 @@ export const ScreenFormPersonal: React.FC<FormPersonalProps> = ({
         >
           {isSubmitting
             ? "..."
-            : hasNextGuest
+            : !isMainGuest && hasNextGuest
               ? t("common.next_guest")
               : t("common.continue")}
         </Button>
