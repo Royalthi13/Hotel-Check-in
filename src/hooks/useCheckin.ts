@@ -318,19 +318,14 @@ export function useCheckin(tokenUrl?: string, stepUrl?: string) {
     [navigate, token, activeGuestIndex],
   );
 
-  // ─── FIX BUG CRÍTICO #3 (continuación): goBack correcto ──────────────────
-  // Antes: llamaba a goTo(p.step, "back") que sobreescribía el historial mal.
-  // Ahora: hace pop del historial y navega al penúltimo entry directamente.
+  
   const goBack = useCallback(() => {
-    setHistory((prev) => {
-      if (prev.length <= 1) return prev;
-      const newHistory = prev.slice(0, -1);
-      const target = newHistory[newHistory.length - 1];
-      setNavDirection("back");
-      navigate(`/checkin/${token}/${target.step}`, { replace: false });
-      return newHistory;
-    });
-  }, [navigate, token]);
+  if (history.length <= 1) return;
+  const target = history[history.length - 2];
+  setHistory((prev) => prev.slice(0, -1));
+  setNavDirection("back");
+  if (target) navigate(`/checkin/${token}/${target.step}`, { replace: false });
+}, [navigate, token, history]);
 
   const dotSteps =
     state.appMode === "link" ? FLOW_STEPS_LINK : DOT_STEPS_BASE;

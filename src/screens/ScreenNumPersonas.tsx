@@ -42,7 +42,7 @@ export const ScreenNumPersonas: React.FC<Props> = ({
   };
 
   return (
-    <div className="screen">
+    <div >
       <div className="sec-hdr">
         <h2>
           {modoReserva

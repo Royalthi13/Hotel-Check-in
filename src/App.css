@@ -391,7 +391,12 @@ body {
   .sp-summary-btn         { display: inline-flex; }
   .sp-summary-btn-orange  { display: none; }
 }
-
+/* Wrapper de los botones de resumen del panel lateral */
+.sp-summary-wrapper {
+  width: 100%;
+  position: relative;
+  margin-bottom: 4px;
+}
 /* Lista de pasos */
 .sp-steps {
   width: 100%;
