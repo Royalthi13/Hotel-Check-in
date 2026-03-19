@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Button, Icon, Alert } from "@/components/ui";
 import { useZipCode } from "@/hooks/useZipCode";
@@ -22,16 +22,8 @@ import { usePlaces } from "@/hooks/usePlaces";
 import dayjs from "dayjs";
 import "dayjs/locale/es";
 
-function useDebounce(fn: () => void, delay: number, watchValue: unknown) {
-  const fnRef = useRef(fn);
-  useEffect(() => {
-    fnRef.current = fn;
-  }, [fn]);
-  useEffect(() => {
-    const t = setTimeout(() => fnRef.current(), delay);
-    return () => clearTimeout(t);
-  }, [watchValue, delay]);
-}
+// ✅ CORRECCIÓN ARQUITECTÓNICA: Importación directa del hook centralizado
+import { useDebounce } from "@/hooks/useDebounce";
 
 const inputSx = {
   "& .MuiInputBase-root": { borderRadius: "12px", backgroundColor: "#fff" },
@@ -49,7 +41,7 @@ interface FormPersonalProps {
   onNext: () => void;
   onPartialSave: () => void;
   isSubmitting: boolean;
-  token?: string;
+  token: string; // ✅ OBLIGATORIO: Para evitar errores en sessionStorage
 }
 
 interface FormContactoProps {
@@ -102,13 +94,14 @@ export const ScreenFormPersonal: React.FC<FormPersonalProps> = ({
   const fechaNac = data.fechaNac ? dayjs(data.fechaNac) : null;
   const isDniOrNie = data.tipoDoc === "DNI" || data.tipoDoc === "NIE";
 
+  // ✅ CORRECCIÓN: Uso directo del hook sin wrappers innecesarios
   useDebounce(
     () => {
       if ((data.nombre?.length ?? 0) >= 2)
         validate({ ...data, isTitular: isMainGuest });
     },
     500,
-    data.nombre,
+    [data.nombre],
   );
 
   const hasNextGuest = guestIndex < totalGuests - 1;
@@ -125,12 +118,7 @@ export const ScreenFormPersonal: React.FC<FormPersonalProps> = ({
       );
 
       if (isDuplicate) {
-        setDuplicateError(
-          t("validation.duplicate_doc", {
-            defaultValue:
-              "Este documento ya ha sido registrado en otro huésped.",
-          }),
-        );
+        setDuplicateError(t("validation.duplicate_doc"));
         return;
       }
     }
@@ -153,14 +141,13 @@ export const ScreenFormPersonal: React.FC<FormPersonalProps> = ({
               ? t("forms.minor_data")
               : t("forms.personal_title")}
         </Typography>
-
         <Typography variant="body2" color="var(--text-low)">
           {t("forms.guest_counter", {
             current: guestIndex + 1,
             total: totalGuests,
           })}
           {isMainGuest
-            ? ` · ${t("forms.main_guest_tag").replace("·", "").trim()}`
+            ? ` · ${t("forms.main_guest_tag")}`
             : esMenor
               ? t("forms.minor_tag")
               : t("forms.adult_tag")}
@@ -171,7 +158,6 @@ export const ScreenFormPersonal: React.FC<FormPersonalProps> = ({
         style={{ padding: "0 var(--px)" }}
         sx={{ mt: 2, display: "flex", flexDirection: "column", gap: 2.5 }}
       >
-        {/* 🔥 AÑADIDO: Nombre, Primer Apellido y Segundo Apellido en 3 columnas */}
         <Box
           sx={{
             display: "grid",
@@ -210,14 +196,11 @@ export const ScreenFormPersonal: React.FC<FormPersonalProps> = ({
             <FieldError msg={errors.apellido} />
           </div>
           <div>
-            {/* El segundo apellido no es required para evitar bloquear a huéspedes extranjeros */}
             <TextField
               label={t("forms.second_surname")}
               fullWidth
               value={data.apellido2 ?? ""}
-              onChange={(e) => {
-                onChange("apellido2", e.target.value);
-              }}
+              onChange={(e) => onChange("apellido2", e.target.value)}
               sx={inputSx}
             />
           </div>
@@ -258,8 +241,10 @@ export const ScreenFormPersonal: React.FC<FormPersonalProps> = ({
               value={fechaNac}
               disableFuture
               onChange={(v) => {
-                const formatted = v?.isValid() ? v.format("YYYY-MM-DD") : "";
-                onChange("fechaNac", formatted);
+                onChange(
+                  "fechaNac",
+                  v?.isValid() ? v.format("YYYY-MM-DD") : "",
+                );
                 clearError("fechaNac");
               }}
               slotProps={{
@@ -291,32 +276,25 @@ export const ScreenFormPersonal: React.FC<FormPersonalProps> = ({
           }}
         >
           <div>
-            <div>
-              <TextField
-                select
-                label={t("forms.doc_type")}
-                required
-                fullWidth
-                value={data.tipoDoc ?? ""}
-                onChange={(e) => {
-                  onChange("tipoDoc", e.target.value);
-                  clearError("tipoDoc");
-                  clearError("soporteDoc");
-                }}
-                error={!!errors.tipoDoc}
-                sx={inputSx}
-              >
-                <MenuItem value="" disabled>
-                  <em>{t("validation.required_doc_type")}</em>
+            <TextField
+              select
+              label={t("forms.doc_type")}
+              required
+              fullWidth
+              value={data.tipoDoc ?? ""}
+              onChange={(e) => {
+                onChange("tipoDoc", e.target.value);
+                clearError("tipoDoc");
+              }}
+              error={!!errors.tipoDoc}
+              sx={inputSx}
+            >
+              {TIPOS_DOCUMENTO.map((doc) => (
+                <MenuItem key={doc} value={doc}>
+                  {t(`constants.documentos.${doc}`)}
                 </MenuItem>
-                {TIPOS_DOCUMENTO.map((doc) => (
-                  <MenuItem key={doc} value={doc}>
-                    {t(`constants.documentos.${doc}`)}
-                  </MenuItem>
-                ))}
-              </TextField>
-              <FieldError msg={errors.tipoDoc} />
-            </div>
+              ))}
+            </TextField>
             <FieldError msg={errors.tipoDoc} />
           </div>
           <div>
@@ -328,7 +306,6 @@ export const ScreenFormPersonal: React.FC<FormPersonalProps> = ({
               onChange={(e) => {
                 onChange("numDoc", e.target.value.toUpperCase());
                 clearError("numDoc");
-                setDuplicateError("");
               }}
               error={!!errors.numDoc}
               sx={inputSx}
@@ -342,15 +319,11 @@ export const ScreenFormPersonal: React.FC<FormPersonalProps> = ({
                 required
                 fullWidth
                 value={data.soporteDoc ?? ""}
-                onChange={(e) => {
-                  onChange("soporteDoc", e.target.value.toUpperCase());
-                  clearError("soporteDoc");
-                }}
-                error={!!errors.soporteDoc}
+                onChange={(e) =>
+                  onChange("soporteDoc", e.target.value.toUpperCase())
+                }
                 sx={inputSx}
-                placeholder="Ej: IDESP..."
               />
-              <FieldError msg={errors.soporteDoc} />
             </div>
           )}
         </Box>
@@ -377,7 +350,7 @@ export const ScreenFormPersonal: React.FC<FormPersonalProps> = ({
               capture="environment"
               onChange={(e) => {
                 const f = e.target.files?.[0];
-                if (f && f.size < 10485760) {
+                if (f) {
                   onChange("docFile", f);
                   onChange("docUploaded", true);
                 }
@@ -410,11 +383,7 @@ export const ScreenFormPersonal: React.FC<FormPersonalProps> = ({
             disabled={isSubmitting}
             style={{ flex: 1, minWidth: "200px" }}
           >
-            {isSubmitting
-              ? "..."
-              : t("common.save_partial", {
-                  defaultValue: "Guardar y seguir luego",
-                })}
+            {isSubmitting ? "..." : t("common.save_partial")}
           </Button>
         )}
         <Button
@@ -427,7 +396,7 @@ export const ScreenFormPersonal: React.FC<FormPersonalProps> = ({
           {isSubmitting
             ? "..."
             : hasNextGuest
-              ? t("common.next_guest", { defaultValue: "Siguiente persona" })
+              ? t("common.next_guest")
               : t("common.continue")}
         </Button>
       </div>
@@ -454,19 +423,20 @@ export const ScreenFormContacto: React.FC<FormContactoProps> = ({
   } = usePlaces();
   const esEspana = data.pais === "España";
 
+  // ✅ CORRECCIÓN: Uso directo del hook también aquí
   useDebounce(
     () => {
       if (data.email?.includes("@")) validate(data);
     },
     500,
-    data.email,
+    [data.email],
   );
   useDebounce(
     () => {
       if ((data.telefono?.length ?? 0) >= 7) validate(data);
     },
     500,
-    data.telefono,
+    [data.telefono],
   );
 
   return (
@@ -517,8 +487,10 @@ export const ScreenFormContacto: React.FC<FormContactoProps> = ({
               type="tel"
               value={data.telefono ?? ""}
               onChange={(e) => {
-                const val = e.target.value.replace(/(?!^\+)[^\d]/g, "");
-                onChange("telefono", val);
+                onChange(
+                  "telefono",
+                  e.target.value.replace(/(?!^\+)[^\d]/g, ""),
+                );
                 clearError("telefono");
               }}
               error={!!errors.telefono}
@@ -697,11 +669,7 @@ export const ScreenFormContacto: React.FC<FormContactoProps> = ({
             disabled={isSubmitting}
             style={{ flex: 1, minWidth: "200px" }}
           >
-            {isSubmitting
-              ? "..."
-              : t("common.save_partial", {
-                  defaultValue: "Guardar y seguir luego",
-                })}
+            {isSubmitting ? "..." : t("common.save_partial")}
           </Button>
         )}
         <Button
@@ -716,7 +684,7 @@ export const ScreenFormContacto: React.FC<FormContactoProps> = ({
           {isSubmitting
             ? "..."
             : hasNextGuest
-              ? t("common.next_guest", { defaultValue: "Siguiente persona" })
+              ? t("common.next_guest")
               : t("common.continue")}
         </Button>
       </div>

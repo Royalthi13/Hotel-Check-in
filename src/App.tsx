@@ -37,7 +37,7 @@ const STEPS_WITHOUT_DOTS = new Set<StepId>(["tablet_buscar", "exito"]);
 // Antes: useParams() devolvía undefined para rutas sin :token → "/checkin/undefined/bienvenida"
 // Ahora: redirige siempre a /checkin/new/bienvenida como fallback seguro
 function RedirectToNew() {
-  return <Navigate to="/checkin/new/bienvenida" replace />;
+  return <Navigate to="/tablet_buscar" replace />;
 }
 
 function RedirectToBienvenida() {
@@ -160,7 +160,7 @@ function CheckinWizard() {
           reserva: state.reserva,
           guests: state.guests.map((g) => {
             const copia = { ...g };
-            delete copia.docFile;
+            delete copia.docFile; // El archivo no se envía en el JSON
             return copia;
           }),
           horaLlegada: state.horaLlegada,
@@ -178,10 +178,22 @@ function CheckinWizard() {
       if (!res.ok || data?.success === false) {
         throw new Error(data?.error ?? `HTTP ${res.status}`);
       }
+
+      // ✅ LIMPIEZA DE SESSION STORAGE (Severidad Baja)
+      // Eliminamos todas las claves vinculadas a este token específico
+      const keysToClear = [
+        `state_${token}`,
+        `history_${token}`,
+        `allowedSteps_${token}`,
+        `legalPassed_${token}`,
+        `hasMinors_${token}`,
+        `modoFlujo_${token}`
+      ];
+      keysToClear.forEach(key => sessionStorage.removeItem(key));
+
       setIsPartialSuccess(false);
       goTo("exito", "forward");
     } catch (err: unknown) {
-      // FIX: ya no hacemos goTo("exito") en el catch
       setSubmitError(
         err instanceof Error ? err.message : t("errorBoundary.title"),
       );
@@ -338,7 +350,7 @@ function CheckinWizard() {
           onPartialSave={handlePartialSubmit}
           isSubmitting={isSubmitting}
           // FIX BUG HIGH #5: pasar token para leer modoFlujo correctamente
-          token={token}
+         token={token || "new"}
         />
       )}
 
