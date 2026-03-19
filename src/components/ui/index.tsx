@@ -314,12 +314,16 @@ export interface HeaderProps {
   canGoBack: boolean;
   onBack: () => void;
   rightAction?: { label: string; onClick: () => void; icon?: IconName };
+  name?: string;
+  room?: string;
 }
 
 export const Header: React.FC<HeaderProps> = ({
   canGoBack,
   onBack,
   rightAction,
+  name,
+  room,
 }) => (
   <div className="hdr">
     {canGoBack ? (
@@ -332,8 +336,8 @@ export const Header: React.FC<HeaderProps> = ({
     <div className="hdr-brand">
       <div className="hdr-logo">L</div>
       <div>
-        <div className="hdr-name">Lumina</div>
-        <div className="hdr-sub">Hotels &amp; Resorts</div>
+        <div className="hdr-name">{name || "Lumina"}</div>
+        <div className="hdr-sub">{room || "Hotels & Resorts"}</div>
       </div>
     </div>
     {rightAction ? (

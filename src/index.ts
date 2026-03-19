@@ -15,21 +15,19 @@ export type {
   CheckinState,
   FormErrors,
   NavDirection,
-  CheckinNav,      // contrato público del hook, definido en types/
-  CheckinActions,  // contrato público del hook, definido en types/
-} from './types';
+  CheckinNav, // contrato público del hook, definido en types/
+  CheckinActions, // contrato público del hook, definido en types/
+} from "./types";
 
 // Hook — solo la función, no sus tipos internos (HistoryEntry, etc.)
-export { useCheckin } from './hooks/useCheckin';
+export { useCheckin } from "./hooks/useCheckin";
 
 // Validación — solo las funciones públicas
 export {
   useFormValidation,
   validatePersonal,
   validateContacto,
-  validateDocumento,
-  validateNumPersonas,
-} from './hooks/useFormValidation';
+} from "./hooks/useFormValidation";
 
 // Constantes públicas
 export {
@@ -43,29 +41,25 @@ export {
   DOT_LABELS,
   FLOW_STEPS_LINK,
   MOCK_KNOWN_GUEST,
-} from './constants';
+} from "./constants";
 // MOCK_RESERVAS no se exporta aquí — es un mock de desarrollo.
 // Importar desde './mocks/reservas-mock' si se necesita directamente.
 
 // Componentes UI
-export * from './components/ui';
+export * from "./components/ui";
 
 // Layout
-export { AppShell } from './layout/AppShell';
+export { AppShell } from "./layout/AppShell";
 
 // Screens
-export { ScreenTabletBuscar }    from './screens/ScreenTabletBuscar';
-export { ScreenBienvenida }      from './screens/ScreenBienvenida';
-export { ScreenNumPersonas }     from './screens/ScreenNumPersonas';
-export { ScreenEscanear }        from './screens/ScreenEscanear';
-export { ScreenConfirmarDatos }  from './screens/ScreenConfirmardatos';
-export {
-  ScreenFormPersonal,
-  ScreenFormContacto,
-  ScreenFormDocumento,
-} from './screens/ScreenForms';
+export { ScreenTabletBuscar } from "./screens/ScreenTabletBuscar";
+export { ScreenBienvenida } from "./screens/ScreenBienvenida";
+export { ScreenNumPersonas } from "./screens/ScreenNumPersonas";
+export { ScreenEscanear } from "./screens/ScreenEscanear";
+export { ScreenConfirmarDatos } from "./screens/ScreenConfirmardatos";
+export { ScreenFormPersonal, ScreenFormContacto } from "./screens/ScreenForms";
 export {
   ScreenFormExtras,
   ScreenRevision,
   ScreenExito,
-} from './screens/ScreenExtrasRevisionExito';
+} from "./screens/ScreenExtrasRevisionExito";
