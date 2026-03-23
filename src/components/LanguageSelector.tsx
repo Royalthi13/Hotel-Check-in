@@ -67,49 +67,57 @@ export const LanguageSelector: React.FC = () => {
       </button>
 
       {isOpen && (
-        <div
-          className="lang-dropdown"
-          role="listbox"
-          aria-label="Seleccionar idioma"
-        >
-          {LANGUAGES.map((lang) => {
-            const isActive = i18n.language.startsWith(lang.code);
-            return (
-              <button
-                key={lang.code}
-                type="button"
-                role="option"
-                aria-selected={isActive}
-                className={`lang-option${isActive ? " active" : ""}`}
-                onClick={() => {
-                  i18n.changeLanguage(lang.code);
-                  setIsOpen(false);
-                }}
-              >
-                <FlagIcon country={lang.country} label={lang.label} /> {/* ← */}
-                <span className="lang-label">{lang.label}</span>
-                {isActive && (
-                  <svg
-                    className="lang-check"
-                    width="14"
-                    height="14"
-                    viewBox="0 0 14 14"
-                    fill="none"
-                    aria-hidden="true"
-                  >
-                    <path
-                      d="M2.5 7l3 3 6-6"
-                      stroke="currentColor"
-                      strokeWidth="1.8"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                  </svg>
-                )}
-              </button>
-            );
-          })}
-        </div>
+        <>
+          <div
+            className="lang-backdrop"
+            onClick={() => setIsOpen(false)}
+            aria-hidden="true"
+          />
+
+          <div
+            className="lang-dropdown"
+            role="listbox"
+            aria-label="Seleccionar idioma"
+          >
+            {LANGUAGES.map((lang) => {
+              const isActive = i18n.language.startsWith(lang.code);
+              return (
+                <button
+                  key={lang.code}
+                  type="button"
+                  role="option"
+                  aria-selected={isActive}
+                  className={`lang-option${isActive ? " active" : ""}`}
+                  onClick={() => {
+                    i18n.changeLanguage(lang.code);
+                    setIsOpen(false);
+                  }}
+                >
+                  <FlagIcon country={lang.country} label={lang.label} />
+                  <span className="lang-label">{lang.label}</span>
+                  {isActive && (
+                    <svg
+                      className="lang-check"
+                      width="14"
+                      height="14"
+                      viewBox="0 0 14 14"
+                      fill="none"
+                      aria-hidden="true"
+                    >
+                      <path
+                        d="M2.5 7l3 3 6-6"
+                        stroke="currentColor"
+                        strokeWidth="1.8"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        </>
       )}
     </div>
   );
