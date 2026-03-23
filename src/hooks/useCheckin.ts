@@ -278,8 +278,6 @@ export function useCheckin(tokenUrl?: string, stepUrl?: string) {
           const stepsToUnlock: StepId[] = [
             "inicio",
             "bienvenida",
-            "num_personas",
-            "escanear",
             "form_personal",
             "form_contacto",
             "form_documento",

@@ -276,6 +276,7 @@
     "est_arrival": "Heure d'arrivée prévue",
     "requests": "Demandes spéciales",
     "obs_label": "Observations ou demandes",
+    "confirm_data_only": "Je confirme que les données sont correctes.",
     "obs_placeholder": "Berceau, allergies, chambre à un étage élevé...",
     "btn_review": "Réviser et confirmer",
     "rev_title": "Résumé du Check-in",

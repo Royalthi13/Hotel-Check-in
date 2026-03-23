@@ -8,7 +8,6 @@ import { LanguageSelector } from "../components/LanguageSelector";
 const SIDE_STEPS: { id: StepId }[] = [
   { id: "inicio" },
   { id: "bienvenida" },
-  { id: "num_personas" },
   { id: "form_personal" },
   { id: "form_contacto" },
   { id: "form_extras" },
@@ -79,9 +78,8 @@ export const AppShell: React.FC<AppShellProps> = ({
 
   // Lógica de navegación: Solo permite ir a pasos ya visitados (desbloqueados)
   const isStepUnlocked = (stepId: StepId) => {
-    return nav.allowedSteps?.has(stepId) || stepId === "bienvenida";
+    return nav.allowedSteps?.has(stepId);
   };
-
   return (
     <div className="shell">
       <div className="card">

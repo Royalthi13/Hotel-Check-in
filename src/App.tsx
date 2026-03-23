@@ -18,7 +18,6 @@ import { useTranslation } from "react-i18next";
 import { ScreenTabletBuscar } from "@/screens/ScreenTabletBuscar";
 import { ScreenBienvenida } from "@/screens/ScreenBienvenida";
 import { ScreenCheckinInicio } from "@/screens/ScreenCheckinInicio";
-import { ScreenNumPersonas } from "@/screens/ScreenNumPersonas";
 import { ScreenEscanear } from "@/screens/ScreenEscanear";
 import { ScreenConfirmarDatos } from "@/screens/ScreenConfirmardatos";
 import { ScreenRelacionesMenor } from "@/screens/ScreenRelacionesMenor";
@@ -55,10 +54,6 @@ function CheckinWizard() {
   const [isOffline, setIsOffline] = useState(!navigator.onLine);
   const [isPartialSuccess, setIsPartialSuccess] = useState(false);
 
-  // ✅ CAMBIO 1: Quitamos los useState/useEffect antiguos.
-  // Ahora sacamos estas variables directamente del estado centralizado.
-  const { hasMinorsFlag } = state;
-
   useEffect(() => {
     const on = () => setIsOffline(false);
     const off = () => setIsOffline(true);
@@ -84,7 +79,6 @@ function CheckinWizard() {
     );
   }
 
-  // ✅ CAMBIO 2: Añadimos las dos nuevas funciones a las acciones que extraemos
   const {
     goTo,
     goBack,
@@ -93,7 +87,6 @@ function CheckinWizard() {
     updateGuest,
     updateRelacion,
     nextGuest,
-    setRgpdAcepted,
     setLegalPassed,
     setHasMinorsFlag,
   } = actions;
@@ -111,14 +104,15 @@ function CheckinWizard() {
 
   const handleChooseMethod = (method: "scan" | "manual") => {
     sessionStorage.setItem(`modoFlujo_${token}`, method);
-    if (hasMinorsFlag) {
-      goTo("num_personas", "forward", 0);
-    } else {
-      setNumPersonas(state.reserva?.numHuespedes || 1);
-      if (method === "scan") goTo("escanear", "forward", 0);
-      else if (state.knownGuest) goTo("confirmar_datos", "forward", 0);
-      else goTo("form_personal", "forward", 0);
-    }
+
+    // Cogemos el número de huéspedes de la reserva que nos ha dado el backend/mock
+    const totalHuespedes = state.reserva?.numHuespedes || 1;
+    setNumPersonas(totalHuespedes);
+
+    // Navegamos directamente al siguiente paso (saltándonos num_personas)
+    if (method === "scan") goTo("escanear", "forward", 0);
+    else if (state.knownGuest) goTo("confirmar_datos", "forward", 0);
+    else goTo("form_personal", "forward", 0);
   };
 
   const submitToServer = async (isPartial: boolean): Promise<void> => {
@@ -126,7 +120,7 @@ function CheckinWizard() {
     setIsSubmitting(true);
     try {
       const payload = {
-        ...state, // ✅ Esto ahora enviará TODO (incluyendo legalPassed y hasMinorsFlag)
+        ...state,
         guests: state.guests.map(({ docFile, ...rest }) => rest),
         isPartial,
       };
@@ -203,7 +197,6 @@ function CheckinWizard() {
         <ScreenCheckinInicio
           reserva={state.reserva as any}
           onNext={(hayMenores: boolean) => {
-            // ✅ CAMBIO 3: Usamos las acciones que definimos arriba
             setHasMinorsFlag(hayMenores);
             setLegalPassed(true);
             goTo("bienvenida", "forward");
@@ -217,20 +210,6 @@ function CheckinWizard() {
           reserva={state.reserva}
           onChooseScan={() => handleChooseMethod("scan")}
           onChooseManual={() => handleChooseMethod("manual")}
-        />
-      )}
-
-      {currentStep === "num_personas" && (
-        <ScreenNumPersonas
-          numPersonas={state.numPersonas}
-          onChange={setNumPersonas}
-          onNext={() => {
-            const flujo = sessionStorage.getItem(`modoFlujo_${token}`);
-            if (flujo === "scan") goTo("escanear", "forward", 0);
-            else if (state.knownGuest) goTo("confirmar_datos", "forward", 0);
-            else goTo("form_personal", "forward", 0);
-          }}
-          totalFijo={state.reserva?.numHuespedes}
         />
       )}
 
@@ -266,9 +245,7 @@ function CheckinWizard() {
           onNext={() => nextGuest(nav.guestIndex, "form_personal")}
           isSubmitting={isSubmitting}
           token={token || "new"}
-          onPartialSave={
-            handlePartialSubmit
-          } /* ✅ CAMBIO 4: Pasamos la función al componente */
+          onPartialSave={handlePartialSubmit}
         />
       )}
 
@@ -327,7 +304,6 @@ function CheckinWizard() {
               goTo(targetStep as StepId, "back", gIdx)
             }
             onSubmit={handleSubmit}
-            onRgpdChange={setRgpdAcepted}
           />
         </>
       )}

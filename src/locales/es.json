@@ -316,7 +316,8 @@
     "rgpd_long_4": "condiciones del pre check-in",
     "rgpd_long_5": " del hotel.",
     "btn_complete_checkin": "Completar pre check-in",
-    "btn_final": "Confirmar registro de todo el grupo"
+    "btn_final": "Confirmar registro de todo el grupo",
+    "confirm_data_only": "Confirmo que los datos son correctos."
   },
   "success": {
     "title": "¡Registro completado!",

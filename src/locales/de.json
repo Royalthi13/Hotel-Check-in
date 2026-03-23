@@ -275,6 +275,7 @@
     "arrival": "Ankunft",
     "est_arrival": "Voraussichtliche Ankunftszeit",
     "requests": "Besondere Wünsche",
+    "confirm_data_only": "Ich bestätige, dass die Daten korrekt sind.",
     "obs_label": "Anmerkungen oder Wünsche",
     "obs_placeholder": "Kinderbett, Allergien, ruhiges Zimmer...",
     "btn_review": "Überprüfen und bestätigen",

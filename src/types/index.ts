@@ -6,7 +6,6 @@ export type StepId =
   | "tablet_buscar"
   | "inicio"
   | "bienvenida"
-  | "num_personas"
   | "confirmar_datos"
   | "escanear"
   | "form_personal"

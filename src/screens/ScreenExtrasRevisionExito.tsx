@@ -80,7 +80,6 @@ interface RevisionProps {
   isSubmitting: boolean;
   onEditStep: (step: string, guestIndex?: number) => void;
   onSubmit: () => Promise<void>;
-  onRgpdChange: (v: boolean) => void;
 }
 
 export const ScreenRevision: React.FC<RevisionProps> = ({
@@ -88,11 +87,13 @@ export const ScreenRevision: React.FC<RevisionProps> = ({
   isSubmitting,
   onEditStep,
   onSubmit,
-  onRgpdChange,
 }) => {
   const { t } = useTranslation();
-  const { reserva, guests, horaLlegada, observaciones, rgpdAcepted } = state;
+  const { reserva, guests, horaLlegada, observaciones } = state;
   const main = guests[0] ?? {};
+
+  // ✅ NUEVO ESTADO: Controla solo esta casilla para desbloquear el botón
+  const [isConfirmed, setIsConfirmed] = useState(false);
 
   const fullName = (g: typeof main) =>
     [g.nombre, g.apellido, g.apellido2].filter(Boolean).join(" ");
@@ -202,29 +203,25 @@ export const ScreenRevision: React.FC<RevisionProps> = ({
         )}
       </div>
 
+      {/* ✅ NUEVO CHECKBOX: Vinculado al estado local y a la nueva traducción */}
       <div className="chk-area">
         <input
           type="checkbox"
           id="chk-accept"
-          checked={rgpdAcepted ?? false}
-          onChange={(e) => onRgpdChange(e.target.checked)}
+          checked={isConfirmed}
+          onChange={(e) => setIsConfirmed(e.target.checked)}
         />
-        <label htmlFor="chk-accept">
-          {t("review.rgpd_long_1")}
-          <a href="#">{t("review.rgpd_long_2")}</a>
-          {t("review.rgpd_long_3")}
-          <a href="#">{t("review.rgpd_long_4")}</a>
-          {t("review.rgpd_long_5")}
-        </label>
+        <label htmlFor="chk-accept">{t("review.confirm_data_only")}</label>
       </div>
 
       <div className="spacer" />
       <div className="btn-row">
+        {/* ✅ BLOQUEO DEL BOTÓN: Depende de isConfirmed */}
         <Button
           variant="primary"
           iconRight={isSubmitting ? undefined : "check"}
           onClick={onSubmit}
-          disabled={!rgpdAcepted || isSubmitting}
+          disabled={!isConfirmed || isSubmitting}
         >
           {isSubmitting ? (
             <>
@@ -280,15 +277,8 @@ export const ScreenExito: React.FC<ExitoProps> = ({
           <Icon name="checkC" size={42} color="var(--primary)" />
         </div>
 
-        <h1 className="success-title">
-          {t("success.partial_title", { defaultValue: "¡Progreso guardado!" })}
-        </h1>
-        <p className="success-sub">
-          {t("success.partial_sub", {
-            defaultValue:
-              "Los datos se han guardado correctamente. Comparta este enlace con el resto de acompañantes para que completen su registro de forma rápida y segura.",
-          })}
-        </p>
+        <h1 className="success-title">{t("success.partial_title")}</h1>
+        <p className="success-sub">{t("success.partial_sub")}</p>
 
         <div
           style={{
@@ -304,11 +294,7 @@ export const ScreenExito: React.FC<ExitoProps> = ({
             onClick={handleCopyLink}
             iconLeft={copied ? "check" : undefined}
           >
-            {copied
-              ? t("common.copied", { defaultValue: "¡Enlace copiado!" })
-              : t("common.copy_link", {
-                  defaultValue: "Copiar enlace para compartir",
-                })}
+            {copied ? t("common.copied") : t("common.copy_link")}
           </Button>
         </div>
       </div>
