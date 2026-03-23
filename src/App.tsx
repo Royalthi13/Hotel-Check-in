@@ -3,14 +3,13 @@ import {
   Routes,
   Route,
   useParams,
-  useNavigate,
   Navigate,
 } from "react-router-dom";
 import "./App.css";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { useCheckin } from "@/hooks/useCheckin";
 import { AppShell } from "@/layout/AppShell";
-import { LoadingSpinner, Alert } from "@/components/ui";
+import { LoadingSpinner, Alert, Icon } from "@/components/ui";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -20,7 +19,7 @@ import { ScreenBienvenida } from "@/screens/ScreenBienvenida";
 import { ScreenCheckinInicio } from "@/screens/ScreenCheckinInicio";
 import { ScreenNumPersonas } from "@/screens/ScreenNumPersonas";
 import { ScreenEscanear } from "@/screens/ScreenEscanear";
-import { ScreenConfirmarDatos } from "@/screens/ScreenConfirmardatos";
+
 import { ScreenRelacionesMenor } from "@/screens/ScreenRelacionesMenor";
 import { ScreenFormPersonal, ScreenFormContacto } from "@/screens/ScreenForms";
 import {
@@ -33,22 +32,80 @@ import type { Reserva, StepId, PartialGuestData } from "@/types";
 
 const STEPS_WITHOUT_DOTS = new Set<StepId>(["tablet_buscar", "exito"]);
 
-function RedirectToNew() {
-  return <Navigate to="/checkin/kiosko/tablet_buscar" replace />;
+// ── Página de enlace inválido / caducado ──────────────────────────────────────
+// Se muestra cuando el cliente llega a una URL desconocida.
+// Los clientes siempre acceden mediante un enlace personalizado en su email/SMS,
+// nunca deberían ver tablet_buscar.
+function InvalidLink() {
+  return (
+    <div
+      className="shell"
+      style={{ alignItems: "center", justifyContent: "center" }}
+    >
+      <div
+        style={{
+          width: "100%",
+          maxWidth: 480,
+          background: "var(--white)",
+          borderRadius: "var(--r-xl)",
+          padding: "48px 32px",
+          textAlign: "center",
+          boxShadow: "0 12px 56px rgba(50,65,84,0.13)",
+        }}
+      >
+        <div
+          style={{
+            width: 72,
+            height: 72,
+            borderRadius: "50%",
+            background: "var(--bg)",
+            border: "2px solid var(--border)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            margin: "0 auto 24px",
+          }}
+        >
+          <Icon name="lock" size={32} color="var(--text-low)" />
+        </div>
+        <h2
+          style={{
+            fontFamily: "'Cormorant Garamond', serif",
+            fontSize: 26,
+            fontWeight: 400,
+            color: "var(--text)",
+            marginBottom: 12,
+          }}
+        >
+          Enlace no válido
+        </h2>
+        <p
+          style={{
+            fontSize: 14,
+            color: "var(--text-mid)",
+            lineHeight: 1.65,
+            maxWidth: 320,
+            margin: "0 auto",
+          }}
+        >
+          Este enlace no es válido o ha caducado. Por favor, acceda mediante el
+          enlace que recibió en su confirmación de reserva.
+        </p>
+        <p
+          style={{
+            marginTop: 20,
+            fontSize: 12,
+            color: "var(--text-low)",
+          }}
+        >
+          Si necesita ayuda, contacte con recepción.
+        </p>
+      </div>
+    </div>
+  );
 }
 
-function RedirectToBienvenida() {
-  const { token } = useParams();
-  const navigate = useNavigate();
-  useEffect(() => {
-    if (token && token !== "undefined") {
-      navigate(`/checkin/${token}/bienvenida`, { replace: true });
-    } else {
-      navigate("/checkin/kiosko/tablet_buscar", { replace: true });
-    }
-  }, [navigate, token]);
-  return null;
-}
+
 
 function CheckinWizard() {
   const { t } = useTranslation();
@@ -115,21 +172,14 @@ function CheckinWizard() {
   const isMainGuest = nav.guestIndex === 0;
   const currentGuest = state.guests[nav.guestIndex] ?? {};
 
-  // ── canGoBack personalizado ───────────────────────────────────────────────
-  // En la pantalla "bienvenida", si legalPassed === true, el "atrás" del header
-  // vuelve a ScreenCheckinInicio (dentro del mismo step, sin cambiar URL)
   const customNav = {
     ...nav,
     canGoBack: nav.canGoBack || (currentStep === "bienvenida" && legalPassed),
   };
 
-  // ── handleSmartGoBack ─────────────────────────────────────────────────────
-  // Si estamos en bienvenida y ya pasamos el formulario legal, volver al legal
-  // es solo cambiar el estado local (no navegar en browser history)
   const handleSmartGoBack = () => {
     if (currentStep === "bienvenida" && legalPassed) {
       setLegalPassed(false);
-      // No llamamos a goBack() porque no hay URL diferente para la pantalla legal
     } else {
       goBack();
     }
@@ -144,8 +194,7 @@ function CheckinWizard() {
       setNumPersonas(state.reserva?.numHuespedes || 1);
       if (method === "scan") {
         goTo("escanear", "forward", 0);
-      } else if (state.knownGuest) {
-        goTo("confirmar_datos", "forward", 0);
+      
       } else {
         goTo("form_personal", "forward", 0);
       }
@@ -182,7 +231,6 @@ function CheckinWizard() {
         throw new Error(data?.error ?? `HTTP ${res.status}`);
       }
 
-      // Limpieza de sessionStorage
       const keysToClear = [
         `state_${token}`,
         `history_${token}`,
@@ -314,7 +362,7 @@ function CheckinWizard() {
           onNext={() => {
             const flujo = sessionStorage.getItem(`modoFlujo_${token}`);
             if (flujo === "scan") goTo("escanear", "forward", 0);
-            else if (state.knownGuest) goTo("confirmar_datos", "forward", 0);
+       
             else goTo("form_personal", "forward", 0);
           }}
           totalFijo={state.reserva?.numHuespedes}
@@ -331,13 +379,7 @@ function CheckinWizard() {
         />
       )}
 
-      {currentStep === "confirmar_datos" && (
-        <ScreenConfirmarDatos
-          guest={currentGuest}
-          onConfirm={() => goTo("form_contacto", "forward")}
-          onEdit={() => goTo("form_personal", "forward")}
-        />
-      )}
+    
 
       {currentStep === "form_personal" && (
         <ScreenFormPersonal
@@ -434,25 +476,21 @@ export default function App() {
   return (
     <BrowserRouter>
       <Routes>
-        {/* Ruta directa al kiosko */}
-        <Route
-          path="/tablet_buscar"
-          element={<Navigate to="/checkin/kiosko/tablet_buscar" replace />}
-        />
-        {/* Ruta sin step: redirige a bienvenida */}
-        <Route path="/checkin/:token" element={<RedirectToBienvenida />} />
-        {/* Ruta principal del wizard */}
-        <Route
-          path="/checkin/:token/:step"
-          element={
-            <ErrorBoundary>
-              <CheckinWizard />
-            </ErrorBoundary>
-          }
-        />
-        {/* Wildcard: siempre al kiosko */}
-        <Route path="*" element={<RedirectToNew />} />
+        {/* LA CLAVE: La raíz "/" ahora te lleva al INICIO del cliente por defecto */}
+        <Route path="/" element={<Navigate to="/checkin/99999/bienvenida" replace />} />
+
+        {/* Kiosko de recepción (Uso interno staff) */}
+        <Route path="/checkin/kiosko/tablet_buscar" element={<ErrorBoundary><CheckinWizard /></ErrorBoundary>} />
+
+        {/* Flujo cliente (Entrada con token) */}
+        <Route path="/checkin/:token" element={<Navigate to="bienvenida" replace />} />
+        <Route path="/checkin/:token/:step" element={<ErrorBoundary><CheckinWizard /></ErrorBoundary>} />
+
+        {/* Errores */}
+        <Route path="/invalid" element={<InvalidLink />} />
+        <Route path="*" element={<InvalidLink />} />
       </Routes>
     </BrowserRouter>
   );
 }
+

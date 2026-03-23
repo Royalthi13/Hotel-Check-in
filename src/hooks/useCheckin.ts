@@ -17,6 +17,7 @@ import { FLOW_STEPS_LINK, DOT_STEPS_BASE } from "@/constants";
 export type CheckinAction =
   | { type: "SET_KNOWN_GUEST"; guest: GuestData }
   | { type: "SET_RESERVA_TABLET"; reserva: Reserva }
+  | { type: "SET_RESERVA"; reserva: Reserva }
   | { type: "SET_NUM_PERSONAS"; total: number }
   | {
       type: "UPDATE_GUEST";
@@ -91,6 +92,13 @@ export function checkinReducer(
         numMenores: 0,
         guests: makeGuests(action.reserva.numHuespedes),
       };
+
+      case "SET_RESERVA":
+  return {
+    ...state,
+    reserva: action.reserva,
+    numPersonas: action.reserva.numHuespedes, // Opcional: sincroniza el número de personas
+  };
 
     case "SET_NUM_PERSONAS": {
       const newGuests = mergeGuests(state.guests || [], action.total);
@@ -256,24 +264,34 @@ export function useCheckin(tokenUrl?: string, stepUrl?: string) {
   }, [allowedSteps, token]);
 
   // ── Carga inicial ─────────────────────────────────────────────────────────
-  useEffect(() => {
-    if (token === "new") {
-      setIsLoading(false);
-      return;
-    }
-    async function load() {
-      try {
-        const res = await fetch(`/api/checkin/${token}`);
-        const data = (await res.json()) as { data?: GuestData };
-        if (data.data) dispatch({ type: "SET_KNOWN_GUEST", guest: data.data });
-      } catch (err) {
-        console.error("[useCheckin] Error loading:", err);
-      } finally {
-        setIsLoading(false);
+useEffect(() => {
+  if (token === "new") {
+    setIsLoading(false);
+    return;
+  }
+  async function load() {
+    try {
+      const res = await fetch(`/api/checkin/${token}`);
+      const json = await res.json(); // Lo renombramos a json para mayor claridad
+
+      // 1. Si hay datos del huésped, los guardamos
+      if (json.data) {
+        dispatch({ type: "SET_KNOWN_GUEST", guest: json.data });
       }
+
+      // 2. ¡EL FIX! Si hay datos de la reserva, los guardamos
+      if (json.reserva) {
+        dispatch({ type: "SET_RESERVA", reserva: json.reserva });
+      }
+      
+    } catch (err) {
+      console.error("[useCheckin] Error loading:", err);
+    } finally {
+      setIsLoading(false);
     }
-    load();
-  }, [token, dispatch]);
+  }
+  load();
+}, [token, dispatch]);
 
   // ── Detección del step y guestIndex activos ───────────────────────────────
   const actualStep =
