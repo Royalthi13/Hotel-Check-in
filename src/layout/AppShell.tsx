@@ -97,7 +97,7 @@ export const AppShell: React.FC<AppShellProps> = ({
             activeStep !== "exito"
               ? {
                   label: t("common.summary"),
-                  icon: "users",
+                  icon: "clipboard",
                   onClick: onGoToRevision,
                 }
               : undefined

@@ -13,6 +13,7 @@ export type IconName =
   | "right"
   | "check"
   | "checkC"
+  | "clipboard"
   | "scan"
   | "upload"
   | "camera"
@@ -97,6 +98,10 @@ const PATHS: Record<IconName, string[]> = {
   plus: ["M12 5v14", "M5 12h14"],
   minus: ["M5 12h14"],
   hotel: ["M3 22V6l9-4 9 4v16", "M9 22V12h6v10", "M12 2v4"],
+  clipboard: [
+    "M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2",
+    "M9 2h6v4H9z",
+  ],
 };
 
 export const Icon: React.FC<IconProps> = ({
@@ -315,7 +320,6 @@ export const Header: React.FC<HeaderProps> = ({
           {rightAction.icon && (
             <Icon name={rightAction.icon} size={14} color="#fff" />
           )}
-          {rightAction.label}
         </button>
       ) : (
         !extraContent && <div style={{ width: 62 }} />
