@@ -1,5 +1,4 @@
 :root {
-  /* Paleta */
   --primary: #fa865c;
   --primary-d: #e5704a;
   --primary-lt: #fef0ea;
@@ -16,13 +15,9 @@
   --ok-bg: #edf7f1;
   --err: #c0392b;
   --err-bg: #fdf2f2;
-
-  /* Radios */
   --r: 10px;
   --r-lg: 16px;
   --r-xl: 22px;
-
-  /* Tipografía */
   --fs-xs: 11px;
   --fs-sm: 13px;
   --fs-md: 15px;
@@ -30,18 +25,13 @@
   --fs-xl: 22px;
   --fs-2xl: 30px;
   --fs-3xl: 40px;
-
-  /* Espaciado */
   --px: 20px;
   --input-h: 46px;
-
-  /* Z-index */
   --z-header: 30;
   --z-dropdown: 9999;
   --z-suggest: 2000;
   --z-tooltip: 50;
 }
-
 @media (min-width: 480px) {
   :root {
     --px: 28px;

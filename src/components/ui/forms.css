@@ -80,6 +80,7 @@
   display: flex;
   align-items: center;
   gap: 4px;
+  margin-top: 4px;
 }
 
 .g2 {
@@ -106,7 +107,6 @@
     gap: 14px;
   }
 }
-
 .field select {
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='11' height='7'%3E%3Cpath d='M1 1l4.5 4.5L10 1' stroke='%238a9aaa' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
@@ -168,7 +168,7 @@
   }
 }
 
-/* CHECKBOX RGPD */
+/* RGPD */
 .chk-area {
   background: var(--primary-lt);
   border-top: 1px solid rgba(250, 134, 92, 0.2);

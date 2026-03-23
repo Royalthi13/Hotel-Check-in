@@ -1,4 +1,3 @@
-/* RESERVATION CARD */
 .res-card {
   background: var(--secondary);
   border-radius: var(--r);
@@ -27,11 +26,7 @@
   color: rgba(255, 255, 255, 0.5);
   margin-bottom: 4px;
 }
-.res-card-row:last-child {
-  margin-bottom: 0;
-}
 
-/* CONFIRM BLOCK */
 .confirm-card {
   background: var(--bg);
   border: 1px solid var(--border);
@@ -74,9 +69,6 @@
   border-bottom: 1px solid var(--border-lt);
   gap: 12px;
 }
-.confirm-row:last-child {
-  border-bottom: none;
-}
 .confirm-label {
   font-size: var(--fs-xs);
   color: var(--text-low);
@@ -99,54 +91,6 @@
   }
 }
 
-/* TABLET HERO */
-.tablet-hero {
-  background: var(--secondary);
-  padding: 40px var(--px) 44px;
-  text-align: center;
-  position: relative;
-  overflow: hidden;
-  flex-shrink: 0;
-}
-.tablet-hero::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: radial-gradient(
-    ellipse at 50% 60%,
-    rgba(250, 134, 92, 0.16) 0%,
-    transparent 70%
-  );
-}
-.tablet-big-icon {
-  width: 68px;
-  height: 68px;
-  border-radius: 18px;
-  background: rgba(250, 134, 92, 0.14);
-  border: 1.5px solid rgba(250, 134, 92, 0.28);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin: 0 auto 16px;
-  position: relative;
-}
-.tablet-title {
-  font-family: "Cormorant Garamond", serif;
-  font-size: var(--fs-3xl);
-  font-weight: 300;
-  color: #fff;
-  line-height: 1.15;
-  margin-bottom: 8px;
-  position: relative;
-}
-.tablet-sub {
-  font-size: var(--fs-sm);
-  color: rgba(255, 255, 255, 0.42);
-  line-height: 1.55;
-  position: relative;
-}
-
-/* SUCCESS */
 .success-wrap {
   flex: 1;
   display: flex;
