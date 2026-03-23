@@ -17,6 +17,8 @@ import {
   Typography,
   Autocomplete,
   Divider,
+  InputAdornment,
+  CircularProgress
 } from "@mui/material";
 import { usePlaces } from "@/hooks/usePlaces";
 import dayjs from "dayjs";
@@ -46,11 +48,13 @@ interface FormPersonalProps {
 
 interface FormContactoProps {
   data: PartialGuestData;
-  onChange: (key: keyof PartialGuestData, value: unknown) => void;
+  onChange: (key: keyof PartialGuestData, value: any) => void;
   onNext: () => void;
-  onPartialSave: () => void;
+  onPartialSave: () => Promise<void>;
   hasNextGuest: boolean;
   isSubmitting: boolean;
+  token: string;
+  lockedFields?: { email?: boolean; telefono?: boolean }; // ← nuevo
 }
 
 const FieldError: React.FC<{ msg?: string }> = ({ msg }) =>
@@ -295,14 +299,16 @@ export const ScreenFormContacto: React.FC<FormContactoProps> = ({
   onPartialSave,
   hasNextGuest,
   isSubmitting,
+  lockedFields,
 }) => {
   const { t } = useTranslation();
-  const { errors, validate, clearError } = useFormValidation(validateContacto);
+  const { errors, validate, clearError } = useFormValidation(
+    (d: PartialGuestData, t) => validateContacto(d, t, lockedFields),
+  );
   const { buscarCP, isSearching } = useZipCode(onChange);
   const { sugerenciasProvincias, sugerenciasMunicipios, cargarProvincias, cargarMunicipios } = usePlaces();
   const esEspana = data.pais === "España";
 
-  // ✅ CORRECCIÓN: Uso directo del hook también aquí
   useDebounce(() => { if (data.email?.includes("@")) validate(data); }, 500, [data.email]);
   useDebounce(() => { if ((data.telefono?.length ?? 0) >= 7) validate(data); }, 500, [data.telefono]);
 
@@ -314,52 +320,168 @@ export const ScreenFormContacto: React.FC<FormContactoProps> = ({
         </Typography>
         <p>{t("forms.contact_subtitle")}</p>
       </div>
+
       <Box style={{ padding: "0 var(--px)" }} sx={{ mt: 2, display: "flex", flexDirection: "column", gap: 2.5 }}>
+
+        {/* ── Email + Teléfono ── */}
         <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" }, gap: 2 }}>
           <div>
-            <TextField label={t("forms.email")} required fullWidth value={data.email ?? ""} onChange={(e) => { onChange("email", e.target.value); clearError("email"); }} error={!!errors.email} sx={inputSx} />
+            <TextField
+              label={t("forms.email")}
+             required={!lockedFields?.email && !lockedFields?.telefono ? !data.telefono?.trim() : !lockedFields?.telefono}
+              fullWidth
+              value={data.email ?? ""}
+              onChange={
+                lockedFields?.email
+                  ? undefined
+                  : (e) => { onChange("email", e.target.value); clearError("email"); }
+              }
+              error={!!errors.email}
+              sx={{ ...inputSx, ...(lockedFields?.email ? { opacity: 0.72 } : {}) }}
+              InputProps={{
+                readOnly: !!lockedFields?.email,
+                endAdornment: lockedFields?.email ? (
+                  <InputAdornment position="end">
+                    <Icon name="lock" size={13} color="var(--text-low)" />
+                  </InputAdornment>
+                ) : undefined,
+              }}
+              helperText={lockedFields?.email ? t("forms.field_from_reservation") : undefined}
+            />
             <FieldError msg={errors.email} />
           </div>
           <div>
-            <TextField label={t("forms.phone")} required fullWidth type="tel" value={data.telefono ?? ""} onChange={(e) => { onChange("telefono", e.target.value.replace(/(?!^\+)[^\d]/g, "")); clearError("telefono"); }} error={!!errors.telefono} sx={inputSx} placeholder="+34 600 000 000" />
+            <TextField
+              label={t("forms.phone")}
+              required={!lockedFields?.email && !lockedFields?.telefono ? !data.email?.trim() : !lockedFields?.email}
+              fullWidth
+              type="tel"
+              value={data.telefono ?? ""}
+              onChange={
+                lockedFields?.telefono
+                  ? undefined
+                  : (e) => {
+                      onChange("telefono", e.target.value.replace(/(?!^\+)[^\d]/g, ""));
+                      clearError("telefono");
+                    }
+              }
+              error={!!errors.telefono}
+              sx={{ ...inputSx, ...(lockedFields?.telefono ? { opacity: 0.72 } : {}) }}
+              InputProps={{
+                readOnly: !!lockedFields?.telefono,
+                endAdornment: lockedFields?.telefono ? (
+                  <InputAdornment position="end">
+                    <Icon name="lock" size={13} color="var(--text-low)" />
+                  </InputAdornment>
+                ) : undefined,
+              }}
+              helperText={lockedFields?.telefono ? t("forms.field_from_reservation") : undefined}
+              placeholder="+34 600 000 000"
+            />
             <FieldError msg={errors.telefono} />
           </div>
         </Box>
-        <div>
-          <TextField label={t("forms.address_habitual")} fullWidth value={data.direccion ?? ""} onChange={(e) => { onChange("direccion", e.target.value); clearError("direccion"); }} error={!!errors.direccion} sx={inputSx} />
-          <FieldError msg={errors.direccion} />
-        </div>
+
+        {/* ── Dirección ── */}
+        <TextField
+          label={t("forms.address")}
+          fullWidth
+          value={data.direccion ?? ""}
+          onChange={(e) => { onChange("direccion", e.target.value); clearError("direccion"); }}
+          error={!!errors.direccion}
+          sx={inputSx}
+        />
+        <FieldError msg={errors.direccion} />
+
+        {/* ── Ubicación ── */}
         <div className="divlabel">{t("forms.location")}</div>
         <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" }, gap: 2 }}>
           <div>
-            <TextField select label={t("forms.country")} required fullWidth value={data.pais ?? ""} onChange={(e) => { onChange("pais", e.target.value); clearError("pais"); }} error={!!errors.pais} sx={inputSx}>
-              {PAISES.map((p) => <MenuItem key={p} value={p}>{t(`constants.paises.${p}`)}</MenuItem>)}
+            <TextField
+              select
+              label={t("forms.country")}
+              required
+              fullWidth
+              value={data.pais ?? ""}
+              onChange={(e) => { onChange("pais", e.target.value); clearError("pais"); }}
+              error={!!errors.pais}
+              sx={inputSx}
+            >
+              {PAISES.map((p) => (
+                <MenuItem key={p} value={p}>{t(`constants.paises.${p}`)}</MenuItem>
+              ))}
             </TextField>
             <FieldError msg={errors.pais} />
           </div>
           <div>
-            <TextField label={t("forms.zipcode")} fullWidth value={data.cp ?? ""} onBlur={() => { if (data.cp && data.pais) buscarCP(data.cp, data.pais); }} InputProps={{ endAdornment: isSearching ? <div className="spinner" style={{ width: 16, height: 16, borderWidth: 2 }} /> : null }} onChange={(e) => { onChange("cp", e.target.value.toUpperCase()); clearError("cp"); }} error={!!errors.cp} sx={inputSx} />
+            <TextField
+              label={t("forms.zipcode")}
+              fullWidth
+              value={data.cp ?? ""}
+              onChange={(e) => { onChange("cp", e.target.value.toUpperCase()); clearError("cp"); }}
+              onBlur={() => { if (data.cp && data.pais && !esEspana) buscarCP(data.cp, data.pais); }}
+              InputProps={{
+                endAdornment: isSearching ? (
+                  <InputAdornment position="end">
+                    <CircularProgress size={18} thickness={5} />
+                  </InputAdornment>
+                ) : null,
+              }}
+              error={!!errors.cp}
+              sx={inputSx}
+            />
             <FieldError msg={errors.cp} />
           </div>
         </Box>
+
+        {/* ── Provincia + Ciudad ── */}
         <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" }, gap: 2 }}>
           <div>
             {esEspana ? (
-              <Autocomplete freeSolo options={sugerenciasProvincias || []} value={data.provincia || ""} onInputChange={(_, v) => { onChange("provincia", v || ""); cargarProvincias(v || ""); clearError("provincia"); }} renderInput={(p) => <TextField {...p} label={t("forms.province")} error={!!errors.provincia} sx={inputSx} />} />
+              <Autocomplete
+                freeSolo
+                options={sugerenciasProvincias || []}
+                value={data.provincia || ""}
+                onInputChange={(_, v) => { onChange("provincia", v || ""); cargarProvincias(v || ""); clearError("provincia"); }}
+                renderInput={(p) => (
+                  <TextField {...p} label={t("forms.province")} error={!!errors.provincia} sx={inputSx} />
+                )}
+              />
             ) : (
-              <TextField label={t("forms.province")} fullWidth value={data.provincia ?? ""} onChange={(e) => { onChange("provincia", e.target.value); clearError("provincia"); }} error={!!errors.provincia} sx={inputSx} />
+              <TextField
+                label={t("forms.province")}
+                fullWidth
+                value={data.provincia ?? ""}
+                onChange={(e) => onChange("provincia", e.target.value)}
+                sx={inputSx}
+              />
             )}
             <FieldError msg={errors.provincia} />
           </div>
           <div>
             {esEspana ? (
-              <Autocomplete freeSolo options={(sugerenciasMunicipios || []).map((m) => m.nombre)} value={data.ciudad || ""} onInputChange={(_, v) => { onChange("ciudad", v || ""); cargarMunicipios(v || "", data.provincia as string); clearError("ciudad"); }} renderInput={(p) => <TextField {...p} label={t("forms.city")} error={!!errors.ciudad} sx={inputSx} />} />
+              <Autocomplete
+                freeSolo
+                options={(sugerenciasMunicipios || []).map((m) => m.nombre)}
+                value={data.ciudad || ""}
+                onInputChange={(_, v) => { onChange("ciudad", v || ""); cargarMunicipios(v || "", data.provincia as string); clearError("ciudad"); }}
+                renderInput={(p) => (
+                  <TextField {...p} label={t("forms.city")} error={!!errors.ciudad} sx={inputSx} />
+                )}
+              />
             ) : (
-              <TextField label={t("forms.city")} fullWidth value={data.ciudad ?? ""} onChange={(e) => { onChange("ciudad", e.target.value); clearError("ciudad"); }} error={!!errors.ciudad} sx={inputSx} />
+              <TextField
+                label={t("forms.city")}
+                fullWidth
+                value={data.ciudad ?? ""}
+                onChange={(e) => onChange("ciudad", e.target.value)}
+                sx={inputSx}
+              />
             )}
             <FieldError msg={errors.ciudad} />
           </div>
         </Box>
+
       </Box>
 
       <div className="spacer" />

@@ -41,6 +41,28 @@ function validarDNI(num: string): boolean {
   return LETRAS_DNI[parseInt(digits, 10) % 23] === letra;
 }
 
+
+
+function validarNIE(num: string): boolean {
+  const upper = num.toUpperCase();
+  if (!/^[XYZ]\d{7}[A-Z]$/.test(upper)) return false;
+  const map: Record<string, string> = { X: "0", Y: "1", Z: "2" };
+  const digits = map[upper[0]] + upper.slice(1, 8);
+  return LETRAS_DNI[parseInt(digits, 10) % 23] === upper[8];
+}
+
+function validarCIF(num: string): boolean {
+  const upper = num.toUpperCase();
+  // letra organizativa + 7 dígitos + dígito/letra de control
+  return /^[ABCDEFGHJKLMNPQRSUVW]\d{7}[A-J0-9]$/.test(upper);
+}
+
+function validarPasaporte(num: string): boolean {
+  const upper = num.toUpperCase();
+  // Pasaporte español: 3 letras + 6 dígitos. Internacionales: 6-12 alfanuméricos
+  return upper.length >= 6 && /^[A-Z0-9]{6,15}$/.test(upper);
+}
+
 export function validarNumeroDocumento(
   tipo: string,
   num: string,
@@ -51,14 +73,20 @@ export function validarNumeroDocumento(
 
   switch (tipo) {
     case "DNI":
+      if (!validarDNI(n)) return t("validation.invalid_dni");
+      break;
     case "NIF":
+     
       if (!validarDNI(n)) return t("validation.invalid_dni");
       break;
     case "NIE":
-      if (n.length < 9) return t("validation.invalid_nie");
+      if (!validarNIE(n)) return t("validation.invalid_nie");
       break;
     case "Pasaporte":
-      if (n.length < 6) return t("validation.invalid_passport");
+      if (!validarPasaporte(n)) return t("validation.invalid_passport");
+      break;
+    case "CIF":
+      if (!validarCIF(n)) return t("validation.invalid_cif");
       break;
     default:
       if (n.length < 4) return t("validation.doc_too_short");
@@ -114,14 +142,37 @@ export function validatePersonal(
 export function validateContacto(
   data: PartialGuestData,
   t: TFunction,
+  locked?: { email?: boolean; telefono?: boolean },
 ): FormErrors {
   const e: FormErrors = {};
-  if (!data.email?.trim()) {
-    e.email = t("validation.required_email");
-  } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email)) {
-    e.email = t("validation.invalid_email");
+
+  const tieneEmail = !!data.email?.trim();
+  const tieneTelefono = !!data.telefono?.trim();
+
+  // Si ninguno viene bloqueado de reserva → al menos uno es obligatorio
+  if (!locked?.email && !locked?.telefono) {
+    if (!tieneEmail && !tieneTelefono) {
+      e.email = t("validation.required_email_or_phone");
+      e.telefono = t("validation.required_email_or_phone");
+    } else {
+      // Valida formato solo si tiene valor
+      if (tieneEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email!)) {
+        e.email = t("validation.invalid_email");
+      }
+    }
+  } else {
+    // Uno viene bloqueado → el otro es obligatorio
+    if (!locked?.telefono && !tieneEmail) {
+      e.email = t("validation.required_email");
+    } else if (tieneEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email!)) {
+      e.email = t("validation.invalid_email");
+    }
+
+    if (!locked?.email && !tieneTelefono) {
+      e.telefono = t("validation.required_phone");
+    }
   }
-  if (!data.telefono?.trim()) e.telefono = t("validation.required_phone");
+
   if (!data.pais) e.pais = t("validation.required_country");
   return e;
 }

@@ -2,14 +2,32 @@ import { http, HttpResponse, delay } from "msw";
 import { MOCK_KNOWN_GUEST } from "@/constants";
 import { MOCK_RESERVAS } from "./reservas-mock";
 
+const MOCK_GUESTS: Record<string, typeof MOCK_KNOWN_GUEST> = {
+  "99999": {
+    ...MOCK_KNOWN_GUEST,
+    nombre: "María",
+    apellido: "García",
+    email: "maria.garcia@email.com", // email bloqueado, teléfono opcional
+    telefono: "",
+  },
+  "78432": {
+    ...MOCK_KNOWN_GUEST,
+    nombre: "Carlos",
+    apellido: "López",
+    email: "",
+    telefono: "+34 612 345 678",     // teléfono bloqueado, email opcional
+  },
+};
+
 export const handlers = [
-  http.get("/api/checkin/:token", async ({ params }) => {
-    await delay(800);
-    if (params.token === "new") {
-      return HttpResponse.json({ status: "new", data: null });
-    }
-    return HttpResponse.json({ status: "found", data: MOCK_KNOWN_GUEST });
-  }),
+http.get("/api/checkin/:token", async ({ params }) => {
+  await delay(800);
+  if (params.token === "new") {
+    return HttpResponse.json({ status: "new", data: null });
+  }
+  const guest = MOCK_GUESTS[params.token as string] ?? MOCK_KNOWN_GUEST; // ← usar MOCK_GUESTS
+  return HttpResponse.json({ status: "found", data: guest });
+}),
 
   http.get("/api/reservas/:id", async ({ params }) => {
     await delay(600);

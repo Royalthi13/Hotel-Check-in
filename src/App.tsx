@@ -240,9 +240,11 @@ function CheckinWizard() {
       setIsSubmitting(false);
     }
   };
+const lockedContactFields = {
+  email: !!state.knownGuest?.email,
+  telefono: !!state.knownGuest?.telefono,
+};
 
-  // FIX BUG HIGH #3: adultosConIndice — los índices son del array global de guests
-  // Esto es correcto: originalIndex = índice real en state.guests
   const adultosConIndice = state.guests
     .map((g, i) => ({ ...g, originalIndex: i }))
     .filter((g) => !g.esMenor);
@@ -364,6 +366,9 @@ function CheckinWizard() {
           onPartialSave={handlePartialSubmit}
           hasNextGuest={state.numPersonas > 1}
           isSubmitting={isSubmitting}
+          token={token || "new"}
+
+           lockedFields={lockedContactFields}
         />
       )}
 
