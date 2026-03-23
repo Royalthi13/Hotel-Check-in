@@ -33,18 +33,19 @@ import type { Reserva, StepId, PartialGuestData } from "@/types";
 
 const STEPS_WITHOUT_DOTS = new Set<StepId>(["tablet_buscar", "exito"]);
 
-// FIX BUG MEDIUM #5: wildcard redirige a token "undefined"
-// Antes: useParams() devolvía undefined para rutas sin :token → "/checkin/undefined/bienvenida"
-// Ahora: redirige siempre a /checkin/new/bienvenida como fallback seguro
 function RedirectToNew() {
-  return <Navigate to="/tablet_buscar" replace />;
+  return <Navigate to="/checkin/kiosko/tablet_buscar" replace />;
 }
 
 function RedirectToBienvenida() {
   const { token } = useParams();
   const navigate = useNavigate();
   useEffect(() => {
-    navigate(`/checkin/${token}/bienvenida`, { replace: true });
+    if (token && token !== "undefined") {
+      navigate(`/checkin/${token}/bienvenida`, { replace: true });
+    } else {
+      navigate("/checkin/kiosko/tablet_buscar", { replace: true });
+    }
   }, [navigate, token]);
   return null;
 }
@@ -114,22 +115,27 @@ function CheckinWizard() {
   const isMainGuest = nav.guestIndex === 0;
   const currentGuest = state.guests[nav.guestIndex] ?? {};
 
+  // ── canGoBack personalizado ───────────────────────────────────────────────
+  // En la pantalla "bienvenida", si legalPassed === true, el "atrás" del header
+  // vuelve a ScreenCheckinInicio (dentro del mismo step, sin cambiar URL)
   const customNav = {
     ...nav,
     canGoBack: nav.canGoBack || (currentStep === "bienvenida" && legalPassed),
   };
 
+  // ── handleSmartGoBack ─────────────────────────────────────────────────────
+  // Si estamos en bienvenida y ya pasamos el formulario legal, volver al legal
+  // es solo cambiar el estado local (no navegar en browser history)
   const handleSmartGoBack = () => {
     if (currentStep === "bienvenida" && legalPassed) {
       setLegalPassed(false);
+      // No llamamos a goBack() porque no hay URL diferente para la pantalla legal
     } else {
       goBack();
     }
   };
 
   const handleChooseMethod = (method: "scan" | "manual") => {
-    // FIX BUG HIGH #5: guardar modoFlujo CON token para que ScreenForms lo lea bien
-    // (ver también fix en ScreenForms donde se lee con token)
     sessionStorage.setItem(`modoFlujo_${token}`, method);
 
     if (hasMinorsFlag) {
@@ -146,9 +152,6 @@ function CheckinWizard() {
     }
   };
 
-  // FIX BUG MEDIUM #2: handleSubmit no navega a "exito" en el catch
-  // Antes: el catch hacía goTo("exito") → el usuario veía pantalla de éxito aunque fallara.
-  // Ahora: en caso de error solo muestra el mensaje, no navega.
   const handleSubmit = async (): Promise<void> => {
     setSubmitError("");
     setIsSubmitting(true);
@@ -160,7 +163,7 @@ function CheckinWizard() {
           reserva: state.reserva,
           guests: state.guests.map((g) => {
             const copia = { ...g };
-            delete copia.docFile; // El archivo no se envía en el JSON
+            delete copia.docFile;
             return copia;
           }),
           horaLlegada: state.horaLlegada,
@@ -179,17 +182,16 @@ function CheckinWizard() {
         throw new Error(data?.error ?? `HTTP ${res.status}`);
       }
 
-      // ✅ LIMPIEZA DE SESSION STORAGE (Severidad Baja)
-      // Eliminamos todas las claves vinculadas a este token específico
+      // Limpieza de sessionStorage
       const keysToClear = [
         `state_${token}`,
         `history_${token}`,
         `allowedSteps_${token}`,
         `legalPassed_${token}`,
         `hasMinors_${token}`,
-        `modoFlujo_${token}`
+        `modoFlujo_${token}`,
       ];
-      keysToClear.forEach(key => sessionStorage.removeItem(key));
+      keysToClear.forEach((key) => sessionStorage.removeItem(key));
 
       setIsPartialSuccess(false);
       goTo("exito", "forward");
@@ -232,7 +234,6 @@ function CheckinWizard() {
       setIsPartialSuccess(true);
       goTo("exito", "forward");
     } catch (err: unknown) {
-      // FIX: ya no hacemos goTo("exito") en el catch
       setSubmitError(
         err instanceof Error ? err.message : t("errorBoundary.title"),
       );
@@ -240,15 +241,17 @@ function CheckinWizard() {
       setIsSubmitting(false);
     }
   };
-const lockedContactFields = {
-  email: !!state.knownGuest?.email,
-  telefono: !!state.knownGuest?.telefono,
-};
+
+  const lockedContactFields = {
+    email: !!state.knownGuest?.email,
+    telefono: !!state.knownGuest?.telefono,
+  };
 
   const adultosConIndice = state.guests
     .map((g, i) => ({ ...g, originalIndex: i }))
     .filter((g) => !g.esMenor);
 
+  // ── tablet_buscar: layout especial sin AppShell ───────────────────────────
   if (currentStep === "tablet_buscar") {
     return (
       <div className="shell">
@@ -309,7 +312,6 @@ const lockedContactFields = {
           numPersonas={state.numPersonas}
           onChange={setNumPersonas}
           onNext={() => {
-            // FIX BUG HIGH #5: leer modoFlujo CON token
             const flujo = sessionStorage.getItem(`modoFlujo_${token}`);
             if (flujo === "scan") goTo("escanear", "forward", 0);
             else if (state.knownGuest) goTo("confirmar_datos", "forward", 0);
@@ -351,8 +353,7 @@ const lockedContactFields = {
           onNext={() => nextGuest(nav.guestIndex, "form_personal")}
           onPartialSave={handlePartialSubmit}
           isSubmitting={isSubmitting}
-          // FIX BUG HIGH #5: pasar token para leer modoFlujo correctamente
-         token={token || "new"}
+          token={token || "new"}
         />
       )}
 
@@ -367,8 +368,7 @@ const lockedContactFields = {
           hasNextGuest={state.numPersonas > 1}
           isSubmitting={isSubmitting}
           token={token || "new"}
-
-           lockedFields={lockedContactFields}
+          lockedFields={lockedContactFields}
         />
       )}
 
@@ -377,8 +377,6 @@ const lockedContactFields = {
           menor={currentGuest}
           adultos={adultosConIndice}
           onRelacionChange={(aIdx: number, p: string) =>
-            // FIX BUG HIGH #3: nav.guestIndex ES el índice real del menor en state.guests
-            // adultosConIndice ya tiene originalIndex = índice real en state.guests
             updateRelacion(nav.guestIndex, aIdx, p)
           }
           onNext={() => nextGuest(nav.guestIndex, "form_relaciones")}
@@ -436,11 +434,14 @@ export default function App() {
   return (
     <BrowserRouter>
       <Routes>
+        {/* Ruta directa al kiosko */}
         <Route
           path="/tablet_buscar"
           element={<Navigate to="/checkin/kiosko/tablet_buscar" replace />}
         />
+        {/* Ruta sin step: redirige a bienvenida */}
         <Route path="/checkin/:token" element={<RedirectToBienvenida />} />
+        {/* Ruta principal del wizard */}
         <Route
           path="/checkin/:token/:step"
           element={
@@ -449,7 +450,7 @@ export default function App() {
             </ErrorBoundary>
           }
         />
-        {/* FIX BUG MEDIUM #5: wildcard ya no usa RedirectToBienvenida (token undefined) */}
+        {/* Wildcard: siempre al kiosko */}
         <Route path="*" element={<RedirectToNew />} />
       </Routes>
     </BrowserRouter>

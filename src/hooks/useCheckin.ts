@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import dayjs from "dayjs";
 import type {
@@ -13,7 +13,7 @@ import type {
 } from "@/types";
 import { FLOW_STEPS_LINK, DOT_STEPS_BASE } from "@/constants";
 
-// ─── Tipo de acción (única fuente de verdad) ──────────────────────────────────
+// ─── Tipo de acción ───────────────────────────────────────────────────────────
 export type CheckinAction =
   | { type: "SET_KNOWN_GUEST"; guest: GuestData }
   | { type: "SET_RESERVA_TABLET"; reserva: Reserva }
@@ -69,7 +69,7 @@ function mergeGuests(
   );
 }
 
-// ─── Reducer (única implementación) ──────────────────────────────────────────
+// ─── Reducer ──────────────────────────────────────────────────────────────────
 export function checkinReducer(
   state: CheckinState,
   action: CheckinAction,
@@ -105,21 +105,17 @@ export function checkinReducer(
 
     case "UPDATE_GUEST": {
       const guests = [...state.guests];
-
       let finalValue = action.value;
       if (typeof finalValue === "string") {
         finalValue = finalValue.replace(/\s+/g, " ").trim();
       }
-
       const updated = { ...guests[action.index], [action.key]: finalValue };
-
       if (action.key === "fechaNac" && typeof finalValue === "string") {
         const parsed = dayjs(finalValue);
         if (parsed.isValid()) {
           updated.esMenor = dayjs().diff(parsed, "years") < 18;
         }
       }
-
       guests[action.index] = updated;
       return { ...state, guests };
     }
@@ -128,7 +124,6 @@ export function checkinReducer(
       const guests = [...state.guests];
       const menor = { ...guests[action.menorIndex] };
       const rels = [...(menor.relacionesConAdultos || [])];
-
       if (action.parentesco === "") {
         menor.relacionesConAdultos = rels.filter(
           (r) => r.adultoIndex !== action.adultoIndex,
@@ -145,7 +140,6 @@ export function checkinReducer(
         }
         menor.relacionesConAdultos = rels;
       }
-
       guests[action.menorIndex] = menor;
       return { ...state, guests };
     }
@@ -169,7 +163,9 @@ export function checkinReducer(
   }
 }
 
-// ─── Entrada del historial ────────────────────────────────────────────────────
+// ─── Entrada del historial interno de la app ──────────────────────────────────
+// IMPORTANTE: Este historial es SOLO para rastrear el guestIndex activo
+// en cada step. La navegación real la gestiona React Router + browser history.
 interface HistoryEntry {
   step: StepId;
   guestIndex: number;
@@ -181,6 +177,7 @@ export function useCheckin(tokenUrl?: string, stepUrl?: string) {
   const token = tokenUrl || "new";
   const initialMode: AppMode = token === "new" ? "tablet" : "link";
 
+  // ── Estado de la app ──────────────────────────────────────────────────────
   const [state, setState] = useState<CheckinState>(() => {
     try {
       const stored = sessionStorage.getItem(`state_${token}`);
@@ -191,7 +188,9 @@ export function useCheckin(tokenUrl?: string, stepUrl?: string) {
     return buildEmptyState(initialMode);
   });
 
-  const [history, setHistory] = useState<HistoryEntry[]>(() => {
+  // ── Historial interno: solo para rastrear guestIndex por step ────────────
+  // NO se usa para navegación hacia atrás (eso lo hace el browser/React Router)
+  const [appHistory, setAppHistory] = useState<HistoryEntry[]>(() => {
     try {
       const st = sessionStorage.getItem(`history_${token}`);
       if (st) return JSON.parse(st) as HistoryEntry[];
@@ -201,6 +200,7 @@ export function useCheckin(tokenUrl?: string, stepUrl?: string) {
     return [];
   });
 
+  // ── Steps permitidos (para dots y panel lateral) ──────────────────────────
   const [allowedSteps, setAllowedSteps] = useState<Set<StepId>>(() => {
     try {
       const st = sessionStorage.getItem(`allowedSteps_${token}`);
@@ -217,13 +217,17 @@ export function useCheckin(tokenUrl?: string, stepUrl?: string) {
   const [isLoading, setIsLoading] = useState(token !== "new");
   const [navDirection, setNavDirection] = useState<NavDirection>("forward");
 
+  // Ref para detectar si la última navegación fue iniciada por nosotros
+  // o por el botón nativo del browser
+  const isInternalNavRef = useRef(false);
+
   const dispatch = useCallback(
     (action: CheckinAction) =>
       setState((prev) => checkinReducer(prev, action)),
     [],
   );
 
-  // Persistencia
+  // ── Persistencia ──────────────────────────────────────────────────────────
   useEffect(() => {
     try {
       sessionStorage.setItem(`state_${token}`, JSON.stringify(state));
@@ -234,11 +238,11 @@ export function useCheckin(tokenUrl?: string, stepUrl?: string) {
 
   useEffect(() => {
     try {
-      sessionStorage.setItem(`history_${token}`, JSON.stringify(history));
+      sessionStorage.setItem(`history_${token}`, JSON.stringify(appHistory));
     } catch (err) {
       console.warn("[useCheckin] Error persisting history:", err);
     }
-  }, [history, token]);
+  }, [appHistory, token]);
 
   useEffect(() => {
     try {
@@ -251,7 +255,7 @@ export function useCheckin(tokenUrl?: string, stepUrl?: string) {
     }
   }, [allowedSteps, token]);
 
-  // Carga inicial
+  // ── Carga inicial ─────────────────────────────────────────────────────────
   useEffect(() => {
     if (token === "new") {
       setIsLoading(false);
@@ -271,62 +275,100 @@ export function useCheckin(tokenUrl?: string, stepUrl?: string) {
     load();
   }, [token, dispatch]);
 
+  // ── Detección del step y guestIndex activos ───────────────────────────────
   const actualStep =
     (stepUrl as StepId) ||
     (initialMode === "tablet" ? "tablet_buscar" : "bienvenida");
 
-  const activeGuestIndex =
-    history.length > 0 ? history[history.length - 1].guestIndex : 0;
+  // El guestIndex activo se lee del último entry del historial interno
+  // que coincida con el step actual. Si no hay coincidencia, usamos 0.
+  const activeGuestIndex = (() => {
+    // Buscar de atrás hacia adelante el entry más reciente para este step
+    for (let i = appHistory.length - 1; i >= 0; i--) {
+      if (appHistory[i].step === actualStep) {
+        return appHistory[i].guestIndex;
+      }
+    }
+    return 0;
+  })();
 
-  // ─── FIX BUG CRÍTICO #3: goTo con navegación de historial correcta ──────────
-  // Antes: dir="back" hacía pop() pero no push del destino → historial roto.
-  // Ahora: forward siempre push, back siempre pop (el destino ya está en el historial).
+  // ── goTo: navega HACIA ADELANTE o realiza saltos editoriales ─────────────
+  // 
+  // ARQUITECTURA CLAVE:
+  // - "forward": push en browser history + push en appHistory
+  // - "back": NO hace pop del browser history (lo hace goBack/browser).
+  //           Solo registra el destino en appHistory para rastrear guestIndex.
+  //           Se usa EXCLUSIVAMENTE para saltos editoriales (panel lateral → revisión)
   const goTo = useCallback(
     (nextStep: StepId, dir: NavDirection = "forward", gIdx?: number) => {
-      setNavDirection(dir);
       const nextGIdx = gIdx ?? activeGuestIndex;
 
+      // Marcar el step como permitido
       setAllowedSteps((prev) => {
         const next = new Set(prev);
         next.add(nextStep);
         return next;
       });
 
+      isInternalNavRef.current = true;
+
       if (dir === "forward") {
-        setHistory((prev) => [
+        // Navegación normal hacia adelante
+        setNavDirection("forward");
+        setAppHistory((prev) => [
           ...prev,
           { step: nextStep, guestIndex: nextGIdx },
         ]);
+        navigate(`/checkin/${token}/${nextStep}`);
+      } else {
+        // Salto editorial (ej: ir a revisión desde panel lateral)
+        // Usamos replace para no crear una entrada extra en browser history
+        setNavDirection("back");
+        // En appHistory: añadimos el destino para que el guestIndex sea correcto
+        setAppHistory((prev) => [
+          ...prev,
+          { step: nextStep, guestIndex: nextGIdx },
+        ]);
+        navigate(`/checkin/${token}/${nextStep}`, { replace: true });
       }
-      // En "back", el historial se maneja desde goBack, no aquí.
-      // goTo con "back" solo se usa para saltos editoriales (ej: ir a revisión
-      // desde el panel lateral), en ese caso actualizamos el último entry.
-      if (dir === "back") {
-        setHistory((prev) => {
-          if (prev.length === 0)
-            return [{ step: nextStep, guestIndex: nextGIdx }];
-          // Reemplazamos el último entry con el destino
-          return [
-            ...prev.slice(0, -1),
-            { step: nextStep, guestIndex: nextGIdx },
-          ];
-        });
-      }
-
-      navigate(`/checkin/${token}/${nextStep}`, { replace: false });
     },
     [navigate, token, activeGuestIndex],
   );
 
-  
+  // ── goBack: usa browser history nativo ────────────────────────────────────
+  //
+  // CLAVE: NO manipulamos appHistory aquí. Cuando React Router detecte
+  // el cambio de URL (via popstate), el componente se re-renderizará con
+  // el nuevo stepUrl, y activeGuestIndex se calculará automáticamente
+  // buscando en appHistory el entry más reciente para ese step.
   const goBack = useCallback(() => {
-  if (history.length <= 1) return;
-  const target = history[history.length - 2];
-  setHistory((prev) => prev.slice(0, -1));
-  setNavDirection("back");
-  if (target) navigate(`/checkin/${token}/${target.step}`, { replace: false });
-}, [navigate, token, history]);
+    isInternalNavRef.current = true;
+    setNavDirection("back");
+    navigate(-1); // ← Delegamos 100% al browser history
+  }, [navigate]);
 
+  // ── Detectar navegación nativa del browser (botón atrás del móvil) ───────
+  // Cuando el usuario usa el botón nativo, React Router actualiza la URL
+  // pero nosotros necesitamos actualizar navDirection
+  useEffect(() => {
+    const handlePopState = () => {
+      if (!isInternalNavRef.current) {
+        // Navegación nativa (botón atrás del móvil/browser)
+        setNavDirection("back");
+      }
+      isInternalNavRef.current = false;
+    };
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, []);
+
+  // ── canGoBack: true si hay historial browser disponible ──────────────────
+  // Usamos appHistory.length como proxy: si hemos navegado al menos una vez,
+  // hay historial browser para volver
+  const canGoBack =
+    appHistory.length > 0 && actualStep !== "exito" && actualStep !== "tablet_buscar";
+
+  // ── Dots ──────────────────────────────────────────────────────────────────
   const dotSteps =
     state.appMode === "link" ? FLOW_STEPS_LINK : DOT_STEPS_BASE;
 
@@ -345,11 +387,11 @@ export function useCheckin(tokenUrl?: string, stepUrl?: string) {
     direction: navDirection,
     dotSteps,
     dotIndex: currentDotIndex,
-    canGoBack: history.length > 1 && actualStep !== "exito",
+    canGoBack,
     allowedSteps,
   };
 
-  // ─── FIX BUG HIGH #5: nextGuest con lógica de menores en form_contacto ───
+  // ── nextGuest ─────────────────────────────────────────────────────────────
   const nextGuest = useCallback(
     (currIdx: number, from: StepId) => {
       const guests = state.guests;
@@ -361,7 +403,6 @@ export function useCheckin(tokenUrl?: string, stepUrl?: string) {
         } else if (currIdx + 1 < numPersonas) {
           goTo("form_personal", "forward", currIdx + 1);
         } else {
-          // Todos los guests procesados → buscar menores
           const mIdx = guests.findIndex((g) => g.esMenor);
           if (mIdx >= 0) {
             goTo("form_relaciones", "forward", mIdx);
@@ -370,11 +411,9 @@ export function useCheckin(tokenUrl?: string, stepUrl?: string) {
           }
         }
       } else if (from === "form_contacto") {
-        // FIX: antes saltaba a form_personal con idx=1 sin comprobar menores
         if (numPersonas > 1) {
           goTo("form_personal", "forward", 1);
         } else {
-          // Un solo huésped: comprobar si es menor para relaciones
           const mIdx = guests.findIndex((g) => g.esMenor);
           if (mIdx >= 0) {
             goTo("form_relaciones", "forward", mIdx);
@@ -394,6 +433,7 @@ export function useCheckin(tokenUrl?: string, stepUrl?: string) {
     [state.guests, state.numPersonas, goTo],
   );
 
+  // ── Actions ───────────────────────────────────────────────────────────────
   const actions = {
     goTo,
     goBack,
@@ -402,11 +442,20 @@ export function useCheckin(tokenUrl?: string, stepUrl?: string) {
       if (idx < 0 || idx >= dotSteps.length) return;
       const targetStep = dotSteps[idx];
       const isBack = idx < currentDotIndex;
-      goTo(targetStep, isBack ? "back" : "forward", activeGuestIndex);
+      if (isBack) {
+        // Navegación hacia atrás: usamos goTo con replace para no acumular
+        // entradas en browser history
+        goTo(targetStep, "back", 0);
+      } else {
+        goTo(targetStep, "forward", 0);
+      }
     },
 
     setReservaFromTablet: (res: Reserva) => {
       dispatch({ type: "SET_RESERVA_TABLET", reserva: res });
+      // Reset del historial interno al iniciar un nuevo flujo
+      setAppHistory([{ step: "bienvenida", guestIndex: 0 }]);
+      setAllowedSteps(new Set<StepId>(["bienvenida", "tablet_buscar"]));
       goTo("bienvenida", "forward", 0);
     },
 
@@ -427,7 +476,6 @@ export function useCheckin(tokenUrl?: string, stepUrl?: string) {
         parentesco: p,
       }),
 
-    // FIX BUG HIGH #2: confirmKnownGuest implementado (faltaba en el hook)
     confirmKnownGuest: () => {
       if (state.knownGuest) {
         dispatch({ type: "SET_KNOWN_GUEST", guest: state.knownGuest });
