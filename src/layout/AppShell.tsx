@@ -8,7 +8,6 @@ import { LanguageSelector } from "../components/LanguageSelector";
 const SIDE_STEPS: { id: StepId }[] = [
   { id: "inicio" },
   { id: "bienvenida" },
-  { id: "num_personas" },
   { id: "form_personal" },
   { id: "form_contacto" },
   { id: "form_extras" },
@@ -79,20 +78,18 @@ export const AppShell: React.FC<AppShellProps> = ({
 
   // Lógica de navegación: Solo permite ir a pasos ya visitados (desbloqueados)
   const isStepUnlocked = (stepId: StepId) => {
-    return nav.allowedSteps?.has(stepId) || stepId === "bienvenida";
+    return nav.allowedSteps?.has(stepId);
   };
-
   return (
-
     <div className="shell">
       <div className="card">
         {/* Header con información de reserva */}
         <Header
           canGoBack={nav.canGoBack}
           onBack={actions.goBack}
+          extraContent={<LanguageSelector />}
           name={reserva?.confirmacion}
           room={reserva?.habitacion}
-          extraContent={<LanguageSelector />} 
           rightAction={
             onGoToRevision &&
             activeStep !== "revision" &&
@@ -112,7 +109,6 @@ export const AppShell: React.FC<AppShellProps> = ({
           <DotsProgress
             steps={nav.dotSteps}
             labels={nav.dotSteps.map((s: StepId) => t(`constants.steps.${s}`))}
-            
             activeIndex={nav.dotIndex}
             maxReachable={maxDotReached}
             onDotClick={actions.goToDotIndex}
@@ -134,7 +130,11 @@ export const AppShell: React.FC<AppShellProps> = ({
                   type="button"
                   className="sp-summary-btn sp-summary-btn--desktop"
                   onClick={onGoToRevision}
-                  disabled={!onGoToRevision || activeStep === "revision" || activeStep === "exito"}
+                  disabled={
+                    !onGoToRevision ||
+                    activeStep === "revision" ||
+                    activeStep === "exito"
+                  }
                 >
                   <Icon name="search" size={14} color="rgba(255,255,255,.8)" />
                   {t("appShell.booking_summary")}
@@ -144,7 +144,11 @@ export const AppShell: React.FC<AppShellProps> = ({
                   type="button"
                   className="sp-summary-btn-orange"
                   onClick={onGoToRevision}
-                  disabled={!onGoToRevision || activeStep === "revision" || activeStep === "exito"}
+                  disabled={
+                    !onGoToRevision ||
+                    activeStep === "revision" ||
+                    activeStep === "exito"
+                  }
                 >
                   <Icon name="search" size={14} color="#fff" />
                   {t("appShell.booking_summary")}
@@ -153,7 +157,9 @@ export const AppShell: React.FC<AppShellProps> = ({
 
               {reserva && (
                 <div className="sp-reserva">
-                  <div className="sp-reserva-title">{t("appShell.booking_summary")}</div>
+                  <div className="sp-reserva-title">
+                    {t("appShell.booking_summary")}
+                  </div>
                   <ReservationCard reserva={reserva} />
                 </div>
               )}
@@ -176,14 +182,15 @@ export const AppShell: React.FC<AppShellProps> = ({
                       onClick={() => {
                         if (isClickable) {
                           const dotIdxInNav = nav.dotSteps.indexOf(s.id);
-                          if (dotIdxInNav !== -1)
+                          if (dotIdxInNav !== -1) {
                             actions.goToDotIndex(dotIdxInNav);
-                          else
+                          } else {
                             actions.goTo(
                               s.id,
                               i < activeIdx ? "back" : "forward",
                               0,
                             );
+                          }
                         }
                       }}
                       className={[
@@ -199,8 +206,16 @@ export const AppShell: React.FC<AppShellProps> = ({
                         opacity: isUnlocked ? 1 : 0.4,
                       }}
                     >
-                      <div className="sp-step-num">{isDone ? <Icon name="check" size={12} color="#fff" /> : i + 1}</div>
-                      <span className="sp-step-label">{t(`constants.steps.${s.id}`)}</span>
+                      <div className="sp-step-num">
+                        {isDone ? (
+                          <Icon name="check" size={12} color="#fff" />
+                        ) : (
+                          i + 1
+                        )}
+                      </div>
+                      <span className="sp-step-label">
+                        {t(`constants.steps.${s.id}`)}
+                      </span>
                     </div>
                   );
                 })}

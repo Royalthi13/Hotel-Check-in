@@ -69,6 +69,7 @@
       "Después de medianoche": "After midnight"
     },
     "steps": {
+      "inicio": "Start",
       "bienvenida": "Welcome",
       "num_personas": "Guests",
       "form_personal": "Personal details",
@@ -276,6 +277,7 @@
     "requests": "Special requests",
     "obs_label": "Observations or requests",
     "obs_placeholder": "Crib, allergies, high floor room...",
+    "confirm_data_only": "I confirm that the details are correct.",
     "btn_review": "Review and confirm",
     "rev_title": "Check-in Summary",
     "rev_all_ready": "✓ All guests are ready.",

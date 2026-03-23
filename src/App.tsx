@@ -18,7 +18,6 @@ import { useTranslation } from "react-i18next";
 import { ScreenTabletBuscar } from "@/screens/ScreenTabletBuscar";
 import { ScreenBienvenida } from "@/screens/ScreenBienvenida";
 import { ScreenCheckinInicio } from "@/screens/ScreenCheckinInicio";
-import { ScreenNumPersonas } from "@/screens/ScreenNumPersonas";
 import { ScreenEscanear } from "@/screens/ScreenEscanear";
 import { ScreenConfirmarDatos } from "@/screens/ScreenConfirmardatos";
 import { ScreenRelacionesMenor } from "@/screens/ScreenRelacionesMenor";
@@ -29,12 +28,11 @@ import {
   ScreenExito,
 } from "@/screens/ScreenExtrasRevisionExito";
 
-import type { Reserva, StepId, PartialGuestData } from "@/types";
+import type { StepId, PartialGuestData } from "@/types";
 
 const STEPS_WITHOUT_DOTS = new Set<StepId>(["tablet_buscar", "exito"]);
 
 function RedirectToNew() {
-  // Redirección base: siempre al inicio del flujo manual
   return <Navigate to="/checkin/new/inicio" replace />;
 }
 
@@ -42,7 +40,6 @@ function RedirectToBienvenida() {
   const { token } = useParams();
   const navigate = useNavigate();
   useEffect(() => {
-    // Si entran solo con el token, los mandamos al inicio real
     navigate(`/checkin/${token}/inicio`, { replace: true });
   }, [navigate, token]);
   return null;
@@ -56,22 +53,6 @@ function CheckinWizard() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isOffline, setIsOffline] = useState(!navigator.onLine);
   const [isPartialSuccess, setIsPartialSuccess] = useState(false);
-
-  // Mantenemos estas banderas solo para persistencia, pero el enrutamiento manda
-  const [legalPassed, setLegalPassed] = useState(
-    () => sessionStorage.getItem(`legalPassed_${token}`) === "true",
-  );
-  const [hasMinorsFlag, setHasMinorsFlag] = useState(
-    () => sessionStorage.getItem(`hasMinors_${token}`) === "true",
-  );
-
-  useEffect(() => {
-    sessionStorage.setItem(`legalPassed_${token}`, String(legalPassed));
-  }, [legalPassed, token]);
-
-  useEffect(() => {
-    sessionStorage.setItem(`hasMinors_${token}`, String(hasMinorsFlag));
-  }, [hasMinorsFlag, token]);
 
   useEffect(() => {
     const on = () => setIsOffline(false);
@@ -106,21 +87,17 @@ function CheckinWizard() {
     updateGuest,
     updateRelacion,
     nextGuest,
-    setRgpdAcepted,
+    setLegalPassed,
+    setHasMinorsFlag,
   } = actions;
 
-  // ✅ CORRECCIÓN 1: El paso por defecto ahora es "inicio"
   const currentStep = nav.step || "inicio";
   const showDots = !STEPS_WITHOUT_DOTS.has(currentStep);
   const isMainGuest = nav.guestIndex === 0;
   const currentGuest = state.guests[nav.guestIndex] ?? {};
 
-  const customNav = {
-    ...nav,
-    canGoBack: nav.canGoBack,
-  };
+  const customNav = { ...nav, canGoBack: nav.canGoBack };
 
-  // ✅ CORRECCIÓN 2: El botón atrás ahora es simple navegación entre rutas
   const handleSmartGoBack = () => {
     goBack();
   };
@@ -128,96 +105,63 @@ function CheckinWizard() {
   const handleChooseMethod = (method: "scan" | "manual") => {
     sessionStorage.setItem(`modoFlujo_${token}`, method);
 
-    if (hasMinorsFlag) {
-      goTo("num_personas", "forward", 0);
-    } else {
-      setNumPersonas(state.reserva?.numHuespedes || 1);
-      if (method === "scan") {
-        goTo("escanear", "forward", 0);
-      } else if (state.knownGuest) {
-        goTo("confirmar_datos", "forward", 0);
-      } else {
-        goTo("form_personal", "forward", 0);
+    // Cogemos el número de huéspedes de la reserva que nos ha dado el backend/mock
+    const totalHuespedes = state.reserva?.numHuespedes || 1;
+    setNumPersonas(totalHuespedes);
+
+    // Navegamos directamente al siguiente paso (saltándonos num_personas)
+    if (method === "scan") goTo("escanear", "forward", 0);
+    else if (state.knownGuest) goTo("confirmar_datos", "forward", 0);
+    else goTo("form_personal", "forward", 0);
+  };
+
+  const submitToServer = async (isPartial: boolean): Promise<void> => {
+    setSubmitError("");
+    setIsSubmitting(true);
+    try {
+      const payload = {
+        ...state,
+        guests: state.guests.map(({ docFile, ...rest }) => rest),
+        isPartial,
+      };
+
+      const res = await fetch(`/api/checkin/${token}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || data?.success === false) {
+        throw new Error(data?.error || `HTTP ${res.status}`);
       }
-    }
-  };
 
-  const handleSubmit = async (): Promise<void> => {
-    setSubmitError("");
-    setIsSubmitting(true);
-    try {
-      const res = await fetch(`/api/checkin/${token}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          reserva: state.reserva,
-          guests: state.guests.map((g) => {
-            const copia = { ...g };
-            delete copia.docFile;
-            return copia;
-          }),
-          horaLlegada: state.horaLlegada,
-          observaciones: state.observaciones,
-          isPartial: false,
-        }),
-      });
+      setIsPartialSuccess(isPartial);
 
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok || data?.success === false)
-        throw new Error(data?.error || `HTTP ${res.status}`);
-
-      const keysToClear = [
-        `state_${token}`,
-        `history_${token}`,
-        `allowedSteps_${token}`,
-        `legalPassed_${token}`,
-        `hasMinors_${token}`,
-        `modoFlujo_${token}`,
-      ];
-      keysToClear.forEach((key) => sessionStorage.removeItem(key));
-
-      setIsPartialSuccess(false);
-      goTo("exito", "forward");
+      if (!isPartial) {
+        const keysToClear = [
+          `state_${token}`,
+          `history_${token}`,
+          `allowedSteps_${token}`,
+          `legalPassed_${token}`,
+          `hasMinors_${token}`,
+          `modoFlujo_${token}`,
+        ];
+        keysToClear.forEach((key) => sessionStorage.removeItem(key));
+        goTo("exito", "forward");
+      }
     } catch (err: unknown) {
-      setSubmitError(
-        err instanceof Error ? err.message : t("errorBoundary.title"),
-      );
+      const errMsg =
+        err instanceof Error ? err.message : t("errorBoundary.title");
+      setSubmitError(errMsg);
+      throw err;
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const handlePartialSubmit = async (): Promise<void> => {
-    setSubmitError("");
-    setIsSubmitting(true);
-    try {
-      const res = await fetch(`/api/checkin/${token}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          reserva: state.reserva,
-          guests: state.guests.map((g) => {
-            const copia = { ...g };
-            delete copia.docFile;
-            return copia;
-          }),
-          isPartial: true,
-        }),
-      });
-
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok || data?.success === false)
-        throw new Error(data?.error || `HTTP ${res.status}`);
-      setIsPartialSuccess(true);
-      goTo("exito", "forward");
-    } catch (err: unknown) {
-      setSubmitError(
-        err instanceof Error ? err.message : t("errorBoundary.title"),
-      );
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
+  const handleSubmit = () => submitToServer(false);
+  const handlePartialSubmit = () => submitToServer(true);
 
   const adultosConIndice = state.guests
     .map((g, i) => ({ ...g, originalIndex: i }))
@@ -249,21 +193,13 @@ function CheckinWizard() {
         </div>
       )}
 
-      {/* ✅ CORRECCIÓN 3: Pantallas separadas limpiamente por paso */}
       {currentStep === "inicio" && (
         <ScreenCheckinInicio
-          reserva={
-            state.reserva ||
-            ({
-              confirmacion: "---",
-              habitacion: "---",
-              numHuespedes: 1,
-            } as unknown as Reserva)
-          }
+          reserva={state.reserva as any}
           onNext={(hayMenores: boolean) => {
             setHasMinorsFlag(hayMenores);
             setLegalPassed(true);
-            goTo("bienvenida", "forward"); // Navegación real a la siguiente ruta
+            goTo("bienvenida", "forward");
           }}
         />
       )}
@@ -274,20 +210,6 @@ function CheckinWizard() {
           reserva={state.reserva}
           onChooseScan={() => handleChooseMethod("scan")}
           onChooseManual={() => handleChooseMethod("manual")}
-        />
-      )}
-
-      {currentStep === "num_personas" && (
-        <ScreenNumPersonas
-          numPersonas={state.numPersonas}
-          onChange={setNumPersonas}
-          onNext={() => {
-            const flujo = sessionStorage.getItem(`modoFlujo_${token}`);
-            if (flujo === "scan") goTo("escanear", "forward", 0);
-            else if (state.knownGuest) goTo("confirmar_datos", "forward", 0);
-            else goTo("form_personal", "forward", 0);
-          }}
-          totalFijo={state.reserva?.numHuespedes}
         />
       )}
 
@@ -323,6 +245,7 @@ function CheckinWizard() {
           onNext={() => nextGuest(nav.guestIndex, "form_personal")}
           isSubmitting={isSubmitting}
           token={token || "new"}
+          onPartialSave={handlePartialSubmit}
         />
       )}
 
@@ -381,7 +304,6 @@ function CheckinWizard() {
               goTo(targetStep as StepId, "back", gIdx)
             }
             onSubmit={handleSubmit}
-            onRgpdChange={setRgpdAcepted}
           />
         </>
       )}

@@ -227,6 +227,7 @@ export const DotsProgress: React.FC<{
           data-label={labels[i] || `Huésped ${i + 1}`}
           onClick={() => !isFuture && !isActive && onDotClick(i)}
           disabled={isFuture}
+          tabIndex={-1}
         />
       );
     })}

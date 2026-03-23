@@ -69,6 +69,7 @@
       "Después de medianoche": "Depois da meia-noite"
     },
     "steps": {
+      "inicio": "Início",
       "bienvenida": "Bem-vindo",
       "num_personas": "Pessoas",
       "form_personal": "Dados pessoais",
@@ -272,6 +273,7 @@
     "extras_title": "Preferências e extras",
     "extras_sub": "Informação adicional opcional para a sua estadia.",
     "arrival": "Chegada",
+    "confirm_data_only": "Confirmo que os dados estão corretos.",
     "est_arrival": "Hora estimada de chegada",
     "requests": "Pedidos especiais",
     "obs_label": "Observações ou pedidos",

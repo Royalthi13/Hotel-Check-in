@@ -6,7 +6,6 @@ export type StepId =
   | "tablet_buscar"
   | "inicio"
   | "bienvenida"
-  | "num_personas"
   | "confirmar_datos"
   | "escanear"
   | "form_personal"
@@ -82,6 +81,8 @@ export interface CheckinState {
   horaLlegada: string;
   observaciones: string;
   rgpdAcepted: boolean;
+  legalPassed: boolean;
+  hasMinorsFlag: boolean;
 }
 
 // ─── Validación, Navegación y Hook ───────────────────────────────────────────
@@ -120,5 +121,7 @@ export interface CheckinActions {
   setObservaciones: (v: string) => void;
   nextGuest: (currentGuestIndex: number, fromStep: StepId) => void;
   setRgpdAcepted: (v: boolean) => void;
+  setLegalPassed: (v: boolean) => void;
+  setHasMinorsFlag: (v: boolean) => void;
   handleSubmit?: () => Promise<void>;
 }
