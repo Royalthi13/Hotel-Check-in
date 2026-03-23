@@ -31,8 +31,11 @@
   --fs-2xl: 30px;
   --fs-3xl: 40px;
 
+  /* Espaciado */
   --px: 20px;
   --input-h: 46px;
+
+  /* Z-index */
   --z-header: 30;
   --z-dropdown: 9999;
   --z-suggest: 2000;

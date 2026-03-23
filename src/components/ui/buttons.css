@@ -5,6 +5,8 @@
   border-radius: var(--r);
   background: var(--primary);
   color: #fff;
+  font-family: "DM Sans", sans-serif;
+  font-size: var(--fs-md);
   font-weight: 500;
   cursor: pointer;
   display: flex;
@@ -25,6 +27,7 @@
   opacity: 0.45;
   cursor: not-allowed;
   box-shadow: none;
+  transform: none;
 }
 
 .btn-secondary {
@@ -34,6 +37,9 @@
   border-radius: var(--r);
   background: transparent;
   color: var(--secondary);
+  font-family: "DM Sans", sans-serif;
+  font-size: var(--fs-sm);
+  font-weight: 400;
   cursor: pointer;
   display: flex;
   align-items: center;

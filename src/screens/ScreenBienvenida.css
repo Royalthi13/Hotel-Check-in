@@ -1,4 +1,3 @@
-/* Hero y Bienvenida */
 .hero {
   background: var(--secondary);
   padding: 28px var(--px) 36px;
@@ -7,7 +6,6 @@
   overflow: hidden;
   flex-shrink: 0;
 }
-
 .hero::before {
   content: "";
   position: absolute;
@@ -19,7 +17,26 @@
   );
   pointer-events: none;
 }
-
+.hero-eyebrow {
+  font-size: var(--fs-xs);
+  font-weight: 500;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--primary);
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+.hero-eyebrow::before,
+.hero-eyebrow::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: rgba(255, 255, 255, 0.1);
+  max-width: 30px;
+}
 .hero-title {
   font-family: "Cormorant Garamond", serif;
   font-size: var(--fs-3xl);
@@ -28,13 +45,55 @@
   color: #fff;
   margin-bottom: 10px;
 }
-
 .hero-title em {
   font-style: italic;
   color: var(--primary);
 }
+.hero-subtitle {
+  font-size: var(--fs-sm);
+  font-weight: 300;
+  line-height: 1.65;
+  color: rgba(255, 255, 255, 0.5);
+  max-width: 360px;
+  margin: 0 auto;
+}
+@media (min-width: 1024px) {
+  .hero {
+    display: none;
+  }
+}
 
-/* Choice Cards */
+.sec-hdr {
+  padding: 22px var(--px) 6px;
+  flex-shrink: 0;
+}
+.sec-hdr h2 {
+  font-family: "Cormorant Garamond", serif;
+  font-size: var(--fs-2xl);
+  font-weight: 400;
+  color: var(--text);
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+}
+.sec-hdr p {
+  font-size: var(--fs-sm);
+  color: var(--text-low);
+  margin-top: 6px;
+  line-height: 1.55;
+}
+@media (min-width: 768px) {
+  .sec-hdr {
+    padding-top: 28px;
+    padding-bottom: 10px;
+  }
+}
+@media (min-width: 1024px) {
+  .sec-hdr {
+    padding-top: 36px;
+  }
+}
+
+/* CHOICE CARDS */
 .choice-grid {
   display: flex;
   flex-direction: column;
@@ -43,7 +102,14 @@
   align-items: center;
   width: 100%;
 }
-
+@media (min-width: 600px) {
+  .choice-grid {
+    gap: 14px;
+  }
+  .choice-card {
+    flex: 1;
+  }
+}
 .choice-card {
   background: var(--white);
   border: 2px solid var(--border-lt);
@@ -54,29 +120,49 @@
   align-items: center;
   gap: 16px;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  text-align: left;
   width: 100%;
   max-width: 420px;
 }
-
 .choice-card:hover {
   border-color: var(--primary);
   box-shadow: 0 4px 18px rgba(250, 134, 92, 0.13);
   transform: translateY(-4px);
 }
-
-/* Tablet Search Hero */
-.tablet-hero {
-  background: var(--secondary);
-  padding: 40px var(--px) 44px;
-  text-align: center;
-  position: relative;
-  overflow: hidden;
+.choice-icon {
+  width: 52px;
+  height: 52px;
+  border-radius: 14px;
+  background: var(--primary-lt);
+  color: var(--primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  font-size: 22px;
+  transition: all 0.3s ease;
 }
-
-.tablet-title {
-  font-family: "Cormorant Garamond", serif;
-  font-size: var(--fs-3xl);
-  font-weight: 300;
-  color: #fff;
-  line-height: 1.15;
+.choice-icon.accent {
+  background: var(--primary);
+}
+.choice-card-title {
+  font-size: var(--fs-md);
+  font-weight: 500;
+  color: var(--text);
+  margin-bottom: 4px;
+}
+.choice-card-sub {
+  font-size: var(--fs-xs);
+  color: var(--text-mid);
+  line-height: 1.55;
+}
+@media (min-width: 768px) {
+  .choice-card {
+    padding: 22px 20px;
+  }
+  .choice-icon {
+    width: 50px;
+    height: 50px;
+    border-radius: 14px;
+  }
 }

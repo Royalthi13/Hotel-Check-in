@@ -8,7 +8,10 @@
   gap: 8px;
   margin-bottom: 10px;
 }
-
+.alert svg {
+  flex-shrink: 0;
+  margin-top: 1px;
+}
 .alert-info {
   background: #eef4fd;
   color: #2255a4;

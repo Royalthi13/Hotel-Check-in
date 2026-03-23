@@ -1,16 +1,17 @@
-/* Variables y Base primero */
+/* 1. Variables globales y bases */
 @import "./styles/variables.css";
 @import "./styles/base.css";
 
-/* Componentes UI */
+/* 2. Componentes comunes (UI) */
+@import "./components/ui/alerts.css";
 @import "./components/ui/buttons.css";
 @import "./components/ui/forms.css";
 @import "./components/ui/misc.css";
 
-/* Layout */
+/* 3. Estructura de layout */
 @import "./layout/AppShell.css";
 
-/* Pantallas específicas (vacíos si ya está todo en los anteriores) */
+/* 4. Estilos de pantallas específicas */
 @import "./screens/ScreenBienvenida.css";
 @import "./screens/ScreenEscanear.css";
 @import "./screens/ScreenExtrasRevisionExito.css";
