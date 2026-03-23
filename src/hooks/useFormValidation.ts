@@ -56,7 +56,17 @@ function validarCIF(num: string): boolean {
   // letra organizativa + 7 dígitos + dígito/letra de control
   return /^[ABCDEFGHJKLMNPQRSUVW]\d{7}[A-J0-9]$/.test(upper);
 }
+function validarDocSupport(docsupport: string): boolean {
+  if (!docsupport) return false;
 
+  const value = docsupport.trim().toUpperCase();
+
+  if (value.length < 8 || value.length > 12) return false;
+  if (!/^[A-Z0-9]+$/.test(value)) return false;
+  if (!/[A-Z]/.test(value) || !/\d/.test(value)) return false;
+
+  return true;
+}
 function validarPasaporte(num: string): boolean {
   const upper = num.toUpperCase();
   // Pasaporte español: 3 letras + 6 dígitos. Internacionales: 6-12 alfanuméricos
@@ -130,10 +140,14 @@ export function validatePersonal(
     // FIX BUG MEDIUM #6: usar clave i18n correcta (sin defaultValue hardcodeado en ES)
     // La clave "validation.required_doc_support" ahora existe en todos los locales
     if (data.tipoDoc === "DNI" || data.tipoDoc === "NIE") {
-      if (!data.soporteDoc?.trim()) {
-        e.soporteDoc = t("validation.required_doc_support");
-      }
-    }
+  const soporte = data.soporteDoc?.trim();
+
+  if (!soporte) {
+    e.soporteDoc = t("validation.required_doc_support");
+  } else if (!validarDocSupport(soporte)) {
+    e.soporteDoc = t("validation.invalid_doc_support");
+  }
+}
   }
 
   return e;

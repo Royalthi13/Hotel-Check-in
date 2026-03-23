@@ -222,15 +222,15 @@ export const ScreenFormPersonal: React.FC<FormPersonalProps> = ({
               fullWidth
               value={data.tipoDoc ?? ""}
               onChange={(e) => {
-                onChange("tipoDoc", e.target.value);
-                clearError("tipoDoc");
+               onChange("soporteDoc", e.target.value.toUpperCase());
+                clearError("soporteDoc");
               }}
-              error={!!errors.tipoDoc}
-              sx={inputSx}
+              error={!!errors.soporteDoc} // ✅ Marca input como error si existe
+               sx={inputSx}
             >
               {TIPOS_DOCUMENTO.map((doc) => <MenuItem key={doc} value={doc}>{t(`constants.documentos.${doc}`)}</MenuItem>)}
             </TextField>
-            <FieldError msg={errors.tipoDoc} />
+            <FieldError msg={errors.soporteDoc} />
           </div>
           <div>
             <TextField

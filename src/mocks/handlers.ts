@@ -29,6 +29,16 @@ http.get("/api/checkin/:token", async ({ params }) => {
   return HttpResponse.json({ status: "found", data: guest });
 }),
 
+http.get("/checkin/kiosko/bienvenida", async () => {
+  await delay(500);
+  return HttpResponse.json({ ok: true });
+}),
+
+http.get("/checkin/kiosko/form_personal", async () => {
+  await delay(500);
+  return HttpResponse.json({ ok: true });
+}),
+
   http.get("/api/reservas/:id", async ({ params }) => {
     await delay(600);
     const reserva = MOCK_RESERVAS[params.id as string];
