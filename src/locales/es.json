@@ -40,6 +40,7 @@
       "CIF": "CIF",
       "Pasaporte": "Pasaporte",
       "NIE": "NIE",
+      "Carnet de conducir": "Carnet de conducir",
       "Otro": "Otro"
     },
     "sexos": {
@@ -69,12 +70,15 @@
       "Después de medianoche": "Después de medianoche"
     },
     "steps": {
+      "tablet_buscar": "Buscar reserva",
       "inicio": "Inicio",
       "bienvenida": "Bienvenida",
-      "num_personas": "Personas",
+      "confirmar_datos": "Confirmar datos",
+      "escanear": "Escanear",
       "form_personal": "Datos personales",
       "form_contacto": "Contacto",
       "form_documento": "Documento",
+      "form_relaciones": "Parentescos",
       "form_extras": "Preferencias",
       "revision": "Revisión",
       "exito": "Completado"
@@ -175,34 +179,7 @@
     "card_manual_title_known": "Revisar y confirmar mis datos",
     "card_manual_sub_known": "Compruebe los datos que tenemos guardados y confírmelos o modifíquelos."
   },
-  "guestsCount": {
-    "title_booking": "Menores en la reserva",
-    "title_manual": "Composición del grupo",
-    "subtitle_booking": "Su reserva es para {{total}} {{noun}}. ¿Cuántas son menores de 18 años?",
-    "subtitle_manual": "Indique cuántos adultos y menores de edad se hospedan.",
-    "label_adults": "Adultos (18 años o más)",
-    "label_minors": "Menores de edad (menos de 18 años)",
-    "adult_singular": "adulto",
-    "adult_plural": "adultos",
-    "minor_singular": "menor",
-    "minor_plural": "menores",
-    "person_singular": "persona",
-    "person_plural": "personas",
-    "total": "Total: {{total}} {{noun}}",
-    "max_limit": "Máximo {{max}} personas por reserva online. Para grupos más grandes contacte con el hotel.",
-    "legal_warning_title": "Aviso legal (Orden INT/1922/2003):",
-    "legal_warning_text": "Es obligatorio registrar los datos de identificación de los menores y su relación de parentesco o tutela con cada adulto del grupo.",
-    "relation_declaration": "Se declarará la relación de {{minor_noun}} con cada uno de los {{adults}} adultos del grupo.",
-    "the_minor_singular": "el menor",
-    "the_minor_plural": "cada menor",
-    "btn_continue": "Continuar con {{total}} {{noun}}",
-    "title": "¿Cuántas personas se hospedan?",
-    "subtitle": "Necesitamos los datos de identificación de cada huésped mayor de edad. Rellenaremos un formulario por persona.",
-    "info_single": "Solo el huésped principal. Se le pedirán datos de contacto además de los personales.",
-    "info_multiple": "Se rellenarán los datos de {{count}} personas. El primer formulario corresponde al huésped principal (incluye email y dirección); los siguientes, a los acompañantes.",
-    "info_minors": "Los menores de edad no necesitan formulario individual; podrá indicar su información en el apartado del huésped principal o acompañante adulto responsable.",
-    "wrong_number_hint": "Si el número de personas permitido por su reserva no es correcto, por favor, póngase en contacto con el hotel para gestionarlo."
-  },
+
   "forms": {
     "adult_tag": " - Adulto",
     "invalid_date_title": "¡Fecha incorrecta!",
@@ -297,7 +274,6 @@
     "data_missing": "⚠ Faltan datos obligatorios",
     "btn_check": "Revisar",
     "btn_complete": "Completar",
-    "rgpd": "Acepto la política de privacidad y envío de datos.",
     "btn_sending": "Enviando...",
     "requests_info": "Las peticiones son orientativas. El hotel hará lo posible por atenderlas, aunque no pueden garantizarse de antemano.",
     "review_data_title": "Revise sus datos",
@@ -310,11 +286,6 @@
     "photo_attached": "✓ Adjuntada",
     "contact_address": "Contacto y dirección",
     "notes": "Notas",
-    "rgpd_long_1": "Confirmo que los datos son correctos y acepto la ",
-    "rgpd_long_2": "política de privacidad",
-    "rgpd_long_3": " y las ",
-    "rgpd_long_4": "condiciones del pre check-in",
-    "rgpd_long_5": " del hotel.",
     "btn_complete_checkin": "Completar pre check-in",
     "btn_final": "Confirmar registro de todo el grupo",
     "confirm_data_only": "Confirmo que los datos son correctos."
