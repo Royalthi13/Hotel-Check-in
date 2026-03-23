@@ -3,6 +3,10 @@ import ReactDOM from "react-dom/client";
 import App from "./App";
 import "./index.css"; // ← vaciado; existe para que Vite no avise de import faltante
 import "./i18n";
+import "@/Buttons.css";
+import "@/Forms.css";
+import "@/Alerts.css";
+import "@/Misc.css";
 // LocalizationProvider al nivel raíz — se monta UNA sola vez, nunca se remonta
 import { LocalizationProvider } from "@mui/x-date-pickers";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";

@@ -1,0 +1,82 @@
+/* Hero y Bienvenida */
+.hero {
+  background: var(--secondary);
+  padding: 28px var(--px) 36px;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.hero::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    ellipse at 70% 20%,
+    rgba(250, 134, 92, 0.18) 0%,
+    transparent 65%
+  );
+  pointer-events: none;
+}
+
+.hero-title {
+  font-family: "Cormorant Garamond", serif;
+  font-size: var(--fs-3xl);
+  font-weight: 300;
+  line-height: 1.1;
+  color: #fff;
+  margin-bottom: 10px;
+}
+
+.hero-title em {
+  font-style: italic;
+  color: var(--primary);
+}
+
+/* Choice Cards */
+.choice-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 24px var(--px);
+  align-items: center;
+  width: 100%;
+}
+
+.choice-card {
+  background: var(--white);
+  border: 2px solid var(--border-lt);
+  border-radius: var(--r-lg);
+  padding: 20px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  width: 100%;
+  max-width: 420px;
+}
+
+.choice-card:hover {
+  border-color: var(--primary);
+  box-shadow: 0 4px 18px rgba(250, 134, 92, 0.13);
+  transform: translateY(-4px);
+}
+
+/* Tablet Search Hero */
+.tablet-hero {
+  background: var(--secondary);
+  padding: 40px var(--px) 44px;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.tablet-title {
+  font-family: "Cormorant Garamond", serif;
+  font-size: var(--fs-3xl);
+  font-weight: 300;
+  color: #fff;
+  line-height: 1.15;
+}

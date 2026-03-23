@@ -4,6 +4,7 @@ import { Field, Button, Alert, ConfirmBlock, Icon } from "@/components/ui";
 import { ReservationCard } from "@/components/ui";
 import { HORAS_LLEGADA } from "@/constants";
 import type { CheckinState } from "@/types";
+import "@/ScreenExtrasRevisionExito.css";
 
 // ═══════════════════════════════════════════════════════════════════════════
 // FORM EXTRAS

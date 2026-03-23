@@ -4,6 +4,7 @@ import { Header, DotsProgress, Icon, ReservationCard } from "../components/ui";
 import type { CheckinNav, CheckinActions, StepId, Reserva } from "../types";
 import { motion, AnimatePresence } from "framer-motion";
 import { LanguageSelector } from "../components/LanguageSelector";
+import "@/AppShell.css";
 
 const SIDE_STEPS: { id: StepId }[] = [
   { id: "inicio" },

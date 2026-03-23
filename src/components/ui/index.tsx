@@ -1,7 +1,7 @@
-// ⚠️  IMPORTANTE: este archivo DEBE tener extensión .tsx, no .ts
 import React from "react";
 import type { Reserva } from "../../types";
-
+import "@/Buttons.css";
+import "@/Forms.css";
 // ═══════════════════════════════════════════════════════════════════════════
 // ICON NAMES
 // ═══════════════════════════════════════════════════════════════════════════

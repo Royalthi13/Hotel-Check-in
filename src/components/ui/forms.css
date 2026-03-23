@@ -1,0 +1,67 @@
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin-bottom: 14px;
+}
+.field label {
+  font-size: var(--fs-xs);
+  font-weight: 500;
+  color: var(--text-mid);
+  letter-spacing: 0.02em;
+}
+.req {
+  color: var(--primary);
+  margin-left: 2px;
+}
+
+.field input,
+.field select,
+.field textarea {
+  width: 100%;
+  height: var(--input-h);
+  background: var(--bg);
+  border: 1.5px solid var(--border);
+  border-radius: var(--r);
+  padding: 0 14px;
+  font-family: "DM Sans", sans-serif;
+  font-size: var(--fs-md);
+  color: var(--text);
+  outline: none;
+  transition: all 0.15s;
+  appearance: none;
+}
+.field input:focus,
+.field select:focus {
+  border-color: var(--primary);
+  background: var(--white);
+  box-shadow: 0 0 0 3px rgba(250, 134, 92, 0.11);
+}
+.field input.err {
+  border-color: var(--err);
+}
+.field-err {
+  font-size: var(--fs-xs);
+  color: var(--err);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.chk-area {
+  background: var(--primary-lt);
+  border-top: 1px solid rgba(250, 134, 92, 0.2);
+  border-bottom: 1px solid rgba(250, 134, 92, 0.2);
+  padding: 14px var(--px);
+  margin: 10px 0;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  cursor: pointer;
+}
+.chk-area input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--primary);
+  cursor: pointer;
+}

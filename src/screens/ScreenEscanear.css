@@ -1,0 +1,67 @@
+.scan-viewport {
+  width: 100%;
+  aspect-ratio: 16/10;
+  background: #111;
+  border-radius: var(--r-lg);
+  position: relative;
+  overflow: hidden;
+  margin-bottom: 14px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.22);
+}
+
+.scan-bg {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, #1a2535, #0e1820);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.scan-line {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--primary), transparent);
+  box-shadow: 0 0 12px var(--primary);
+  animation: scanMove 2.2s ease-in-out infinite;
+}
+
+@keyframes scanMove {
+  0%,
+  100% {
+    top: 12%;
+    opacity: 0.8;
+  }
+  50% {
+    top: 82%;
+    opacity: 1;
+  }
+}
+
+.scan-controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  margin-bottom: 16px;
+}
+
+.scan-main-btn {
+  width: 68px;
+  height: 68px;
+  border-radius: 50%;
+  background: var(--primary);
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 18px rgba(250, 134, 92, 0.38);
+  transition: all 0.15s;
+}
+.scan-main-btn:hover {
+  background: var(--primary-d);
+  transform: scale(1.04);
+}

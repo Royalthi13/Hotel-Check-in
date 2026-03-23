@@ -1,0 +1,81 @@
+@import url("https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&display=swap");
+
+:root {
+  /* Paleta Principal */
+  --primary: #fa865c;
+  --primary-d: #e5704a;
+  --primary-lt: #fef0ea;
+  --secondary: #324154;
+  --sec-mid: #4a5a6e;
+  --bg: #e5e2dd;
+  --white: #ffffff;
+  --border: #d0cbc4;
+  --border-lt: #e8e4de;
+  --text: #1e2c3a;
+  --text-mid: #4a5a6a;
+  --text-low: #8a9aaa;
+  --ok: #2d7a50;
+  --ok-bg: #edf7f1;
+  --err: #c0392b;
+  --err-bg: #fdf2f2;
+
+  /* Radios */
+  --r: 10px;
+  --r-lg: 16px;
+  --r-xl: 22px;
+
+  /* Tipografía */
+  --fs-xs: 11px;
+  --fs-sm: 13px;
+  --fs-md: 15px;
+  --fs-lg: 18px;
+  --fs-xl: 22px;
+  --fs-2xl: 30px;
+  --fs-3xl: 40px;
+
+  /* Layout */
+  --px: 20px;
+  --input-h: 46px;
+
+  /* Z-index */
+  --z-header: 30;
+  --z-dropdown: 9999;
+  --z-suggest: 2000;
+  --z-tooltip: 50;
+}
+
+@media (min-width: 480px) {
+  :root {
+    --px: 28px;
+    --fs-2xl: 34px;
+    --fs-3xl: 46px;
+    --input-h: 50px;
+  }
+}
+
+@media (min-width: 768px) {
+  :root {
+    --px: 40px;
+    --fs-xs: 12px;
+    --fs-sm: 14px;
+    --fs-md: 15px;
+    --fs-lg: 19px;
+    --fs-xl: 24px;
+    --fs-2xl: 38px;
+    --fs-3xl: 52px;
+    --r: 12px;
+    --r-lg: 20px;
+    --r-xl: 28px;
+    --input-h: 52px;
+  }
+}
+
+@media (min-width: 1024px) {
+  :root {
+    --px: 48px;
+    --fs-2xl: 40px;
+    --fs-3xl: 54px;
+    --input-h: 52px;
+    --z-header: 40;
+  }
+}
