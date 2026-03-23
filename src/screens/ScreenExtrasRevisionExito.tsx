@@ -24,14 +24,17 @@ export const ScreenFormExtras: React.FC<FormExtrasProps> = ({
   onNext,
 }) => {
   const { t } = useTranslation();
-
+  const handleSubmit = (e: React.SyntheticEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    onNext();
+  };
   return (
     <>
       <div className="sec-hdr">
         <h2>{t("review.extras_title")}</h2>
         <p>{t("review.extras_sub")}</p>
       </div>
-
+      <form onSubmit={handleSubmit}>
       <div className="fields" style={{ marginTop: 12 }}>
         <div className="divlabel">{t("review.arrival")}</div>
         <Field label={t("review.est_arrival")}>
@@ -61,7 +64,7 @@ export const ScreenFormExtras: React.FC<FormExtrasProps> = ({
           {t("review.requests_info")}
         </Alert>
       </div>
-
+          </form>
       <div className="spacer" />
       <div className="btn-row">
         <Button variant="primary" iconRight="right" onClick={onNext}>

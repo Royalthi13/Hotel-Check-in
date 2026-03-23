@@ -23,7 +23,8 @@ export const ScreenTabletBuscar: React.FC<Props> = ({ onFound }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  const buscar = async () => {
+  const buscar = async (e?: React.SyntheticEvent<HTMLFormElement>) => {
+    if (e) e.preventDefault();
     const trimmedNum = num.trim();
     const trimmedContacto = contacto.trim();
 
@@ -81,11 +82,9 @@ export const ScreenTabletBuscar: React.FC<Props> = ({ onFound }) => {
     }
   };
 
-  const handleKey = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter") buscar();
-  };
 
   return (
+    <form className="screen" onSubmit={buscar}>
     <div className="screen">
       <div className="tablet-hero">
         <div className="tablet-big-icon">
@@ -106,6 +105,7 @@ export const ScreenTabletBuscar: React.FC<Props> = ({ onFound }) => {
           <LoadingSpinner text={t("common.loading")} />
         ) : (
           <>
+     
             <Field label={t("search.contact_label")} required>
               <input
                 type="text"
@@ -114,7 +114,7 @@ export const ScreenTabletBuscar: React.FC<Props> = ({ onFound }) => {
                   setContacto(e.target.value);
                   setError("");
                 }}
-                onKeyDown={handleKey}
+                
                 placeholder={t("search.contact_placeholder")}
                 className={
                   error &&
@@ -132,6 +132,7 @@ export const ScreenTabletBuscar: React.FC<Props> = ({ onFound }) => {
                 }}
               />
             </Field>
+       
             <Field label={t("search.booking_label")} required>
               <input
                 type="text"
@@ -140,7 +141,7 @@ export const ScreenTabletBuscar: React.FC<Props> = ({ onFound }) => {
                   setNum(e.target.value);
                   setError("");
                 }}
-                onKeyDown={handleKey}
+                
                 placeholder={t("search.booking_placeholder")}
                 className={error && !num.trim() ? "err" : ""}
                 autoFocus
@@ -167,6 +168,7 @@ export const ScreenTabletBuscar: React.FC<Props> = ({ onFound }) => {
               {t("search.booking_hint")}
             </p>
           </>
+          
         )}
       </div>
 
@@ -175,17 +177,22 @@ export const ScreenTabletBuscar: React.FC<Props> = ({ onFound }) => {
         <Button
           variant="primary"
           iconRight="search"
-          onClick={buscar}
+         
           disabled={loading}
         >
           {loading ? t("common.loading") : t("search.btn_search")}
         </Button>
       </div>
+           
+      
       <div className="privacy">
+             
         <Icon name="lock" size={11} />
         {t("common.privacy_ssl")}
       </div>
       <div style={{ height: 20 }} />
     </div>
+    </form>
   );
+  
 };

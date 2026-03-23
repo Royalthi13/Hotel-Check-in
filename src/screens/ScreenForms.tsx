@@ -88,6 +88,10 @@ export const ScreenFormPersonal: React.FC<FormPersonalProps> = ({
   isSubmitting,
   token,
 }) => {
+  const handleSubmit = (e: React.SyntheticEvent<HTMLFormElement>) => {
+    e.preventDefault(); // Evita que la página parpadee o se recargue
+    checkAndProceed(onNext); // Ejecuta la misma validación que ya tenías
+  };
   const { t } = useTranslation();
   const { errors, validate, clearError } = useFormValidation(validatePersonal);
   const [duplicateError, setDuplicateError] = useState("");
@@ -139,7 +143,7 @@ export const ScreenFormPersonal: React.FC<FormPersonalProps> = ({
           {isMainGuest ? ` · ${t("forms.main_guest_tag")}` : esMenor ? t("forms.minor_tag") : t("forms.adult_tag")}
         </Typography>
       </div>
-
+    <form onSubmit={handleSubmit}>
       <Box style={{ padding: "0 var(--px)" }} sx={{ mt: 2, display: "flex", flexDirection: "column", gap: 2.5 }}>
         <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr 1fr" }, gap: 2 }}>
           <div>
@@ -274,7 +278,7 @@ export const ScreenFormPersonal: React.FC<FormPersonalProps> = ({
           </label>
         )}
       </Box>
-
+        
       {duplicateError && <Box sx={{ padding: "0 var(--px)", mt: 2 }}><Alert variant="err">{duplicateError}</Alert></Box>}
 
       <div className="spacer" />
@@ -288,7 +292,9 @@ export const ScreenFormPersonal: React.FC<FormPersonalProps> = ({
           {isSubmitting ? "..." : hasNextGuest ? t("common.next_guest") : t("common.continue")}
         </Button>
       </div>
+      </form>
     </>
+    
   );
 };
 
@@ -301,6 +307,10 @@ export const ScreenFormContacto: React.FC<FormContactoProps> = ({
   isSubmitting,
   lockedFields,
 }) => {
+  const handleSubmit = (e: React.SyntheticEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (validate(data)) onNext(); // Ejecuta la misma validación que ya tenías
+  };
   const { t } = useTranslation();
   const { errors, validate, clearError } = useFormValidation(
     (d: PartialGuestData, t) => validateContacto(d, t, lockedFields),
@@ -320,7 +330,7 @@ export const ScreenFormContacto: React.FC<FormContactoProps> = ({
         </Typography>
         <p>{t("forms.contact_subtitle")}</p>
       </div>
-
+      <form onSubmit={handleSubmit}>
       <Box style={{ padding: "0 var(--px)" }} sx={{ mt: 2, display: "flex", flexDirection: "column", gap: 2.5 }}>
 
         {/* ── Email + Teléfono ── */}
@@ -483,6 +493,7 @@ export const ScreenFormContacto: React.FC<FormContactoProps> = ({
         </Box>
 
       </Box>
+    
 
       <div className="spacer" />
       <div className="btn-row" style={{ display: "flex", gap: "10px", flexWrap: "wrap", justifyContent: "flex-end" }}>
@@ -495,6 +506,7 @@ export const ScreenFormContacto: React.FC<FormContactoProps> = ({
           {isSubmitting ? "..." : hasNextGuest ? t("common.next_guest") : t("common.continue")}
         </Button>
       </div>
+        </form>
     </>
   );
 };
