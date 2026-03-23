@@ -35,36 +35,36 @@ export const ScreenFormExtras: React.FC<FormExtrasProps> = ({
         <p>{t("review.extras_sub")}</p>
       </div>
       <form onSubmit={handleSubmit}>
-      <div className="fields" style={{ marginTop: 12 }}>
-        <div className="divlabel">{t("review.arrival")}</div>
-        <Field label={t("review.est_arrival")}>
-          <select
-            value={horaLlegada}
-            onChange={(e) => onHoraChange(e.target.value)}
-          >
-            {HORAS_LLEGADA.map((h) => (
-              <option key={h} value={h}>
-                {h.includes(":") ? h : t(`constants.horas.${h}`)}
-              </option>
-            ))}
-          </select>
-        </Field>
+        <div className="fields" style={{ marginTop: 12 }}>
+          <div className="divlabel">{t("review.arrival")}</div>
+          <Field label={t("review.est_arrival")}>
+            <select
+              value={horaLlegada}
+              onChange={(e) => onHoraChange(e.target.value)}
+            >
+              {HORAS_LLEGADA.map((h) => (
+                <option key={h} value={h}>
+                  {h.includes(":") ? h : t(`constants.horas.${h}`)}
+                </option>
+              ))}
+            </select>
+          </Field>
 
-        <div className="divlabel">{t("review.requests")}</div>
-        <Field label={t("review.obs_label")}>
-          <textarea
-            rows={4}
-            value={observaciones}
-            onChange={(e) => onObsChange(e.target.value)}
-            placeholder={t("review.obs_placeholder")}
-          />
-        </Field>
+          <div className="divlabel">{t("review.requests")}</div>
+          <Field label={t("review.obs_label")}>
+            <textarea
+              rows={4}
+              value={observaciones}
+              onChange={(e) => onObsChange(e.target.value)}
+              placeholder={t("review.obs_placeholder")}
+            />
+          </Field>
 
-        <Alert variant="info" style={{ marginTop: 8 }}>
-          {t("review.requests_info")}
-        </Alert>
-      </div>
-          </form>
+          <Alert variant="info" style={{ marginTop: 8 }}>
+            {t("review.requests_info")}
+          </Alert>
+        </div>
+      </form>
       <div className="spacer" />
       <div className="btn-row">
         <Button variant="primary" iconRight="right" onClick={onNext}>
@@ -96,6 +96,35 @@ export const ScreenRevision: React.FC<RevisionProps> = ({
   const { t } = useTranslation();
   const { reserva, guests, horaLlegada, observaciones, rgpdAcepted } = state;
   const main = guests[0] ?? {};
+
+  // --- LÓGICA DE VALIDACIÓN DE DATOS OBLIGATORIOS ---
+  const isDataComplete = guests.every((g, idx) => {
+    // 1. Datos personales obligatorios para TODOS (según ScreenFormPersonal)
+    const identityOk = !!(
+      g.nombre?.trim() &&
+      g.apellido?.trim() &&
+      g.sexo &&
+      g.fechaNac &&
+      g.tipoDoc &&
+      g.numDoc?.trim()
+    );
+
+    // 2. Soporte de documento obligatorio si es DNI o NIE
+    const isDniNie = g.tipoDoc === "DNI" || g.tipoDoc === "NIE";
+    const supportOk = isDniNie ? !!g.soporteDoc?.trim() : true;
+
+    // 3. Datos de contacto obligatorios solo para el TITULAR (según ScreenFormContacto)
+    let contactOk = true;
+    if (idx === 0) {
+      // Requiere País y (Email o Teléfono)
+      contactOk = !!(g.pais && (g.email?.trim() || g.telefono?.trim()));
+    }
+
+    // 4. Relación obligatoria si es MENOR
+    const minorOk = g.esMenor ? (g.relacionesConAdultos ?? []).length > 0 : true;
+
+    return identityOk && supportOk && contactOk && minorOk;
+  });
 
   const fullName = (g: typeof main) =>
     [g.nombre, g.apellido, g.apellido2].filter(Boolean).join(" ");
@@ -222,12 +251,24 @@ export const ScreenRevision: React.FC<RevisionProps> = ({
       </div>
 
       <div className="spacer" />
-      <div className="btn-row">
+      <div className="btn-row" style={{ flexDirection: 'column', gap: 12 }}>
+        
+        {/* Feedback visual si falta algo obligatorio */}
+        {rgpdAcepted && !isDataComplete && (
+          <Alert variant="warm" style={{ marginBottom: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13 }}>
+              <Icon name="info" size={14} />
+              {t("review.missing_data_alert", "Faltan datos obligatorios por completar en los huéspedes o contacto.")}
+            </div>
+          </Alert>
+        )}
+
         <Button
           variant="primary"
           iconRight={isSubmitting ? undefined : "check"}
           onClick={onSubmit}
-          disabled={!rgpdAcepted || isSubmitting}
+          // DESHABILITADO si: No aceptó RGPD O los datos están incompletos O está enviando
+          disabled={!rgpdAcepted || !isDataComplete || isSubmitting}
         >
           {isSubmitting ? (
             <>
