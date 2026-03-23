@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Button, Icon } from "@/components/ui";
-import "@/ScreenBienvenida.css";
+import "@/App.css";
 import {
   Typography,
   Box,

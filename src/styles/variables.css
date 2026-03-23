@@ -1,7 +1,5 @@
-@import url("https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&display=swap");
-
 :root {
-  /* Paleta Principal */
+  /* Paleta */
   --primary: #fa865c;
   --primary-d: #e5704a;
   --primary-lt: #fef0ea;
@@ -33,11 +31,8 @@
   --fs-2xl: 30px;
   --fs-3xl: 40px;
 
-  /* Layout */
   --px: 20px;
   --input-h: 46px;
-
-  /* Z-index */
   --z-header: 30;
   --z-dropdown: 9999;
   --z-suggest: 2000;
@@ -52,7 +47,6 @@
     --input-h: 50px;
   }
 }
-
 @media (min-width: 768px) {
   :root {
     --px: 40px;
@@ -69,7 +63,6 @@
     --input-h: 52px;
   }
 }
-
 @media (min-width: 1024px) {
   :root {
     --px: 48px;
@@ -77,5 +70,10 @@
     --fs-3xl: 54px;
     --input-h: 52px;
     --z-header: 40;
+  }
+}
+@media (min-width: 1440px) {
+  :root {
+    --px: 64px;
   }
 }

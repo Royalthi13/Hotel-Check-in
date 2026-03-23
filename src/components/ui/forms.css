@@ -1,3 +1,28 @@
+.sec-hdr {
+  padding: 22px var(--px) 6px;
+  flex-shrink: 0;
+}
+.divlabel {
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+  color: var(--primary);
+  margin: 18px 0 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.divlabel::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--border-lt);
+}
+
+.fields {
+  padding: 0 var(--px);
+}
 .field {
   display: flex;
   flex-direction: column;
@@ -8,13 +33,7 @@
   font-size: var(--fs-xs);
   font-weight: 500;
   color: var(--text-mid);
-  letter-spacing: 0.02em;
 }
-.req {
-  color: var(--primary);
-  margin-left: 2px;
-}
-
 .field input,
 .field select,
 .field textarea {
@@ -24,44 +43,61 @@
   border: 1.5px solid var(--border);
   border-radius: var(--r);
   padding: 0 14px;
-  font-family: "DM Sans", sans-serif;
-  font-size: var(--fs-md);
   color: var(--text);
   outline: none;
-  transition: all 0.15s;
   appearance: none;
 }
-.field input:focus,
-.field select:focus {
+.field input:focus {
   border-color: var(--primary);
   background: var(--white);
   box-shadow: 0 0 0 3px rgba(250, 134, 92, 0.11);
 }
-.field input.err {
-  border-color: var(--err);
-}
-.field-err {
-  font-size: var(--fs-xs);
-  color: var(--err);
+
+/* STEPPER */
+.stepper {
   display: flex;
   align-items: center;
-  gap: 4px;
+  justify-content: center;
+  gap: 24px;
+  padding: 24px 0;
+}
+.stepper-btn {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  border: 2px solid var(--border);
+  background: var(--white);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  outline: none;
+}
+.stepper-value {
+  font-family: "Cormorant Garamond", serif;
+  font-size: 60px;
+  font-weight: 300;
+  color: var(--text);
 }
 
-.chk-area {
-  background: var(--primary-lt);
-  border-top: 1px solid rgba(250, 134, 92, 0.2);
-  border-bottom: 1px solid rgba(250, 134, 92, 0.2);
-  padding: 14px var(--px);
-  margin: 10px 0;
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
-  cursor: pointer;
+/* AUTOCOMPLETE */
+.sug-box {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+  z-index: var(--z-suggest);
+  margin-top: 4px;
+  max-height: 200px;
+  overflow-y: auto;
 }
-.chk-area input[type="checkbox"] {
-  width: 18px;
-  height: 18px;
-  accent-color: var(--primary);
+.sug-opt {
+  padding: 12px 16px;
   cursor: pointer;
+  font-size: 14px;
+  border-bottom: 1px solid var(--border-lt);
 }

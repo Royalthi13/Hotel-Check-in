@@ -1,3 +1,5 @@
+@import url("https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&display=swap");
+
 *,
 *::before,
 *::after {
@@ -5,27 +7,92 @@
   margin: 0;
   padding: 0;
 }
-
 html,
 body,
 #root {
   width: 100%;
   height: 100%;
 }
-
 #root {
   min-height: 100dvh;
   display: flex;
   flex-direction: column;
 }
-
+html {
+  scroll-behavior: smooth;
+}
 body {
   font-family: "DM Sans", sans-serif;
   background: var(--bg);
   color: var(--text);
-  min-height: 100dvh;
   -webkit-font-smoothing: antialiased;
   line-height: 1.5;
+}
+
+.shell {
+  width: 100%;
+  min-height: 100dvh;
+  display: flex;
+  align-items: stretch;
+  background: var(--bg);
+}
+.card {
+  width: 100%;
+  min-height: 100dvh;
+  background: var(--white);
+  display: flex;
+  flex-direction: column;
+  overflow: visible;
+}
+
+@media (min-width: 768px) and (max-width: 1023px) {
+  .shell {
+    align-items: flex-start;
+    justify-content: center;
+    padding: 40px 24px 56px;
+  }
+  .card {
+    width: 100%;
+    max-width: 600px;
+    min-height: auto;
+    margin: 0 auto;
+    border-radius: var(--r-xl);
+    box-shadow:
+      0 12px 56px rgba(50, 65, 84, 0.15),
+      0 2px 12px rgba(50, 65, 84, 0.07);
+    overflow: hidden;
+  }
+}
+
+@media (min-width: 1024px) {
+  .shell {
+    padding: 0;
+    align-items: stretch;
+    width: 100vw;
+    min-height: 100dvh;
+  }
+  .card {
+    width: 100%;
+    max-width: none;
+    min-height: 100dvh;
+    border-radius: 0;
+    box-shadow: none;
+    overflow: visible;
+  }
+}
+
+.body-row {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+@media (min-width: 1024px) {
+  .body-row {
+    flex-direction: row;
+    flex: 1;
+    min-height: 0;
+  }
 }
 
 .screen-wrap {
@@ -37,14 +104,33 @@ body {
   -webkit-overflow-scrolling: touch;
   min-width: 0;
 }
-
-.spacer {
+.screen {
   flex: 1;
-  min-height: 12px;
+  display: flex;
+  flex-direction: column;
+  animation: slideIn 0.22s ease both;
+}
+.screen.back {
+  animation: slideBack 0.22s ease both;
 }
 
-@keyframes spin {
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateX(14px);
+  }
   to {
-    transform: rotate(360deg);
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes slideBack {
+  from {
+    opacity: 0;
+    transform: translateX(-14px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
   }
 }

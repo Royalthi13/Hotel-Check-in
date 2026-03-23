@@ -1,7 +1,10 @@
 import React from "react";
 import type { Reserva } from "../../types";
-import "@/Buttons.css";
-import "@/Forms.css";
+import "@/components/ui/buttons.css";
+import "@/components/ui/forms.css";
+import "@/components/ui/alerts.css";
+import "@/components/ui/misc.css";
+
 // ═══════════════════════════════════════════════════════════════════════════
 // ICON NAMES
 // ═══════════════════════════════════════════════════════════════════════════

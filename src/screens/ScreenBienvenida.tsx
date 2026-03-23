@@ -2,6 +2,7 @@ import React from "react";
 import { useTranslation } from "react-i18next"; // 1. Importamos el hook
 import { Icon, ReservationCard } from "@/components/ui";
 import type { Reserva, GuestData } from "@/types";
+import "@/screens/ScreenBienvenida.css";
 
 interface Props {
   knownGuest: GuestData | null;

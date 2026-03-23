@@ -2,8 +2,7 @@ import React, { useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Alert, Button, Icon } from "@/components/ui";
 import type { GuestData } from "@/types";
-import "@/ScreenEscanear.css";
-
+import "@/App.css";
 interface Props {
   onScanned: (data: Partial<GuestData>) => void;
   onSkip: () => void;

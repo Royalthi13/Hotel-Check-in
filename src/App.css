@@ -1,0 +1,16 @@
+/* Variables y Base primero */
+@import "./styles/variables.css";
+@import "./styles/base.css";
+
+/* Componentes UI */
+@import "./components/ui/buttons.css";
+@import "./components/ui/forms.css";
+@import "./components/ui/misc.css";
+
+/* Layout */
+@import "./layout/AppShell.css";
+
+/* Pantallas específicas (vacíos si ya está todo en los anteriores) */
+@import "./screens/ScreenBienvenida.css";
+@import "./screens/ScreenEscanear.css";
+@import "./screens/ScreenExtrasRevisionExito.css";
