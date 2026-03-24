@@ -381,7 +381,7 @@
    4. SELECTOR DE IDIOMAS (Modal en Móvil)
    ════════════════════════════════════════════════════════════════════════ */
 
-/* 1. PRIMERO: Estado por defecto (oculto) */
+/* 1. Estado por defecto (Escritorio) */
 .lang-backdrop {
   display: none;
 }
@@ -405,50 +405,35 @@
   animation: dropdownIn 0.15s ease both;
 }
 
-/* 2. SEGUNDO: Reglas para móvil (sobrescriben el display: none anterior) */
-@media (max-width: 767px) {
-  .lang-backdrop {
-    display: block; /* Ahora sí ganará prioridad en móvil */
-    position: fixed;
-    inset: 0;
-    background: rgba(30, 44, 58, 0.5); /* Esto oscurece el fondo */
-    z-index: calc(var(--z-dropdown) - 1);
-    animation: fadeIn 0.2s ease both;
-  }
-  .lang-dropdown {
-    position: fixed;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%) !important;
-    width: calc(100% - 48px);
-    max-width: 340px;
-    border-radius: 16px;
-    padding: 12px;
-    box-shadow: 0 16px 48px rgba(0, 0, 0, 0.25);
-    animation: popModal 0.25s cubic-bezier(0.34, 1.56, 0.64, 1) both;
-  }
-  .lang-option {
-    padding: 16px 18px;
-    font-size: 16px;
-    gap: 14px;
-  }
-  .fi {
-    width: 24px;
-    height: 18px;
-  }
-}
-
-/* 3. TERCERO: Estilos de los botones (resto de tu código) */
 .lang-option {
   width: 100%;
   display: flex;
   align-items: center;
   gap: 10px;
+  padding: 9px 12px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text);
+  font-size: 13px;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.15s;
 }
-/* --- 2. ESTILOS MÓVIL (Sobrescriben los base si la pantalla es pequeña) --- */
+
+.lang-option:hover {
+  background: var(--bg);
+}
+
+.lang-option.active {
+  background: var(--primary-lt);
+  font-weight: 500;
+}
+
+/* 2. Reglas para móvil (Sobrescriben las de arriba) */
 @media (max-width: 767px) {
   .lang-backdrop {
-    display: block; /* Muestra el fondo oscuro */
+    display: block;
     position: fixed;
     inset: 0;
     background: rgba(30, 44, 58, 0.5);
@@ -469,24 +454,11 @@
     animation: popModal 0.25s cubic-bezier(0.34, 1.56, 0.64, 1) both;
   }
 
-  /* Aquí es donde tu menú móvil cambia de tamaño respecto al de escritorio */
   .lang-option {
     padding: 16px 18px;
     font-size: 16px;
     gap: 14px;
   }
-
-  .fi {
-    width: 24px;
-    height: 18px;
-  }
-}
-
-.lang-option {
-  width: 100%;
-  display: flex;
-  align-items: center;
-  gap: 10px;
 }
 /* DOTS */
 .dots-bar {
