@@ -3,7 +3,8 @@ import { useTranslation } from "react-i18next";
 import { Field, Button, Alert, ConfirmBlock, Icon } from "@/components/ui";
 import { ReservationCard } from "@/components/ui";
 import { HORAS_LLEGADA } from "@/constants";
-import type { CheckinState } from "@/types";
+import { validatePersonal, validateContacto } from "@/hooks/useFormValidation";
+import type { CheckinState, PartialGuestData } from "@/types";
 
 // ═══════════════════════════════════════════════════════════════════════════
 // FORM EXTRAS
@@ -76,6 +77,34 @@ export const ScreenFormExtras: React.FC<FormExtrasProps> = ({
 };
 
 // ═══════════════════════════════════════════════════════════════════════════
+// Helper: valida un huésped completo con las mismas funciones que los formularios.
+//
+// ANTES: !!g.numDoc?.trim()  →  solo comprueba que no esté vacío.
+// AHORA: validatePersonal()  →  comprueba formato real (DNI, NIE, etc.).
+//
+// Si el usuario pone "PEPE" como DNI, el campo no está vacío pero
+// validatePersonal devuelve un error → isGuestValid devuelve false
+// → isDataComplete es false → botón final deshabilitado.
+// ═══════════════════════════════════════════════════════════════════════════
+function isGuestValid(
+  g: PartialGuestData,
+  idx: number,
+  t: ReturnType<typeof useTranslation>["t"],
+): boolean {
+  const personalErrors = validatePersonal({ ...g, isTitular: idx === 0 }, t);
+  if (Object.keys(personalErrors).length > 0) return false;
+
+  if (idx === 0) {
+    const contactErrors = validateContacto(g, t);
+    if (Object.keys(contactErrors).length > 0) return false;
+  }
+
+  if (g.esMenor && (g.relacionesConAdultos ?? []).length === 0) return false;
+
+  return true;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
 // REVISION
 // ═══════════════════════════════════════════════════════════════════════════
 interface RevisionProps {
@@ -97,34 +126,10 @@ export const ScreenRevision: React.FC<RevisionProps> = ({
   const { reserva, guests, horaLlegada, observaciones, rgpdAcepted } = state;
   const main = guests[0] ?? {};
 
-  // --- LÓGICA DE VALIDACIÓN DE DATOS OBLIGATORIOS ---
-  const isDataComplete = guests.every((g, idx) => {
-    // 1. Datos personales obligatorios para TODOS (según ScreenFormPersonal)
-    const identityOk = !!(
-      g.nombre?.trim() &&
-      g.apellido?.trim() &&
-      g.sexo &&
-      g.fechaNac &&
-      g.tipoDoc &&
-      g.numDoc?.trim()
-    );
-
-    // 2. Soporte de documento obligatorio si es DNI o NIE
-    const isDniNie = g.tipoDoc === "DNI" || g.tipoDoc === "NIE";
-    const supportOk = isDniNie ? !!g.soporteDoc?.trim() : true;
-
-    // 3. Datos de contacto obligatorios solo para el TITULAR (según ScreenFormContacto)
-    let contactOk = true;
-    if (idx === 0) {
-      // Requiere País y (Email o Teléfono)
-      contactOk = !!(g.pais && (g.email?.trim() || g.telefono?.trim()));
-    }
-
-    // 4. Relación obligatoria si es MENOR
-    const minorOk = g.esMenor ? (g.relacionesConAdultos ?? []).length > 0 : true;
-
-    return identityOk && supportOk && contactOk && minorOk;
-  });
+  // Validación real: mismas funciones que los formularios.
+  // En teoría si llegaste aquí es porque el botón Resumen no estaba bloqueado,
+  // pero lo comprobamos igualmente como segunda línea de defensa.
+  const isDataComplete = guests.every((g, idx) => isGuestValid(g, idx, t));
 
   const fullName = (g: typeof main) =>
     [g.nombre, g.apellido, g.apellido2].filter(Boolean).join(" ");
@@ -167,9 +172,7 @@ export const ScreenRevision: React.FC<RevisionProps> = ({
                 ],
                 ...(g.esMenor && (g.relacionesConAdultos ?? []).length > 0
                   ? (g.relacionesConAdultos ?? []).map((r) => {
-                      const label = t("review.relation_adult", {
-                        count: r.adultoIndex + 1,
-                      });
+                      const label = t("review.relation_adult", { count: r.adultoIndex + 1 });
                       const value = (r.parentesco ?? "").trim()
                         ? t(`constants.parentescos.${r.parentesco}`)
                         : "—";
@@ -251,31 +254,16 @@ export const ScreenRevision: React.FC<RevisionProps> = ({
       </div>
 
       <div className="spacer" />
-      <div className="btn-row" style={{ flexDirection: 'column', gap: 12 }}>
-        
-        {/* Feedback visual si falta algo obligatorio */}
-        {rgpdAcepted && !isDataComplete && (
-          <Alert variant="warm" style={{ marginBottom: 0 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13 }}>
-              <Icon name="info" size={14} />
-              {t("review.missing_data_alert", "Faltan datos obligatorios por completar en los huéspedes o contacto.")}
-            </div>
-          </Alert>
-        )}
-
+      <div className="btn-row" style={{ flexDirection: "column", gap: 12 }}>
         <Button
           variant="primary"
           iconRight={isSubmitting ? undefined : "check"}
           onClick={onSubmit}
-          // DESHABILITADO si: No aceptó RGPD O los datos están incompletos O está enviando
           disabled={!rgpdAcepted || !isDataComplete || isSubmitting}
         >
           {isSubmitting ? (
             <>
-              <div
-                className="spinner"
-                style={{ width: 18, height: 18, borderWidth: 2 }}
-              />
+              <div className="spinner" style={{ width: 18, height: 18, borderWidth: 2 }} />
               {t("review.btn_sending")}
             </>
           ) : (
@@ -308,7 +296,6 @@ export const ScreenExito: React.FC<ExitoProps> = ({
   const { reserva, guests, horaLlegada } = state;
   const main = guests[0] ?? {};
   const nombreCompleto = [main.nombre, main.apellido].filter(Boolean).join(" ");
-
   const [copied, setCopied] = useState(false);
 
   const handleCopyLink = () => {
@@ -323,7 +310,6 @@ export const ScreenExito: React.FC<ExitoProps> = ({
         <div className="success-ring" style={{ borderColor: "var(--primary)" }}>
           <Icon name="checkC" size={42} color="var(--primary)" />
         </div>
-
         <h1 className="success-title">
           {t("success.partial_title", { defaultValue: "¡Progreso guardado!" })}
         </h1>
@@ -333,26 +319,11 @@ export const ScreenExito: React.FC<ExitoProps> = ({
               "Los datos se han guardado correctamente. Comparta este enlace con el resto de acompañantes para que completen su registro de forma rápida y segura.",
           })}
         </p>
-
-        <div
-          style={{
-            marginTop: 24,
-            width: "100%",
-            display: "flex",
-            flexDirection: "column",
-            gap: 10,
-          }}
-        >
-          <Button
-            variant="primary"
-            onClick={handleCopyLink}
-            iconLeft={copied ? "check" : undefined}
-          >
+        <div style={{ marginTop: 24, width: "100%", display: "flex", flexDirection: "column", gap: 10 }}>
+          <Button variant="primary" onClick={handleCopyLink} iconLeft={copied ? "check" : undefined}>
             {copied
               ? t("common.copied", { defaultValue: "¡Enlace copiado!" })
-              : t("common.copy_link", {
-                  defaultValue: "Copiar enlace para compartir",
-                })}
+              : t("common.copy_link", { defaultValue: "Copiar enlace para compartir" })}
           </Button>
         </div>
       </div>
@@ -365,7 +336,6 @@ export const ScreenExito: React.FC<ExitoProps> = ({
         <div className="success-ring">
           <Icon name="checkC" size={42} color="var(--ok)" />
         </div>
-
         <h1 className="success-title">
           {t("success.title_precheckin_1")}
           <br />
@@ -402,39 +372,23 @@ export const ScreenExito: React.FC<ExitoProps> = ({
           {main.tipoDoc && (
             <div className="si-row">
               <span>{t("forms.doc_title")}</span>
-              <span>
-                {t(`constants.documentos.${main.tipoDoc}`)} · {main.numDoc}
-              </span>
+              <span>{t(`constants.documentos.${main.tipoDoc}`)} · {main.numDoc}</span>
             </div>
           )}
           {horaLlegada && horaLlegada !== "No especificada" && (
             <div className="si-row">
               <span>{t("success.expected_arrival")}</span>
               <span>
-                {horaLlegada.includes(":")
-                  ? horaLlegada
-                  : t(`constants.horas.${horaLlegada}`)}
+                {horaLlegada.includes(":") ? horaLlegada : t(`constants.horas.${horaLlegada}`)}
               </span>
             </div>
           )}
         </div>
 
-        <div
-          style={{
-            width: "100%",
-            display: "flex",
-            flexDirection: "column",
-            gap: 10,
-          }}
-        >
-          <Button
-            variant="primary"
-            style={{ background: "var(--secondary)" }}
-            onClick={() => window.print()}
-          >
+        <div style={{ width: "100%", display: "flex", flexDirection: "column", gap: 10 }}>
+          <Button variant="primary" style={{ background: "var(--secondary)" }} onClick={() => window.print()}>
             <Icon name="check" size={16} /> {t("success.btn_print")}
           </Button>
-
           {(!horaLlegada || horaLlegada === "No especificada") && onAddHora && (
             <Button variant="secondary" iconLeft="clock" onClick={onAddHora}>
               {t("success.btn_add_time")}

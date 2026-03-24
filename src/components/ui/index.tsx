@@ -197,6 +197,7 @@ export type AlertVariant = "info" | "ok" | "err" | "warm";
 export interface AlertProps {
   variant?: AlertVariant;
   icon?: IconName;
+  
   children: React.ReactNode;
   style?: React.CSSProperties;
 }
@@ -313,7 +314,7 @@ export const ConfirmBlock: React.FC<ConfirmBlockProps> = ({
 export interface HeaderProps {
   canGoBack: boolean;
   onBack: () => void;
-  rightAction?: { label: string; onClick: () => void; icon?: IconName };
+ rightAction?: { label: string; onClick: () => void; icon?: IconName; disabled?: boolean };
   extraContent?: React.ReactNode; // 👈 Nuevo Slot
   name?: string;
   room?: string;
