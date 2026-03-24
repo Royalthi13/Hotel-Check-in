@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { Button, Icon } from "@/components/ui";
 import "@/App.css";
@@ -16,7 +16,6 @@ import {
 import type { Reserva } from "@/types";
 
 interface Props {
-  // ✅ PRO FIX: Ahora acepta que la reserva sea null o undefined
   reserva?: Reserva | null;
   onNext: (hayMenores: boolean) => void;
 }
@@ -28,15 +27,32 @@ interface LegalSection {
 
 export const ScreenCheckinInicio: React.FC<Props> = ({ reserva, onNext }) => {
   const { t } = useTranslation();
-  const [acceptedLegal, setAcceptedLegal] = useState(false);
-  const [hayMenores, setHayMenores] = useState<string | null>(null);
+
+  // 1. Cargamos el valor guardado en memoria, si no hay, por defecto en 'false' o 'null'
+  const [acceptedLegal, setAcceptedLegal] = useState<boolean>(() => {
+    return sessionStorage.getItem("lumina_acceptedLegal") === "true";
+  });
+
+  const [hayMenores, setHayMenores] = useState<string | null>(() => {
+    return sessionStorage.getItem("lumina_hayMenores") || null;
+  });
+
+  // 2. Cada vez que cambien los valores, los guardamos en memoria
+  useEffect(() => {
+    sessionStorage.setItem("lumina_acceptedLegal", String(acceptedLegal));
+  }, [acceptedLegal]);
+
+  useEffect(() => {
+    if (hayMenores !== null) {
+      sessionStorage.setItem("lumina_hayMenores", hayMenores);
+    }
+  }, [hayMenores]);
 
   const legalSections = t("legal.sections", { returnObjects: true });
   const sectionsArray = Array.isArray(legalSections)
     ? (legalSections as LegalSection[])
     : [];
 
-  // ✅ PRO FIX: Valores por defecto seguros si 'reserva' llega como null
   const confirmacion = reserva?.confirmacion || "---";
   const numHuespedes = reserva?.numHuespedes || 1;
   const fEntrada = reserva?.fechaEntrada || "---";
