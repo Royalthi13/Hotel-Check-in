@@ -274,7 +274,7 @@ export const ConfirmBlock: React.FC<{
 export interface HeaderProps {
   canGoBack: boolean;
   onBack: () => void;
-  onLogoClick?: () => void; // 👈 1. Añadimos esta nueva función
+  onLogoClick?: () => void;
   rightAction?: {
     label: string;
     onClick: () => void;
@@ -289,7 +289,7 @@ export interface HeaderProps {
 export const Header: React.FC<HeaderProps> = ({
   canGoBack,
   onBack,
-  onLogoClick, // 👈 2. Lo recibimos aquí
+  onLogoClick,
   rightAction,
   extraContent,
   name,
@@ -311,7 +311,7 @@ export const Header: React.FC<HeaderProps> = ({
     <div
       className="hdr-brand"
       onClick={onLogoClick}
-      style={{ cursor: onLogoClick ? "pointer" : "default" }} // 👈 3. Le ponemos la manita al pasar el ratón
+      style={{ cursor: onLogoClick ? "pointer" : "default" }}
     >
       <div className="hdr-logo">L</div>
       <div>
