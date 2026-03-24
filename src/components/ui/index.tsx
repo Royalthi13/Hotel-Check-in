@@ -218,7 +218,7 @@ export const DotsProgress: React.FC<{
       const isActive = i === activeIndex;
       const isDone = i <= maxReachable && !isActive;
       const isFuture = i > maxReachable;
-      let className =
+      const className =
         "dot" +
         (isActive
           ? " dot-active"

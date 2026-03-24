@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Header, DotsProgress, Icon, ReservationCard } from "../components/ui";
 import type { CheckinNav, CheckinActions, StepId, Reserva } from "../types";
@@ -58,24 +58,21 @@ export const AppShell: React.FC<AppShellProps> = ({
   const { t } = useTranslation();
   const activeStep = getActiveSideStep(nav.step);
   const activeIdx = SIDE_STEPS.findIndex((s) => s.id === activeStep);
-
   const [maxDotReached, setMaxDotReached] = useState(() =>
     nav.dotIndex >= 0 && nav.step !== "revision" && nav.step !== "exito"
       ? nav.dotIndex
       : 0,
   );
 
-  // Mantenemos el progreso de los "Dots" actualizado sin errores de renderizado
-  useEffect(() => {
-    if (
-      nav.dotIndex > maxDotReached &&
-      nav.step !== "exito" &&
-      (nav.step !== "revision" ||
-        (nav.allowedSteps && nav.allowedSteps.has("form_extras")))
-    ) {
-      setMaxDotReached(nav.dotIndex);
-    }
-  }, [nav.dotIndex, nav.step, nav.allowedSteps, maxDotReached]);
+  // Derivación de estado segura en React 18+ (Sin useEffect)
+  if (
+    nav.dotIndex > maxDotReached &&
+    nav.step !== "exito" &&
+    (nav.step !== "revision" ||
+      (nav.allowedSteps && nav.allowedSteps.has("form_extras")))
+  ) {
+    setMaxDotReached(nav.dotIndex);
+  }
 
   // Lógica de navegación: Solo permite ir a pasos ya visitados (desbloqueados)
   const isStepUnlocked = (stepId: StepId) => {

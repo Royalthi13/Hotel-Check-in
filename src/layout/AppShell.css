@@ -342,7 +342,7 @@
 /* ════════════════════════════════════════════════════════════════════════
    BOTÓN DE ATRÁS (Header / Top Left)
    ════════════════════════════════════════════════════════════════════════ */
-.btn-back {
+.hdr-back {
   background: rgba(255, 255, 255, 0.08);
   border: 1px solid rgba(255, 255, 255, 0.14);
   color: rgba(255, 255, 255, 0.85);
@@ -351,8 +351,8 @@
   justify-content: center;
   gap: 8px;
   height: 38px;
-  padding: 0 16px 0 12px; /* Un poco menos de padding a la izquierda para compensar la flecha */
-  border-radius: 999px; /* Forma de pastilla perfecta */
+  padding: 0 16px 0 12px;
+  border-radius: 999px;
   font-family: "DM Sans", sans-serif;
   font-size: 13px;
   font-weight: 500;
@@ -362,66 +362,21 @@
   outline: none;
 }
 
-/* Efecto Hover: se ilumina y se mueve un pelín a la izquierda */
-.btn-back:hover {
+.hdr-back:hover {
   background: rgba(255, 255, 255, 0.16);
   color: #ffffff;
   border-color: rgba(255, 255, 255, 0.25);
   transform: translateX(-3px);
 }
 
-.btn-back svg,
-.btn-back i {
+.hdr-back svg,
+.hdr-back i {
   font-size: 16px;
   width: 16px;
   height: 16px;
   fill: currentColor;
   transition: transform 0.2s ease;
 }
-
-/* ════════════════════════════════════════════════════════════════════════
-   3. AJUSTES MÓVIL CRÍTICOS (< 480px)
-   ════════════════════════════════════════════════════════════════════════ */
-@media (max-width: 479px) {
-  /* ✅ SOLO QUITAR LAS LETRAS DE IDIOMAS */
-  .lang-code {
-    display: none !important;
-  }
-
-  .lang-btn {
-    padding: 0 10px !important; /* Más estrecho para ganar aire */
-    gap: 6px !important;
-  }
-
-  .hdr {
-    padding-left: 16px !important;
-    padding-right: 16px !important;
-  }
-
-  /* Evitar que el título choque con los botones */
-  .hdr-brand {
-    margin: 0 8px;
-  }
-
-  .hdr-side {
-    min-width: 44px;
-  }
-
-  .hdr-sub {
-    display: none;
-  }
-}
-
-@media (min-width: 1024px) {
-  .hdr-action {
-    display: none !important;
-  }
-}
-
-/* ════════════════════════════════════════════════════════════════════════
-   4. SELECTOR DE IDIOMAS (Modal en Móvil)
-   ════════════════════════════════════════════════════════════════════════ */
-
 /* ════════════════════════════════════════════════════════════════════════
    4. SELECTOR DE IDIOMAS (Modal en Móvil)
    ════════════════════════════════════════════════════════════════════════ */
