@@ -1,7 +1,13 @@
 import React, { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { Header, DotsProgress, Icon, ReservationCard } from "../components/ui";
-import type { CheckinNav, CheckinActions, StepId, Reserva, PartialGuestData } from "../types";
+import type {
+  CheckinNav,
+  CheckinActions,
+  StepId,
+  Reserva,
+  PartialGuestData,
+} from "../types";
 import { motion, AnimatePresence } from "framer-motion";
 import { LanguageSelector } from "../components/LanguageSelector";
 import "@/App.css";
@@ -135,11 +141,14 @@ export const AppShell: React.FC<AppShellProps> = ({
         <Header
           canGoBack={nav.canGoBack}
           onBack={actions.goBack}
+          onLogoClick={() => actions.goTo("inicio", "back", 0)}
           extraContent={<LanguageSelector />}
           name={reserva?.confirmacion}
           room={reserva?.habitacion}
           rightAction={
-            onGoToRevision && activeStep !== "revision" && activeStep !== "exito"
+            onGoToRevision &&
+            activeStep !== "revision" &&
+            activeStep !== "exito"
               ? {
                   label: t("common.summary"),
                   icon: "clipboard",
@@ -164,7 +173,11 @@ export const AppShell: React.FC<AppShellProps> = ({
           {/* Panel Lateral Desktop */}
           <aside className="side-panel">
             <div className="side-panel-inner">
-              <div className="sp-logo">
+              <div
+                className="sp-logo"
+                onClick={() => actions.goTo("inicio", "back", 0)}
+                style={{ cursor: "pointer" }}
+              >
                 <span>Lumina</span>
                 <em>Hotels</em>
               </div>
@@ -215,9 +228,13 @@ export const AppShell: React.FC<AppShellProps> = ({
                 {SIDE_STEPS.map((s, i) => {
                   const isActive = i === activeIdx;
                   const isUnlocked = isStepUnlocked(s.id, i);
-                  const isClickable = isUnlocked && !isActive && s.id !== "exito";
+                  const isClickable =
+                    isUnlocked && !isActive && s.id !== "exito";
                   const isDone =
-                    isUnlocked && !isActive && s.id !== "revision" && s.id !== "exito";
+                    isUnlocked &&
+                    !isActive &&
+                    s.id !== "revision" &&
+                    s.id !== "exito";
 
                   return (
                     <div
@@ -226,7 +243,11 @@ export const AppShell: React.FC<AppShellProps> = ({
                         isClickable &&
                         (nav.dotSteps.indexOf(s.id) !== -1
                           ? actions.goToDotIndex(nav.dotSteps.indexOf(s.id))
-                          : actions.goTo(s.id, i < activeIdx ? "back" : "forward", 0))
+                          : actions.goTo(
+                              s.id,
+                              i < activeIdx ? "back" : "forward",
+                              0,
+                            ))
                       }
                       className={[
                         "sp-step",
@@ -242,7 +263,11 @@ export const AppShell: React.FC<AppShellProps> = ({
                       }}
                     >
                       <div className="sp-step-num">
-                        {isDone ? <Icon name="check" size={12} color="#fff" /> : i + 1}
+                        {isDone ? (
+                          <Icon name="check" size={12} color="#fff" />
+                        ) : (
+                          i + 1
+                        )}
                       </div>
                       <span className="sp-step-label">
                         {t(`constants.steps.${s.id}`)}

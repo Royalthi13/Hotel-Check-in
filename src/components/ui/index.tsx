@@ -269,11 +269,12 @@ export const ConfirmBlock: React.FC<{
 );
 
 // ═══════════════════════════════════════════════════════════════════════════
-// HEADER (SOLO ICONO EN MÓVIL)
+// HEADER
 // ═══════════════════════════════════════════════════════════════════════════
 export interface HeaderProps {
   canGoBack: boolean;
   onBack: () => void;
+  onLogoClick?: () => void; // 👈 1. Añadimos esta nueva función
   rightAction?: {
     label: string;
     onClick: () => void;
@@ -288,6 +289,7 @@ export interface HeaderProps {
 export const Header: React.FC<HeaderProps> = ({
   canGoBack,
   onBack,
+  onLogoClick, // 👈 2. Lo recibimos aquí
   rightAction,
   extraContent,
   name,
@@ -305,8 +307,12 @@ export const Header: React.FC<HeaderProps> = ({
       )}
     </div>
 
-    {/* Slot 2: Brand (Centro) */}
-    <div className="hdr-brand">
+    {/* Slot 2: Brand (Centro) - AHORA ES CLICABLE */}
+    <div
+      className="hdr-brand"
+      onClick={onLogoClick}
+      style={{ cursor: onLogoClick ? "pointer" : "default" }} // 👈 3. Le ponemos la manita al pasar el ratón
+    >
       <div className="hdr-logo">L</div>
       <div>
         <div className="hdr-name">{name || "Lumina"}</div>
@@ -316,25 +322,20 @@ export const Header: React.FC<HeaderProps> = ({
 
     {/* Slot 3: Acciones (Derecha) */}
     <div className="hdr-side hdr-actions-group">
-      {extraContent} {/* Selector de idiomas */}
+      {extraContent}
+
       {rightAction ? (
         <button
           type="button"
           className="hdr-action"
           onClick={rightAction.onClick}
           disabled={rightAction.disabled}
-          title={
-            rightAction.label
-          } /* Para que si dejas el ratón encima en tablet, salga un cartelito */
-          style={{
-            padding: "0",
-            width: "38px",
-          }} /* Lo hacemos un circulito perfecto para el icono */
+          title={rightAction.label}
+          style={{ padding: "0", width: "38px" }}
         >
           {rightAction.icon && (
             <Icon name={rightAction.icon} size={16} color="#fff" />
           )}
-          {/* Hemos borrado el <span> del texto para que solo salga el icono */}
         </button>
       ) : (
         !extraContent && <div style={{ width: 62 }} />
