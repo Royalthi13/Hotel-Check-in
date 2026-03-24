@@ -228,27 +228,43 @@ export const AppShell: React.FC<AppShellProps> = ({
                 {SIDE_STEPS.map((s, i) => {
                   const isActive = i === activeIdx;
                   const isUnlocked = isStepUnlocked(s.id, i);
-                  const isClickable =
-                    isUnlocked && !isActive && s.id !== "exito";
-                  const isDone =
-                    isUnlocked &&
+
+                  const isRevision = s.id === "revision";
+                  const canGoToRevision =
+                    isRevision &&
+                    !!onGoToRevision &&
                     !isActive &&
-                    s.id !== "revision" &&
-                    s.id !== "exito";
+                    activeStep !== "exito";
+
+                  const isClickable =
+                    canGoToRevision ||
+                    (isUnlocked && !isActive && s.id !== "exito");
+
+                  const isDone =
+                    isUnlocked && !isActive && !isRevision && s.id !== "exito";
 
                   return (
                     <div
                       key={s.id}
-                      onClick={() =>
-                        isClickable &&
-                        (nav.dotSteps.indexOf(s.id) !== -1
-                          ? actions.goToDotIndex(nav.dotSteps.indexOf(s.id))
-                          : actions.goTo(
+                      onClick={() => {
+                        if (canGoToRevision) {
+                          onGoToRevision();
+                          return;
+                        }
+
+                        if (isClickable) {
+                          const dotIdxInNav = nav.dotSteps.indexOf(s.id);
+                          if (dotIdxInNav !== -1) {
+                            actions.goToDotIndex(dotIdxInNav);
+                          } else {
+                            actions.goTo(
                               s.id,
                               i < activeIdx ? "back" : "forward",
                               0,
-                            ))
-                      }
+                            );
+                          }
+                        }
+                      }}
                       className={[
                         "sp-step",
                         isActive ? "sp-step--active" : "",
@@ -259,7 +275,7 @@ export const AppShell: React.FC<AppShellProps> = ({
                         .join(" ")}
                       style={{
                         cursor: isClickable ? "pointer" : "default",
-                        opacity: isUnlocked ? 1 : 0.4,
+                        opacity: isUnlocked || canGoToRevision ? 1 : 0.4,
                       }}
                     >
                       <div className="sp-step-num">
