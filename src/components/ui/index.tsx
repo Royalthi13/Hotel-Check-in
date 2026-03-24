@@ -185,7 +185,7 @@ export type AlertVariant = "info" | "ok" | "err" | "warm";
 export interface AlertProps {
   variant?: AlertVariant;
   icon?: IconName;
-  
+
   children: React.ReactNode;
   style?: React.CSSProperties;
 }
@@ -269,13 +269,18 @@ export const ConfirmBlock: React.FC<{
 );
 
 // ═══════════════════════════════════════════════════════════════════════════
-// HEADER (CORREGIDO)
+// HEADER (SOLO ICONO EN MÓVIL)
 // ═══════════════════════════════════════════════════════════════════════════
 export interface HeaderProps {
   canGoBack: boolean;
   onBack: () => void;
- rightAction?: { label: string; onClick: () => void; icon?: IconName; disabled?: boolean };
-  extraContent?: React.ReactNode; // 👈 Nuevo Slot
+  rightAction?: {
+    label: string;
+    onClick: () => void;
+    icon?: IconName;
+    disabled?: boolean;
+  };
+  extraContent?: React.ReactNode;
   name?: string;
   room?: string;
 }
@@ -293,7 +298,7 @@ export const Header: React.FC<HeaderProps> = ({
     <div className="hdr-side">
       {canGoBack ? (
         <button type="button" className="hdr-back" onClick={onBack}>
-          <Icon name="left" size={15} /> Atrás
+          <Icon name="left" size={15} /> <span>Atrás</span>
         </button>
       ) : (
         <div style={{ width: 62 }} />
@@ -311,16 +316,25 @@ export const Header: React.FC<HeaderProps> = ({
 
     {/* Slot 3: Acciones (Derecha) */}
     <div className="hdr-side hdr-actions-group">
-      {extraContent} {/* 👈 Aquí irá el selector de idiomas */}
+      {extraContent} {/* Selector de idiomas */}
       {rightAction ? (
         <button
           type="button"
           className="hdr-action"
           onClick={rightAction.onClick}
+          disabled={rightAction.disabled}
+          title={
+            rightAction.label
+          } /* Para que si dejas el ratón encima en tablet, salga un cartelito */
+          style={{
+            padding: "0",
+            width: "38px",
+          }} /* Lo hacemos un circulito perfecto para el icono */
         >
           {rightAction.icon && (
-            <Icon name={rightAction.icon} size={14} color="#fff" />
+            <Icon name={rightAction.icon} size={16} color="#fff" />
           )}
+          {/* Hemos borrado el <span> del texto para que solo salga el icono */}
         </button>
       ) : (
         !extraContent && <div style={{ width: 62 }} />
@@ -328,7 +342,9 @@ export const Header: React.FC<HeaderProps> = ({
     </div>
   </div>
 );
-
+// ═══════════════════════════════════════════════════════════════════════════
+// RESERVATION CARD & LOADING SPINNER
+// ═══════════════════════════════════════════════════════════════════════════
 export const ReservationCard: React.FC<{ reserva: Reserva }> = ({
   reserva,
 }) => (

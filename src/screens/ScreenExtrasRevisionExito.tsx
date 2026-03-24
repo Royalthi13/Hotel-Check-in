@@ -164,7 +164,9 @@ export const ScreenRevision: React.FC<RevisionProps> = ({
                 ],
                 ...(g.esMenor && (g.relacionesConAdultos ?? []).length > 0
                   ? (g.relacionesConAdultos ?? []).map((r) => {
-                      const label = t("review.relation_adult", { count: r.adultoIndex + 1 });
+                      const label = t("review.relation_adult", {
+                        count: r.adultoIndex + 1,
+                      });
                       const value = (r.parentesco ?? "").trim()
                         ? t(`constants.parentescos.${r.parentesco}`)
                         : "—";
@@ -236,13 +238,7 @@ export const ScreenRevision: React.FC<RevisionProps> = ({
           checked={isConfirmed}
           onChange={(e) => setIsConfirmed(e.target.checked)}
         />
-        <label htmlFor="chk-accept">
-          {t("review.rgpd_long_1")}
-          <a href="#">{t("review.rgpd_long_2")}</a>
-          {t("review.rgpd_long_3")}
-          <a href="#">{t("review.rgpd_long_4")}</a>
-          {t("review.rgpd_long_5")}
-        </label>
+        <label htmlFor="chk-accept">{t("review.confirm_data_only")}</label>
       </div>
 
       <div className="spacer" />
@@ -256,7 +252,10 @@ export const ScreenRevision: React.FC<RevisionProps> = ({
         >
           {isSubmitting ? (
             <>
-              <div className="spinner" style={{ width: 18, height: 18, borderWidth: 2 }} />
+              <div
+                className="spinner"
+                style={{ width: 18, height: 18, borderWidth: 2 }}
+              />
               {t("review.btn_sending")}
             </>
           ) : (
@@ -312,11 +311,25 @@ export const ScreenExito: React.FC<ExitoProps> = ({
               "Los datos se han guardado correctamente. Comparta este enlace con el resto de acompañantes para que completen su registro de forma rápida y segura.",
           })}
         </p>
-        <div style={{ marginTop: 24, width: "100%", display: "flex", flexDirection: "column", gap: 10 }}>
-          <Button variant="primary" onClick={handleCopyLink} iconLeft={copied ? "check" : undefined}>
+        <div
+          style={{
+            marginTop: 24,
+            width: "100%",
+            display: "flex",
+            flexDirection: "column",
+            gap: 10,
+          }}
+        >
+          <Button
+            variant="primary"
+            onClick={handleCopyLink}
+            iconLeft={copied ? "check" : undefined}
+          >
             {copied
               ? t("common.copied", { defaultValue: "¡Enlace copiado!" })
-              : t("common.copy_link", { defaultValue: "Copiar enlace para compartir" })}
+              : t("common.copy_link", {
+                  defaultValue: "Copiar enlace para compartir",
+                })}
           </Button>
         </div>
       </div>
@@ -365,21 +378,36 @@ export const ScreenExito: React.FC<ExitoProps> = ({
           {main.tipoDoc && (
             <div className="si-row">
               <span>{t("forms.doc_title")}</span>
-              <span>{t(`constants.documentos.${main.tipoDoc}`)} · {main.numDoc}</span>
+              <span>
+                {t(`constants.documentos.${main.tipoDoc}`)} · {main.numDoc}
+              </span>
             </div>
           )}
           {horaLlegada && horaLlegada !== "No especificada" && (
             <div className="si-row">
               <span>{t("success.expected_arrival")}</span>
               <span>
-                {horaLlegada.includes(":") ? horaLlegada : t(`constants.horas.${horaLlegada}`)}
+                {horaLlegada.includes(":")
+                  ? horaLlegada
+                  : t(`constants.horas.${horaLlegada}`)}
               </span>
             </div>
           )}
         </div>
 
-        <div style={{ width: "100%", display: "flex", flexDirection: "column", gap: 10 }}>
-          <Button variant="primary" style={{ background: "var(--secondary)" }} onClick={() => window.print()}>
+        <div
+          style={{
+            width: "100%",
+            display: "flex",
+            flexDirection: "column",
+            gap: 10,
+          }}
+        >
+          <Button
+            variant="primary"
+            style={{ background: "var(--secondary)" }}
+            onClick={() => window.print()}
+          >
             <Icon name="check" size={16} /> {t("success.btn_print")}
           </Button>
           {(!horaLlegada || horaLlegada === "No especificada") && onAddHora && (
