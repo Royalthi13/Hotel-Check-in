@@ -122,6 +122,7 @@
     "required_relationship": "Debe indicar el parentesco del menor con los acompañantes",
     "required_email": "El email es obligatorio",
     "invalid_email": "Email no válido (ejemplo: usuario@email.com)",
+    "invalid_doc_support": "Formato de número de soporte no válido.",
     "required_phone": "El teléfono es obligatorio",
     "invalid_phone": "El teléfono debe tener entre 9 y 15 dígitos y puede incluir el prefijo +.",
     "required_country": "El país es obligatorio",
@@ -280,6 +281,11 @@
     "requests_info": "Las peticiones son orientativas. El hotel hará lo posible por atenderlas, aunque no pueden garantizarse de antemano.",
     "review_data_title": "Revise sus datos",
     "review_data_sub": "Compruebe que toda la información es correcta antes de confirmar el pre check-in.",
+    "rgpd_long_1": "He leído y acepto la ",
+    "rgpd_long_2": "política de privacidad",
+    "rgpd_long_3": " y los ",
+    "rgpd_long_4": "términos y condiciones",
+    "rgpd_long_5": ".",
     "main_guest_personal": "Huésped principal — datos personales",
     "companion_personal": "Acompañante {{count}} — datos personales",
     "main_guest_doc": "Huésped principal — documento",
@@ -340,6 +346,16 @@
     "relation_with": "Relación con {{name}}",
     "select_relationship": "— Seleccionar parentesco —",
     "mandatory_legal_field": "Este campo es obligatorio por ley"
+  },"guestsCount": {
+    "title_booking": "¿Cuántas personas se alojarán?",
+    "title_manual": "¿Cuántas personas son en total?",
+    "subtitle_booking": "Según su reserva, esperamos a",
+    "subtitle_manual": "Indique el número total de huéspedes.",
+    "total": "Total de personas",
+    "btn_continue": "Continuar",
+    "max_limit": "El límite máximo es 10.",
+    "person_singular": "persona",
+    "person_plural": "personas"
   },
   "legal": {
     "title": "Información Legal y Privacidad",

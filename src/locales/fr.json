@@ -129,6 +129,7 @@
     "required_doc_support": "Le numéro de support est obligatoire pour le CNI et le NIE",
     "required_doc_num": "Le numéro de document est obligatoire",
     "required_email_or_phone": "Veuillez saisir au moins un e-mail ou un téléphone",
+    "invalid_doc_support": "Format du numéro de support invalide.",
     "invalid_dni": "CNI invalide. Format : 8 chiffres + lettre",
     "invalid_nie": "NIE invalide. Format : X/Y/Z + 7 chiffres + lettre",
     "invalid_passport": "Passeport invalide. Format : 3 lettres + 6 chiffres",
@@ -279,6 +280,11 @@
     "requests_info": "L'hôtel fera de son mieux pour satisfaire vos demandes, mais elles ne sont pas garanties.",
     "review_data_title": "Vérifiez vos données",
     "review_data_sub": "Vérifiez que toutes les informations sont correctes.",
+    "rgpd_long_1": "J'ai lu et j'accepte la ",
+    "rgpd_long_2": "politique de confidentialité",
+    "rgpd_long_3": " et les ",
+    "rgpd_long_4": "termes et conditions",
+    "rgpd_long_5": ".",
     "main_guest_personal": "Titulaire — données personnelles",
     "companion_personal": "Accompagnateur {{count}} — données personnelles",
     "main_guest_doc": "Titulaire — document",
@@ -339,6 +345,17 @@
     "relation_with": "Relation avec {{name}}",
     "select_relationship": "— Sélectionner la parenté —",
     "mandatory_legal_field": "Ce champ est obligatoire selon la loi"
+  },
+  "guestsCount": {
+    "title_booking": "Combien de personnes vont séjourner ?",
+    "title_manual": "Combien de personnes au total ?",
+    "subtitle_booking": "Selon votre réservation, nous attendons",
+    "subtitle_manual": "Indiquez le nombre total de personnes.",
+    "total": "Total de personnes",
+    "btn_continue": "Continuer",
+    "max_limit": "La limite maximale est de 10.",
+    "person_singular": "personne",
+    "person_plural": "personnes"
   },
   "legal": {
     "title": "Informations Légales et Confidentialité",

@@ -117,6 +117,7 @@
     "required_gender": "Geschlecht angeben",
     "required_birthdate": "Geburtsdatum ist erforderlich",
     "invalid_birthdate": "Ungültiges Datum",
+    "invalid_doc_support": "Ungültiges Format für die Zusatznummer.",
     "future_birthdate": "Geburtsdatum darf nicht in der Zukunft liegen",
     "old_birthdate": "Gültiges Jahr eingeben (z.B. 1980)",
     "required_relationship": "Verwandtschaftsgrad muss angegeben werden",
@@ -266,6 +267,11 @@
     "rev_title": "Zusammenfassung des Check-ins",
     "rev_all_ready": "✓ Alle Gäste sind bereit.",
     "rev_missing": "Fehlende Daten von {{count}} Personen.",
+    "rgpd_long_1": "Ich habe die ",
+    "rgpd_long_2": "Datenschutzrichtlinie",
+    "rgpd_long_3": " und die ",
+    "rgpd_long_4": "Allgemeinen Geschäftsbedingungen",
+    "rgpd_long_5": " gelesen und akzeptiere sie.",
     "pending": "Noch ausstehend:",
     "fill_now": "JETZT AUSFÜLLEN",
     "links": "Verbindungen",
@@ -339,6 +345,17 @@
     "relation_with": "Verwandtschaft mit {{name}}",
     "select_relationship": "— Verwandtschaft wählen —",
     "mandatory_legal_field": "Dieses Feld ist gesetzlich vorgeschrieben"
+  },
+  "guestsCount": {
+    "title_booking": "Wie viele Personen werden übernachten?",
+    "title_manual": "Wie viele Personen insgesamt?",
+    "subtitle_booking": "Laut Ihrer Buchung erwarten wir",
+    "subtitle_manual": "Geben Sie die Gesamtzahl der Gäste an.",
+    "total": "Personen insgesamt",
+    "btn_continue": "Weiter",
+    "max_limit": "Das Maximum ist 10.",
+    "person_singular": "Person",
+    "person_plural": "Personen"
   },
   "legal": {
     "title": "Rechtliche Informationen & Datenschutz",

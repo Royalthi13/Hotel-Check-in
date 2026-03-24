@@ -124,6 +124,7 @@
     "invalid_email": "Email inválido (exemplo: utilizador@email.com)",
     "required_phone": "O telefone é obrigatório",
     "invalid_phone": "O telefone deve ter entre 9 e 15 dígitos.",
+    "invalid_doc_support": "Formato de número de suporte inválido.",
     "required_country": "O país é obrigatório",
     "required_doc_type": "Selecione o tipo de documento",
     "required_doc_support": "O número de suporte é obrigatório para Cartão de Cidadão e NIE",
@@ -266,6 +267,11 @@
     "rev_title": "Resumo do Check-in",
     "rev_all_ready": "✓ Todos os hóspedes estão prontos.",
     "rev_missing": "Faltam dados de {{count}} pessoas.",
+    "rgpd_long_1": "Li e aceito a ",
+    "rgpd_long_2": "política de privacidade",
+    "rgpd_long_3": " e os ",
+    "rgpd_long_4": "termos e condições",
+    "rgpd_long_5": ".",
     "pending": "Pendentes de preencher:",
     "fill_now": "PREENCHER AGORA",
     "links": "Ligações",
@@ -339,6 +345,17 @@
     "relation_with": "Relação com {{name}}",
     "select_relationship": "— Selecionar parentesco —",
     "mandatory_legal_field": "Este campo é obrigatório por lei"
+  },
+  "guestsCount": {
+    "title_booking": "Quantas pessoas vão ficar?",
+    "title_manual": "Quantas pessoas no total?",
+    "subtitle_booking": "De acordo com a sua reserva, esperamos",
+    "subtitle_manual": "Indique o número total de hóspedes.",
+    "total": "Total de pessoas",
+    "btn_continue": "Continuar",
+    "max_limit": "O limite máximo é 10.",
+    "person_singular": "pessoa",
+    "person_plural": "pessoas"
   },
   "legal": {
     "title": "Informação Legal e Privacidade",
