@@ -1,73 +1,54 @@
-# React + TypeScript + Vite
+# 🏨 Lumina Hotels - Pre-Check-in Online
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Plataforma web React para la gestión del pre-check-in online y quioscos físicos de Lumina Hotels. Permite a los huéspedes confirmar sus datos, añadir acompañantes (incluyendo declaración legal de menores), subir documentos y configurar sus preferencias antes de su llegada al hotel.
 
-Currently, two official plugins are available:
+## 🚀 Tecnologías Principales
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- **Core:** React 19 + TypeScript + Vite
+- **Enrutamiento:** React Router DOM v7
+- **Estilos y UI:** CSS Modules (Variables CSS Globales), Material-UI (MUI v7), Emotion, Framer Motion (animaciones de transiciones)
+- **Internacionalización:** i18next (Soporte para ES, EN, FR, DE, PT)
+- **Manejo de Fechas:** Day.js
+- **Mocking de API (Desarrollo):** MSW (Mock Service Worker)
 
-## React Compiler
+## 🎨 Sistema de Diseño y Paleta de Colores
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+El proyecto utiliza un sistema de diseño basado en variables CSS (definidas en `src/App.css` y tipadas en `src/constants/index.ts`).
 
-## Expanding the ESLint configuration
+### Colores Principales
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+- 🟠 **Primary:** `#fa865c` (Naranja coral)
+  - Dark: `#e5704a` | Light (Fondo): `#fef0ea`
+- 🔵 **Secondary:** `#324154` (Azul marino/Pizarra)
+  - Mid: `#4a5a6e` | Light: `#6a7a8e`
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+### Fondos y Superficies
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+- ⚪ **Background Base:** `#e5e2dd` (Gris cálido claro)
+- ⬜ **Cards/White:** `#ffffff`
+- 🔘 **Bordes:** `#d0cbc4` (Normal) | `#e8e4de` (Light)
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+### Estados y Alertas
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+- ✅ **Éxito (OK):** `#2d7a50` | Fondo: `#edf7f1`
+- ❌ **Error:** `#c0392b` | Fondo: `#fdf2f2`
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+### Tipografía
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+- **Titulares:** `Cormorant Garamond` (Elegante, estilo hotel boutique)
+- **Cuerpo / UI:** `DM Sans` (Limpia, moderna, altamente legible)
+
+## 📂 Arquitectura del Proyecto
+
+```text
+src/
+├── assets/         # Imágenes estáticas y SVGs
+├── components/     # Componentes UI reutilizables (ErrorBoundary, LanguageSelector, index.tsx con iconos)
+├── constants/      # Constantes globales (Países, Docs, Colores, Steps del Wizard)
+├── hooks/          # Custom hooks (Lógica de estado del check-in, validación de formularios, debounce, APIs externas)
+├── layout/         # Componentes estructurales (AppShell con navegación lateral y animaciones)
+├── locales/        # Archivos JSON con las traducciones (i18n)
+├── mocks/          # MSW handlers para simular respuestas del servidor (desarrollo)
+├── screens/        # Vistas de la aplicación separadas por paso del wizard
+└── types/          # Definiciones de interfaces TypeScript
 ```

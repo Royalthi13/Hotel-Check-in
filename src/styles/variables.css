@@ -1,0 +1,72 @@
+:root {
+  --primary: #fa865c;
+  --primary-d: #e5704a;
+  --primary-lt: #fef0ea;
+  --secondary: #324154;
+  --sec-mid: #4a5a6e;
+  --bg: #e5e2dd;
+  --white: #ffffff;
+  --border: #d0cbc4;
+  --border-lt: #e8e4de;
+  --text: #1e2c3a;
+  --text-mid: #4a5a6a;
+  --text-low: #8a9aaa;
+  --ok: #2d7a50;
+  --ok-bg: #edf7f1;
+  --err: #c0392b;
+  --err-bg: #fdf2f2;
+  --r: 10px;
+  --r-lg: 16px;
+  --r-xl: 22px;
+  --fs-xs: 11px;
+  --fs-sm: 13px;
+  --fs-md: 15px;
+  --fs-lg: 18px;
+  --fs-xl: 22px;
+  --fs-2xl: 30px;
+  --fs-3xl: 40px;
+  --px: 20px;
+  --input-h: 46px;
+  --z-header: 30;
+  --z-dropdown: 9999;
+  --z-suggest: 2000;
+  --z-tooltip: 50;
+}
+@media (min-width: 480px) {
+  :root {
+    --px: 28px;
+    --fs-2xl: 34px;
+    --fs-3xl: 46px;
+    --input-h: 50px;
+  }
+}
+@media (min-width: 768px) {
+  :root {
+    --px: 40px;
+    --fs-xs: 12px;
+    --fs-sm: 14px;
+    --fs-md: 15px;
+    --fs-lg: 19px;
+    --fs-xl: 24px;
+    --fs-2xl: 38px;
+    --fs-3xl: 52px;
+    --r: 12px;
+    --r-lg: 20px;
+    --r-xl: 28px;
+    --input-h: 52px;
+  }
+}
+@media (min-width: 1024px) {
+  :root {
+    --px: 48px;
+    --fs-2xl: 40px;
+    --fs-3xl: 54px;
+    --input-h: 52px;
+    --z-header: 40;
+  }
+}
+@media (min-width: 1440px) {
+  :root {
+    --px: 64px;
+  }
+}

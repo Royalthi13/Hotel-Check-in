@@ -1,8 +1,9 @@
-// ⚠️  IMPORTANTE: este archivo DEBE tener extensión .tsx, no .ts
-//    En tu proyecto renómbralo si VS Code lo creó como index.ts
-
 import React from "react";
-import type { Reserva } from "../../types"; // ← import al principio, no al final
+import type { Reserva } from "../../types";
+import "@/components/ui/buttons.css";
+import "@/components/ui/forms.css";
+import "@/components/ui/alerts.css";
+import "@/components/ui/misc.css";
 
 // ═══════════════════════════════════════════════════════════════════════════
 // ICON NAMES
@@ -12,6 +13,7 @@ export type IconName =
   | "right"
   | "check"
   | "checkC"
+  | "clipboard"
   | "scan"
   | "upload"
   | "camera"
@@ -96,17 +98,11 @@ const PATHS: Record<IconName, string[]> = {
   plus: ["M12 5v14", "M5 12h14"],
   minus: ["M5 12h14"],
   hotel: ["M3 22V6l9-4 9 4v16", "M9 22V12h6v10", "M12 2v4"],
+  clipboard: [
+    "M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2",
+    "M9 2h6v4H9z",
+  ],
 };
-
-// ═══════════════════════════════════════════════════════════════════════════
-// ICON
-// ═══════════════════════════════════════════════════════════════════════════
-export interface IconProps {
-  name: IconName;
-  size?: number;
-  color?: string;
-  strokeWidth?: number;
-}
 
 export const Icon: React.FC<IconProps> = ({
   name,
@@ -131,16 +127,18 @@ export const Icon: React.FC<IconProps> = ({
   </svg>
 );
 
-// ═══════════════════════════════════════════════════════════════════════════
-// FIELD
-// ═══════════════════════════════════════════════════════════════════════════
+export interface IconProps {
+  name: IconName;
+  size?: number;
+  color?: string;
+  strokeWidth?: number;
+}
 export interface FieldProps {
   label: string;
   required?: boolean;
   error?: string;
   children: React.ReactNode;
 }
-
 export const Field: React.FC<FieldProps> = ({
   label,
   required,
@@ -149,8 +147,7 @@ export const Field: React.FC<FieldProps> = ({
 }) => (
   <div className="field">
     <label>
-      {label}
-      {required && <span className="req">*</span>}
+      {label} {required && <span className="req">*</span>}
     </label>
     {children}
     {error && (
@@ -162,15 +159,11 @@ export const Field: React.FC<FieldProps> = ({
   </div>
 );
 
-// ═══════════════════════════════════════════════════════════════════════════
-// BUTTON
-// ═══════════════════════════════════════════════════════════════════════════
 export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: "primary" | "secondary";
   iconLeft?: IconName;
   iconRight?: IconName;
 }
-
 export const Button: React.FC<ButtonProps> = ({
   variant = "primary",
   iconLeft,
@@ -183,17 +176,12 @@ export const Button: React.FC<ButtonProps> = ({
     className={`btn-${variant}${className ? ` ${className}` : ""}`}
     {...rest}
   >
-    {iconLeft && <Icon name={iconLeft} size={17} />}
-    {children}
+    {iconLeft && <Icon name={iconLeft} size={17} />} {children}{" "}
     {iconRight && <Icon name={iconRight} size={17} />}
   </button>
 );
 
-// ═══════════════════════════════════════════════════════════════════════════
-// ALERT
-// ═══════════════════════════════════════════════════════════════════════════
 export type AlertVariant = "info" | "ok" | "err" | "warm";
-
 export interface AlertProps {
   variant?: AlertVariant;
   icon?: IconName;
@@ -201,14 +189,12 @@ export interface AlertProps {
   children: React.ReactNode;
   style?: React.CSSProperties;
 }
-
 const ALERT_DEFAULT_ICON: Record<AlertVariant, IconName> = {
   info: "info",
   ok: "checkC",
   err: "warn",
   warm: "info",
 };
-
 export const Alert: React.FC<AlertProps> = ({
   variant = "info",
   icon,
@@ -216,78 +202,52 @@ export const Alert: React.FC<AlertProps> = ({
   style,
 }) => (
   <div className={`alert alert-${variant}`} style={style}>
-    <Icon name={icon ?? ALERT_DEFAULT_ICON[variant]} size={14} />
+    <Icon name={icon ?? ALERT_DEFAULT_ICON[variant]} size={14} />{" "}
     <span>{children}</span>
   </div>
 );
 
-// ═══════════════════════════════════════════════════════════════════════════
-// DOTS PROGRESS
-// ═══════════════════════════════════════════════════════════════════════════
-
-interface DotsProgressProps {
+export const DotsProgress: React.FC<{
   steps: string[];
   labels: string[];
   activeIndex: number;
   maxReachable: number;
   onDotClick: (index: number) => void;
-}
+}> = ({ steps, labels, activeIndex, maxReachable, onDotClick }) => (
+  <div className="dots-bar">
+    {steps.map((_, i) => {
+      const isActive = i === activeIndex;
+      const isDone = i <= maxReachable && !isActive;
+      const isFuture = i > maxReachable;
+      const className =
+        "dot" +
+        (isActive
+          ? " dot-active"
+          : isDone
+            ? " dot-done"
+            : isFuture
+              ? " dot-future"
+              : "");
+      return (
+        <button
+          key={i}
+          type="button"
+          className={className}
+          data-label={labels[i] || `Huésped ${i + 1}`}
+          onClick={() => !isFuture && !isActive && onDotClick(i)}
+          disabled={isFuture}
+          tabIndex={-1}
+        />
+      );
+    })}
+  </div>
+);
 
-export const DotsProgress: React.FC<DotsProgressProps> = ({
-  steps,
-  labels,
-  activeIndex,
-  maxReachable,
-  onDotClick,
-}) => {
-  return (
-    <div className="dots-bar">
-      {steps.map((_, i) => {
-        const isActive = i === activeIndex;
-
-        const isDone = i <= maxReachable && !isActive;
-
-        const isFuture = i > maxReachable;
-
-        let className = "dot";
-        if (isActive) className += " dot-active";
-        else if (isDone) className += " dot-done";
-        else if (isFuture) className += " dot-future";
-
-        return (
-          <button
-            key={i}
-            type="button"
-            className={className}
-            data-label={labels[i] || `Huésped ${i + 1}`}
-            onClick={() => {
-              if (!isFuture && !isActive) {
-                onDotClick(i);
-              }
-            }}
-            disabled={isFuture}
-            aria-label={`Ir al paso ${i + 1}`}
-          />
-        );
-      })}
-    </div>
-  );
-};
-
-// ═══════════════════════════════════════════════════════════════════════════
-// CONFIRM BLOCK
-// ═══════════════════════════════════════════════════════════════════════════
-export interface ConfirmBlockProps {
+export const ConfirmBlock: React.FC<{
   title: string;
   rows: Array<[string, string | undefined | null]>;
   onEdit?: () => void;
-}
-
-export const ConfirmBlock: React.FC<ConfirmBlockProps> = ({
-  title,
-  rows,
-  onEdit,
-}) => (
+}> = ({ title, rows, onEdit }) => (
   <div className="confirm-card">
     <div className="confirm-card-hdr">
       <span>{title}</span>
@@ -301,7 +261,7 @@ export const ConfirmBlock: React.FC<ConfirmBlockProps> = ({
       .filter(([, v]) => Boolean(v))
       .map(([label, value]) => (
         <div className="confirm-row" key={label}>
-          <span className="confirm-label">{label}</span>
+          <span className="confirm-label">{label}</span>{" "}
           <span className="confirm-value">{value}</span>
         </div>
       ))}
@@ -309,7 +269,7 @@ export const ConfirmBlock: React.FC<ConfirmBlockProps> = ({
 );
 
 // ═══════════════════════════════════════════════════════════════════════════
-// HEADER
+// HEADER (CORREGIDO)
 // ═══════════════════════════════════════════════════════════════════════════
 export interface HeaderProps {
   canGoBack: boolean;
@@ -361,7 +321,6 @@ export const Header: React.FC<HeaderProps> = ({
           {rightAction.icon && (
             <Icon name={rightAction.icon} size={14} color="#fff" />
           )}
-          {rightAction.label}
         </button>
       ) : (
         !extraContent && <div style={{ width: 62 }} />
@@ -370,39 +329,26 @@ export const Header: React.FC<HeaderProps> = ({
   </div>
 );
 
-// ═══════════════════════════════════════════════════════════════════════════
-// RESERVATION CARD
-// ═══════════════════════════════════════════════════════════════════════════
-export interface ReservationCardProps {
-  reserva: Reserva;
-}
-
-export const ReservationCard: React.FC<ReservationCardProps> = ({
+export const ReservationCard: React.FC<{ reserva: Reserva }> = ({
   reserva,
 }) => (
   <div className="res-card">
     <div className="res-card-eyebrow">Su reserva</div>
     <div className="res-card-name">{reserva.habitacion}</div>
     <div className="res-card-row">
-      <Icon name="calendar" size={13} />
-      {reserva.fechaEntrada} — {reserva.fechaSalida} · {reserva.numNoches}{" "}
-      noches
+      <Icon name="calendar" size={13} /> {reserva.fechaEntrada} —{" "}
+      {reserva.fechaSalida} · {reserva.numNoches} noches
     </div>
     <div className="res-card-row">
-      <Icon name="bed" size={13} />
-      {reserva.numHuespedes}{" "}
+      <Icon name="bed" size={13} /> {reserva.numHuespedes}{" "}
       {reserva.numHuespedes === 1 ? "huésped" : "huéspedes"} ·{" "}
       {reserva.confirmacion}
     </div>
   </div>
 );
 
-// ═══════════════════════════════════════════════════════════════════════════
-// LOADING SPINNER
-// ═══════════════════════════════════════════════════════════════════════════
 export const LoadingSpinner: React.FC<{ text?: string }> = ({ text }) => (
   <div className="loading">
-    <div className="spinner" />
-    {text && <p>{text}</p>}
+    <div className="spinner" /> {text && <p>{text}</p>}
   </div>
 );

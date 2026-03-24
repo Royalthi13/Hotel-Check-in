@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Button, Icon } from "@/components/ui";
+import "@/App.css";
 import {
   Typography,
   Box,
@@ -15,7 +16,8 @@ import {
 import type { Reserva } from "@/types";
 
 interface Props {
-  reserva: Reserva;
+  // ✅ PRO FIX: Ahora acepta que la reserva sea null o undefined
+  reserva?: Reserva | null;
   onNext: (hayMenores: boolean) => void;
 }
 
@@ -34,7 +36,11 @@ export const ScreenCheckinInicio: React.FC<Props> = ({ reserva, onNext }) => {
     ? (legalSections as LegalSection[])
     : [];
 
-  const rData = reserva as unknown as Record<string, unknown>;
+  // ✅ PRO FIX: Valores por defecto seguros si 'reserva' llega como null
+  const confirmacion = reserva?.confirmacion || "---";
+  const numHuespedes = reserva?.numHuespedes || 1;
+  const fEntrada = reserva?.fechaEntrada || "---";
+  const fSalida = reserva?.fechaSalida || "---";
 
   const title1 = t("welcome.title_new_1");
   const title2 = t("welcome.title_new_2");
@@ -83,12 +89,10 @@ export const ScreenCheckinInicio: React.FC<Props> = ({ reserva, onNext }) => {
           }}
         >
           <Typography variant="body2">
-            <strong>{t("welcome.reservation")}:</strong>{" "}
-            {String(rData.confirmacion || rData.localizador || "---")}
+            <strong>{t("welcome.reservation")}:</strong> {confirmacion}
           </Typography>
           <Typography variant="body2">
-            <strong>{t("welcome.guests_booked")}:</strong>{" "}
-            {reserva.numHuespedes}
+            <strong>{t("welcome.guests_booked")}:</strong> {numHuespedes}
           </Typography>
         </Box>
 
@@ -98,7 +102,7 @@ export const ScreenCheckinInicio: React.FC<Props> = ({ reserva, onNext }) => {
             variant="body2"
             sx={{ color: "var(--text-mid)", fontWeight: 500 }}
           >
-            {reserva.fechaEntrada || "---"} — {reserva.fechaSalida || "---"}
+            {fEntrada} — {fSalida}
           </Typography>
         </Box>
 

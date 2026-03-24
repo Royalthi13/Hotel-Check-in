@@ -28,14 +28,12 @@ import {
   ScreenExito,
 } from "@/screens/ScreenExtrasRevisionExito";
 
-import type { Reserva, StepId, PartialGuestData } from "@/types";
+// Importamos 'Reserva' para solucionar el error de tipado del inicio
+import type { StepId, PartialGuestData, Reserva } from "@/types";
 
 const STEPS_WITHOUT_DOTS = new Set<StepId>(["tablet_buscar", "exito"]);
 
 // ── Página de enlace inválido / caducado ──────────────────────────────────────
-// Se muestra cuando el cliente llega a una URL desconocida.
-// Los clientes siempre acceden mediante un enlace personalizado en su email/SMS,
-// nunca deberían ver tablet_buscar.
 function InvalidLink() {
   return (
     <div
@@ -105,8 +103,6 @@ function InvalidLink() {
   );
 }
 
-
-
 function CheckinWizard() {
   const { t } = useTranslation();
   const { token, step } = useParams();
@@ -116,6 +112,7 @@ function CheckinWizard() {
   const [isOffline, setIsOffline] = useState(!navigator.onLine);
   const [isPartialSuccess, setIsPartialSuccess] = useState(false);
 
+  // Estados locales restaurados
   const [legalPassed, setLegalPassed] = useState(
     () => sessionStorage.getItem(`legalPassed_${token}`) === "true",
   );
@@ -164,131 +161,90 @@ function CheckinWizard() {
     updateGuest,
     updateRelacion,
     nextGuest,
-    setRgpdAcepted,
+    
   } = actions;
 
-  const currentStep = nav.step || "bienvenida";
+  const currentStep = nav.step || "inicio";
   const showDots = !STEPS_WITHOUT_DOTS.has(currentStep);
   const isMainGuest = nav.guestIndex === 0;
   const currentGuest = state.guests[nav.guestIndex] ?? {};
 
-  const customNav = {
-    ...nav,
-    canGoBack: nav.canGoBack || (currentStep === "bienvenida" && legalPassed),
-  };
+  const customNav = { ...nav, canGoBack: nav.canGoBack };
 
   const handleSmartGoBack = () => {
-    if (currentStep === "bienvenida" && legalPassed) {
-      setLegalPassed(false);
-    } else {
-      goBack();
-    }
+    goBack();
   };
 
   const handleChooseMethod = (method: "scan" | "manual") => {
     sessionStorage.setItem(`modoFlujo_${token}`, method);
 
     if (hasMinorsFlag) {
-      goTo("num_personas", "forward", 0);
+      goTo("num_personas" as StepId, "forward", 0);
     } else {
       setNumPersonas(state.reserva?.numHuespedes || 1);
       if (method === "scan") {
         goTo("escanear", "forward", 0);
-      
       } else {
         goTo("form_personal", "forward", 0);
       }
     }
   };
 
-  const handleSubmit = async (): Promise<void> => {
+  // Función unificada para guardar (Total o Parcial)
+  const submitToServer = async (isPartial: boolean): Promise<void> => {
     setSubmitError("");
     setIsSubmitting(true);
     try {
+      const payload = {
+        reserva: state.reserva,
+        // CORRECCIÓN 1: Evitamos el "docFile no usado" creando una copia y borrando la propiedad.
+        guests: state.guests.map((g) => {
+          const copia = { ...g };
+          delete copia.docFile;
+          return copia;
+        }),
+        horaLlegada: state.horaLlegada,
+        observaciones: state.observaciones,
+        isPartial,
+      };
+
       const res = await fetch(`/api/checkin/${token}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          reserva: state.reserva,
-          guests: state.guests.map((g) => {
-            const copia = { ...g };
-            delete copia.docFile;
-            return copia;
-          }),
-          horaLlegada: state.horaLlegada,
-          observaciones: state.observaciones,
-          isPartial: false,
-        }),
+        body: JSON.stringify(payload),
       });
 
-      interface CheckinRes {
-        success?: boolean;
-        error?: string;
-      }
-      const data = (await res.json().catch(() => ({}))) as CheckinRes;
-
+      const data = await res.json().catch(() => ({}));
       if (!res.ok || data?.success === false) {
-        throw new Error(data?.error ?? `HTTP ${res.status}`);
+        throw new Error(data?.error || `HTTP ${res.status}`);
       }
 
-      const keysToClear = [
-        `state_${token}`,
-        `history_${token}`,
-        `allowedSteps_${token}`,
-        `legalPassed_${token}`,
-        `hasMinors_${token}`,
-        `modoFlujo_${token}`,
-      ];
-      keysToClear.forEach((key) => sessionStorage.removeItem(key));
+      setIsPartialSuccess(isPartial);
 
-      setIsPartialSuccess(false);
-      goTo("exito", "forward");
+      if (!isPartial) {
+        const keysToClear = [
+          `state_${token}`,
+          `history_${token}`,
+          `allowedSteps_${token}`,
+          `legalPassed_${token}`,
+          `hasMinors_${token}`,
+          `modoFlujo_${token}`,
+        ];
+        keysToClear.forEach((key) => sessionStorage.removeItem(key));
+        goTo("exito", "forward");
+      }
     } catch (err: unknown) {
-      setSubmitError(
-        err instanceof Error ? err.message : t("errorBoundary.title"),
-      );
+      const errMsg =
+        err instanceof Error ? err.message : t("errorBoundary.title");
+      setSubmitError(errMsg);
+      throw err;
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const handlePartialSubmit = async (): Promise<void> => {
-    setSubmitError("");
-    setIsSubmitting(true);
-    try {
-      const res = await fetch(`/api/checkin/${token}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          reserva: state.reserva,
-          guests: state.guests.map((g) => {
-            const copia = { ...g };
-            delete copia.docFile;
-            return copia;
-          }),
-          isPartial: true,
-        }),
-      });
-
-      interface CheckinRes {
-        success?: boolean;
-        error?: string;
-      }
-      const data = (await res.json().catch(() => ({}))) as CheckinRes;
-
-      if (!res.ok || data?.success === false) {
-        throw new Error(data?.error ?? `HTTP ${res.status}`);
-      }
-      setIsPartialSuccess(true);
-      goTo("exito", "forward");
-    } catch (err: unknown) {
-      setSubmitError(
-        err instanceof Error ? err.message : t("errorBoundary.title"),
-      );
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
+  const handleSubmit = () => submitToServer(false);
+  const handlePartialSubmit = () => submitToServer(true);
 
   const lockedContactFields = {
     email: !!state.knownGuest?.email,
@@ -299,7 +255,6 @@ function CheckinWizard() {
     .map((g, i) => ({ ...g, originalIndex: i }))
     .filter((g) => !g.esMenor);
 
-  // ── tablet_buscar: layout especial sin AppShell ───────────────────────────
   if (currentStep === "tablet_buscar") {
     return (
       <div className="shell">
@@ -326,27 +281,19 @@ function CheckinWizard() {
         </div>
       )}
 
-      {currentStep === "bienvenida" && !legalPassed && (
+      {currentStep === "inicio" && (
         <ScreenCheckinInicio
-          reserva={
-            state.reserva ||
-            ({
-              confirmacion: "---",
-              habitacion: "---",
-              fechaEntrada: "",
-              fechaSalida: "",
-              numHuespedes: 1,
-              numNoches: 0,
-            } as unknown as Reserva)
-          }
+          // CORRECCIÓN 2: Tipado fuerte para evitar "any"
+          reserva={state.reserva as unknown as Reserva}
           onNext={(hayMenores: boolean) => {
             setHasMinorsFlag(hayMenores);
             setLegalPassed(true);
+            goTo("bienvenida", "forward");
           }}
         />
       )}
 
-      {currentStep === "bienvenida" && legalPassed && (
+      {currentStep === "bienvenida" && (
         <ScreenBienvenida
           knownGuest={state.knownGuest}
           reserva={state.reserva}
@@ -355,14 +302,14 @@ function CheckinWizard() {
         />
       )}
 
-      {currentStep === "num_personas" && (
+      {/* CORRECCIÓN 3: Casteo a string para que no choque con StepId */}
+      {(currentStep as string) === "num_personas" && (
         <ScreenNumPersonas
           numPersonas={state.numPersonas}
           onChange={setNumPersonas}
           onNext={() => {
             const flujo = sessionStorage.getItem(`modoFlujo_${token}`);
             if (flujo === "scan") goTo("escanear", "forward", 0);
-       
             else goTo("form_personal", "forward", 0);
           }}
           totalFijo={state.reserva?.numHuespedes}
@@ -379,12 +326,11 @@ function CheckinWizard() {
         />
       )}
 
-    
-
       {currentStep === "form_personal" && (
         <ScreenFormPersonal
           data={currentGuest}
           allGuests={state.guests}
+          // CORRECCIÓN 4: "unknown" en lugar de "any"
           onChange={(k: keyof PartialGuestData, v: unknown) =>
             updateGuest(nav.guestIndex, k, v)
           }
@@ -393,15 +339,16 @@ function CheckinWizard() {
           isMainGuest={isMainGuest}
           esMenor={!!currentGuest.esMenor}
           onNext={() => nextGuest(nav.guestIndex, "form_personal")}
-          onPartialSave={handlePartialSubmit}
           isSubmitting={isSubmitting}
           token={token || "new"}
+          onPartialSave={handlePartialSubmit}
         />
       )}
 
       {currentStep === "form_contacto" && (
         <ScreenFormContacto
           data={currentGuest}
+          // CORRECCIÓN 5: "unknown" en lugar de "any"
           onChange={(k: keyof PartialGuestData, v: unknown) =>
             updateGuest(nav.guestIndex, k, v)
           }
@@ -424,9 +371,8 @@ function CheckinWizard() {
           onNext={() => nextGuest(nav.guestIndex, "form_relaciones")}
           onPartialSave={handlePartialSubmit}
           hasNextMinor={
-            state.guests.findIndex(
-              (g, i) => i > nav.guestIndex && g.esMenor,
-            ) >= 0
+            state.guests.findIndex((g, i) => i > nav.guestIndex && g.esMenor) >=
+            0
           }
           isSubmitting={isSubmitting}
         />
@@ -456,7 +402,7 @@ function CheckinWizard() {
               goTo(targetStep as StepId, "back", gIdx)
             }
             onSubmit={handleSubmit}
-            onRgpdChange={setRgpdAcepted}
+            
           />
         </>
       )}
@@ -476,21 +422,13 @@ export default function App() {
   return (
     <BrowserRouter>
       <Routes>
-        {/* LA CLAVE: La raíz "/" ahora te lleva al INICIO del cliente por defecto */}
         <Route path="/" element={<Navigate to="/checkin/99999/bienvenida" replace />} />
-
-        {/* Kiosko de recepción (Uso interno staff) */}
         <Route path="/checkin/kiosko/tablet_buscar" element={<ErrorBoundary><CheckinWizard /></ErrorBoundary>} />
-
-        {/* Flujo cliente (Entrada con token) */}
         <Route path="/checkin/:token" element={<Navigate to="bienvenida" replace />} />
         <Route path="/checkin/:token/:step" element={<ErrorBoundary><CheckinWizard /></ErrorBoundary>} />
-
-        {/* Errores */}
         <Route path="/invalid" element={<InvalidLink />} />
         <Route path="*" element={<InvalidLink />} />
       </Routes>
     </BrowserRouter>
   );
 }
-

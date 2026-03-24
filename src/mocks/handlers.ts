@@ -67,35 +67,34 @@ const MOCK_GUESTS: Record<string, GuestData> = {
   },
 };
 
+// ✨ BASE DE DATOS SIMULADA EN MEMORIA
+// Aquí guardaremos los "Guardar y seguir luego" vinculados al token
+const partialSavesDB = new Map<string, unknown>();
+
 export const handlers = [
   // ── GET /api/checkin/:token ───────────────────────────────────────────────
   // Devuelve el perfil pre-rellenado si existe, null si es huésped nuevo.
-  // ── GET /api/checkin/:token ───────────────────────────────────────────────
-  // Ahora devuelve el Huésped Y la Reserva asociada.
- // handlers.ts
+  http.get("/api/checkin/:token", async ({ params }) => {
+    await delay(800);
+    const token = params.token as string;
 
-http.get("/api/checkin/:token", async ({ params }) => {
-  await delay(800);
-  const token = params.token as string;
+    if (token === "new") {
+      return HttpResponse.json({ status: "new", data: null, reserva: null });
+    }
 
-  if (token === "new") {
-    return HttpResponse.json({ status: "new", data: null, reserva: null });
-  }
+    const guest = MOCK_GUESTS[token] ?? null;
 
-  const guest = MOCK_GUESTS[token] ?? null;
+    // Buscamos la reserva usando directamente el token como clave
+    const reserva = MOCK_RESERVAS[token] || null;
 
-  // ── EL FIX ──
-  // Buscamos la reserva usando directamente el token como clave
-  const reserva = MOCK_RESERVAS[token] || null; 
+    console.log(`[MSW] Buscando reserva para token ${token}:`, reserva);
 
-  console.log(`[MSW] Buscando reserva para token ${token}:`, reserva);
-
-  return HttpResponse.json({
-    status: guest ? "found" : "new",
-    data: guest,
-    reserva: reserva 
-  });
-}),
+    return HttpResponse.json({
+      status: guest ? "found" : "new",
+      data: guest,
+      reserva: reserva,
+    });
+  }),
 
   // ── GET /api/reservas/:id ─────────────────────────────────────────────────
   // Usado por el kiosko de recepción (tablet_buscar).
@@ -115,9 +114,23 @@ http.get("/api/checkin/:token", async ({ params }) => {
   }),
 
   // ── POST /api/checkin/:token ──────────────────────────────────────────────
-  http.post("/api/checkin/:token", async ({ request }) => {
+  http.post("/api/checkin/:token", async ({ request, params }) => {
     await delay(1000);
-    const body = await request.json();
+    // FIX: Usamos 'unknown' o una interfaz en lugar de 'any' para satisfacer a ESLint
+    const body = (await request.json()) as { isPartial?: boolean; [key: string]: unknown };
+    const token = params.token as string;
+
+    if (body.isPartial) {
+      partialSavesDB.set(token, body);
+      console.log("💾 [Mock DB] Progreso guardado para el token:", token);
+      return HttpResponse.json(
+        { success: true, savedData: body },
+        { status: 201 },
+      );
+    }
+
+    partialSavesDB.delete(token);
+    console.log("✅ [Mock DB] Check-in completado. Progreso limpiado.");
     return HttpResponse.json(
       { success: true, savedData: body },
       { status: 201 },

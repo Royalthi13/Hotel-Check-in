@@ -5,6 +5,7 @@ import { ReservationCard } from "@/components/ui";
 import { HORAS_LLEGADA } from "@/constants";
 import { validatePersonal, validateContacto } from "@/hooks/useFormValidation";
 import type { CheckinState, PartialGuestData } from "@/types";
+import "@/App.css";
 
 // ═══════════════════════════════════════════════════════════════════════════
 // FORM EXTRAS
@@ -77,14 +78,7 @@ export const ScreenFormExtras: React.FC<FormExtrasProps> = ({
 };
 
 // ═══════════════════════════════════════════════════════════════════════════
-// Helper: valida un huésped completo con las mismas funciones que los formularios.
-//
-// ANTES: !!g.numDoc?.trim()  →  solo comprueba que no esté vacío.
-// AHORA: validatePersonal()  →  comprueba formato real (DNI, NIE, etc.).
-//
-// Si el usuario pone "PEPE" como DNI, el campo no está vacío pero
-// validatePersonal devuelve un error → isGuestValid devuelve false
-// → isDataComplete es false → botón final deshabilitado.
+// Helper: valida un huésped completo
 // ═══════════════════════════════════════════════════════════════════════════
 function isGuestValid(
   g: PartialGuestData,
@@ -112,7 +106,6 @@ interface RevisionProps {
   isSubmitting: boolean;
   onEditStep: (step: string, guestIndex?: number) => void;
   onSubmit: () => Promise<void>;
-  onRgpdChange: (v: boolean) => void;
 }
 
 export const ScreenRevision: React.FC<RevisionProps> = ({
@@ -120,16 +113,15 @@ export const ScreenRevision: React.FC<RevisionProps> = ({
   isSubmitting,
   onEditStep,
   onSubmit,
-  onRgpdChange,
 }) => {
   const { t } = useTranslation();
-  const { reserva, guests, horaLlegada, observaciones, rgpdAcepted } = state;
+  const { reserva, guests, horaLlegada, observaciones } = state;
   const main = guests[0] ?? {};
 
-  // Validación real: mismas funciones que los formularios.
-  // En teoría si llegaste aquí es porque el botón Resumen no estaba bloqueado,
-  // pero lo comprobamos igualmente como segunda línea de defensa.
   const isDataComplete = guests.every((g, idx) => isGuestValid(g, idx, t));
+
+  // ✅ NUEVO ESTADO: Controla la casilla RGPD localmente
+  const [isConfirmed, setIsConfirmed] = useState(false);
 
   const fullName = (g: typeof main) =>
     [g.nombre, g.apellido, g.apellido2].filter(Boolean).join(" ");
@@ -241,8 +233,8 @@ export const ScreenRevision: React.FC<RevisionProps> = ({
         <input
           type="checkbox"
           id="chk-accept"
-          checked={rgpdAcepted ?? false}
-          onChange={(e) => onRgpdChange(e.target.checked)}
+          checked={isConfirmed}
+          onChange={(e) => setIsConfirmed(e.target.checked)}
         />
         <label htmlFor="chk-accept">
           {t("review.rgpd_long_1")}
@@ -259,7 +251,8 @@ export const ScreenRevision: React.FC<RevisionProps> = ({
           variant="primary"
           iconRight={isSubmitting ? undefined : "check"}
           onClick={onSubmit}
-          disabled={!rgpdAcepted || !isDataComplete || isSubmitting}
+          // ✅ CORRECCIÓN: El botón evalúa 'isConfirmed' (el estado local del checkbox)
+          disabled={!isConfirmed || !isDataComplete || isSubmitting}
         >
           {isSubmitting ? (
             <>

@@ -18,16 +18,18 @@ import {
   Autocomplete,
   Divider,
   InputAdornment,
-  CircularProgress
+  CircularProgress,
 } from "@mui/material";
 import { usePlaces } from "@/hooks/usePlaces";
 import dayjs from "dayjs";
 import "dayjs/locale/es";
-
 import { useDebounce } from "@/hooks/useDebounce";
 
 const inputSx = {
-  "& .MuiInputBase-root": { borderRadius: "12px", backgroundColor: "#fff" },
+  "& :not(.MuiInputAdornment-root) > .MuiInputBase-root": {
+    borderRadius: "12px",
+    backgroundColor: "#fff",
+  },
   "& .MuiOutlinedInput-notchedOutline": { borderColor: "var(--border)" },
 };
 
@@ -40,14 +42,14 @@ interface FormPersonalProps {
   isMainGuest: boolean;
   esMenor?: boolean;
   onNext: () => void;
-  onPartialSave: () => void;
   isSubmitting: boolean;
   token: string;
+  onPartialSave?: () => void;
 }
 
 interface FormContactoProps {
   data: PartialGuestData;
-  onChange: (key: keyof PartialGuestData, value: any) => void;
+  onChange: (key: keyof PartialGuestData, value: unknown) => void;
   onNext: () => void;
   onPartialSave: () => Promise<void>;
   hasNextGuest: boolean;
@@ -83,9 +85,9 @@ export const ScreenFormPersonal: React.FC<FormPersonalProps> = ({
   isMainGuest,
   esMenor,
   onNext,
-  onPartialSave,
   isSubmitting,
   token,
+  onPartialSave, // FIX: Faltaba extraer esta propiedad aquí
 }) => {
   const handleSubmit = (e: React.SyntheticEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -97,7 +99,6 @@ export const ScreenFormPersonal: React.FC<FormPersonalProps> = ({
 
   const modoFlujo = sessionStorage.getItem(`modoFlujo_${token}`) || "manual";
   const mostrarCargaFoto = modoFlujo !== "manual";
-
   const fechaNac = data.fechaNac ? dayjs(data.fechaNac) : null;
   const isDniOrNie = data.tipoDoc === "DNI" || data.tipoDoc === "NIE";
 
@@ -107,7 +108,7 @@ export const ScreenFormPersonal: React.FC<FormPersonalProps> = ({
         validate({ ...data, isTitular: isMainGuest });
     },
     500,
-    [data.nombre]
+    [data.nombre],
   );
 
   const hasNextGuest = guestIndex < totalGuests - 1;
@@ -115,7 +116,6 @@ export const ScreenFormPersonal: React.FC<FormPersonalProps> = ({
   const checkAndProceed = (action: () => void) => {
     setDuplicateError("");
     if (!validate({ ...data, isTitular: isMainGuest })) return;
-
     const currentDoc = data.numDoc?.trim().toUpperCase();
     if (currentDoc) {
       const isDuplicate = allGuests.some(
@@ -133,12 +133,29 @@ export const ScreenFormPersonal: React.FC<FormPersonalProps> = ({
   return (
     <>
       <div className="sec-hdr">
-        <Typography variant="h2" sx={{ fontFamily: "Cormorant Garamond, serif", fontSize: "var(--fs-2xl)" }}>
-          {isMainGuest ? t("forms.personal_title") : esMenor ? t("forms.minor_data") : t("forms.personal_title")}
+        <Typography
+          variant="h2"
+          sx={{
+            fontFamily: "Cormorant Garamond, serif",
+            fontSize: "var(--fs-2xl)",
+          }}
+        >
+          {isMainGuest
+            ? t("forms.personal_title")
+            : esMenor
+              ? t("forms.minor_data")
+              : t("forms.personal_title")}
         </Typography>
         <Typography variant="body2" color="var(--text-low)">
-          {t("forms.guest_counter", { current: guestIndex + 1, total: totalGuests })}
-          {isMainGuest ? ` · ${t("forms.main_guest_tag")}` : esMenor ? t("forms.minor_tag") : t("forms.adult_tag")}
+          {t("forms.guest_counter", {
+            current: guestIndex + 1,
+            total: totalGuests,
+          })}
+          {isMainGuest
+            ? ` · ${t("forms.main_guest_tag")}`
+            : esMenor
+              ? t("forms.minor_tag")
+              : t("forms.adult_tag")}
         </Typography>
       </div>
       <form onSubmit={handleSubmit}>
@@ -213,11 +230,14 @@ export const ScreenFormPersonal: React.FC<FormPersonalProps> = ({
             </div>
           </Box>
 
-          <Divider sx={{ my: 1, typography: "overline", color: "var(--text-low)" }}>{t("forms.doc_title")}</Divider>
+        <Divider
+          sx={{ my: 1, typography: "overline", color: "var(--text-low)" }}
+        >
+          {t("forms.doc_title")}
+        </Divider>
 
           <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: isDniOrNie ? "1fr 1fr 1fr" : "1fr 1fr" }, gap: 2 }}>
             <div>
-              {/* ✅ FIX: onChange actualiza "tipoDoc", no "soporteDoc" */}
               <TextField
                 select
                 label={t("forms.doc_type")}
@@ -272,13 +292,31 @@ export const ScreenFormPersonal: React.FC<FormPersonalProps> = ({
           {mostrarCargaFoto && (
             <label htmlFor={`doc-${guestIndex}`} style={{ cursor: "pointer" }}>
               <div className={`upload-area ${data.docUploaded ? "done" : ""}`}>
-                <Icon name={data.docUploaded ? "checkC" : "upload"} size={24} color={data.docUploaded ? "var(--ok)" : "var(--text-low)"} />
-                <p style={{ marginTop: 8, fontSize: 14 }}>{data.docUploaded ? t("forms.photo_uploaded") : t("forms.upload_photo")}</p>
+                <Icon
+                name={data.docUploaded ? "checkC" : "upload"}
+                size={24}
+                color={data.docUploaded ? "var(--ok)" : "var(--text-low)"}
+              />
+                <p style={{ marginTop: 8, fontSize: 14 }}>
+                {data.docUploaded
+                  ? t("forms.photo_uploaded")
+                  : t("forms.upload_photo")}
+              </p>
               </div>
-              <input id={`doc-${guestIndex}`} type="file" hidden accept="image/*" capture="environment" onChange={(e) => {
-                const f = e.target.files?.[0];
-                if (f) { onChange("docFile", f); onChange("docUploaded", true); }
-              }} />
+              <input
+              id={`doc-${guestIndex}`}
+              type="file"
+              hidden
+              accept="image/*"
+              capture="environment"
+              onChange={(e) => {
+                  const f = e.target.files?.[0];
+                  if (f) {
+                  onChange("docFile", f);
+                  onChange("docUploaded", true);
+                }
+                }}
+            />
             </label>
           )}
         </Box>
@@ -287,7 +325,7 @@ export const ScreenFormPersonal: React.FC<FormPersonalProps> = ({
 
         <div className="spacer" />
         <div className="btn-row" style={{ display: "flex", gap: "10px", flexWrap: "wrap", justifyContent: "flex-end" }}>
-          {!isMainGuest && hasNextGuest && (
+          {!isMainGuest && hasNextGuest && onPartialSave && (
             <Button variant="secondary" onClick={() => checkAndProceed(onPartialSave)} disabled={isSubmitting} style={{ flex: 1, minWidth: "200px" }}>
               {isSubmitting ? "..." : t("common.save_partial")}
             </Button>
@@ -319,7 +357,12 @@ export const ScreenFormContacto: React.FC<FormContactoProps> = ({
     (d: PartialGuestData, t) => validateContacto(d, t, lockedFields),
   );
   const { buscarCP, isSearching } = useZipCode(onChange);
-  const { sugerenciasProvincias, sugerenciasMunicipios, cargarProvincias, cargarMunicipios } = usePlaces();
+  const {
+    sugerenciasProvincias,
+    sugerenciasMunicipios,
+    cargarProvincias,
+    cargarMunicipios,
+  } = usePlaces();
   const esEspana = data.pais === "España";
 
   useDebounce(() => { if (data.email?.includes("@")) validate(data); }, 500, [data.email]);
@@ -328,7 +371,13 @@ export const ScreenFormContacto: React.FC<FormContactoProps> = ({
   return (
     <>
       <div className="sec-hdr">
-        <Typography variant="h2" sx={{ fontFamily: "Cormorant Garamond, serif", fontSize: "var(--fs-2xl)" }}>
+        <Typography
+          variant="h2"
+          sx={{
+            fontFamily: "Cormorant Garamond, serif",
+            fontSize: "var(--fs-2xl)",
+          }}
+        >
           {t("forms.contact_title")}
         </Typography>
         <p>{t("forms.contact_subtitle")}</p>

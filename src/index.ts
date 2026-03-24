@@ -50,13 +50,9 @@ export { AppShell } from "./layout/AppShell";
 // Screens
 export { ScreenTabletBuscar } from "./screens/ScreenTabletBuscar";
 export { ScreenBienvenida } from "./screens/ScreenBienvenida";
-export { ScreenNumPersonas } from "./screens/ScreenNumPersonas";
 export { ScreenEscanear } from "./screens/ScreenEscanear";
 export { ScreenConfirmarDatos } from "./screens/ScreenConfirmardatos";
-export {
-  ScreenFormPersonal,
-  ScreenFormContacto,
-} from "./screens/ScreenForms";
+export { ScreenFormPersonal, ScreenFormContacto } from "./screens/ScreenForms";
 export {
   ScreenFormExtras,
   ScreenRevision,

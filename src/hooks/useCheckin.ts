@@ -35,6 +35,9 @@ export type CheckinAction =
   | { type: "SET_HORA_LLEGADA"; value: string }
   | { type: "SET_OBSERVACIONES"; value: string }
   | { type: "SET_RGPD"; value: boolean }
+  | { type: "SET_LEGAL_PASSED"; value: boolean }
+  | { type: "SET_HAS_MINORS_FLAG"; value: boolean }
+  | { type: "RESTORE_FULL_STATE"; payload: CheckinState }
   | { type: "RESET" };
 
 // ─── Estado vacío ─────────────────────────────────────────────────────────────
@@ -50,6 +53,8 @@ export function buildEmptyState(appMode: AppMode): CheckinState {
     horaLlegada: "",
     observaciones: "",
     rgpdAcepted: false,
+    legalPassed: false,
+    hasMinorsFlag: false,
   };
 }
 
@@ -164,6 +169,12 @@ export function checkinReducer(
       return { ...state, observaciones: action.value };
     case "SET_RGPD":
       return { ...state, rgpdAcepted: action.value };
+    case "SET_LEGAL_PASSED":
+      return { ...state, legalPassed: action.value };
+    case "SET_HAS_MINORS_FLAG":
+      return { ...state, hasMinorsFlag: action.value };
+    case "RESTORE_FULL_STATE":
+      return { ...state, ...action.payload };
     case "RESET":
       return buildEmptyState(state.appMode);
     default:
@@ -219,7 +230,7 @@ export function useCheckin(tokenUrl?: string, stepUrl?: string) {
     } catch (err) {
       console.warn("[useCheckin] Error restoring allowedSteps:", err);
     }
-    return new Set<StepId>(["bienvenida", "tablet_buscar"]);
+    return new Set<StepId>(["inicio", "tablet_buscar"]);
   });
 
   const [isLoading, setIsLoading] = useState(token !== "new");
@@ -230,8 +241,7 @@ export function useCheckin(tokenUrl?: string, stepUrl?: string) {
   const isInternalNavRef = useRef(false);
 
   const dispatch = useCallback(
-    (action: CheckinAction) =>
-      setState((prev) => checkinReducer(prev, action)),
+    (action: CheckinAction) => setState((prev) => checkinReducer(prev, action)),
     [],
   );
 
@@ -296,7 +306,7 @@ useEffect(() => {
   // ── Detección del step y guestIndex activos ───────────────────────────────
   const actualStep =
     (stepUrl as StepId) ||
-    (initialMode === "tablet" ? "tablet_buscar" : "bienvenida");
+    (initialMode === "tablet" ? "tablet_buscar" : "inicio"); // ← Cambiado bienvenida por inicio
 
   // El guestIndex activo se lee del último entry del historial interno
   // que coincida con el step actual. Si no hay coincidencia, usamos 0.
@@ -352,6 +362,7 @@ useEffect(() => {
     },
     [navigate, token, activeGuestIndex],
   );
+
 
   // ── goBack: usa browser history nativo ────────────────────────────────────
   //
@@ -480,11 +491,8 @@ useEffect(() => {
     setNumPersonas: (total: number) =>
       dispatch({ type: "SET_NUM_PERSONAS", total }),
 
-    updateGuest: (
-      index: number,
-      key: keyof PartialGuestData,
-      value: unknown,
-    ) => dispatch({ type: "UPDATE_GUEST", index, key, value }),
+    updateGuest: (index: number, key: keyof PartialGuestData, value: unknown) =>
+      dispatch({ type: "UPDATE_GUEST", index, key, value }),
 
     updateRelacion: (mIdx: number, aIdx: number, p: string) =>
       dispatch({
@@ -516,6 +524,10 @@ useEffect(() => {
     nextGuest,
 
     setRgpdAcepted: (v: boolean) => dispatch({ type: "SET_RGPD", value: v }),
+    setLegalPassed: (v: boolean) =>
+      dispatch({ type: "SET_LEGAL_PASSED", value: v }),
+    setHasMinorsFlag: (v: boolean) =>
+      dispatch({ type: "SET_HAS_MINORS_FLAG", value: v }),
   };
 
   return [state, nav, actions, isLoading] as const;
