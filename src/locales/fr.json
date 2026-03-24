@@ -222,6 +222,7 @@
     "doc_type": "Type de document",
     "doc_number": "Numéro",
     "doc_support": "Numéro de support",
+    "doc_support_hint": "Code alphanumérique situé dans le coin supérieur droit (DNI) ou au dos (NIE).",
     "upload_photo": "Télécharger la photo du dos de votre document",
     "photo_uploaded": "Document téléchargé",
     "next_guest": "Client suivant",

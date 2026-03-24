@@ -222,6 +222,7 @@
     "doc_type": "Document type",
     "doc_number": "Number",
     "doc_support": "Support number",
+    "doc_support_hint": "Alphanumeric code located on the top right corner (DNI) or back (NIE).",
     "upload_photo": "Upload photo of the back of your document",
     "photo_uploaded": "Document uploaded",
     "next_guest": "Next guest",

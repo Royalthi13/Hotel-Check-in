@@ -222,6 +222,7 @@
     "doc_type": "Dokumenttyp",
     "doc_number": "Nummer",
     "doc_support": "Zusatznummer",
+    "doc_support_hint": "Alphanumerischer Code in der oberen rechten Ecke (DNI) oder auf der Rückseite (NIE).",
     "upload_photo": "Foto der Rückseite des Dokuments hochladen",
     "photo_uploaded": "Dokument hochgeladen",
     "next_guest": "Nächster Gast",

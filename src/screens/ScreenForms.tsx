@@ -19,6 +19,7 @@ import {
   Divider,
   InputAdornment,
   CircularProgress,
+  Tooltip
 } from "@mui/material";
 import { usePlaces } from "@/hooks/usePlaces";
 import dayjs from "dayjs";
@@ -273,7 +274,16 @@ export const ScreenFormPersonal: React.FC<FormPersonalProps> = ({
             {isDniOrNie && (
               <div>
                 <TextField
-                  label={t("forms.doc_support")}
+                  label={
+                    <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+                      {t("forms.doc_support")}
+                      <Tooltip title={t("forms.doc_support_hint")} arrow placement="top">
+                        <Box component="span" sx={{ display: "flex", cursor: "help", color: "var(--text-low)" }}>
+                          <Icon name="info" size={14} />
+                        </Box>
+                      </Tooltip>
+                    </Box>
+                  }
                   required
                   fullWidth
                   value={data.soporteDoc ?? ""}

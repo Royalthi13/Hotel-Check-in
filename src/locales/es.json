@@ -223,6 +223,7 @@
     "doc_type": "Tipo de documento",
     "doc_number": "Número",
     "doc_support": "Número de soporte",
+    "doc_support_hint": "Código alfanumérico que aparece en la esquina superior derecha (DNI) o reverso (NIE).",
     "upload_photo": "Subir foto de la parte trasera de tu documento",
     "photo_uploaded": "Documento cargado",
     "next_guest": "Siguiente huésped",
