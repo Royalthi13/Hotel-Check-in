@@ -392,7 +392,17 @@ export const ScreenFormContacto: React.FC<FormContactoProps> = ({
         </Typography>
         <p>{t("forms.contact_subtitle")}</p>
       </div>
-      <form onSubmit={handleSubmit}>
+<form onSubmit={handleSubmit} onKeyDown={(e) => {
+        if (e.key === "Enter") {
+          const target = e.target as HTMLInputElement;
+          if (target.name === "cp") {
+            e.preventDefault();
+            if (data.cp && data.pais && !esEspana) {
+              buscarCP(data.cp as string, data.pais as string);
+            }
+          }
+        }
+      }}>
         <Box style={{ padding: "0 var(--px)" }} sx={{ mt: 2, display: "flex", flexDirection: "column", gap: 2.5 }}>
 
           <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" }, gap: 2 }}>
@@ -482,12 +492,20 @@ export const ScreenFormContacto: React.FC<FormContactoProps> = ({
               <FieldError msg={errors.pais} />
             </div>
             <div>
-              <TextField
+             <TextField
                 label={t("forms.zipcode")}
                 fullWidth
                 value={data.cp ?? ""}
+                inputProps={{ name: "cp" }}
                 onChange={(e) => { onChange("cp", e.target.value.toUpperCase()); clearError("cp"); }}
                 onBlur={() => { if (data.cp && data.pais && !esEspana) buscarCP(data.cp, data.pais); }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    if (data.cp && data.pais && !esEspana) buscarCP(data.cp as string, data.pais as string);
+                  }
+                }}
                 InputProps={{
                   endAdornment: isSearching ? (
                     <InputAdornment position="end">
