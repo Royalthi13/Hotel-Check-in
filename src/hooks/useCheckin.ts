@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useRef } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import dayjs from "dayjs";
 import type {
@@ -20,17 +20,17 @@ export type CheckinAction =
   | { type: "SET_RESERVA"; reserva: Reserva }
   | { type: "SET_NUM_PERSONAS"; total: number }
   | {
-      type: "UPDATE_GUEST";
-      index: number;
-      key: keyof PartialGuestData;
-      value: unknown;
-    }
+    type: "UPDATE_GUEST";
+    index: number;
+    key: keyof PartialGuestData;
+    value: unknown;
+  }
   | {
-      type: "UPDATE_RELACION";
-      menorIndex: number;
-      adultoIndex: number;
-      parentesco: string;
-    }
+    type: "UPDATE_RELACION";
+    menorIndex: number;
+    adultoIndex: number;
+    parentesco: string;
+  }
   | { type: "APPLY_SCAN"; data: Partial<GuestData>; guestIdx: number }
   | { type: "SET_HORA_LLEGADA"; value: string }
   | { type: "SET_OBSERVACIONES"; value: string }
@@ -98,12 +98,12 @@ export function checkinReducer(
         guests: makeGuests(action.reserva.numHuespedes),
       };
 
-      case "SET_RESERVA":
-  return {
-    ...state,
-    reserva: action.reserva,
-    numPersonas: action.reserva.numHuespedes, // Opcional: sincroniza el número de personas
-  };
+    case "SET_RESERVA":
+      return {
+        ...state,
+        reserva: action.reserva,
+        numPersonas: action.reserva.numHuespedes, // Opcional: sincroniza el número de personas
+      };
 
     case "SET_NUM_PERSONAS": {
       const newGuests = mergeGuests(state.guests || [], action.total);
@@ -233,12 +233,12 @@ export function useCheckin(tokenUrl?: string, stepUrl?: string) {
     return new Set<StepId>(["inicio", "tablet_buscar"]);
   });
 
-  const [isLoading, setIsLoading] = useState(token !== "new");
+ const [isLoading, setIsLoading] = useState(token !== "new");
   const [navDirection, setNavDirection] = useState<NavDirection>("forward");
+  const [isNavigating, setIsNavigating] = useState(false);
 
-  // Ref para detectar si la última navegación fue iniciada por nosotros
-  // o por el botón nativo del browser
-  const isInternalNavRef = useRef(false);
+
+  
 
   const dispatch = useCallback(
     (action: CheckinAction) => setState((prev) => checkinReducer(prev, action)),
@@ -274,34 +274,34 @@ export function useCheckin(tokenUrl?: string, stepUrl?: string) {
   }, [allowedSteps, token]);
 
   // ── Carga inicial ─────────────────────────────────────────────────────────
-useEffect(() => {
-  if (token === "new") {
-    setIsLoading(false);
-    return;
-  }
-  async function load() {
-    try {
-      const res = await fetch(`/api/checkin/${token}`);
-      const json = await res.json(); // Lo renombramos a json para mayor claridad
-
-      // 1. Si hay datos del huésped, los guardamos
-      if (json.data) {
-        dispatch({ type: "SET_KNOWN_GUEST", guest: json.data });
-      }
-
-      // 2. ¡EL FIX! Si hay datos de la reserva, los guardamos
-      if (json.reserva) {
-        dispatch({ type: "SET_RESERVA", reserva: json.reserva });
-      }
-      
-    } catch (err) {
-      console.error("[useCheckin] Error loading:", err);
-    } finally {
+  useEffect(() => {
+    if (token === "new") {
       setIsLoading(false);
+      return;
     }
-  }
-  load();
-}, [token, dispatch]);
+    async function load() {
+      try {
+        const res = await fetch(`/api/checkin/${token}`);
+        const json = await res.json(); // Lo renombramos a json para mayor claridad
+
+        // 1. Si hay datos del huésped, los guardamos
+        if (json.data) {
+          dispatch({ type: "SET_KNOWN_GUEST", guest: json.data });
+        }
+
+        // 2. ¡EL FIX! Si hay datos de la reserva, los guardamos
+        if (json.reserva) {
+          dispatch({ type: "SET_RESERVA", reserva: json.reserva });
+        }
+
+      } catch (err) {
+        console.error("[useCheckin] Error loading:", err);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    load();
+  }, [token, dispatch]);
 
   // ── Detección del step y guestIndex activos ───────────────────────────────
   const actualStep =
@@ -310,8 +310,7 @@ useEffect(() => {
 
   // El guestIndex activo se lee del último entry del historial interno
   // que coincida con el step actual. Si no hay coincidencia, usamos 0.
-  const activeGuestIndex = (() => {
-    // Buscar de atrás hacia adelante el entry más reciente para este step
+ const activeGuestIndex = (() => {
     for (let i = appHistory.length - 1; i >= 0; i--) {
       if (appHistory[i].step === actualStep) {
         return appHistory[i].guestIndex;
@@ -329,40 +328,32 @@ useEffect(() => {
   //           Se usa EXCLUSIVAMENTE para saltos editoriales (panel lateral → revisión)
   const goTo = useCallback(
     (nextStep: StepId, dir: NavDirection = "forward", gIdx?: number) => {
+      if (isNavigating) return;
+
       const nextGIdx = gIdx ?? activeGuestIndex;
 
-      // Marcar el step como permitido
       setAllowedSteps((prev) => {
         const next = new Set(prev);
         next.add(nextStep);
         return next;
       });
 
-      isInternalNavRef.current = true;
-
       if (dir === "forward") {
-        // Navegación normal hacia adelante
+        setIsNavigating(true);
         setNavDirection("forward");
         setAppHistory((prev) => [
           ...prev,
           { step: nextStep, guestIndex: nextGIdx },
         ]);
         navigate(`/checkin/${token}/${nextStep}`);
+        setTimeout(() => setIsNavigating(false), 350);
       } else {
-        // Salto editorial (ej: ir a revisión desde panel lateral)
-        // Usamos replace para no crear una entrada extra en browser history
         setNavDirection("back");
-        // En appHistory: añadimos el destino para que el guestIndex sea correcto
-        setAppHistory((prev) => [
-          ...prev,
-          { step: nextStep, guestIndex: nextGIdx },
-        ]);
         navigate(`/checkin/${token}/${nextStep}`, { replace: true });
       }
     },
-    [navigate, token, activeGuestIndex],
+    [navigate, token, activeGuestIndex, isNavigating],
   );
-
 
   // ── goBack: usa browser history nativo ────────────────────────────────────
   //
@@ -370,22 +361,20 @@ useEffect(() => {
   // el cambio de URL (via popstate), el componente se re-renderizará con
   // el nuevo stepUrl, y activeGuestIndex se calculará automáticamente
   // buscando en appHistory el entry más reciente para ese step.
-  const goBack = useCallback(() => {
-    isInternalNavRef.current = true;
-    setNavDirection("back");
-    navigate(-1); // ← Delegamos 100% al browser history
-  }, [navigate]);
-
+const goBack = useCallback(() => {
+  if (isNavigating) return;
+  setIsNavigating(true);
+  setNavDirection("back");
+  navigate(-1);
+  setTimeout(() => setIsNavigating(false), 350);
+}, [navigate, isNavigating]);
   // ── Detectar navegación nativa del browser (botón atrás del móvil) ───────
   // Cuando el usuario usa el botón nativo, React Router actualiza la URL
   // pero nosotros necesitamos actualizar navDirection
   useEffect(() => {
     const handlePopState = () => {
-      if (!isInternalNavRef.current) {
-        // Navegación nativa (botón atrás del móvil/browser)
-        setNavDirection("back");
-      }
-      isInternalNavRef.current = false;
+      setNavDirection("back");
+      setAppHistory((prev) => (prev.length > 0 ? prev.slice(0, -1) : prev));
     };
     window.addEventListener("popstate", handlePopState);
     return () => window.removeEventListener("popstate", handlePopState);
@@ -394,8 +383,15 @@ useEffect(() => {
   // ── canGoBack: true si hay historial browser disponible ──────────────────
   // Usamos appHistory.length como proxy: si hemos navegado al menos una vez,
   // hay historial browser para volver
+  // appHistory.length > 1 porque el primer entry es el step inicial,
+  // no hay "atrás real" si solo hay una entrada
+const STEPS_WITH_BACK: StepId[] = [
+    "bienvenida", "escanear", "form_personal", "form_contacto",
+    "form_relaciones", "form_extras", "revision", "num_personas",
+  ];
   const canGoBack =
-    appHistory.length > 0 && actualStep !== "exito" && actualStep !== "tablet_buscar";
+    STEPS_WITH_BACK.includes(actualStep) &&
+    appHistory.length > 0;
 
   // ── Dots ──────────────────────────────────────────────────────────────────
   const dotSteps =
@@ -467,16 +463,14 @@ useEffect(() => {
     goTo,
     goBack,
 
-    goToDotIndex: (idx: number) => {
+   goToDotIndex: (idx: number) => {
       if (idx < 0 || idx >= dotSteps.length) return;
       const targetStep = dotSteps[idx];
       const isBack = idx < currentDotIndex;
       if (isBack) {
-        // Navegación hacia atrás: usamos goTo con replace para no acumular
-        // entradas en browser history
-        goTo(targetStep, "back", 0);
+        goTo(targetStep, "back", activeGuestIndex);
       } else {
-        goTo(targetStep, "forward", 0);
+        goTo(targetStep, "forward", activeGuestIndex);
       }
     },
 

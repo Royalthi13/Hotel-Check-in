@@ -45,7 +45,7 @@ interface FormPersonalProps {
   onNext: () => void;
   isSubmitting: boolean;
   token: string;
-  onPartialSave?: () => void;
+  onPartialSave?: () => Promise<void>;
 }
 
 interface FormContactoProps {
@@ -161,7 +161,7 @@ export const ScreenFormPersonal: React.FC<FormPersonalProps> = ({
       </div>
       <form onSubmit={handleSubmit}>
         <Box style={{ padding: "0 var(--px)" }} sx={{ mt: 2, display: "flex", flexDirection: "column", gap: 2.5 }}>
-          <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr 1fr" }, gap: 2 }}>
+          <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr", md: isDniOrNie ? "1fr 1fr 1fr" : "1fr 1fr" }, gap: 2 }}>
             <div>
               <TextField
                 label={t("forms.name")}

@@ -29,7 +29,7 @@ import {
 } from "@/screens/ScreenExtrasRevisionExito";
 
 // Importamos 'Reserva' para solucionar el error de tipado del inicio
-import type { StepId, PartialGuestData, Reserva } from "@/types";
+import type { StepId, PartialGuestData } from "@/types";
 
 const STEPS_WITHOUT_DOTS = new Set<StepId>(["tablet_buscar", "exito"]);
 
@@ -284,7 +284,7 @@ function CheckinWizard() {
       {currentStep === "inicio" && (
         <ScreenCheckinInicio
           // CORRECCIÓN 2: Tipado fuerte para evitar "any"
-          reserva={state.reserva as unknown as Reserva}
+         reserva={state.reserva}
           onNext={(hayMenores: boolean) => {
             setHasMinorsFlag(hayMenores);
             setLegalPassed(true);
@@ -303,7 +303,7 @@ function CheckinWizard() {
       )}
 
       {/* CORRECCIÓN 3: Casteo a string para que no choque con StepId */}
-      {(currentStep as string) === "num_personas" && (
+      {currentStep === "num_personas" && (
         <ScreenNumPersonas
           numPersonas={state.numPersonas}
           onChange={setNumPersonas}

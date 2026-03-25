@@ -47,8 +47,8 @@ export const ScreenCheckinInicio: React.FC<Props> = ({ reserva, onNext }) => {
 
   return (
     <Box
-      sx={{
-        p: { xs: 2, sm: 4 },
+     sx={{
+  p: { xs: "20px", sm: "28px", md: "40px" },
         display: "flex",
         flexDirection: "column",
         gap: 3,
