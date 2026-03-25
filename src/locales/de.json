@@ -340,6 +340,11 @@
     "select_relationship": "— Verwandtschaft wählen —",
     "mandatory_legal_field": "Dieses Feld ist gesetzlich vorgeschrieben"
   },
+  "invalidLink": {
+    "title": "Ungültiger Link",
+    "description": "Dieser Link ist ungültig oder abgelaufen. Bitte rufen Sie den Check-in über den Link auf, den Sie in Ihrer Buchungsbestätigung erhalten haben.",
+    "help": "Wenn Sie Hilfe benötigen, wenden Sie sich bitte an die Rezeption."
+  },
   "legal": {
     "title": "Rechtliche Informationen & Datenschutz",
     "intro": "Gemäß DSGVO und den geltenden Vorschriften:",

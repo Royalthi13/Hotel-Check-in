@@ -84,6 +84,11 @@
       "exito": "Completado"
     }
   },
+  "invalidLink": {
+    "title": "Enlace no válido",
+    "description": "Este enlace no es válido o ha caducado. Por favor, acceda mediante el enlace que recibió en su confirmación de reserva.",
+    "help": "Si necesita ayuda, contacte con recepción."
+  },
   "common": {
     "no": "No",
     "yes": "Sí",
@@ -208,7 +213,7 @@
     "not_adult_error": "Acción no permitida. El titular de la reserva debe ser mayor de edad. Por favor, indique datos de un adulto.",
     "minor_links_title": "Vínculos del menor con el grupo",
     "adult_links_title": "Relación con menores en el grupo",
-     "field_from_reservation": "Este campo se completa a partir de la reserva y no puede modificarse",
+    "field_from_reservation": "Este campo se completa a partir de la reserva y no puede modificarse",
     "rel_minor_to_guest": "Introduzca el parentesco del menor con el Huésped {{numero}}",
     "rel_guest_to_minor": "Parentesco del Huésped {{numero}} con el menor",
     "nationality": "Nacionalidad",

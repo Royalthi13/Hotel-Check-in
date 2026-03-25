@@ -206,7 +206,7 @@
     "birthdate": "Date of birth *",
     "not_adult_error": "Action not allowed. Main guest must be an adult. Please enter adult data.",
     "minor_links_title": "Minor's links with the group",
-     "field_from_reservation": "This field is filled from the reservation and cannot be modified",
+    "field_from_reservation": "This field is filled from the reservation and cannot be modified",
     "adult_links_title": "Relationship with minors in the group",
     "rel_minor_to_guest": "Enter minor's relationship with Guest {{numero}}",
     "rel_guest_to_minor": "Relationship of Guest {{numero}} to minor",
@@ -248,6 +248,11 @@
     "btn_manual": "I prefer to fill in manually",
     "error_size": "File is too large. Max allowed is 20 MB.",
     "error_read": "Could not read data clearly. Ensure good lighting, no blur, and no flash glare."
+  },
+  "invalidLink": {
+    "title": "Invalid link",
+    "description": "This link is invalid or has expired. Please access the check-in using the link provided in your booking confirmation email.",
+    "help": "If you need assistance, please contact the front desk."
   },
   "review": {
     "confirm_title": "Your registered data",

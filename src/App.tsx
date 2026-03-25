@@ -17,9 +17,7 @@ import { useTranslation } from "react-i18next";
 import { ScreenTabletBuscar } from "@/screens/ScreenTabletBuscar";
 import { ScreenBienvenida } from "@/screens/ScreenBienvenida";
 import { ScreenCheckinInicio } from "@/screens/ScreenCheckinInicio";
-import { ScreenNumPersonas } from "@/screens/ScreenNumPersonas";
 import { ScreenEscanear } from "@/screens/ScreenEscanear";
-
 import { ScreenRelacionesMenor } from "@/screens/ScreenRelacionesMenor";
 import { ScreenFormPersonal, ScreenFormContacto } from "@/screens/ScreenForms";
 import {
@@ -35,6 +33,8 @@ const STEPS_WITHOUT_DOTS = new Set<StepId>(["tablet_buscar", "exito"]);
 
 // ── Página de enlace inválido / caducado ──────────────────────────────────────
 function InvalidLink() {
+  const { t } = useTranslation();
+
   return (
     <div
       className="shell"
@@ -75,7 +75,7 @@ function InvalidLink() {
             marginBottom: 12,
           }}
         >
-          Enlace no válido
+          {t("invalidLink.title")}
         </h2>
         <p
           style={{
@@ -86,8 +86,7 @@ function InvalidLink() {
             margin: "0 auto",
           }}
         >
-          Este enlace no es válido o ha caducado. Por favor, acceda mediante el
-          enlace que recibió en su confirmación de reserva.
+          {t("invalidLink.description")}
         </p>
         <p
           style={{
@@ -96,7 +95,7 @@ function InvalidLink() {
             color: "var(--text-low)",
           }}
         >
-          Si necesita ayuda, contacte con recepción.
+          {t("invalidLink.help")}
         </p>
       </div>
     </div>
@@ -177,15 +176,14 @@ function CheckinWizard() {
   const handleChooseMethod = (method: "scan" | "manual") => {
     sessionStorage.setItem(`modoFlujo_${token}`, method);
 
-    if (hasMinorsFlag) {
-      goTo("num_personas" as StepId, "forward", 0);
+    // Fijamos el número de personas automáticamente basándonos en la reserva
+    setNumPersonas(state.reserva?.numHuespedes || 1);
+
+    // Navegamos directamente al flujo elegido
+    if (method === "scan") {
+      goTo("escanear", "forward", 0);
     } else {
-      setNumPersonas(state.reserva?.numHuespedes || 1);
-      if (method === "scan") {
-        goTo("escanear", "forward", 0);
-      } else {
-        goTo("form_personal", "forward", 0);
-      }
+      goTo("form_personal", "forward", 0);
     }
   };
 
@@ -196,7 +194,7 @@ function CheckinWizard() {
     try {
       const payload = {
         reserva: state.reserva,
-        // CORRECCIÓN 1: Evitamos el "docFile no usado" creando una copia y borrando la propiedad.
+        // Evitamos el "docFile no usado" creando una copia y borrando la propiedad.
         guests: state.guests.map((g) => {
           const copia = { ...g };
           delete copia.docFile;
@@ -282,7 +280,6 @@ function CheckinWizard() {
 
       {currentStep === "inicio" && (
         <ScreenCheckinInicio
-          // CORRECCIÓN 2: Tipado fuerte para evitar "any"
           reserva={state.reserva as unknown as Reserva}
           onNext={(hayMenores: boolean) => {
             setHasMinorsFlag(hayMenores);
@@ -301,20 +298,6 @@ function CheckinWizard() {
         />
       )}
 
-      {/* CORRECCIÓN 3: Casteo a string para que no choque con StepId */}
-      {(currentStep as string) === "num_personas" && (
-        <ScreenNumPersonas
-          numPersonas={state.numPersonas}
-          onChange={setNumPersonas}
-          onNext={() => {
-            const flujo = sessionStorage.getItem(`modoFlujo_${token}`);
-            if (flujo === "scan") goTo("escanear", "forward", 0);
-            else goTo("form_personal", "forward", 0);
-          }}
-          totalFijo={state.reserva?.numHuespedes}
-        />
-      )}
-
       {currentStep === "escanear" && (
         <ScreenEscanear
           onScanned={(data) => {
@@ -329,7 +312,6 @@ function CheckinWizard() {
         <ScreenFormPersonal
           data={currentGuest}
           allGuests={state.guests}
-          // CORRECCIÓN 4: "unknown" en lugar de "any"
           onChange={(k: keyof PartialGuestData, v: unknown) =>
             updateGuest(nav.guestIndex, k, v)
           }
@@ -347,7 +329,6 @@ function CheckinWizard() {
       {currentStep === "form_contacto" && (
         <ScreenFormContacto
           data={currentGuest}
-          // CORRECCIÓN 5: "unknown" en lugar de "any"
           onChange={(k: keyof PartialGuestData, v: unknown) =>
             updateGuest(nav.guestIndex, k, v)
           }
@@ -420,12 +401,10 @@ export default function App() {
   return (
     <BrowserRouter>
       <Routes>
-        {/* 1. Cambiamos la ruta por defecto para que vaya a inicio */}
         <Route
           path="/"
           element={<Navigate to="/checkin/99999/inicio" replace />}
         />
-
         <Route
           path="/checkin/kiosko/tablet_buscar"
           element={
@@ -434,13 +413,10 @@ export default function App() {
             </ErrorBoundary>
           }
         />
-
-        {/* 2. Esta ya la tenías bien, pero asegúrate de que queda así */}
         <Route
           path="/checkin/:token"
           element={<Navigate to="inicio" replace />}
         />
-
         <Route
           path="/checkin/:token/:step"
           element={
@@ -449,7 +425,6 @@ export default function App() {
             </ErrorBoundary>
           }
         />
-
         <Route path="/invalid" element={<InvalidLink />} />
         <Route path="*" element={<InvalidLink />} />
       </Routes>

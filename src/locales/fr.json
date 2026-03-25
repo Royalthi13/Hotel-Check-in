@@ -340,6 +340,11 @@
     "select_relationship": "— Sélectionner la parenté —",
     "mandatory_legal_field": "Ce champ est obligatoire selon la loi"
   },
+  "invalidLink": {
+    "title": "Lien invalide",
+    "description": "Ce lien est invalide ou a expiré. Veuillez y accéder via le lien que vous avez reçu dans votre e-mail de confirmation de réservation.",
+    "help": "Si vous avez besoin d'aide, veuillez contacter la réception."
+  },
   "legal": {
     "title": "Informations Légales et Confidentialité",
     "intro": "Conformément au RGPD et à la réglementation en vigueur :",

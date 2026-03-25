@@ -194,7 +194,7 @@
     "contact_subtitle": "Dados para confirmação do registo.",
     "address_habitual": "Morada habitual",
     "location": "Localização",
-     "field_from_reservation": "Este campo é preenchido a partir da reserva e não pode ser modificado",
+    "field_from_reservation": "Este campo é preenchido a partir da reserva e não pode ser modificado",
     "main_guest_paren": " (Titular)",
     "vat": "NIF / VAT",
     "photo": "Foto",
@@ -339,6 +339,11 @@
     "relation_with": "Relação com {{name}}",
     "select_relationship": "— Selecionar parentesco —",
     "mandatory_legal_field": "Este campo é obrigatório por lei"
+  },
+  "invalidLink": {
+    "title": "Link inválido",
+    "description": "Este link é inválido ou expirou. Por favor, aceda através do link que recebeu no e-mail de confirmação da sua reserva.",
+    "help": "Se precisar de ajuda, por favor contacte a receção."
   },
   "legal": {
     "title": "Informação Legal e Privacidade",
