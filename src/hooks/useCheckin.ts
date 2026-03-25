@@ -342,8 +342,7 @@ export function useCheckin(tokenUrl?: string, stepUrl?: string) {
     },
     [goTo],
   );
-  // --- CORRECCIÓN DE FLUJO Y DOTS (Aquí está la magia) ---
-  // --- CORRECCIÓN DE FLUJO Y DOTS (Aquí está la magia) ---
+  // ---FLUJO Y DOTS ---
   const dotSteps = useMemo(() => {
     const base = state.appMode === "link" ? FLOW_STEPS_LINK : DOT_STEPS_BASE;
     const flujo = sessionStorage.getItem(`modoFlujo_${token}`);
@@ -359,8 +358,6 @@ export function useCheckin(tokenUrl?: string, stepUrl?: string) {
 
   let currentDotIndex = dotSteps.indexOf(actualStep);
 
-  // Excepciones: confirmar_datos y form_relaciones se dibujan en el dot de Datos Personales
-  // NOTA: Se ha quitado "escanear" de aquí para que su círculo SÍ se aplane.
   if (["confirmar_datos", "form_relaciones"].includes(actualStep)) {
     currentDotIndex = dotSteps.indexOf("form_personal");
   }
