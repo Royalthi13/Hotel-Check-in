@@ -16,6 +16,7 @@ interface LegalSection {
 export const ScreenCheckinInicio: React.FC<Props> = ({ reserva, onNext }) => {
   const { t } = useTranslation();
 
+  const [legalOpen, setLegalOpen] = useState(false);
   const [acceptedLegal, setAcceptedLegal] = useState<boolean>(() => {
     return sessionStorage.getItem("lumina_acceptedLegal") === "true";
   });
@@ -172,84 +173,79 @@ export const ScreenCheckinInicio: React.FC<Props> = ({ reserva, onNext }) => {
           </div>
         </div>
 
-        {/* 3. CONDICIONES LEGALES Y CHECKBOX INTEGRADO */}
+     {/* 3. CONDICIONES LEGALES Y CHECKBOX INTEGRADO */}
         <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-          {/* Cabecera con flexWrap para que no se corte en móviles */}
-          <div
-            style={{
-              display: "flex",
-              flexWrap: "wrap",
-              justifyContent: "space-between",
-              alignItems: "center",
-              gap: "10px",
-            }}
-          >
-            <div
-              className="divlabel"
-              style={{ margin: 0, border: "none", flex: "none" }}
-            >
-              {t("legal.title")}
-            </div>
-            <button
-              type="button"
-              onClick={() => window.print()}
-              style={{
-                background: "none",
-                border: "none",
-                color: "var(--primary)",
-                fontSize: "var(--fs-xs)",
-                display: "flex",
-                alignItems: "center",
-                gap: "6px",
-                cursor: "pointer",
-                textTransform: "uppercase",
-                fontWeight: 600,
-                letterSpacing: "0.05em",
-              }}
-            >
-              <Icon name="upload" size={14} /> {t("legal.download_btn")}
-            </button>
-          </div>
+          {/* Cabecera clicable — abre/cierra el acordeón */}
+<button
+  type="button"
+  onClick={() => setLegalOpen((v) => !v)}
+  style={{
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "flex-start", // todo pegado a la izquierda
+    background: "none",
+    border: "none",
+    cursor: "pointer",
+    padding: 0,
+    width: "100%", // ocupa todo el ancho para evitar problemas
+    gap: 0,
+  }}
+>
+  <div className="divlabel" style={{ margin: 0, border: "none" }}>
+    {t("legal.title")}
+  </div>
 
-          {/* Caja de texto legal */}
-          <div
-            style={{
-              background: "var(--white)",
-              border: "1px solid var(--border)",
-              borderRadius: "var(--r)",
-              padding: "16px 20px",
-              maxHeight: "160px",
-              overflowY: "auto",
-              fontSize: "13px",
-              color: "var(--text-mid)",
-              lineHeight: 1.6,
-            }}
-          >
-            <p style={{ marginBottom: 12 }}>{t("legal.intro")}</p>
-            {sectionsArray.map((section, idx) => (
-              <div key={idx} style={{ marginBottom: 12 }}>
-                <strong
-                  style={{
-                    color: "var(--text)",
-                    display: "block",
-                    marginBottom: 2,
-                  }}
-                >
-                  {section.h}
-                </strong>
-                {section.p}
-              </div>
-            ))}
-            <p
+  <svg
+    width="16"
+    height="16"
+    viewBox="0 0 16 16"
+    fill="none"
+    style={{
+      marginLeft: 6, // separa icono del texto
+      transition: "transform 0.25s ease",
+      transform: legalOpen ? "rotate(180deg)" : "rotate(0deg)",
+      color: "var(--primary)",
+    }}
+  >
+    <path
+      d="M3 5l5 5 5-5"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </svg>
+</button>
+
+          {/* Contenido colapsable */}
+          {legalOpen && (
+            <div
               style={{
-                marginTop: 12,
-                fontStyle: "italic",
-                color: "var(--text-low)",
+                background: "var(--white)",
+                border: "1px solid var(--border)",
+                borderRadius: "var(--r)",
+                padding: "16px 20px",
+                maxHeight: "200px",
+                overflowY: "auto",
+                fontSize: "13px",
+                color: "var(--text-mid)",
+                lineHeight: 1.6,
               }}
             >
-              {t("legal.footer")}
-            </p>
-          </div>
+              <p style={{ marginBottom: 12 }}>{t("legal.intro")}</p>
+              {sectionsArray.map((section, idx) => (
+                <div key={idx} style={{ marginBottom: 12 }}>
+                  <strong style={{ color: "var(--text)", display: "block", marginBottom: 2 }}>
+                    {section.h}
+                  </strong>
+                  {section.p}
+                </div>
+              ))}
+              <p style={{ marginTop: 12, fontStyle: "italic", color: "var(--text-low)" }}>
+                {t("legal.footer")}
+              </p>
+            </div>
+          )}
 
           {/* Checkbox rediseñado (ya no se expande a los bordes, encaja con la caja de arriba) */}
           <label
