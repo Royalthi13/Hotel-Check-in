@@ -22,11 +22,7 @@ async function prepare() {
     const { worker } = await import("./mocks/browser");
     await worker.start({
       serviceWorker: { url: "/mockServiceWorker.js" },
-      onUnhandledRequest(req, print) {
-        const url = new URL(req.url);
-        // Solo avisar por requests de API no mockeados.
-        if (url.pathname.startsWith("/api/")) print.warning();
-      },
+      onUnhandledRequest: "bypass",
     });
     console.info("[MSW] mocking enabled");
   }

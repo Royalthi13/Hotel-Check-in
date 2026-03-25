@@ -12,6 +12,7 @@ export type StepId =
   | "form_contacto"
   | "form_documento"
   | "form_relaciones"
+  | "num_personas"
   | "form_extras"
   | "revision"
   | "exito";

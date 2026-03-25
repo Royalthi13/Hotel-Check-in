@@ -140,7 +140,7 @@
   font-size: 13px;
   font-weight: 600;
 }
-@media (min-width: 1200px) {
+@media (min-width: 1280px) {
   .sp-summary-btn {
     display: inline-flex;
   }
@@ -501,6 +501,19 @@
   background: #fff;
   width: 26px;
   border-radius: 4px;
+}
+@media (max-width: 480px) {
+  .dots-bar {
+    gap: 4px;
+    padding: 0 12px 14px;
+  }
+  .dot {
+    width: 6px;
+    height: 6px;
+  }
+  .dot.dot-active {
+    width: 20px;
+  }
 }
 
 /* Animaciones */

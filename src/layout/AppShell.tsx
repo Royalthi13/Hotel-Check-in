@@ -150,11 +150,11 @@ export const AppShell: React.FC<AppShellProps> = ({
             activeStep !== "revision" &&
             activeStep !== "exito"
               ? {
-                  label: t("common.summary"),
-                  icon: "clipboard",
-                  onClick: handleGoToRevision,
-                  disabled: summaryDisabled,
-                }
+                label: t("common.summary"),
+                icon: "clipboard",
+                onClick: handleGoToRevision,
+                disabled: summaryDisabled,
+              }
               : undefined
           }
         />
@@ -191,7 +191,7 @@ export const AppShell: React.FC<AppShellProps> = ({
                   disabled={summaryDisabled}
                   title={
                     stepInvalid
-                      ? "Corrige los errores del formulario antes de continuar"
+                      ? t("appShell.fix_errors_tooltip")
                       : undefined
                   }
                 >
@@ -324,7 +324,7 @@ export const AppShell: React.FC<AppShellProps> = ({
                 }}
                 style={{
                   width: "100%",
-                  height: "100%",
+                  flex: 1,
                   display: "flex",
                   flexDirection: "column",
                 }}

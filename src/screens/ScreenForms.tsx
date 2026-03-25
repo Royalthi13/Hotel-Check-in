@@ -21,6 +21,7 @@ import {
   Divider,
   InputAdornment,
   CircularProgress,
+  Tooltip
 } from "@mui/material";
 import { usePlaces } from "@/hooks/usePlaces";
 import dayjs from "dayjs";
@@ -35,6 +36,31 @@ const inputSx = {
   },
   "& .MuiOutlinedInput-notchedOutline": { borderColor: "var(--border)" },
 };
+
+interface FormPersonalProps {
+  data: PartialGuestData;
+  allGuests: PartialGuestData[];
+  onChange: (key: keyof PartialGuestData, value: unknown) => void;
+  guestIndex: number;
+  totalGuests: number;
+  isMainGuest: boolean;
+  esMenor?: boolean;
+  onNext: () => void;
+  isSubmitting: boolean;
+  token: string;
+  onPartialSave?: () => Promise<void>;
+}
+
+interface FormContactoProps {
+  data: PartialGuestData;
+  onChange: (key: keyof PartialGuestData, value: unknown) => void;
+  onNext: () => void;
+  onPartialSave: () => Promise<void>;
+  hasNextGuest: boolean;
+  isSubmitting: boolean;
+  token: string;
+  lockedFields?: { email?: boolean; telefono?: boolean };
+}
 
 const FieldError: React.FC<{ msg?: string }> = ({ msg }) =>
   msg ? (
@@ -260,71 +286,67 @@ export const ScreenFormPersonal: React.FC = () => {
               {t("forms.doc_title")}
             </Divider>
 
-            <Box
-              sx={{
-                display: "grid",
-                gridTemplateColumns: {
-                  xs: "1fr",
-                  sm: isDniOrNie ? "1fr 1fr 1fr" : "1fr 1fr",
-                },
-                gap: 2,
-              }}
-            >
+          <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: isDniOrNie ? "1fr 1fr 1fr" : "1fr 1fr" }, gap: 2 }}>
+            <div>
+              <TextField
+                select
+                label={t("forms.doc_type")}
+                required
+                fullWidth
+                value={data.tipoDoc ?? ""}
+                onChange={(e) => {
+                  onChange("tipoDoc", e.target.value);
+                  clearError("tipoDoc");
+                }}
+                error={!!errors.tipoDoc}
+                sx={inputSx}
+              >
+                {TIPOS_DOCUMENTO.map((doc) => <MenuItem key={doc} value={doc}>{t(`constants.documentos.${doc}`)}</MenuItem>)}
+              </TextField>
+              <FieldError msg={errors.tipoDoc} />
+            </div>
+            <div>
+              <TextField
+                label={t("forms.doc_number")}
+                required
+                fullWidth
+                value={data.numDoc ?? ""}
+                onChange={(e) => {
+                  onChange("numDoc", e.target.value.toUpperCase());
+                  clearError("numDoc");
+                }}
+                error={!!errors.numDoc}
+                sx={inputSx}
+              />
+              <FieldError msg={errors.numDoc} />
+            </div>
+            {isDniOrNie && (
               <div>
                 <TextField
-                  select
-                  label={t("forms.doc_type")}
+                  label={
+                    <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+                      {t("forms.doc_support")}
+                      <Tooltip title={t("forms.doc_support_hint")} arrow placement="top">
+                        <Box component="span" sx={{ display: "flex", cursor: "help", color: "var(--text-low)" }}>
+                          <Icon name="info" size={14} />
+                        </Box>
+                      </Tooltip>
+                    </Box>
+                  }
                   required
                   fullWidth
-                  value={data.tipoDoc ?? ""}
+                  value={data.soporteDoc ?? ""}
                   onChange={(e) => {
-                    onChange("tipoDoc", e.target.value);
-                    clearError("tipoDoc");
+                    onChange("soporteDoc", e.target.value.toUpperCase());
+                    clearError("soporteDoc");
                   }}
-                  error={!!errors.tipoDoc}
-                  sx={inputSx}
-                >
-                  {TIPOS_DOCUMENTO.map((doc) => (
-                    <MenuItem key={doc} value={doc}>
-                      {t(`constants.documentos.${doc}`)}
-                    </MenuItem>
-                  ))}
-                </TextField>
-                <FieldError msg={errors.tipoDoc} />
-              </div>
-              <div>
-                <TextField
-                  label={t("forms.doc_number")}
-                  required
-                  fullWidth
-                  value={data.numDoc ?? ""}
-                  onChange={(e) => {
-                    onChange("numDoc", e.target.value.toUpperCase());
-                    clearError("numDoc");
-                  }}
-                  error={!!errors.numDoc}
+                  error={!!errors.soporteDoc}
                   sx={inputSx}
                 />
-                <FieldError msg={errors.numDoc} />
+                <FieldError msg={errors.soporteDoc} />
               </div>
-              {isDniOrNie && (
-                <div>
-                  <TextField
-                    label={t("forms.doc_support")}
-                    required
-                    fullWidth
-                    value={data.soporteDoc ?? ""}
-                    onChange={(e) => {
-                      onChange("soporteDoc", e.target.value.toUpperCase());
-                      clearError("soporteDoc");
-                    }}
-                    error={!!errors.soporteDoc}
-                    sx={inputSx}
-                  />
-                  <FieldError msg={errors.soporteDoc} />
-                </div>
-              )}
-            </Box>
+            )}
+          </Box>
 
             {mostrarCargaFoto && (
               <label
@@ -476,106 +498,76 @@ export const ScreenFormContacto: React.FC = () => {
         </Typography>
         <p>{t("forms.contact_subtitle")}</p>
       </div>
-      <form onSubmit={handleSubmit}>
-        <fieldset
-          disabled={isSubmitting}
-          style={{ border: "none", padding: 0, margin: 0 }}
-        >
-          <Box
-            style={{ padding: "0 var(--px)" }}
-            sx={{ mt: 2, display: "flex", flexDirection: "column", gap: 2.5 }}
-          >
-            <Box
-              sx={{
-                display: "grid",
-                gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" },
-                gap: 2,
-              }}
-            >
-              <div>
-                <TextField
-                  label={t("forms.email")}
-                  required={
-                    !lockedFields?.email && !lockedFields?.telefono
-                      ? !data.telefono?.trim()
-                      : !lockedFields?.telefono
-                  }
-                  fullWidth
-                  value={data.email ?? ""}
-                  onChange={
-                    lockedFields?.email
-                      ? undefined
-                      : (e) => {
-                          onChange("email", e.target.value);
-                          clearError("email");
-                        }
-                  }
-                  error={!!errors.email}
-                  sx={{
-                    ...inputSx,
-                    ...(lockedFields?.email ? { opacity: 0.72 } : {}),
-                  }}
-                  InputProps={{
-                    readOnly: !!lockedFields?.email,
-                    endAdornment: lockedFields?.email ? (
-                      <InputAdornment position="end">
-                        <Icon name="lock" size={13} color="var(--text-low)" />
-                      </InputAdornment>
-                    ) : undefined,
-                  }}
-                  helperText={
-                    lockedFields?.email
-                      ? t("forms.field_from_reservation")
-                      : undefined
-                  }
-                />
-                <FieldError msg={errors.email} />
-              </div>
-              <div>
-                <TextField
-                  label={t("forms.phone")}
-                  required={
-                    !lockedFields?.email && !lockedFields?.telefono
-                      ? !data.email?.trim()
-                      : !lockedFields?.email
-                  }
-                  fullWidth
-                  type="tel"
-                  value={data.telefono ?? ""}
-                  onChange={
-                    lockedFields?.telefono
-                      ? undefined
-                      : (e) => {
-                          onChange(
-                            "telefono",
-                            e.target.value.replace(/(?!^\+)[^\d]/g, ""),
-                          );
-                          clearError("telefono");
-                        }
-                  }
-                  error={!!errors.telefono}
-                  sx={{
-                    ...inputSx,
-                    ...(lockedFields?.telefono ? { opacity: 0.72 } : {}),
-                  }}
-                  InputProps={{
-                    readOnly: !!lockedFields?.telefono,
-                    endAdornment: lockedFields?.telefono ? (
-                      <InputAdornment position="end">
-                        <Icon name="lock" size={13} color="var(--text-low)" />
-                      </InputAdornment>
-                    ) : undefined,
-                  }}
-                  helperText={
-                    lockedFields?.telefono
-                      ? t("forms.field_from_reservation")
-                      : undefined
-                  }
-                  placeholder="+34 600 000 000"
-                />
-                <FieldError msg={errors.telefono} />
-              </div>
-            </Box>
+<form onSubmit={handleSubmit} onKeyDown={(e) => {
+        if (e.key === "Enter") {
+          const target = e.target as HTMLInputElement;
+          if (target.name === "cp") {
+            e.preventDefault();
+            if (data.cp && data.pais && !esEspana) {
+              buscarCP(data.cp as string, data.pais as string);
+            }
+          }
+        }
+      }}>
+        <Box style={{ padding: "0 var(--px)" }} sx={{ mt: 2, display: "flex", flexDirection: "column", gap: 2.5 }}>
+
+          <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" }, gap: 2 }}>
+            <div>
+              <TextField
+                label={t("forms.email")}
+                required={!lockedFields?.email && !lockedFields?.telefono ? !data.telefono?.trim() : !lockedFields?.telefono}
+                fullWidth
+                value={data.email ?? ""}
+                onChange={
+                  lockedFields?.email
+                    ? undefined
+                    : (e) => { onChange("email", e.target.value); clearError("email"); }
+                }
+                error={!!errors.email}
+                sx={{ ...inputSx, ...(lockedFields?.email ? { opacity: 0.72 } : {}) }}
+                InputProps={{
+                  readOnly: !!lockedFields?.email,
+                  endAdornment: lockedFields?.email ? (
+                    <InputAdornment position="end">
+                      <Icon name="lock" size={13} color="var(--text-low)" />
+                    </InputAdornment>
+                  ) : undefined,
+                }}
+                helperText={lockedFields?.email ? t("forms.field_from_reservation") : undefined}
+              />
+              <FieldError msg={errors.email} />
+            </div>
+            <div>
+              <TextField
+                label={t("forms.phone")}
+                required={!lockedFields?.email && !lockedFields?.telefono ? !data.email?.trim() : !lockedFields?.email}
+                fullWidth
+                type="tel"
+                value={data.telefono ?? ""}
+                onChange={
+                  lockedFields?.telefono
+                    ? undefined
+                    : (e) => {
+                        onChange("telefono", e.target.value.replace(/(?!^\+)[^\d]/g, ""));
+                        clearError("telefono");
+                      }
+                }
+                error={!!errors.telefono}
+                sx={{ ...inputSx, ...(lockedFields?.telefono ? { opacity: 0.72 } : {}) }}
+                InputProps={{
+                  readOnly: !!lockedFields?.telefono,
+                  endAdornment: lockedFields?.telefono ? (
+                    <InputAdornment position="end">
+                      <Icon name="lock" size={13} color="var(--text-low)" />
+                    </InputAdornment>
+                  ) : undefined,
+                }}
+                helperText={lockedFields?.telefono ? t("forms.field_from_reservation") : undefined}
+                placeholder="+34 600 000 000"
+              />
+              <FieldError msg={errors.telefono} />
+            </div>
+          </Box>
 
             <TextField
               label={t("forms.address")}
@@ -589,62 +581,53 @@ export const ScreenFormContacto: React.FC = () => {
               sx={inputSx}
             />
 
-            <div className="divlabel">{t("forms.location")}</div>
-            <Box
-              sx={{
-                display: "grid",
-                gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" },
-                gap: 2,
-              }}
-            >
-              <div>
-                <TextField
-                  select
-                  label={t("forms.country")}
-                  required
-                  fullWidth
-                  value={data.pais ?? ""}
-                  onChange={(e) => {
-                    onChange("pais", e.target.value);
-                    clearError("pais");
-                  }}
-                  error={!!errors.pais}
-                  sx={inputSx}
-                >
-                  {PAISES.map((p) => (
-                    <MenuItem key={p} value={p}>
-                      {t(`constants.paises.${p}`)}
-                    </MenuItem>
-                  ))}
-                </TextField>
-                <FieldError msg={errors.pais} />
-              </div>
-              <div>
-                <TextField
-                  label={t("forms.zipcode")}
-                  fullWidth
-                  value={data.cp ?? ""}
-                  onChange={(e) => {
-                    onChange("cp", e.target.value.toUpperCase());
-                    clearError("cp");
-                  }}
-                  onBlur={() => {
-                    if (data.cp && data.pais && !esEspana)
-                      buscarCP(data.cp, data.pais);
-                  }}
-                  InputProps={{
-                    endAdornment: isSearching ? (
-                      <InputAdornment position="end">
-                        <CircularProgress size={18} thickness={5} />
-                      </InputAdornment>
-                    ) : null,
-                  }}
-                  error={!!errors.cp}
-                  sx={inputSx}
-                />
-                <FieldError msg={errors.cp} />
-              </div>
-            </Box>
+          <div className="divlabel">{t("forms.location")}</div>
+          <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" }, gap: 2 }}>
+            <div>
+              <TextField
+                select
+                label={t("forms.country")}
+                required
+                fullWidth
+                value={data.pais ?? ""}
+                onChange={(e) => { onChange("pais", e.target.value); clearError("pais"); }}
+                error={!!errors.pais}
+                sx={inputSx}
+              >
+                {PAISES.map((p) => (
+                  <MenuItem key={p} value={p}>{t(`constants.paises.${p}`)}</MenuItem>
+                ))}
+              </TextField>
+              <FieldError msg={errors.pais} />
+            </div>
+            <div>
+             <TextField
+                label={t("forms.zipcode")}
+                fullWidth
+                value={data.cp ?? ""}
+                inputProps={{ name: "cp" }}
+                onChange={(e) => { onChange("cp", e.target.value.toUpperCase()); clearError("cp"); }}
+                onBlur={() => { if (data.cp && data.pais && !esEspana) buscarCP(data.cp, data.pais); }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    if (data.cp && data.pais && !esEspana) buscarCP(data.cp as string, data.pais as string);
+                  }
+                }}
+                InputProps={{
+                  endAdornment: isSearching ? (
+                    <InputAdornment position="end">
+                      <CircularProgress size={18} thickness={5} />
+                    </InputAdornment>
+                  ) : null,
+                }}
+                error={!!errors.cp}
+                sx={inputSx}
+              />
+              <FieldError msg={errors.cp} />
+            </div>
+          </Box>
 
             <Box
               sx={{

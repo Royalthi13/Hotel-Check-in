@@ -87,6 +87,7 @@
   "common": {
     "no": "No",
     "yes": "Yes",
+    "back": "Back",
     "start_checkin": "Start Check-in",
     "continue": "Continue",
     "finish": "Finish",
@@ -106,6 +107,7 @@
   },
   "appShell": {
     "subtitle": "Complete your pre check-in and arrive at the hotel without waiting at the reception.",
+    "fix_errors_tooltip": "Fix the form errors before continuing",
     "booking_summary": "Booking summary",
     "privacy_short": "SSL Encryption · GDPR"
   },
@@ -117,6 +119,7 @@
     "required_gender": "Select gender",
     "required_birthdate": "Date of birth is required",
     "invalid_birthdate": "Invalid date",
+    "invalid_doc_support": "Invalid support number format.",
     "future_birthdate": "Date of birth cannot be in the future",
     "old_birthdate": "Enter a valid year (e.g. 1980)",
     "required_relationship": "Must specify the relationship with companions",
@@ -221,6 +224,7 @@
     "doc_type": "Document type",
     "doc_number": "Number",
     "doc_support": "Support number",
+    "doc_support_hint": "Alphanumeric code located on the top right corner (DNI) or back (NIE).",
     "upload_photo": "Upload photo of the back of your document",
     "photo_uploaded": "Document uploaded",
     "next_guest": "Next guest",
@@ -271,6 +275,11 @@
     "rev_title": "Check-in Summary",
     "rev_all_ready": "✓ All guests are ready.",
     "rev_missing": "Missing data for {{count}} people.",
+    "rgpd_long_1": "I have read and accept the ",
+    "rgpd_long_2": "privacy policy",
+    "rgpd_long_3": " and the ",
+    "rgpd_long_4": "terms and conditions",
+    "rgpd_long_5": ".",
     "pending": "Pending completion:",
     "fill_now": "FILL NOW",
     "links": "Links",
@@ -344,7 +353,26 @@
     "relation_with": "Relationship with {{name}}",
     "select_relationship": "— Select relationship —",
     "mandatory_legal_field": "This field is legally mandatory"
-  },
+  },"guestsCount": {
+    "title_booking": "How many people will stay?",
+    "title_manual": "How many people in total?",
+    "subtitle_booking": "According to your booking, we expect",
+    "subtitle_manual": "Indicate the total number of guests.",
+    "total": "Total people",
+    "btn_continue": "Continue",
+    "max_limit": "The maximum limit is 10.",
+    "person_singular": "person",
+    "person_plural": "people"
+  },"invalidLink": {
+  "title": "Invalid link",
+  "subtitle": "This link is not valid or has expired. Please use the link you received in your booking confirmation.",
+  "footer": "If you need help, please contact reception."
+}  ,"reservationCard": {
+  "nights": "nights",
+  "guest_singular": "guest",
+  "guest_plural": "guests"
+}
+  ,
   "legal": {
     "title": "Legal Information and Privacy",
     "intro": "In accordance with GDPR and current regulations:",

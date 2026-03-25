@@ -87,6 +87,7 @@
   "common": {
     "no": "Non",
     "yes": "Oui",
+    "back": "Retour",
     "start_checkin": "Commencer Check-in",
     "continue": "Continuer",
     "finish": "Terminer",
@@ -106,6 +107,7 @@
   },
   "appShell": {
     "subtitle": "Complétez votre pré-check-in et arrivez à l'hôtel sans attendre à la réception.",
+    "fix_errors_tooltip": "Corrigez les erreurs du formulaire avant de continuer",
     "booking_summary": "Résumé de la réservation",
     "privacy_short": "Cryptage SSL · RGPD"
   },
@@ -129,6 +131,7 @@
     "required_doc_support": "Le numéro de support est obligatoire pour le CNI et le NIE",
     "required_doc_num": "Le numéro de document est obligatoire",
     "required_email_or_phone": "Veuillez saisir au moins un e-mail ou un téléphone",
+    "invalid_doc_support": "Format du numéro de support invalide.",
     "invalid_dni": "CNI invalide. Format : 8 chiffres + lettre",
     "invalid_nie": "NIE invalide. Format : X/Y/Z + 7 chiffres + lettre",
     "invalid_passport": "Passeport invalide. Format : 3 lettres + 6 chiffres",
@@ -221,6 +224,7 @@
     "doc_type": "Type de document",
     "doc_number": "Numéro",
     "doc_support": "Numéro de support",
+    "doc_support_hint": "Code alphanumérique situé dans le coin supérieur droit (DNI) ou au dos (NIE).",
     "upload_photo": "Télécharger la photo du dos de votre document",
     "photo_uploaded": "Document téléchargé",
     "next_guest": "Client suivant",
@@ -279,6 +283,11 @@
     "requests_info": "L'hôtel fera de son mieux pour satisfaire vos demandes, mais elles ne sont pas garanties.",
     "review_data_title": "Vérifiez vos données",
     "review_data_sub": "Vérifiez que toutes les informations sont correctes.",
+    "rgpd_long_1": "J'ai lu et j'accepte la ",
+    "rgpd_long_2": "politique de confidentialité",
+    "rgpd_long_3": " et les ",
+    "rgpd_long_4": "termes et conditions",
+    "rgpd_long_5": ".",
     "main_guest_personal": "Titulaire — données personnelles",
     "companion_personal": "Accompagnateur {{count}} — données personnelles",
     "main_guest_doc": "Titulaire — document",
@@ -342,6 +351,13 @@
   },
   "invalidLink": {
     "title": "Lien invalide",
+    "subtitle": "Ce lien n'est pas valide ou a expiré. Veuillez utiliser le lien reçu dans votre confirmation de réservation.",
+    "footer": "Si vous avez besoin d'aide, contactez la réception."
+  },
+  "reservationCard": {
+    "nights": "nuits",
+    "guest_singular": "client",
+    "guest_plural": "clients",
     "description": "Ce lien est invalide ou a expiré. Veuillez y accéder via le lien que vous avez reçu dans votre e-mail de confirmation de réservation.",
     "help": "Si vous avez besoin d'aide, veuillez contacter la réception."
   },

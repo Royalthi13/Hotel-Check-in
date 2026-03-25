@@ -92,6 +92,7 @@
   "common": {
     "no": "No",
     "yes": "Sí",
+     "back": "Atrás",
     "start_checkin": "Comenzar Check-in",
     "continue": "Continuar",
     "finish": "Finalizar",
@@ -111,6 +112,7 @@
   },
   "appShell": {
     "subtitle": "Complete su pre check-in y llegue al hotel sin esperas en recepción.",
+    "fix_errors_tooltip": "Corrige los errores del formulario antes de continuar",
     "booking_summary": "Resumen de la reserva",
     "privacy_short": "Cifrado SSL · RGPD"
   },
@@ -127,6 +129,7 @@
     "required_relationship": "Debe indicar el parentesco del menor con los acompañantes",
     "required_email": "El email es obligatorio",
     "invalid_email": "Email no válido (ejemplo: usuario@email.com)",
+    "invalid_doc_support": "Formato de número de soporte no válido.",
     "required_phone": "El teléfono es obligatorio",
     "invalid_phone": "El teléfono debe tener entre 9 y 15 dígitos y puede incluir el prefijo +.",
     "required_country": "El país es obligatorio",
@@ -227,6 +230,7 @@
     "doc_type": "Tipo de documento",
     "doc_number": "Número",
     "doc_support": "Número de soporte",
+    "doc_support_hint": "Código alfanumérico que aparece en la esquina superior derecha (DNI) o reverso (NIE).",
     "upload_photo": "Subir foto de la parte trasera de tu documento",
     "photo_uploaded": "Documento cargado",
     "next_guest": "Siguiente huésped",
@@ -285,6 +289,11 @@
     "requests_info": "Las peticiones son orientativas. El hotel hará lo posible por atenderlas, aunque no pueden garantizarse de antemano.",
     "review_data_title": "Revise sus datos",
     "review_data_sub": "Compruebe que toda la información es correcta antes de confirmar el pre check-in.",
+    "rgpd_long_1": "He leído y acepto la ",
+    "rgpd_long_2": "política de privacidad",
+    "rgpd_long_3": " y los ",
+    "rgpd_long_4": "términos y condiciones",
+    "rgpd_long_5": ".",
     "main_guest_personal": "Huésped principal — datos personales",
     "companion_personal": "Acompañante {{count}} — datos personales",
     "main_guest_doc": "Huésped principal — documento",
@@ -333,6 +342,16 @@
     "btn_reload": "Recargar página",
     "footer": "Si el problema persiste, contacte con recepción del hotel."
   },
+  "invalidLink": {
+  "title": "Enlace no válido",
+  "subtitle": "Este enlace no es válido o ha caducado. Por favor, acceda mediante el enlace que recibió en su confirmación de reserva.",
+  "footer": "Si necesita ayuda, contacte con recepción."
+},
+"reservationCard": {
+  "nights": "noches",
+  "guest_singular": "huésped",
+  "guest_plural": "huéspedes"
+},
   "minors": {
     "adult_fallback": "Adulto {{count}}",
     "minor_fallback": "Menor {{count}}",
@@ -345,6 +364,16 @@
     "relation_with": "Relación con {{name}}",
     "select_relationship": "— Seleccionar parentesco —",
     "mandatory_legal_field": "Este campo es obligatorio por ley"
+  },"guestsCount": {
+    "title_booking": "¿Cuántas personas se alojarán?",
+    "title_manual": "¿Cuántas personas son en total?",
+    "subtitle_booking": "Según su reserva, esperamos a",
+    "subtitle_manual": "Indique el número total de huéspedes.",
+    "total": "Total de personas",
+    "btn_continue": "Continuar",
+    "max_limit": "El límite máximo es 10.",
+    "person_singular": "persona",
+    "person_plural": "personas"
   },
   "legal": {
     "title": "Información Legal y Privacidad",

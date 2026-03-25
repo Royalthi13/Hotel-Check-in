@@ -277,6 +277,8 @@ export function useCheckin(tokenUrl?: string, stepUrl?: string) {
 
   const goTo = useCallback(
     (nextStep: StepId, dir: NavDirection = "forward", gIdx?: number) => {
+      if (isNavigating) return;
+
       const nextGIdx = gIdx ?? activeGuestIndex;
 
       setAllowedSteps((prev) => new Set(prev).add(nextStep));
@@ -290,11 +292,12 @@ export function useCheckin(tokenUrl?: string, stepUrl?: string) {
 
       if (dir === "forward") {
         navigate(`/checkin/${token}/${nextStep}`);
+        setTimeout(() => setIsNavigating(false), 350);
       } else {
         navigate(`/checkin/${token}/${nextStep}`, { replace: true });
       }
     },
-    [navigate, token, activeGuestIndex],
+    [navigate, token, activeGuestIndex, isNavigating],
   );
 
   const goBack = useCallback(() => {

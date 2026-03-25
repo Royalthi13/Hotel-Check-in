@@ -23,7 +23,8 @@ i18n
     fallbackLng: "es",
     load: "languageOnly",
     detection: {
-      order: ["navigator", "localStorage", "querystring", "htmlTag"],
+      order: ["querystring","navigator", "localStorage", "htmlTag"],
+        lookupQuerystring: "lang",
       caches: ["localStorage"],
     },
     interpolation: {

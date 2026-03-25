@@ -148,15 +148,12 @@ export const PARENTESCOS_MENOR = [
 export const FLOW_STEPS_LINK: StepId[] = [
   "inicio",
   "bienvenida",
-  "escanear",
   "form_personal",
   "form_contacto",
-  "form_relaciones",
   "form_extras",
   "revision",
   "exito",
 ];
-
 export const DOT_STEPS_BASE: StepId[] = [
   "inicio",
   "bienvenida",

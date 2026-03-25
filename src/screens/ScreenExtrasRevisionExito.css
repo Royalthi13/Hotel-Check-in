@@ -32,7 +32,7 @@
   border: 1px solid var(--border);
   border-radius: var(--r);
   overflow: hidden;
-  margin-bottom: 10px;
+  margin-bottom: 14px;
 }
 .confirm-card-hdr {
   padding: 9px 14px;
@@ -84,7 +84,8 @@
   .confirm-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 10px;
+    gap: 16px;
+    margin-bottom: 14px;
   }
   .confirm-grid .confirm-card {
     margin-bottom: 0;

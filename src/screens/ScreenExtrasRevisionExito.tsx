@@ -133,13 +133,13 @@ export const ScreenRevision: React.FC<RevisionProps> = ({
         <p>{t("review.review_data_sub")}</p>
       </div>
 
-      <div style={{ padding: "8px 24px 0" }}>
+      <div style={{ padding: "8px var(--px) 0" }}>
         {reserva && (
           <div style={{ marginBottom: 12 }}>
             <ReservationCard reserva={reserva} />
           </div>
         )}
-
+      <div className="confirm-grid">
         {guests.map((g, idx) => (
           <React.Fragment key={idx}>
             <ConfirmBlock
@@ -198,6 +198,7 @@ export const ScreenRevision: React.FC<RevisionProps> = ({
             />
           </React.Fragment>
         ))}
+        </div>
 
         <ConfirmBlock
           title={t("review.contact_address")}

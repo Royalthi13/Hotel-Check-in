@@ -20,14 +20,15 @@ import {
   ScreenRevision,
   ScreenExito,
 } from "@/screens/ScreenExtrasRevisionExito";
-import type { StepId, Reserva } from "@/types";
+
+// Importamos 'Reserva' para solucionar el error de tipado del inicio
+import type { StepId, PartialGuestData } from "@/types";
 
 const STEPS_WITHOUT_DOTS = new Set<StepId>(["tablet_buscar", "exito"]);
 
 // ── Página de enlace inválido / caducado ──────────────────────────────────────
 function InvalidLink() {
   const { t } = useTranslation();
-
   return (
     <div
       className="shell"
@@ -69,6 +70,7 @@ function InvalidLink() {
           }}
         >
           {t("invalidLink.title")}
+          {t("invalidLink.title")}
         </h2>
         <p
           style={{
@@ -79,10 +81,16 @@ function InvalidLink() {
             margin: "0 auto",
           }}
         >
-          {t("invalidLink.description")}
+          {t("invalidLink.subtitle")}
         </p>
-        <p style={{ marginTop: 20, fontSize: 12, color: "var(--text-low)" }}>
-          {t("invalidLink.help")}
+        <p
+          style={{
+            marginTop: 20,
+            fontSize: 12,
+            color: "var(--text-low)",
+          }}
+        >
+          {t("invalidLink.footer")}
         </p>
       </div>
     </div>
@@ -157,14 +165,15 @@ function CheckinWizard() {
       guestIndex={nav.guestIndex}
     >
       {isOffline && (
-        <div style={{ padding: "8px 24px 0" }}>
+        <div style={{ padding: "8px var(--px) 0" }}>
           <Alert variant="warm">{t("search.error_connection")}</Alert>
         </div>
       )}
 
       {currentStep === "inicio" && (
         <ScreenCheckinInicio
-          reserva={state.reserva as unknown as Reserva}
+          // CORRECCIÓN 2: Tipado fuerte para evitar "any"
+          reserva={state.reserva}
           onNext={(hayMenores: boolean) => {
             setHasMinorsFlag(hayMenores);
             setLegalPassed(true);
@@ -225,7 +234,7 @@ function CheckinWizard() {
       {currentStep === "revision" && (
         <>
           {submitError && (
-            <div style={{ padding: "8px 24px 0" }}>
+            <div style={{ padding: "8px var(--px) 0" }}>
               <Alert variant="err">{submitError}</Alert>
             </div>
           )}

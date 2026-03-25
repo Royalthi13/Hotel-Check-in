@@ -87,6 +87,7 @@
   "common": {
     "no": "Nein",
     "yes": "Ja",
+    "back": "Zurück",
     "start_checkin": "Check-in starten",
     "continue": "Weiter",
     "finish": "Beenden",
@@ -106,6 +107,7 @@
   },
   "appShell": {
     "subtitle": "Schließen Sie den Pre Check-in ab und kommen Sie ohne Wartezeit an der Rezeption an.",
+    "fix_errors_tooltip": "Bitte korrigieren Sie die Formulafehler bevor Sie fortfahren",
     "booking_summary": "Buchungszusammenfassung",
     "privacy_short": "SSL-Verschlüsselung · DSGVO"
   },
@@ -117,6 +119,7 @@
     "required_gender": "Geschlecht angeben",
     "required_birthdate": "Geburtsdatum ist erforderlich",
     "invalid_birthdate": "Ungültiges Datum",
+    "invalid_doc_support": "Ungültiges Format für die Zusatznummer.",
     "future_birthdate": "Geburtsdatum darf nicht in der Zukunft liegen",
     "old_birthdate": "Gültiges Jahr eingeben (z.B. 1980)",
     "required_relationship": "Verwandtschaftsgrad muss angegeben werden",
@@ -221,6 +224,7 @@
     "doc_type": "Dokumenttyp",
     "doc_number": "Nummer",
     "doc_support": "Zusatznummer",
+    "doc_support_hint": "Alphanumerischer Code in der oberen rechten Ecke (DNI) oder auf der Rückseite (NIE).",
     "upload_photo": "Foto der Rückseite des Dokuments hochladen",
     "photo_uploaded": "Dokument hochgeladen",
     "next_guest": "Nächster Gast",
@@ -266,6 +270,11 @@
     "rev_title": "Zusammenfassung des Check-ins",
     "rev_all_ready": "✓ Alle Gäste sind bereit.",
     "rev_missing": "Fehlende Daten von {{count}} Personen.",
+    "rgpd_long_1": "Ich habe die ",
+    "rgpd_long_2": "Datenschutzrichtlinie",
+    "rgpd_long_3": " und die ",
+    "rgpd_long_4": "Allgemeinen Geschäftsbedingungen",
+    "rgpd_long_5": " gelesen und akzeptiere sie.",
     "pending": "Noch ausstehend:",
     "fill_now": "JETZT AUSFÜLLEN",
     "links": "Verbindungen",
@@ -340,10 +349,18 @@
     "select_relationship": "— Verwandtschaft wählen —",
     "mandatory_legal_field": "Dieses Feld ist gesetzlich vorgeschrieben"
   },
+
   "invalidLink": {
     "title": "Ungültiger Link",
+    "subtitle": "Dieser Link ist ungültig oder abgelaufen. Bitte verwenden Sie den Link aus Ihrer Buchungsbestätigung.",
     "description": "Dieser Link ist ungültig oder abgelaufen. Bitte rufen Sie den Check-in über den Link auf, den Sie in Ihrer Buchungsbestätigung erhalten haben.",
-    "help": "Wenn Sie Hilfe benötigen, wenden Sie sich bitte an die Rezeption."
+    "help": "Wenn Sie Hilfe benötigen, wenden Sie sich bitte an die Rezeption.",
+    "footer": "Bei Fragen wenden Sie sich an die Rezeption."
+  },
+  "reservationCard": {
+    "nights": "Nächte",
+    "guest_singular": "Gast",
+    "guest_plural": "Gäste"
   },
   "legal": {
     "title": "Rechtliche Informationen & Datenschutz",

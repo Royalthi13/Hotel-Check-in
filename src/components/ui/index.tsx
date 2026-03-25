@@ -1,4 +1,5 @@
 import React from "react";
+import { useTranslation } from "react-i18next";
 import type { Reserva } from "../../types";
 import "@/components/ui/buttons.css";
 import "@/components/ui/forms.css";
@@ -247,13 +248,15 @@ export const ConfirmBlock: React.FC<{
   title: string;
   rows: Array<[string, string | undefined | null]>;
   onEdit?: () => void;
-}> = ({ title, rows, onEdit }) => (
+}> = ({ title, rows, onEdit }) => {
+  const { t } = useTranslation();
+  return (
   <div className="confirm-card">
     <div className="confirm-card-hdr">
       <span>{title}</span>
       {onEdit && (
         <button type="button" onClick={onEdit}>
-          <Icon name="edit" size={12} /> Editar
+          <Icon name="edit" size={12} />{t("review.edit_btn")}
         </button>
       )}
     </div>
@@ -266,7 +269,7 @@ export const ConfirmBlock: React.FC<{
         </div>
       ))}
   </div>
-);
+);}
 
 // ═══════════════════════════════════════════════════════════════════════════
 // HEADER
@@ -294,13 +297,15 @@ export const Header: React.FC<HeaderProps> = ({
   extraContent,
   name,
   room,
-}) => (
+}) => {
+  const { t } = useTranslation();
+  return (
   <div className="hdr">
     {/* Slot 1: Navegación */}
     <div className="hdr-side">
       {canGoBack ? (
         <button type="button" className="hdr-back" onClick={onBack}>
-          <Icon name="left" size={15} /> <span>Atrás</span>
+          <Icon name="left" size={15} /> <span>{t("common.back")}</span>
         </button>
       ) : (
         <div style={{ width: 62 }} />
@@ -342,7 +347,9 @@ export const Header: React.FC<HeaderProps> = ({
       )}
     </div>
   </div>
-);
+); }
+
+
 // ═══════════════════════════════════════════════════════════════════════════
 // RESERVATION CARD & LOADING SPINNER
 // ═══════════════════════════════════════════════════════════════════════════

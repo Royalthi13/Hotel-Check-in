@@ -66,7 +66,9 @@ export const ScreenRelacionesMenor: React.FC<Props> = ({
           {t("minors.relationship_title")}
         </Typography>
         <Typography variant="body1" color="text.secondary">
-          ¿Con qué adultos comparte habitación <strong>{nombreMenor}</strong>?
+          {t("minors.declare_relationship_1")}
+          <strong>{nombreMenor}</strong>
+          {t("minors.declare_relationship_2")}
         </Typography>
       </Box>
 
