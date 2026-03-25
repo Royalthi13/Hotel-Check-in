@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
-import { Button, Icon, ReservationCard } from "@/components/ui";
+import { Button, ReservationCard } from "@/components/ui";
 import type { Reserva } from "@/types";
 
 interface Props {
