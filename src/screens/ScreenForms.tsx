@@ -547,18 +547,8 @@ export const ScreenFormContacto: React.FC = () => {
                         }
                   }
                   error={!!errors.email}
-                  sx={{
-                    ...inputSx,
-                    ...(lockedFields?.email ? { opacity: 0.72 } : {}),
-                  }}
-                  InputProps={{
-                    readOnly: !!lockedFields?.email,
-                    endAdornment: lockedFields?.email ? (
-                      <InputAdornment position="end">
-                        <Icon name="lock" size={13} color="var(--text-low)" />
-                      </InputAdornment>
-                    ) : undefined,
-                  }}
+                 disabled={!!lockedFields?.email}
+                  sx={inputSx}
                   helperText={
                     lockedFields?.email
                       ? t("forms.field_from_reservation")
@@ -590,18 +580,8 @@ export const ScreenFormContacto: React.FC = () => {
                         }
                   }
                   error={!!errors.telefono}
-                  sx={{
-                    ...inputSx,
-                    ...(lockedFields?.telefono ? { opacity: 0.72 } : {}),
-                  }}
-                  InputProps={{
-                    readOnly: !!lockedFields?.telefono,
-                    endAdornment: lockedFields?.telefono ? (
-                      <InputAdornment position="end">
-                        <Icon name="lock" size={13} color="var(--text-low)" />
-                      </InputAdornment>
-                    ) : undefined,
-                  }}
+                  disabled={!!lockedFields?.telefono}
+                  sx={inputSx}
                   helperText={
                     lockedFields?.telefono
                       ? t("forms.field_from_reservation")
