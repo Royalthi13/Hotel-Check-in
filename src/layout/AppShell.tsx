@@ -92,16 +92,17 @@ export const AppShell: React.FC<AppShellProps> = ({
   guestIndex = 0,
 }) => {
   const { t } = useTranslation();
+
+  // 1. Declaración de Refs y Motion Values (Arriba para evitar errores de "used before declaration")
+  const trackRef = useRef<HTMLDivElement>(null);
+  const progressX = useMotionValue(0);
+  const [trackWidth, setTrackWidth] = useState(0);
+  const dotSteps = nav.dotSteps || [];
+
   const activeStep = getActiveSideStep(nav.step);
   const activeIdx = SIDE_STEPS.findIndex((s) => s.id === activeStep);
 
-  // 1. Definimos las variables de estado y refs primero (Orden correcto)
-  const dotSteps = nav.dotSteps || [];
-  const progressX = useMotionValue(0);
-  const trackRef = useRef<HTMLDivElement>(null);
-  const [trackWidth, setTrackWidth] = useState(0);
-
-  // 2. Estado de progreso (Corregido: usamos setMaxDotReached correctamente)
+  // 2. Estado de progreso máximo alcanzado
   const [maxDotReached, setMaxDotReached] = useState(() =>
     nav.dotIndex >= 0 && nav.step !== "revision" && nav.step !== "exito"
       ? nav.dotIndex
@@ -122,13 +123,14 @@ export const AppShell: React.FC<AppShellProps> = ({
     });
   }, [nav.dotIndex, nav.step, nav.allowedSteps]);
 
-  // 3. Efecto de medición (Ahora dotSteps y progressX ya están declarados arriba)
+  // 3. Efecto de medición de ancho y sincronización inicial
   useEffect(() => {
     const measure = () => {
       if (trackRef.current) {
         const width = trackRef.current.offsetWidth;
         setTrackWidth(width);
 
+        // Sincronizamos la posición de la píldora inmediatamente para evitar el salto a la izquierda
         if (dotSteps.length > 1) {
           const stepWidth = width / (dotSteps.length - 1);
           progressX.set(nav.dotIndex * stepWidth);
@@ -146,7 +148,7 @@ export const AppShell: React.FC<AppShellProps> = ({
     };
   }, [showDots, dotSteps.length, nav.dotIndex, progressX]);
 
-  // 4. Lógica de navegación y validación
+  // 4. Lógica de validación
   const isStepUnlocked = (stepId: StepId, index: number) => {
     if (nav.allowedSteps) return nav.allowedSteps.has(stepId);
     if (activeStep === "revision" || activeStep === "exito") {
@@ -166,9 +168,11 @@ export const AppShell: React.FC<AppShellProps> = ({
     activeStep === "exito" ||
     stepInvalid;
 
+  // 5. Función de final de arrastre (Ahora SÍ se usa correctamente abajo)
   const handleDragEnd = () => {
     if (dotSteps.length <= 1 || trackWidth === 0) return;
     const stepWidth = trackWidth / (dotSteps.length - 1);
+
     let landedIndex = Math.round(progressX.get() / stepWidth);
     landedIndex = Math.max(0, Math.min(landedIndex, dotSteps.length - 1));
 
@@ -178,10 +182,11 @@ export const AppShell: React.FC<AppShellProps> = ({
     const isBlockedByError = landedIndex > nav.dotIndex && stepInvalid;
 
     if (!isAllowed || isBlockedByError || landedIndex === nav.dotIndex) {
+      // Si no puede ir, vuelve a su sitio con un muelle firme
       animate(progressX, nav.dotIndex * stepWidth, {
         type: "spring",
-        stiffness: 400,
-        damping: 25,
+        stiffness: 500,
+        damping: 30,
       });
       return;
     }
@@ -220,7 +225,6 @@ export const AppShell: React.FC<AppShellProps> = ({
         {showDots && dotSteps.length > 0 && nav.dotIndex >= 0 && (
           <div className="dots-bar">
             <div className="swipe-dots-track" ref={trackRef}>
-              {/* Puntos de fondo minimalistas */}
               {dotSteps.map((_, i) => {
                 const isDone = i < nav.dotIndex;
                 const isActive = i === nav.dotIndex;
@@ -245,38 +249,7 @@ export const AppShell: React.FC<AppShellProps> = ({
                 dragElastic={0.1}
                 dragMomentum={false}
                 whileTap={{ scaleY: 1.4, scaleX: 1.05 }}
-                onDragEnd={() => {
-                  if (dotSteps.length <= 1 || trackWidth === 0) return;
-                  const stepWidth = trackWidth / (dotSteps.length - 1);
-
-                  let landedIndex = Math.round(progressX.get() / stepWidth);
-                  landedIndex = Math.max(
-                    0,
-                    Math.min(landedIndex, dotSteps.length - 1),
-                  );
-
-                  const targetStepId = dotSteps[landedIndex];
-                  const isAllowed =
-                    landedIndex <= maxDotReached ||
-                    isStepUnlocked(targetStepId, landedIndex);
-                  const isBlockedByError =
-                    landedIndex > nav.dotIndex && stepInvalid;
-
-                  if (
-                    !isAllowed ||
-                    isBlockedByError ||
-                    landedIndex === nav.dotIndex
-                  ) {
-                    animate(progressX, nav.dotIndex * stepWidth, {
-                      type: "spring",
-                      stiffness: 500,
-                      damping: 30,
-                    });
-                    return;
-                  }
-
-                  actions.goToDotIndex(landedIndex);
-                }}
+                onDragEnd={handleDragEnd} // 🟢 USAMOS LA FUNCIÓN AQUÍ 🟢
               />
             </div>
           </div>
