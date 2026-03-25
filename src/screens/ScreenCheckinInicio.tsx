@@ -1,18 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
-import { Button, Icon } from "@/components/ui";
-import "@/App.css";
-import {
-  Typography,
-  Box,
-  FormControlLabel,
-  Checkbox,
-  RadioGroup,
-  Radio,
-  FormControl,
-  FormLabel,
-  Divider,
-} from "@mui/material";
+import { Button, Icon, ReservationCard } from "@/components/ui";
 import type { Reserva } from "@/types";
 
 interface Props {
@@ -28,7 +16,6 @@ interface LegalSection {
 export const ScreenCheckinInicio: React.FC<Props> = ({ reserva, onNext }) => {
   const { t } = useTranslation();
 
-  // 1. Cargamos el valor guardado en memoria, si no hay, por defecto en 'false' o 'null'
   const [acceptedLegal, setAcceptedLegal] = useState<boolean>(() => {
     return sessionStorage.getItem("lumina_acceptedLegal") === "true";
   });
@@ -37,7 +24,6 @@ export const ScreenCheckinInicio: React.FC<Props> = ({ reserva, onNext }) => {
     return sessionStorage.getItem("lumina_hayMenores") || null;
   });
 
-  // 2. Cada vez que cambien los valores, los guardamos en memoria
   useEffect(() => {
     sessionStorage.setItem("lumina_acceptedLegal", String(acceptedLegal));
   }, [acceptedLegal]);
@@ -53,188 +39,261 @@ export const ScreenCheckinInicio: React.FC<Props> = ({ reserva, onNext }) => {
     ? (legalSections as LegalSection[])
     : [];
 
-  const confirmacion = reserva?.confirmacion || "---";
-  const numHuespedes = reserva?.numHuespedes || 1;
-  const fEntrada = reserva?.fechaEntrada || "---";
-  const fSalida = reserva?.fechaSalida || "---";
-
-  const title1 = t("welcome.title_new_1");
-  const title2 = t("welcome.title_new_2");
-
   return (
-    <Box
-      sx={{
-        p: { xs: 2, sm: 4 },
-        display: "flex",
-        flexDirection: "column",
-        gap: 3,
-      }}
+    <div
+      style={{ display: "flex", flexDirection: "column", minHeight: "100%" }}
     >
-      <div className="sec-hdr" style={{ padding: 0 }}>
-        <Typography
-          variant="h4"
-          sx={{ fontFamily: "Cormorant Garamond, serif", mb: 1 }}
-        >
-          {title1} <span style={{ color: "var(--primary)" }}>{title2}</span>
-        </Typography>
+      <div className="sec-hdr">
+        <h2>
+          {t("welcome.title_new_1")}{" "}
+          <em style={{ color: "var(--primary)", fontStyle: "italic" }}>
+            {t("welcome.title_new_2")}
+          </em>
+        </h2>
+        <p>{t("appShell.subtitle")}</p>
       </div>
 
-      <Box
-        sx={{
-          p: 2,
-          bgcolor: "rgba(0,0,0,0.03)",
-          borderRadius: "12px",
-          border: "1px solid var(--border)",
+      <div
+        style={{
+          padding: "10px var(--px) 24px",
+          display: "flex",
+          flexDirection: "column",
+          gap: "36px", // Espaciado amplio y uniforme entre secciones
+          flex: 1,
         }}
       >
-        <Typography
-          variant="overline"
-          color="text.secondary"
-          sx={{ fontWeight: 600 }}
-        >
-          {t("welcome.summary_title")}
-        </Typography>
-
-        <Box
-          sx={{
-            display: "flex",
-            justifyContent: "space-between",
-            mt: 1,
-            flexWrap: "wrap",
-            gap: 1,
-          }}
-        >
-          <Typography variant="body2">
-            <strong>{t("welcome.reservation")}:</strong> {confirmacion}
-          </Typography>
-          <Typography variant="body2">
-            <strong>{t("welcome.guests_booked")}:</strong> {numHuespedes}
-          </Typography>
-        </Box>
-
-        <Box sx={{ mt: 1.5, display: "flex", alignItems: "center", gap: 1 }}>
-          <Icon name="calendar" size={14} color="var(--primary)" />
-          <Typography
-            variant="body2"
-            sx={{ color: "var(--text-mid)", fontWeight: 500 }}
-          >
-            {fEntrada} — {fSalida}
-          </Typography>
-        </Box>
-
-        <Typography
-          variant="caption"
-          sx={{
-            display: "block",
-            mt: 2,
-            color: "var(--text-low)",
-            fontStyle: "italic",
-          }}
-        >
-          {t("welcome.error_notice")}
-        </Typography>
-      </Box>
-
-      <FormControl component="fieldset">
-        <FormLabel
-          sx={{
-            color: "var(--text)",
-            fontWeight: "bold",
-            mb: 1,
-            fontSize: "0.9rem",
-          }}
-        >
-          {t("welcome.question_minors")}
-        </FormLabel>
-        <RadioGroup
-          row
-          value={hayMenores}
-          onChange={(e) => setHayMenores(e.target.value)}
-        >
-          <FormControlLabel
-            value="no"
-            control={<Radio size="small" />}
-            label={t("common.no")}
-          />
-          <FormControlLabel
-            value="yes"
-            control={<Radio size="small" />}
-            label={t("common.yes")}
-          />
-        </RadioGroup>
-      </FormControl>
-
-      <Divider />
-
-      <Box
-        sx={{
-          maxHeight: "150px",
-          overflowY: "auto",
-          p: 2,
-          bgcolor: "#fcfcfc",
-          border: "1px solid #eee",
-          borderRadius: "8px",
-        }}
-      >
-        <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: "bold" }}>
-          {t("legal.title")}
-        </Typography>
-        {sectionsArray.map((section, idx) => (
-          <Box key={idx} sx={{ mb: 2 }}>
-            <Typography
-              variant="caption"
-              sx={{ fontWeight: "bold", display: "block" }}
+        {/* 1. RESUMEN DE LA RESERVA */}
+        {reserva && (
+          <div>
+            <div
+              className="divlabel"
+              style={{ marginTop: 0, marginBottom: 16 }}
             >
-              {section.h}
-            </Typography>
-            <Typography variant="caption" color="text.secondary">
-              {section.p}
-            </Typography>
-          </Box>
-        ))}
-      </Box>
+              {t("welcome.summary_title")}
+            </div>
+            <ReservationCard reserva={reserva} />
+            <p
+              style={{
+                fontSize: "var(--fs-xs)",
+                color: "var(--text-low)",
+                fontStyle: "italic",
+                marginTop: "10px",
+                lineHeight: 1.5,
+              }}
+            >
+              {t("welcome.error_notice")}
+            </p>
+          </div>
+        )}
 
-      <Box>
-        <Box
-          sx={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            mb: 2,
-            gap: 1,
-          }}
-        >
-          <FormControlLabel
-            control={
-              <Checkbox
-                size="small"
-                checked={acceptedLegal}
-                onChange={(e) => setAcceptedLegal(e.target.checked)}
-              />
-            }
-            label={
-              <Typography variant="caption">
-                {t("legal.accept_check")}
-              </Typography>
-            }
-          />
-          <button
-            type="button"
-            onClick={() => window.print()}
+        {/* 2. PREGUNTA DE MENORES */}
+        <div>
+          <div className="divlabel" style={{ marginTop: 0, marginBottom: 16 }}>
+            {t("welcome.question_minors")}
+          </div>
+          <div
             style={{
-              border: "none",
-              background: "none",
-              cursor: "pointer",
-              color: "var(--primary)",
-              fontSize: "0.75rem",
-              display: "flex",
-              alignItems: "center",
-              gap: "4px",
+              display: "grid",
+              gridTemplateColumns: "1fr 1fr",
+              gap: "12px",
             }}
           >
-            <Icon name="upload" size={12} /> {t("legal.download_btn")}
-          </button>
-        </Box>
+            <label
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                padding: "14px",
+                borderRadius: "var(--r)",
+                border: "1.5px solid",
+                borderColor:
+                  hayMenores === "no" ? "var(--primary)" : "var(--border)",
+                background:
+                  hayMenores === "no" ? "var(--primary-lt)" : "var(--white)",
+                cursor: "pointer",
+                transition: "all 0.2s ease",
+              }}
+            >
+              <input
+                type="radio"
+                name="minors"
+                value="no"
+                checked={hayMenores === "no"}
+                onChange={(e) => setHayMenores(e.target.value)}
+                style={{ display: "none" }}
+              />
+              <span
+                style={{
+                  fontSize: "var(--fs-md)",
+                  fontWeight: hayMenores === "no" ? 600 : 400,
+                  color:
+                    hayMenores === "no" ? "var(--primary-d)" : "var(--text)",
+                }}
+              >
+                {t("common.no")}
+              </span>
+            </label>
+
+            <label
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                padding: "14px",
+                borderRadius: "var(--r)",
+                border: "1.5px solid",
+                borderColor:
+                  hayMenores === "yes" ? "var(--primary)" : "var(--border)",
+                background:
+                  hayMenores === "yes" ? "var(--primary-lt)" : "var(--white)",
+                cursor: "pointer",
+                transition: "all 0.2s ease",
+              }}
+            >
+              <input
+                type="radio"
+                name="minors"
+                value="yes"
+                checked={hayMenores === "yes"}
+                onChange={(e) => setHayMenores(e.target.value)}
+                style={{ display: "none" }}
+              />
+              <span
+                style={{
+                  fontSize: "var(--fs-md)",
+                  fontWeight: hayMenores === "yes" ? 600 : 400,
+                  color:
+                    hayMenores === "yes" ? "var(--primary-d)" : "var(--text)",
+                }}
+              >
+                {t("common.yes")}
+              </span>
+            </label>
+          </div>
+        </div>
+
+        {/* 3. CONDICIONES LEGALES Y CHECKBOX INTEGRADO */}
+        <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+          {/* Cabecera con flexWrap para que no se corte en móviles */}
+          <div
+            style={{
+              display: "flex",
+              flexWrap: "wrap",
+              justifyContent: "space-between",
+              alignItems: "center",
+              gap: "10px",
+            }}
+          >
+            <div
+              className="divlabel"
+              style={{ margin: 0, border: "none", flex: "none" }}
+            >
+              {t("legal.title")}
+            </div>
+            <button
+              type="button"
+              onClick={() => window.print()}
+              style={{
+                background: "none",
+                border: "none",
+                color: "var(--primary)",
+                fontSize: "var(--fs-xs)",
+                display: "flex",
+                alignItems: "center",
+                gap: "6px",
+                cursor: "pointer",
+                textTransform: "uppercase",
+                fontWeight: 600,
+                letterSpacing: "0.05em",
+              }}
+            >
+              <Icon name="upload" size={14} /> {t("legal.download_btn")}
+            </button>
+          </div>
+
+          {/* Caja de texto legal */}
+          <div
+            style={{
+              background: "var(--white)",
+              border: "1px solid var(--border)",
+              borderRadius: "var(--r)",
+              padding: "16px 20px",
+              maxHeight: "160px",
+              overflowY: "auto",
+              fontSize: "13px",
+              color: "var(--text-mid)",
+              lineHeight: 1.6,
+            }}
+          >
+            <p style={{ marginBottom: 12 }}>{t("legal.intro")}</p>
+            {sectionsArray.map((section, idx) => (
+              <div key={idx} style={{ marginBottom: 12 }}>
+                <strong
+                  style={{
+                    color: "var(--text)",
+                    display: "block",
+                    marginBottom: 2,
+                  }}
+                >
+                  {section.h}
+                </strong>
+                {section.p}
+              </div>
+            ))}
+            <p
+              style={{
+                marginTop: 12,
+                fontStyle: "italic",
+                color: "var(--text-low)",
+              }}
+            >
+              {t("legal.footer")}
+            </p>
+          </div>
+
+          {/* Checkbox rediseñado (ya no se expande a los bordes, encaja con la caja de arriba) */}
+          <label
+            style={{
+              display: "flex",
+              alignItems: "flex-start",
+              gap: "14px",
+              padding: "16px",
+              background: "var(--primary-lt)",
+              border: "1px solid rgba(250, 134, 92, 0.25)",
+              borderRadius: "var(--r)",
+              cursor: "pointer",
+              marginTop: "4px",
+            }}
+          >
+            <input
+              type="checkbox"
+              checked={acceptedLegal}
+              onChange={(e) => setAcceptedLegal(e.target.checked)}
+              style={{
+                width: "20px",
+                height: "20px",
+                accentColor: "var(--primary)",
+                flexShrink: 0,
+                marginTop: "1px",
+                cursor: "pointer",
+              }}
+            />
+            <span
+              style={{
+                fontSize: "14px",
+                fontWeight: 500,
+                color: "var(--text)",
+                lineHeight: 1.4,
+              }}
+            >
+              {t("legal.accept_check")}
+            </span>
+          </label>
+        </div>
+      </div>
+
+      <div className="spacer" />
+      <div className="btn-row">
         <Button
           disabled={!acceptedLegal || hayMenores === null}
           onClick={() => onNext(hayMenores === "yes")}
@@ -242,7 +301,7 @@ export const ScreenCheckinInicio: React.FC<Props> = ({ reserva, onNext }) => {
         >
           {t("welcome.start_btn")}
         </Button>
-      </Box>
-    </Box>
+      </div>
+    </div>
   );
 };

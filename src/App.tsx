@@ -161,7 +161,6 @@ function CheckinWizard() {
     updateGuest,
     updateRelacion,
     nextGuest,
-    
   } = actions;
 
   const currentStep = nav.step || "inicio";
@@ -402,7 +401,6 @@ function CheckinWizard() {
               goTo(targetStep as StepId, "back", gIdx)
             }
             onSubmit={handleSubmit}
-            
           />
         </>
       )}
@@ -422,10 +420,36 @@ export default function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<Navigate to="/checkin/99999/bienvenida" replace />} />
-        <Route path="/checkin/kiosko/tablet_buscar" element={<ErrorBoundary><CheckinWizard /></ErrorBoundary>} />
-        <Route path="/checkin/:token" element={<Navigate to="bienvenida" replace />} />
-        <Route path="/checkin/:token/:step" element={<ErrorBoundary><CheckinWizard /></ErrorBoundary>} />
+        {/* 1. Cambiamos la ruta por defecto para que vaya a inicio */}
+        <Route
+          path="/"
+          element={<Navigate to="/checkin/99999/inicio" replace />}
+        />
+
+        <Route
+          path="/checkin/kiosko/tablet_buscar"
+          element={
+            <ErrorBoundary>
+              <CheckinWizard />
+            </ErrorBoundary>
+          }
+        />
+
+        {/* 2. Esta ya la tenías bien, pero asegúrate de que queda así */}
+        <Route
+          path="/checkin/:token"
+          element={<Navigate to="inicio" replace />}
+        />
+
+        <Route
+          path="/checkin/:token/:step"
+          element={
+            <ErrorBoundary>
+              <CheckinWizard />
+            </ErrorBoundary>
+          }
+        />
+
         <Route path="/invalid" element={<InvalidLink />} />
         <Route path="*" element={<InvalidLink />} />
       </Routes>
