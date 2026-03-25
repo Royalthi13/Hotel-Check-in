@@ -548,6 +548,7 @@
 /* ════════════════════════════════════════════════════════════════════════
    5. RESPONSIVE CABECERA (Móvil y Tablet)
    ════════════════════════════════════════════════════════════════════════ */
+/* Ocultar el botón de acción de la cabecera en escritorio (>= 1024px) */
 @media (min-width: 1024px) {
   .hdr-action {
     display: none !important;
@@ -559,6 +560,13 @@
   .lang-btn .lang-chevron,
   .hdr-back span {
     display: none !important;
+    .hdr-brand-details .hdr-sub {
+      display: none !important;
+    }
+
+    .hdr-actions-group {
+      gap: 12px !important;
+    }
   }
 
   .hdr-back,

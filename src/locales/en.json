@@ -106,8 +106,8 @@
     "copied": "Link copied!"
   },
   "appShell": {
-    "subtitle": "Complete your pre check-in and arrive at the hotel without waiting at the reception.",
-    "fix_errors_tooltip": "Fix the form errors before continuing",
+    "subtitle": "Complete your pre check-in and arrive at the hotel with no wait at reception.",
+    "fix_errors_tooltip": "Please correct the form errors before continuing",
     "booking_summary": "Booking summary",
     "privacy_short": "SSL Encryption · GDPR"
   },
@@ -256,7 +256,9 @@
   "invalidLink": {
     "title": "Invalid link",
     "description": "This link is invalid or has expired. Please access the check-in using the link provided in your booking confirmation email.",
-    "help": "If you need assistance, please contact the front desk."
+    "help": "If you need assistance, please contact the front desk.",
+    "subtitle": "This link is not valid or has expired. Please use the link you received in your booking confirmation.",
+    "footer": "If you need help, please contact reception."
   },
   "review": {
     "confirm_title": "Your registered data",
@@ -353,7 +355,8 @@
     "relation_with": "Relationship with {{name}}",
     "select_relationship": "— Select relationship —",
     "mandatory_legal_field": "This field is legally mandatory"
-  },"guestsCount": {
+  },
+  "guestsCount": {
     "title_booking": "How many people will stay?",
     "title_manual": "How many people in total?",
     "subtitle_booking": "According to your booking, we expect",
@@ -363,16 +366,12 @@
     "max_limit": "The maximum limit is 10.",
     "person_singular": "person",
     "person_plural": "people"
-  },"invalidLink": {
-  "title": "Invalid link",
-  "subtitle": "This link is not valid or has expired. Please use the link you received in your booking confirmation.",
-  "footer": "If you need help, please contact reception."
-}  ,"reservationCard": {
-  "nights": "nights",
-  "guest_singular": "guest",
-  "guest_plural": "guests"
-}
-  ,
+  },
+  "reservationCard": {
+    "nights": "nights",
+    "guest_singular": "guest",
+    "guest_plural": "guests"
+  },
   "legal": {
     "title": "Legal Information and Privacy",
     "intro": "In accordance with GDPR and current regulations:",

@@ -106,10 +106,10 @@
     "copied": "Link copiado!"
   },
   "appShell": {
-    "subtitle": "Complete o seu pré check-in e chegue ao hotel sem esperar na receção.",
-    "fix_errors_tooltip": "Corrija os erros do formulário antes de continuar",
+    "subtitle": "Complete o seu pré check-in e chegue ao hotel sem esperas na receção.",
+    "fix_errors_tooltip": "Por favor, corrija os erros do formulário antes de continuar",
     "booking_summary": "Resumo da reserva",
-    "privacy_short": "Criptografia SSL · RGPD"
+    "privacy_short": "Encriptação SSL · RGPD"
   },
   "validation": {
     "min_adults": "Deve haver pelo menos 1 adulto.",

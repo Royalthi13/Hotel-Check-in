@@ -106,9 +106,9 @@
     "copied": "Link kopiert!"
   },
   "appShell": {
-    "subtitle": "Schließen Sie den Pre Check-in ab und kommen Sie ohne Wartezeit an der Rezeption an.",
-    "fix_errors_tooltip": "Bitte korrigieren Sie die Formulafehler bevor Sie fortfahren",
-    "booking_summary": "Buchungszusammenfassung",
+    "subtitle": "Schließen Sie Ihren Pre-Check-in ab und kommen Sie ohne Wartezeiten an der Rezeption im Hotel an.",
+    "fix_errors_tooltip": "Bitte korrigieren Sie die Formularfehler, bevor Sie fortfahren",
+    "booking_summary": "Buchungsübersicht",
     "privacy_short": "SSL-Verschlüsselung · DSGVO"
   },
   "validation": {

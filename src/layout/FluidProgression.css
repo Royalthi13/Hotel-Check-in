@@ -1,0 +1,67 @@
+/* ════════════════════════════════════════════════════════════════════════
+   SLIDER "INSTAGRAM" OPTIMIZADO (Sleek & Pro)
+   ════════════════════════════════════════════════════════════════════════ */
+.dots-bar {
+  background: var(--secondary);
+  padding: 8px 24px 24px;
+  display: flex;
+  justify-content: center;
+  user-select: none;
+}
+
+.swipe-dots-track {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  max-width: 200px;
+  height: 40px; /* Área táctil más alta para mayor precisión */
+}
+
+/* Puntos de fondo */
+.dot-static {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.15);
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  pointer-events: none;
+}
+
+/* Puntos ya completados (Naranja sutil) */
+.dot-static.is-done {
+  background: var(--primary);
+  opacity: 0.5;
+}
+
+/* 🟢 LA PÍLDORA (El Slider que "vuela") 🟢 */
+.dot-pill-active {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  /* El margin-left y margin-top deben ser exactamente la mitad del ancho/alto */
+  margin-top: -3px;
+  margin-left: -16px;
+  width: 32px;
+  height: 6px; /* Misma altura que los puntos para perfecta alineación */
+  border-radius: 10px;
+  background: var(--primary);
+  /* Sombra más nítida para efecto Premium */
+  box-shadow: 0 4px 12px rgba(250, 134, 92, 0.45);
+  cursor: grab;
+  z-index: 20;
+  will-change: transform;
+}
+
+.dot-pill-active:active {
+  cursor: grabbing;
+}
+
+/* Área táctil invisible (Fitts's Law) */
+.dot-pill-active::after {
+  content: "";
+  position: absolute;
+  inset: -18px;
+  border-radius: 30px;
+}

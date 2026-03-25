@@ -87,12 +87,15 @@
   "invalidLink": {
     "title": "Enlace no válido",
     "description": "Este enlace no es válido o ha caducado. Por favor, acceda mediante el enlace que recibió en su confirmación de reserva.",
-    "help": "Si necesita ayuda, contacte con recepción."
+    "help": "Si necesita ayuda, contacte con recepción.",
+    "subtitle": "Este enlace no es válido o ha caducado. Por favor, acceda mediante el enlace que recibió en su confirmación de reserva.",
+    "footer": "Si necesita ayuda, contacte con recepción."
   },
+
   "common": {
     "no": "No",
     "yes": "Sí",
-     "back": "Atrás",
+    "back": "Atrás",
     "start_checkin": "Comenzar Check-in",
     "continue": "Continuar",
     "finish": "Finalizar",
@@ -342,16 +345,11 @@
     "btn_reload": "Recargar página",
     "footer": "Si el problema persiste, contacte con recepción del hotel."
   },
-  "invalidLink": {
-  "title": "Enlace no válido",
-  "subtitle": "Este enlace no es válido o ha caducado. Por favor, acceda mediante el enlace que recibió en su confirmación de reserva.",
-  "footer": "Si necesita ayuda, contacte con recepción."
-},
-"reservationCard": {
-  "nights": "noches",
-  "guest_singular": "huésped",
-  "guest_plural": "huéspedes"
-},
+  "reservationCard": {
+    "nights": "noches",
+    "guest_singular": "huésped",
+    "guest_plural": "huéspedes"
+  },
   "minors": {
     "adult_fallback": "Adulto {{count}}",
     "minor_fallback": "Menor {{count}}",
@@ -364,7 +362,8 @@
     "relation_with": "Relación con {{name}}",
     "select_relationship": "— Seleccionar parentesco —",
     "mandatory_legal_field": "Este campo es obligatorio por ley"
-  },"guestsCount": {
+  },
+  "guestsCount": {
     "title_booking": "¿Cuántas personas se alojarán?",
     "title_manual": "¿Cuántas personas son en total?",
     "subtitle_booking": "Según su reserva, esperamos a",
