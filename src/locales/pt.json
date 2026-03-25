@@ -87,6 +87,7 @@
   "common": {
     "no": "Não",
     "yes": "Sim",
+    "back": "Voltar",
     "start_checkin": "Iniciar Check-in",
     "continue": "Continuar",
     "finish": "Finalizar",
@@ -106,6 +107,7 @@
   },
   "appShell": {
     "subtitle": "Complete o seu pré check-in e chegue ao hotel sem esperar na receção.",
+    "fix_errors_tooltip": "Corrija os erros do formulário antes de continuar",
     "booking_summary": "Resumo da reserva",
     "privacy_short": "Criptografia SSL · RGPD"
   },
@@ -361,6 +363,11 @@
   "title": "Link inválido",
   "subtitle": "Este link não é válido ou expirou. Por favor, utilize o link que recebeu na sua confirmação de reserva.",
   "footer": "Se precisar de ajuda, contacte a receção."
+},
+"reservationCard": {
+  "nights": "noites",
+  "guest_singular": "hóspede",
+  "guest_plural": "hóspedes"
 },
   "legal": {
     "title": "Informação Legal e Privacidade",

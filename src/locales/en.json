@@ -87,6 +87,7 @@
   "common": {
     "no": "No",
     "yes": "Yes",
+    "back": "Back",
     "start_checkin": "Start Check-in",
     "continue": "Continue",
     "finish": "Finish",
@@ -106,6 +107,7 @@
   },
   "appShell": {
     "subtitle": "Complete your pre check-in and arrive at the hotel without waiting at the reception.",
+    "fix_errors_tooltip": "Fix the form errors before continuing",
     "booking_summary": "Booking summary",
     "privacy_short": "SSL Encryption · GDPR"
   },
@@ -360,6 +362,10 @@
   "title": "Invalid link",
   "subtitle": "This link is not valid or has expired. Please use the link you received in your booking confirmation.",
   "footer": "If you need help, please contact reception."
+}  ,"reservationCard": {
+  "nights": "nights",
+  "guest_singular": "guest",
+  "guest_plural": "guests"
 }
   ,
   "legal": {

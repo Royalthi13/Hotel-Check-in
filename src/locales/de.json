@@ -87,6 +87,7 @@
   "common": {
     "no": "Nein",
     "yes": "Ja",
+    "back": "Zurück",
     "start_checkin": "Check-in starten",
     "continue": "Weiter",
     "finish": "Beenden",
@@ -106,6 +107,7 @@
   },
   "appShell": {
     "subtitle": "Schließen Sie den Pre Check-in ab und kommen Sie ohne Wartezeit an der Rezeption an.",
+    "fix_errors_tooltip": "Bitte korrigieren Sie die Formulafehler bevor Sie fortfahren",
     "booking_summary": "Buchungszusammenfassung",
     "privacy_short": "SSL-Verschlüsselung · DSGVO"
   },
@@ -361,6 +363,10 @@
   "title": "Ungültiger Link",
   "subtitle": "Dieser Link ist ungültig oder abgelaufen. Bitte verwenden Sie den Link aus Ihrer Buchungsbestätigung.",
   "footer": "Bei Fragen wenden Sie sich an die Rezeption."
+},"reservationCard": {
+  "nights": "Nächte",
+  "guest_singular": "Gast",
+  "guest_plural": "Gäste"
 }
   ,
   "legal": {

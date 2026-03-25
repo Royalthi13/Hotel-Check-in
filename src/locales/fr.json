@@ -87,6 +87,7 @@
   "common": {
     "no": "Non",
     "yes": "Oui",
+    "back": "Retour",
     "start_checkin": "Commencer Check-in",
     "continue": "Continuer",
     "finish": "Terminer",
@@ -106,6 +107,7 @@
   },
   "appShell": {
     "subtitle": "Complétez votre pré-check-in et arrivez à l'hôtel sans attendre à la réception.",
+    "fix_errors_tooltip": "Corrigez les erreurs du formulaire avant de continuer",
     "booking_summary": "Résumé de la réservation",
     "privacy_short": "Cryptage SSL · RGPD"
   },
@@ -361,6 +363,10 @@
   "title": "Lien invalide",
   "subtitle": "Ce lien n'est pas valide ou a expiré. Veuillez utiliser le lien reçu dans votre confirmation de réservation.",
   "footer": "Si vous avez besoin d'aide, contactez la réception."
+},"reservationCard": {
+  "nights": "nuits",
+  "guest_singular": "client",
+  "guest_plural": "clients"
 }
   ,
   "legal": {

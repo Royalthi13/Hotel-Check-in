@@ -178,7 +178,7 @@ export const AppShell: React.FC<AppShellProps> = ({
                   disabled={summaryDisabled}
                   title={
                     stepInvalid
-                      ? "Corrige los errores del formulario antes de continuar"
+                      ? t("appShell.fix_errors_tooltip")
                       : undefined
                   }
                 >

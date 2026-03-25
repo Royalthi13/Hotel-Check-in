@@ -87,6 +87,7 @@
   "common": {
     "no": "No",
     "yes": "Sí",
+     "back": "Atrás",
     "start_checkin": "Comenzar Check-in",
     "continue": "Continuar",
     "finish": "Finalizar",
@@ -106,6 +107,7 @@
   },
   "appShell": {
     "subtitle": "Complete su pre check-in y llegue al hotel sin esperas en recepción.",
+    "fix_errors_tooltip": "Corrige los errores del formulario antes de continuar",
     "booking_summary": "Resumen de la reserva",
     "privacy_short": "Cifrado SSL · RGPD"
   },
@@ -339,6 +341,11 @@
   "title": "Enlace no válido",
   "subtitle": "Este enlace no es válido o ha caducado. Por favor, acceda mediante el enlace que recibió en su confirmación de reserva.",
   "footer": "Si necesita ayuda, contacte con recepción."
+},
+"reservationCard": {
+  "nights": "noches",
+  "guest_singular": "huésped",
+  "guest_plural": "huéspedes"
 },
   "minors": {
     "adult_fallback": "Adulto {{count}}",
