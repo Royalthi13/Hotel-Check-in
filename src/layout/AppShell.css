@@ -338,6 +338,11 @@
   background: rgba(255, 255, 255, 0.14) !important;
   color: #fff;
 }
+.hdr-action:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+  background: rgba(255, 255, 255, 0.05) !important;
+}
 
 /* ════════════════════════════════════════════════════════════════════════
    BOTÓN DE ATRÁS (Header / Top Left)

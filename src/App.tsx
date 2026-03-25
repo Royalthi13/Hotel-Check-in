@@ -153,6 +153,8 @@ function CheckinWizard() {
       showDots={showDots}
       reserva={state.reserva}
       onGoToRevision={() => actions.goTo("revision", "back")}
+      guests={state.guests}
+      guestIndex={nav.guestIndex}
     >
       {isOffline && (
         <div style={{ padding: "8px 24px 0" }}>

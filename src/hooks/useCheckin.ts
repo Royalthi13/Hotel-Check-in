@@ -300,8 +300,21 @@ export function useCheckin(tokenUrl?: string, stepUrl?: string) {
   const goBack = useCallback(() => {
     isInternalNavRef.current = true;
     setNavDirection("back");
-    navigate(-1);
-  }, [navigate]);
+
+    setAppHistory((prev) => {
+      if (prev.length > 1) {
+        const newHistory = [...prev];
+        newHistory.pop();
+        const prevEntry = newHistory[newHistory.length - 1];
+
+        navigate(`/checkin/${token}/${prevEntry.step}`, { replace: true });
+        return newHistory;
+      }
+
+      navigate(-1);
+      return prev;
+    });
+  }, [navigate, token]);
 
   useEffect(() => {
     const handlePopState = () => {
