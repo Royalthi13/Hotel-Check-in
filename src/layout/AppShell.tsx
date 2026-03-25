@@ -143,8 +143,8 @@ export const AppShell: React.FC<AppShellProps> = ({
           onBack={actions.goBack}
           onLogoClick={() => actions.goTo("inicio", "back", 0)}
           extraContent={<LanguageSelector />}
-          name={reserva?.confirmacion}
-          room={reserva?.habitacion}
+          
+          
           rightAction={
             onGoToRevision &&
             activeStep !== "revision" &&

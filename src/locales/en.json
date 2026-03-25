@@ -256,7 +256,9 @@
   "invalidLink": {
     "title": "Invalid link",
     "description": "This link is invalid or has expired. Please access the check-in using the link provided in your booking confirmation email.",
-    "help": "If you need assistance, please contact the front desk."
+    "help": "If you need assistance, please contact the front desk.",
+    "subtitle": "This link is not valid or has expired. Please use the link you received in your booking confirmation.",
+  "footer": "If you need help, please contact reception."
   },
   "review": {
     "confirm_title": "Your registered data",
@@ -363,11 +365,7 @@
     "max_limit": "The maximum limit is 10.",
     "person_singular": "person",
     "person_plural": "people"
-  },"invalidLink": {
-  "title": "Invalid link",
-  "subtitle": "This link is not valid or has expired. Please use the link you received in your booking confirmation.",
-  "footer": "If you need help, please contact reception."
-}  ,"reservationCard": {
+  } ,"reservationCard": {
   "nights": "nights",
   "guest_singular": "guest",
   "guest_plural": "guests"

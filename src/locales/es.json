@@ -87,7 +87,9 @@
   "invalidLink": {
     "title": "Enlace no válido",
     "description": "Este enlace no es válido o ha caducado. Por favor, acceda mediante el enlace que recibió en su confirmación de reserva.",
-    "help": "Si necesita ayuda, contacte con recepción."
+    "help": "Si necesita ayuda, contacte con recepción.",
+    "subtitle": "Este enlace no es válido o ha caducado. Por favor, acceda mediante el enlace que recibió en su confirmación de reserva.",
+  "footer": "Si necesita ayuda acuda a recepcion"
   },
   "common": {
     "no": "No",
@@ -342,11 +344,7 @@
     "btn_reload": "Recargar página",
     "footer": "Si el problema persiste, contacte con recepción del hotel."
   },
-  "invalidLink": {
-  "title": "Enlace no válido",
-  "subtitle": "Este enlace no es válido o ha caducado. Por favor, acceda mediante el enlace que recibió en su confirmación de reserva.",
-  "footer": "Si necesita ayuda, contacte con recepción."
-},
+ 
 "reservationCard": {
   "nights": "noches",
   "guest_singular": "huésped",
