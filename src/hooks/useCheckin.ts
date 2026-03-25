@@ -14,7 +14,6 @@ import type {
 } from "@/types";
 import { FLOW_STEPS_LINK, DOT_STEPS_BASE } from "@/constants";
 
-// ─── 1. UTILIDADES DE STORAGE SEGURAS ─────────────────────────────────────────
 function getSession<T>(key: string, fallback: T): T {
   try {
     const stored = sessionStorage.getItem(key);
@@ -33,7 +32,6 @@ function setSession<T>(key: string, value: T): void {
   }
 }
 
-// ─── 2. TIPOS DE ACCIÓN Y ESTADO INICIAL ──────────────────────────────────────
 export type CheckinAction =
   | { type: "SET_KNOWN_GUEST"; guest: GuestData }
   | { type: "SET_RESERVA_TABLET"; reserva: Reserva }
@@ -87,7 +85,6 @@ function mergeGuests(
   );
 }
 
-// ─── 3. REDUCER PURO ──────────────────────────────────────────────────────────
 export function checkinReducer(
   state: CheckinState,
   action: CheckinAction,
@@ -193,13 +190,11 @@ interface HistoryEntry {
   guestIndex: number;
 }
 
-// ─── 4. HOOK PRINCIPAL PROFESIONAL ────────────────────────────────────────────
 export function useCheckin(tokenUrl?: string, stepUrl?: string) {
   const navigate = useNavigate();
   const token = tokenUrl || "new";
   const initialMode: AppMode = token === "new" ? "tablet" : "link";
 
-  // --- INICIALIZACIÓN DE ESTADOS ---
   const [state, setState] = useState<CheckinState>(() =>
     getSession(`state_${token}`, buildEmptyState(initialMode)),
   );
@@ -214,7 +209,6 @@ export function useCheckin(tokenUrl?: string, stepUrl?: string) {
   const [isLoading, setIsLoading] = useState(token !== "new");
   const [navDirection, setNavDirection] = useState<NavDirection>("forward");
 
-  // --- LATEST REFS (Evitan cierres obsoletos y re-renders de callbacks) ---
   const stateRef = useRef(state);
   const historyRef = useRef(appHistory);
   const isInternalNavRef = useRef(false);
@@ -226,7 +220,6 @@ export function useCheckin(tokenUrl?: string, stepUrl?: string) {
     historyRef.current = appHistory;
   }, [appHistory]);
 
-  // --- PERSISTENCIA REACTIVA ---
   useEffect(() => setSession(`state_${token}`, state), [state, token]);
   useEffect(
     () => setSession(`history_${token}`, appHistory),
@@ -241,7 +234,6 @@ export function useCheckin(tokenUrl?: string, stepUrl?: string) {
     setState((prev) => checkinReducer(prev, action));
   }, []);
 
-  // --- FETCHING OPTIMIZADO CON ABORT CONTROLLER ---
   useEffect(() => {
     if (token === "new") {
       setIsLoading(false);
@@ -261,7 +253,7 @@ export function useCheckin(tokenUrl?: string, stepUrl?: string) {
         if (json.reserva)
           dispatch({ type: "SET_RESERVA", reserva: json.reserva });
       } catch (err: unknown) {
-        if (err instanceof Error && err.name === "AbortError") return; // Ignora cancelaciones
+        if (err instanceof Error && err.name === "AbortError") return;
         console.error("[useCheckin] Error loading:", err);
       } finally {
         setIsLoading(false);
@@ -269,10 +261,9 @@ export function useCheckin(tokenUrl?: string, stepUrl?: string) {
     }
     load();
 
-    return () => abortController.abort(); // Cleanup al desmontar
+    return () => abortController.abort();
   }, [token, dispatch]);
 
-  // --- CÁLCULO DE NAVEGACIÓN ---
   const actualStep =
     (stepUrl as StepId) ||
     (initialMode === "tablet" ? "tablet_buscar" : "inicio");
@@ -284,7 +275,6 @@ export function useCheckin(tokenUrl?: string, stepUrl?: string) {
     return 0;
   })();
 
-  // --- NAVEGACIÓN CORE ---
   const goTo = useCallback(
     (nextStep: StepId, dir: NavDirection = "forward", gIdx?: number) => {
       const nextGIdx = gIdx ?? activeGuestIndex;
@@ -322,7 +312,6 @@ export function useCheckin(tokenUrl?: string, stepUrl?: string) {
     return () => window.removeEventListener("popstate", handlePopState);
   }, []);
 
-  // --- LÓGICA DE FLUJO ENCAPSULADA ---
   const nextGuest = useCallback(
     (currIdx: number, from: StepId) => {
       const { guests, numPersonas } = stateRef.current;
@@ -353,15 +342,26 @@ export function useCheckin(tokenUrl?: string, stepUrl?: string) {
     },
     [goTo],
   );
+  // --- CORRECCIÓN DE FLUJO Y DOTS (Aquí está la magia) ---
+  // --- CORRECCIÓN DE FLUJO Y DOTS (Aquí está la magia) ---
+  const dotSteps = useMemo(() => {
+    const base = state.appMode === "link" ? FLOW_STEPS_LINK : DOT_STEPS_BASE;
+    const flujo = sessionStorage.getItem(`modoFlujo_${token}`);
 
-  // --- CONSTRUCCIÓN DEL RETURN (Memoizado para rendimiento) ---
-  const dotSteps = state.appMode === "link" ? FLOW_STEPS_LINK : DOT_STEPS_BASE;
+    if (flujo === "manual") {
+      return base.filter((step) => step !== "escanear");
+    }
+    return base;
+  }, [state.appMode, token, actualStep]);
   const canGoBack =
     appHistory.length > 0 &&
     !["exito", "tablet_buscar", "inicio"].includes(actualStep);
 
   let currentDotIndex = dotSteps.indexOf(actualStep);
-  if (["confirmar_datos", "escanear", "form_relaciones"].includes(actualStep)) {
+
+  // Excepciones: confirmar_datos y form_relaciones se dibujan en el dot de Datos Personales
+  // NOTA: Se ha quitado "escanear" de aquí para que su círculo SÍ se aplane.
+  if (["confirmar_datos", "form_relaciones"].includes(actualStep)) {
     currentDotIndex = dotSteps.indexOf("form_personal");
   }
 
