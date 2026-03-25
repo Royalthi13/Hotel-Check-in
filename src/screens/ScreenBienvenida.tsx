@@ -64,19 +64,36 @@ export const ScreenBienvenida: React.FC<Props> = ({
         </div>
       )}
 
-      <div style={{ padding: "20px 24px 0" }}>
-        <p
+      {/* CONTENEDOR DE LA ZONA DE ACCIÓN */}
+      <div
+        style={{
+          padding: "32px 24px 16px",
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+        }}
+      >
+        <h3
           style={{
-            fontSize: 13,
-            color: "var(--text-mid)",
-            marginBottom: 14,
-            lineHeight: 1.5,
+            fontSize: "var(--fs-lg)",
+            fontWeight: 600,
+            color: "var(--text)",
+            textAlign: "center",
+            marginBottom: "24px",
+            letterSpacing: "-0.01em",
           }}
         >
           {isKnown ? t("welcome.how_to_review") : t("welcome.how_to_complete")}
-        </p>
+        </h3>
 
-        <div className="choice-grid">
+        <div
+          className="choice-grid"
+          style={{
+            padding: 0,
+            width: "100%",
+            maxWidth: "700px",
+          }}
+        >
           <button className="choice-card" onClick={onChooseScan}>
             <div className="choice-icon accent">
               <Icon name="id" size={20} color="#fff" />
