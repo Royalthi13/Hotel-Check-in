@@ -1,5 +1,3 @@
-// Ubicación: src/App.tsx
-
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import "./App.css";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
@@ -21,8 +19,7 @@ import {
   ScreenExito,
 } from "@/screens/ScreenExtrasRevisionExito";
 
-// Importamos 'Reserva' para solucionar el error de tipado del inicio
-import type { StepId, PartialGuestData } from "@/types";
+import type { StepId, Reserva } from "@/types";
 
 const STEPS_WITHOUT_DOTS = new Set<StepId>(["tablet_buscar", "exito"]);
 
@@ -70,7 +67,6 @@ function InvalidLink() {
           }}
         >
           {t("invalidLink.title")}
-          {t("invalidLink.title")}
         </h2>
         <p
           style={{
@@ -81,16 +77,10 @@ function InvalidLink() {
             margin: "0 auto",
           }}
         >
-          {t("invalidLink.subtitle")}
+          {t("invalidLink.description")}
         </p>
-        <p
-          style={{
-            marginTop: 20,
-            fontSize: 12,
-            color: "var(--text-low)",
-          }}
-        >
-          {t("invalidLink.footer")}
+        <p style={{ marginTop: 20, fontSize: 12, color: "var(--text-low)" }}>
+          {t("invalidLink.help")}
         </p>
       </div>
     </div>
@@ -172,8 +162,7 @@ function CheckinWizard() {
 
       {currentStep === "inicio" && (
         <ScreenCheckinInicio
-          // CORRECCIÓN 2: Tipado fuerte para evitar "any"
-          reserva={state.reserva}
+          reserva={state.reserva as Reserva}
           onNext={(hayMenores: boolean) => {
             setHasMinorsFlag(hayMenores);
             setLegalPassed(true);
@@ -201,7 +190,6 @@ function CheckinWizard() {
         />
       )}
 
-      {/* PANTALLAS REFATORIZADAS: Fíjate cómo ya no necesitan "Props" kilométricas */}
       {currentStep === "form_personal" && <ScreenFormPersonal />}
       {currentStep === "form_contacto" && <ScreenFormContacto />}
 
@@ -244,7 +232,7 @@ function CheckinWizard() {
             onEditStep={(targetStep, gIdx) =>
               actions.goTo(targetStep as StepId, "back", gIdx)
             }
-            onSubmit={handleSubmit}
+            onSubmit={handleSubmit || (() => Promise.resolve())}
           />
         </>
       )}
@@ -268,7 +256,6 @@ export default function App() {
           path="/"
           element={<Navigate to="/checkin/99999/inicio" replace />}
         />
-        {/* Envolvemos las rutas con el nuevo Provider para que la "nube" funcione */}
         <Route
           path="/checkin/kiosko/tablet_buscar"
           element={

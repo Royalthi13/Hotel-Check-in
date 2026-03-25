@@ -208,6 +208,7 @@ export function useCheckin(tokenUrl?: string, stepUrl?: string) {
 
   const [isLoading, setIsLoading] = useState(token !== "new");
   const [navDirection, setNavDirection] = useState<NavDirection>("forward");
+  const [isNavigating, setIsNavigating] = useState(false);
 
   const stateRef = useRef(state);
   const historyRef = useRef(appHistory);
@@ -278,6 +279,7 @@ export function useCheckin(tokenUrl?: string, stepUrl?: string) {
   const goTo = useCallback(
     (nextStep: StepId, dir: NavDirection = "forward", gIdx?: number) => {
       if (isNavigating) return;
+      setIsNavigating(true);
 
       const nextGIdx = gIdx ?? activeGuestIndex;
 
@@ -292,10 +294,11 @@ export function useCheckin(tokenUrl?: string, stepUrl?: string) {
 
       if (dir === "forward") {
         navigate(`/checkin/${token}/${nextStep}`);
-        setTimeout(() => setIsNavigating(false), 350);
       } else {
         navigate(`/checkin/${token}/${nextStep}`, { replace: true });
       }
+
+      setTimeout(() => setIsNavigating(false), 350);
     },
     [navigate, token, activeGuestIndex, isNavigating],
   );
@@ -387,6 +390,7 @@ export function useCheckin(tokenUrl?: string, stepUrl?: string) {
       dotIndex: currentDotIndex,
       canGoBack,
       allowedSteps,
+      isNavigating,
     }),
     [
       actualStep,
@@ -396,6 +400,7 @@ export function useCheckin(tokenUrl?: string, stepUrl?: string) {
       currentDotIndex,
       canGoBack,
       allowedSteps,
+      isNavigating,
     ],
   );
 

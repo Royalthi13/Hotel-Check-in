@@ -98,6 +98,7 @@ export interface CheckinNav {
   dotIndex: number;
   canGoBack: boolean;
   allowedSteps: Set<StepId>;
+  isNavigating: boolean;
 }
 
 export interface CheckinActions {
