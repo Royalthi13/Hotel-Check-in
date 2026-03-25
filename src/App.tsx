@@ -276,7 +276,7 @@ function CheckinWizard() {
       onGoToRevision={() => goTo("revision", "back")}
     >
       {isOffline && (
-        <div style={{ padding: "8px 24px 0" }}>
+        <div style={{ padding: "8px var(--px) 0" }}>
           <Alert variant="warm">{t("search.error_connection")}</Alert>
         </div>
       )}
@@ -391,7 +391,7 @@ function CheckinWizard() {
       {currentStep === "revision" && (
         <>
           {submitError && (
-            <div style={{ padding: "8px 24px 0" }}>
+            <div style={{ padding: "8px var(--px) 0" }}>
               <Alert variant="err">{submitError}</Alert>
             </div>
           )}

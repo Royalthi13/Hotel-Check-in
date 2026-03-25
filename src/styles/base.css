@@ -7,20 +7,24 @@
   margin: 0;
   padding: 0;
 }
+
 html,
 body,
 #root {
   width: 100%;
   height: 100%;
 }
+
 #root {
   min-height: 100dvh;
   display: flex;
   flex-direction: column;
 }
+
 html {
   scroll-behavior: smooth;
 }
+
 body {
   font-family: "DM Sans", sans-serif;
   background: var(--bg);
@@ -36,6 +40,7 @@ body {
   align-items: stretch;
   background: var(--bg);
 }
+
 .card {
   width: 100%;
   min-height: 100dvh;
@@ -51,10 +56,13 @@ body {
     justify-content: center;
     padding: 40px 24px 56px;
   }
+
   .card {
     width: 100%;
     max-width: 600px;
-    min-height: auto;
+    height: calc(100dvh - 96px);
+    min-height: 560px;
+    max-height: 900px;
     margin: 0 auto;
     border-radius: var(--r-xl);
     box-shadow:
@@ -63,6 +71,7 @@ body {
     overflow: hidden;
   }
 }
+
 @media (min-width: 1024px) {
   .shell {
     padding: 0;
@@ -70,6 +79,7 @@ body {
     width: 100vw;
     min-height: 100dvh;
   }
+
   .card {
     width: 100%;
     max-width: none;
@@ -86,6 +96,7 @@ body {
   flex-direction: column;
   min-height: 0;
 }
+
 @media (min-width: 1024px) {
   .body-row {
     flex-direction: row;
@@ -96,6 +107,7 @@ body {
 
 .screen-wrap {
   flex: 1;
+  min-height: 0;
   display: flex;
   flex-direction: column;
   overflow-y: auto;
@@ -103,12 +115,14 @@ body {
   -webkit-overflow-scrolling: touch;
   min-width: 0;
 }
+
 .screen {
   flex: 1;
   display: flex;
   flex-direction: column;
   animation: slideIn 0.22s ease both;
 }
+
 .screen.back {
   animation: slideBack 0.22s ease both;
 }
@@ -118,16 +132,19 @@ body {
     opacity: 0;
     transform: translateX(14px);
   }
+
   to {
     opacity: 1;
     transform: none;
   }
 }
+
 @keyframes slideBack {
   from {
     opacity: 0;
     transform: translateX(-14px);
   }
+
   to {
     opacity: 1;
     transform: none;

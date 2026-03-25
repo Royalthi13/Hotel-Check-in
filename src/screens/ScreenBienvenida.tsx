@@ -59,12 +59,12 @@ export const ScreenBienvenida: React.FC<Props> = ({
       </div>
 
       {reserva && (
-        <div style={{ padding: "18px 24px 0" }}>
+        <div style={{ padding: "18px var(--px) 0" }}>
           <ReservationCard reserva={reserva} />
         </div>
       )}
 
-      <div style={{ padding: "20px 24px 0" }}>
+      <div style={{ padding: "20px var(--px) 0" }}>
         <p
           style={{
             fontSize: 13,

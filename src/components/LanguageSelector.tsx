@@ -47,7 +47,9 @@ export const LanguageSelector: React.FC = () => {
         aria-label={`Idioma: ${current.label}`}
       >
         <FlagIcon country={current.country} label={current.label} /> {/* ← */}
-        <span className="lang-code">{current.code.toUpperCase()}</span>
+        <span style={{ fontSize: 12, fontWeight: 600, letterSpacing: "0.08em" }}>
+          {current.code.toUpperCase()}
+        </span>
         <svg
           className="lang-chevron"
           width="10"
