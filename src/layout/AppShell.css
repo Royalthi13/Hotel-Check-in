@@ -525,33 +525,30 @@
    5. RESPONSIVE CABECERA (Limpieza y Espacios)
    ════════════════════════════════════════════════════════════════════════ */
 
-/* 1. Ocultar el botón del portapapeles en PC (ya tienes el del panel izquierdo) */
 @media (min-width: 1024px) {
   .hdr-action {
     display: none !important;
   }
 }
 
-/* 2. Desahogar la cabecera en Móviles y Tablets */
 @media (max-width: 767px) {
-  /* Oculta la palabra "Atrás" */
-  .hdr-back span {
+  .hdr-back span,
+  .lang-code,
+  .lang-chevron {
     display: none;
   }
 
-  /* Convierte el botón de atrás en un circulito */
-  .hdr-back {
+  .hdr-back,
+  .lang-btn {
     padding: 0 !important;
     width: 38px !important;
     justify-content: center;
   }
 
-  /* Acerca un poco el botón de idioma y el del portapapeles */
   .hdr-actions-group {
     gap: 6px !important;
   }
 
-  /* Hace la marca central un pelín más pequeña para que nada choque */
   .hdr-name {
     font-size: 16px !important;
   }
