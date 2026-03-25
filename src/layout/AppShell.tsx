@@ -141,11 +141,11 @@ export const AppShell: React.FC<AppShellProps> = ({
           rightAction={
             onGoToRevision && activeStep !== "revision" && activeStep !== "exito"
               ? {
-                  label: t("common.summary"),
-                  icon: "clipboard",
-                  onClick: handleGoToRevision,
-                  disabled: summaryDisabled,
-                }
+                label: t("common.summary"),
+                icon: "clipboard",
+                onClick: handleGoToRevision,
+                disabled: summaryDisabled,
+              }
               : undefined
           }
         />
@@ -283,7 +283,7 @@ export const AppShell: React.FC<AppShellProps> = ({
                 }}
                 style={{
                   width: "100%",
-                  height: "100%",
+                  flex: 1,
                   display: "flex",
                   flexDirection: "column",
                 }}

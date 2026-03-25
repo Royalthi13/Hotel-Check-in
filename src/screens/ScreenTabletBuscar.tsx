@@ -85,7 +85,7 @@ export const ScreenTabletBuscar: React.FC<Props> = ({ onFound }) => {
 
   return (
     <form className="screen" onSubmit={buscar}>
-    <div className="screen">
+    <div style={{ display: "contents" }}>
       <div className="tablet-hero">
         <div className="tablet-big-icon">
           <Icon name="search" size={30} color="var(--primary)" />
