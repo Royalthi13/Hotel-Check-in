@@ -111,6 +111,9 @@
     "booking_summary": "Booking summary",
     "privacy_short": "SSL Encryption · GDPR"
   },
+  "brand": {
+    "name": "Lumina "
+  },
   "validation": {
     "min_adults": "Must have at least 1 adult.",
     "min_adults_booking": "Must have at least 1 adult in the booking.",

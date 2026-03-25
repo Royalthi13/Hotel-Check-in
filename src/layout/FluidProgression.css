@@ -2,58 +2,72 @@
    SLIDER "INSTAGRAM" OPTIMIZADO (Sleek & Pro)
    ════════════════════════════════════════════════════════════════════════ */
 .dots-bar {
-  background: var(--secondary);
-  padding: 8px 24px 24px;
-  display: flex;
-  justify-content: center;
+  display: flex !important;
+  justify-content: center !important;
+  padding: 10px 24px 30px !important;
+  width: 100% !important;
   user-select: none;
 }
 
+@media (max-width: 1024px) {
+  .dots-bar {
+    display: flex;
+    background: var(--secondary);
+    padding: 8px 24px 24px;
+    justify-content: center;
+    background: var(--secondary);
+    padding: 8px 24px 24px;
+    display: flex;
+    justify-content: center;
+    user-select: none;
+  }
+}
+
 .swipe-dots-track {
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  width: 100%;
-  max-width: 200px;
-  height: 40px; /* Área táctil más alta para mayor precisión */
+  position: relative !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  width: 100% !important;
+  max-width: 200px !important;
+  height: 20px !important;
+  margin: 0 auto !important;
 }
-
-/* Puntos de fondo */
 .dot-static {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.15);
-  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-  pointer-events: none;
+  width: 6px !important;
+  height: 6px !important;
+  border-radius: 50% !important;
+  background: rgba(255, 255, 255, 0.15) !important;
+  transition:
+    opacity 0.3s ease,
+    transform 0.3s ease;
 }
 
-/* Puntos ya completados (Naranja sutil) */
 .dot-static.is-done {
-  background: var(--primary);
-  opacity: 0.5;
+  background: var(--primary) !important;
+  opacity: 0.5 !important;
 }
-
-/* 🟢 LA PÍLDORA (El Slider que "vuela") 🟢 */
+/* 🟢 LA PÍLDORA (Alineación Pro) 🟢 */
 .dot-pill-active {
-  position: absolute;
-  top: 50%;
-  left: 0;
-  /* El margin-left y margin-top deben ser exactamente la mitad del ancho/alto */
-  margin-top: -3px;
-  margin-left: -16px;
-  width: 32px;
-  height: 6px; /* Misma altura que los puntos para perfecta alineación */
-  border-radius: 10px;
-  background: var(--primary);
-  /* Sombra más nítida para efecto Premium */
-  box-shadow: 0 4px 12px rgba(250, 134, 92, 0.45);
+  position: absolute !important;
+  /* 🟢 CLAVE 1: Empezamos en el centro del primer punto (radio 3px) */
+  left: 3px !important;
+  top: 50% !important;
+  width: 32px !important;
+  height: 6px !important;
+  background: var(--primary) !important;
+  border-radius: 10px !important;
+  z-index: 20 !important;
+
+  /* 🟢 CLAVE 2: Centramos la pastilla sobre ese punto */
+  /* margin-left = -(ancho_pastilla / 2) = -16px */
+  margin-left: -16px !important;
+  margin-top: -3px !important;
+
+  box-shadow: 0 4px 12px rgba(250, 134, 92, 0.4);
   cursor: grab;
-  z-index: 20;
   will-change: transform;
 }
-
 .dot-pill-active:active {
   cursor: grabbing;
 }

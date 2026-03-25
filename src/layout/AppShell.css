@@ -546,48 +546,117 @@
   }
 }
 /* ════════════════════════════════════════════════════════════════════════
-   5. RESPONSIVE CABECERA (Móvil y Tablet)
+   1. CONTROL DE VISIBILIDAD (Desktop vs Móvil)
    ════════════════════════════════════════════════════════════════════════ */
-/* Ocultar el botón de acción de la cabecera en escritorio (>= 1024px) */
+
+/* 🟢 DESKTOP: Ocultamos los puntos de navegación por completo */
 @media (min-width: 1024px) {
-  .hdr-action {
+  .dots-bar,
+  .swipe-dots-track,
+  .dot-pill-active {
+    display: none !important;
+  }
+}
+/* ════════════════════════════════════════════════════════════════════════
+   1. CONTROL DE NAVEGACIÓN (Desktop vs Móvil)
+   ════════════════════════════════════════════════════════════════════════ */
+.dots-bar {
+  display: none;
+}
+
+@media (min-width: 1024px) {
+  .dots-bar {
     display: none !important;
   }
 }
 
 @media (max-width: 1024px) {
-  /* 🟢 Look Minimalista: Ocultamos códigos de idioma, textos y el subtítulo */
-  .lang-btn .lang-code,
-  .lang-btn .lang-chevron,
+  /* 🟢 HEADER PRO: 3 Columnas fijas para que nada se mueva */
+  header.hdr,
+  .hdr {
+    display: grid !important;
+    grid-template-columns: 60px 1fr 100px !important; /* Izq fija | Centro flexible | Der fija */
+    align-items: center !important;
+    padding: 0 16px !important;
+    height: 64px !important;
+    background: var(--secondary) !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  }
+
+  /* Ocultamos ruidos visuales */
+  .hdr-sub,
+  .hdr-brand-details .hdr-sub,
   .hdr-back span,
-  .hdr-sub {
-    /* 👈 Esto quita el "Hotels & Resorts" */
+  .lang-btn .lang-code,
+  .lang-btn .lang-chevron {
     display: none !important;
   }
 
-  /* 🟢 Botones de acción: Más profesionales, circulares y con fondo sutil */
+  /* 🟢 BRANDING (Logo + Nombre) - Desplazado a la izquierda */
+  .hdr-brand {
+    grid-column: 2 !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 10px !important;
+    justify-content: flex-start !important; /* Pegado a la izquierda del centro */
+    transform: translateX(-10px) !important; /* Ajuste fino */
+  }
+
+  .hdr-logo {
+    width: 36px !important;
+    height: 36px !important;
+    background: var(--primary) !important;
+    border-radius: 10px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    font-weight: 700 !important;
+    color: white !important;
+    flex-shrink: 0;
+  }
+
+  .hdr-name {
+    display: block !important;
+    font-family: "Cormorant Garamond", serif !important;
+    font-size: 18px !important;
+    font-weight: 500 !important;
+    color: #ffffff !important;
+    white-space: nowrap;
+  }
+
+  /* 🟢 BOTONES ACCIÓN: Círculos Sleek */
+  .hdr-actions-group {
+    grid-column: 3 !important;
+    display: flex !important;
+    justify-content: flex-end !important;
+    gap: 12px !important;
+  }
+
   .hdr-back,
   .lang-btn,
   .hdr-action {
-    padding: 0 !important;
-    width: 42px !important;
-    height: 42px !important;
-    min-width: 42px !important;
-    justify-content: center !important;
+    width: 40px !important;
+    height: 40px !important;
+    min-width: 40px !important;
     border-radius: 50% !important;
-    gap: 0 !important;
-    background: rgba(255, 255, 255, 0.08) !important;
+    background: rgba(255, 255, 255, 0.07) !important;
     border: 1px solid rgba(255, 255, 255, 0.12) !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    padding: 0 !important;
   }
 
   .lang-btn .fi {
     margin: 0 !important;
-    position: relative;
-    top: -1px;
+    transform: scale(1.1); /* Tamaño perfecto */
   }
 
-  /* 🟢 Espaciado Premium: Más aire entre el selector de idioma y el resumen */
-  .hdr-actions-group {
-    gap: 16px !important;
+  /* 🟢 SLIDER MÓVIL */
+  .dots-bar {
+    display: flex !important;
+    background: var(--secondary);
+    padding: 10px 24px 24px;
+    justify-content: center;
   }
 }

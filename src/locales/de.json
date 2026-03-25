@@ -111,6 +111,9 @@
     "booking_summary": "Buchungsübersicht",
     "privacy_short": "SSL-Verschlüsselung · DSGVO"
   },
+  "brand": {
+    "name": "Lumina "
+  },
   "validation": {
     "min_adults": "Es muss mindestens 1 Erwachsener anwesend sein.",
     "min_adults_booking": "Es muss mindestens 1 Erwachsener in der Buchung sein.",

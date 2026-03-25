@@ -130,22 +130,30 @@ export const AppShell: React.FC<AppShellProps> = ({
         const width = trackRef.current.offsetWidth;
         setTrackWidth(width);
 
-        // Sincronizamos la posición de la píldora inmediatamente para evitar el salto a la izquierda
+        // 🟢 CLAVE: Sincronización forzada inmediata 🟢
+        // Si no hay steps, no hacemos nada
         if (dotSteps.length > 1) {
           const stepWidth = width / (dotSteps.length - 1);
-          progressX.set(nav.dotIndex * stepWidth);
+          const targetX = nav.dotIndex * stepWidth;
+
+          // Usamos set() para que sea instantáneo sin animación al cargar
+          progressX.set(targetX);
         }
       }
     };
 
+    // Medida inmediata
     measure();
-    const timer = setTimeout(measure, 100);
-    window.addEventListener("resize", measure);
 
+    // Pequeño refuerzo por si el CSS tarda en aplicarse
+    const timer = setTimeout(measure, 50);
+
+    window.addEventListener("resize", measure);
     return () => {
       clearTimeout(timer);
       window.removeEventListener("resize", measure);
     };
+    // Añadimos nav.dotIndex para que se re-sincronice al cambiar de pantalla
   }, [showDots, dotSteps.length, nav.dotIndex, progressX]);
 
   // 4. Lógica de validación
@@ -197,6 +205,11 @@ export const AppShell: React.FC<AppShellProps> = ({
   const handleGoToRevision = () => {
     if (!summaryDisabled) onGoToRevision?.();
   };
+  const hotelDisplayName =
+    (reserva as any)?.hotelName ||
+    (reserva as any)?.establishment ||
+    t("brand.name") ||
+    "Lumina";
 
   return (
     <div className="shell">
@@ -206,7 +219,8 @@ export const AppShell: React.FC<AppShellProps> = ({
           onBack={actions.goBack}
           onLogoClick={() => actions.goTo("inicio", "back", 0)}
           extraContent={<LanguageSelector />}
-          name={undefined}
+          name={hotelDisplayName}
+          room={undefined}
           rightAction={
             onGoToRevision &&
             activeStep !== "revision" &&
@@ -236,11 +250,11 @@ export const AppShell: React.FC<AppShellProps> = ({
                     style={{
                       opacity: isActive ? 0 : isDone ? 0.5 : 1,
                       transform: isActive ? "scale(0)" : "scale(1)",
+                      transition: "all 0.3s ease",
                     }}
                   />
                 );
               })}
-
               <motion.div
                 className="dot-pill-active"
                 style={{ x: progressX }}
@@ -249,7 +263,7 @@ export const AppShell: React.FC<AppShellProps> = ({
                 dragElastic={0.1}
                 dragMomentum={false}
                 whileTap={{ scaleY: 1.4, scaleX: 1.05 }}
-                onDragEnd={handleDragEnd} // 🟢 USAMOS LA FUNCIÓN AQUÍ 🟢
+                onDragEnd={handleDragEnd}
               />
             </div>
           </div>
