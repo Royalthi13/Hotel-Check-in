@@ -1,16 +1,11 @@
-import {
-  BrowserRouter,
-  Routes,
-  Route,
-  useParams,
-  Navigate,
-} from "react-router-dom";
+// Ubicación: src/App.tsx
+
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import "./App.css";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
-import { useCheckin } from "@/hooks/useCheckin";
+import { CheckinProvider, useCheckinContext } from "@/context/CheckinContext";
 import { AppShell } from "@/layout/AppShell";
 import { LoadingSpinner, Alert, Icon } from "@/components/ui";
-import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 // --- PANTALLAS ---
@@ -25,9 +20,7 @@ import {
   ScreenRevision,
   ScreenExito,
 } from "@/screens/ScreenExtrasRevisionExito";
-
-// Importamos 'Reserva' para solucionar el error de tipado del inicio
-import type { StepId, PartialGuestData, Reserva } from "@/types";
+import type { StepId, Reserva } from "@/types";
 
 const STEPS_WITHOUT_DOTS = new Set<StepId>(["tablet_buscar", "exito"]);
 
@@ -88,13 +81,7 @@ function InvalidLink() {
         >
           {t("invalidLink.description")}
         </p>
-        <p
-          style={{
-            marginTop: 20,
-            fontSize: 12,
-            color: "var(--text-low)",
-          }}
-        >
+        <p style={{ marginTop: 20, fontSize: 12, color: "var(--text-low)" }}>
           {t("invalidLink.help")}
         </p>
       </div>
@@ -104,39 +91,22 @@ function InvalidLink() {
 
 function CheckinWizard() {
   const { t } = useTranslation();
-  const { token, step } = useParams();
-  const [state, nav, actions, isLoading] = useCheckin(token, step);
-  const [submitError, setSubmitError] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isOffline, setIsOffline] = useState(!navigator.onLine);
-  const [isPartialSuccess, setIsPartialSuccess] = useState(false);
 
-  // Estados locales restaurados
-  const [legalPassed, setLegalPassed] = useState(
-    () => sessionStorage.getItem(`legalPassed_${token}`) === "true",
-  );
-  const [hasMinorsFlag, setHasMinorsFlag] = useState(
-    () => sessionStorage.getItem(`hasMinors_${token}`) === "true",
-  );
-
-  useEffect(() => {
-    sessionStorage.setItem(`legalPassed_${token}`, String(legalPassed));
-  }, [legalPassed, token]);
-
-  useEffect(() => {
-    sessionStorage.setItem(`hasMinors_${token}`, String(hasMinorsFlag));
-  }, [hasMinorsFlag, token]);
-
-  useEffect(() => {
-    const on = () => setIsOffline(false);
-    const off = () => setIsOffline(true);
-    window.addEventListener("online", on);
-    window.addEventListener("offline", off);
-    return () => {
-      window.removeEventListener("online", on);
-      window.removeEventListener("offline", off);
-    };
-  }, []);
+  const {
+    state,
+    nav,
+    actions,
+    isLoading,
+    isOffline,
+    submitError,
+    isSubmitting,
+    isPartialSuccess,
+    setHasMinorsFlag,
+    setLegalPassed,
+    handleChooseMethod,
+    handleSubmit,
+    token,
+  } = useCheckinContext();
 
   const isActuallyLoading =
     isLoading && token !== "new" && nav.step !== "tablet_buscar";
@@ -152,102 +122,10 @@ function CheckinWizard() {
     );
   }
 
-  const {
-    goTo,
-    goBack,
-    goToDotIndex,
-    setNumPersonas,
-    updateGuest,
-    updateRelacion,
-    nextGuest,
-  } = actions;
-
   const currentStep = nav.step || "inicio";
   const showDots = !STEPS_WITHOUT_DOTS.has(currentStep);
-  const isMainGuest = nav.guestIndex === 0;
-  const currentGuest = state.guests[nav.guestIndex] ?? {};
-
   const customNav = { ...nav, canGoBack: nav.canGoBack };
-
-  const handleSmartGoBack = () => {
-    goBack();
-  };
-
-  const handleChooseMethod = (method: "scan" | "manual") => {
-    sessionStorage.setItem(`modoFlujo_${token}`, method);
-
-    // Fijamos el número de personas automáticamente basándonos en la reserva
-    setNumPersonas(state.reserva?.numHuespedes || 1);
-
-    // Navegamos directamente al flujo elegido
-    if (method === "scan") {
-      goTo("escanear", "forward", 0);
-    } else {
-      goTo("form_personal", "forward", 0);
-    }
-  };
-
-  // Función unificada para guardar (Total o Parcial)
-  const submitToServer = async (isPartial: boolean): Promise<void> => {
-    setSubmitError("");
-    setIsSubmitting(true);
-    try {
-      const payload = {
-        reserva: state.reserva,
-        // Evitamos el "docFile no usado" creando una copia y borrando la propiedad.
-        guests: state.guests.map((g) => {
-          const copia = { ...g };
-          delete copia.docFile;
-          return copia;
-        }),
-        horaLlegada: state.horaLlegada,
-        observaciones: state.observaciones,
-        isPartial,
-      };
-
-      const res = await fetch(`/api/checkin/${token}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok || data?.success === false) {
-        throw new Error(data?.error || `HTTP ${res.status}`);
-      }
-
-      setIsPartialSuccess(isPartial);
-
-      if (!isPartial) {
-        const keysToClear = [
-          `state_${token}`,
-          `history_${token}`,
-          `allowedSteps_${token}`,
-          `legalPassed_${token}`,
-          `hasMinors_${token}`,
-          `modoFlujo_${token}`,
-        ];
-        keysToClear.forEach((key) => sessionStorage.removeItem(key));
-        goTo("exito", "forward");
-      }
-    } catch (err: unknown) {
-      const errMsg =
-        err instanceof Error ? err.message : t("errorBoundary.title");
-      setSubmitError(errMsg);
-      throw err;
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const handleSubmit = () => submitToServer(false);
-  const handlePartialSubmit = () => submitToServer(true);
-
-  const lockedContactFields = {
-    email: !!state.knownGuest?.email,
-    telefono: !!state.knownGuest?.telefono,
-  };
-
+  const currentGuest = state.guests[nav.guestIndex] ?? {};
   const adultosConIndice = state.guests
     .map((g, i) => ({ ...g, originalIndex: i }))
     .filter((g) => !g.esMenor);
@@ -267,10 +145,14 @@ function CheckinWizard() {
   return (
     <AppShell
       nav={customNav}
-      actions={{ goBack: handleSmartGoBack, goToDotIndex, goTo }}
+      actions={{
+        goBack: actions.goBack,
+        goToDotIndex: actions.goToDotIndex,
+        goTo: actions.goTo,
+      }}
       showDots={showDots}
       reserva={state.reserva}
-      onGoToRevision={() => goTo("revision", "back")}
+      onGoToRevision={() => actions.goTo("revision", "back")}
     >
       {isOffline && (
         <div style={{ padding: "8px 24px 0" }}>
@@ -284,7 +166,7 @@ function CheckinWizard() {
           onNext={(hayMenores: boolean) => {
             setHasMinorsFlag(hayMenores);
             setLegalPassed(true);
-            goTo("bienvenida", "forward");
+            actions.goTo("bienvenida", "forward");
           }}
         />
       )}
@@ -302,54 +184,24 @@ function CheckinWizard() {
         <ScreenEscanear
           onScanned={(data) => {
             actions.applyScannedData(data, nav.guestIndex);
-            goTo("form_personal", "forward");
+            actions.goTo("form_personal", "forward");
           }}
-          onSkip={() => goTo("form_personal", "forward")}
+          onSkip={() => actions.goTo("form_personal", "forward")}
         />
       )}
 
-      {currentStep === "form_personal" && (
-        <ScreenFormPersonal
-          data={currentGuest}
-          allGuests={state.guests}
-          onChange={(k: keyof PartialGuestData, v: unknown) =>
-            updateGuest(nav.guestIndex, k, v)
-          }
-          guestIndex={nav.guestIndex}
-          totalGuests={state.numPersonas}
-          isMainGuest={isMainGuest}
-          esMenor={!!currentGuest.esMenor}
-          onNext={() => nextGuest(nav.guestIndex, "form_personal")}
-          isSubmitting={isSubmitting}
-          token={token || "new"}
-          onPartialSave={handlePartialSubmit}
-        />
-      )}
-
-      {currentStep === "form_contacto" && (
-        <ScreenFormContacto
-          data={currentGuest}
-          onChange={(k: keyof PartialGuestData, v: unknown) =>
-            updateGuest(nav.guestIndex, k, v)
-          }
-          onNext={() => nextGuest(nav.guestIndex, "form_contacto")}
-          onPartialSave={handlePartialSubmit}
-          hasNextGuest={state.numPersonas > 1}
-          isSubmitting={isSubmitting}
-          token={token || "new"}
-          lockedFields={lockedContactFields}
-        />
-      )}
+      {/* PANTALLAS REFATORIZADAS: Fíjate cómo ya no necesitan "Props" kilométricas */}
+      {currentStep === "form_personal" && <ScreenFormPersonal />}
+      {currentStep === "form_contacto" && <ScreenFormContacto />}
 
       {currentStep === "form_relaciones" && (
         <ScreenRelacionesMenor
           menor={currentGuest}
           adultos={adultosConIndice}
           onRelacionChange={(aIdx: number, p: string) =>
-            updateRelacion(nav.guestIndex, aIdx, p)
+            actions.updateRelacion(nav.guestIndex, aIdx, p)
           }
-          onNext={() => nextGuest(nav.guestIndex, "form_relaciones")}
-          onPartialSave={handlePartialSubmit}
+          onNext={() => actions.nextGuest(nav.guestIndex, "form_relaciones")}
           hasNextMinor={
             state.guests.findIndex((g, i) => i > nav.guestIndex && g.esMenor) >=
             0
@@ -364,7 +216,7 @@ function CheckinWizard() {
           observaciones={state.observaciones}
           onHoraChange={actions.setHoraLlegada}
           onObsChange={actions.setObservaciones}
-          onNext={() => goTo("revision", "forward")}
+          onNext={() => actions.goTo("revision", "forward")}
         />
       )}
 
@@ -379,7 +231,7 @@ function CheckinWizard() {
             state={state}
             isSubmitting={isSubmitting}
             onEditStep={(targetStep, gIdx) =>
-              goTo(targetStep as StepId, "back", gIdx)
+              actions.goTo(targetStep as StepId, "back", gIdx)
             }
             onSubmit={handleSubmit}
           />
@@ -389,7 +241,7 @@ function CheckinWizard() {
       {currentStep === "exito" && (
         <ScreenExito
           state={state}
-          onAddHora={() => goTo("form_extras", "back")}
+          onAddHora={() => actions.goTo("form_extras", "back")}
           isPartial={isPartialSuccess}
         />
       )}
@@ -405,11 +257,14 @@ export default function App() {
           path="/"
           element={<Navigate to="/checkin/99999/inicio" replace />}
         />
+        {/* Envolvemos las rutas con el nuevo Provider para que la "nube" funcione */}
         <Route
           path="/checkin/kiosko/tablet_buscar"
           element={
             <ErrorBoundary>
-              <CheckinWizard />
+              <CheckinProvider>
+                <CheckinWizard />
+              </CheckinProvider>
             </ErrorBoundary>
           }
         />
@@ -421,7 +276,9 @@ export default function App() {
           path="/checkin/:token/:step"
           element={
             <ErrorBoundary>
-              <CheckinWizard />
+              <CheckinProvider>
+                <CheckinWizard />
+              </CheckinProvider>
             </ErrorBoundary>
           }
         />

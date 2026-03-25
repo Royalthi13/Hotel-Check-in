@@ -1,3 +1,5 @@
+// Ubicación: src/screens/ScreenForms.tsx
+
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Button, Icon, Alert } from "@/components/ui";
@@ -24,6 +26,7 @@ import { usePlaces } from "@/hooks/usePlaces";
 import dayjs from "dayjs";
 import "dayjs/locale/es";
 import { useDebounce } from "@/hooks/useDebounce";
+import { useCheckinContext } from "@/context/CheckinContext"; // Importamos el contexto
 
 const inputSx = {
   "& :not(.MuiInputAdornment-root) > .MuiInputBase-root": {
@@ -32,31 +35,6 @@ const inputSx = {
   },
   "& .MuiOutlinedInput-notchedOutline": { borderColor: "var(--border)" },
 };
-
-interface FormPersonalProps {
-  data: PartialGuestData;
-  allGuests: PartialGuestData[];
-  onChange: (key: keyof PartialGuestData, value: unknown) => void;
-  guestIndex: number;
-  totalGuests: number;
-  isMainGuest: boolean;
-  esMenor?: boolean;
-  onNext: () => void;
-  isSubmitting: boolean;
-  token: string;
-  onPartialSave?: () => void;
-}
-
-interface FormContactoProps {
-  data: PartialGuestData;
-  onChange: (key: keyof PartialGuestData, value: unknown) => void;
-  onNext: () => void;
-  onPartialSave: () => Promise<void>;
-  hasNextGuest: boolean;
-  isSubmitting: boolean;
-  token: string;
-  lockedFields?: { email?: boolean; telefono?: boolean };
-}
 
 const FieldError: React.FC<{ msg?: string }> = ({ msg }) =>
   msg ? (
@@ -76,23 +54,30 @@ const FieldError: React.FC<{ msg?: string }> = ({ msg }) =>
     </span>
   ) : null;
 
-export const ScreenFormPersonal: React.FC<FormPersonalProps> = ({
-  data,
-  allGuests,
-  onChange,
-  guestIndex,
-  totalGuests,
-  isMainGuest,
-  esMenor,
-  onNext,
-  isSubmitting,
-  token,
-  onPartialSave,
-}) => {
+// Eliminadas las Props. Ya no recibimos nada de App.tsx
+export const ScreenFormPersonal: React.FC = () => {
+  // 1. Nos conectamos a la "nube" para bajar nuestros datos y funciones
+  const { state, nav, actions, isSubmitting, token, handlePartialSubmit } =
+    useCheckinContext();
+
+  // 2. Reconstruimos las variables que antes nos pasaban como props
+  const guestIndex = nav.guestIndex;
+  const data = state.guests[guestIndex] ?? {};
+  const allGuests = state.guests;
+  const totalGuests = state.numPersonas;
+  const isMainGuest = guestIndex === 0;
+  const esMenor = !!data.esMenor;
+
+  const onChange = (key: keyof PartialGuestData, value: unknown) =>
+    actions.updateGuest(guestIndex, key, value);
+  const onNext = () => actions.nextGuest(guestIndex, "form_personal");
+  const onPartialSave = handlePartialSubmit;
+
   const handleSubmit = (e: React.SyntheticEvent<HTMLFormElement>) => {
     e.preventDefault();
     checkAndProceed(onNext);
   };
+
   const { t } = useTranslation();
   const { errors, validate, clearError } = useFormValidation(validatePersonal);
   const [duplicateError, setDuplicateError] = useState("");
@@ -159,6 +144,7 @@ export const ScreenFormPersonal: React.FC<FormPersonalProps> = ({
         </Typography>
       </div>
       <form onSubmit={handleSubmit}>
+        {/* MEJORA DE SEGURIDAD: Bloquea todos los inputs a la vez si está enviando */}
         <fieldset
           disabled={isSubmitting}
           style={{ border: "none", padding: 0, margin: 0 }}
@@ -423,19 +409,31 @@ export const ScreenFormPersonal: React.FC<FormPersonalProps> = ({
   );
 };
 
-export const ScreenFormContacto: React.FC<FormContactoProps> = ({
-  data,
-  onChange,
-  onNext,
-  onPartialSave,
-  hasNextGuest,
-  isSubmitting,
-  lockedFields,
-}) => {
+// Eliminadas las Props. Ya no recibimos nada de App.tsx
+export const ScreenFormContacto: React.FC = () => {
+  // 1. Nos conectamos a la "nube"
+  const { state, nav, actions, isSubmitting, handlePartialSubmit } =
+    useCheckinContext();
+
+  // 2. Reconstruimos las variables
+  const guestIndex = nav.guestIndex;
+  const data = state.guests[guestIndex] ?? {};
+  const hasNextGuest = state.numPersonas > 1;
+  const lockedFields = {
+    email: !!state.knownGuest?.email,
+    telefono: !!state.knownGuest?.telefono,
+  };
+
+  const onChange = (key: keyof PartialGuestData, value: unknown) =>
+    actions.updateGuest(guestIndex, key, value);
+  const onNext = () => actions.nextGuest(guestIndex, "form_contacto");
+  const onPartialSave = handlePartialSubmit;
+
   const handleSubmit = (e: React.SyntheticEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (validate(data)) onNext();
   };
+
   const { t } = useTranslation();
   const { errors, validate, clearError } = useFormValidation(
     (d: PartialGuestData, t) => validateContacto(d, t, lockedFields),
