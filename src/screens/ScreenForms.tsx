@@ -608,7 +608,11 @@ export const ScreenFormContacto: React.FC = () => {
               sx={inputSx}
             />
 
-            <div className="divlabel">{t("forms.location")}</div>
+            <Divider
+  sx={{ my: 1, typography: "overline", color: "var(--text-low)" }}
+>
+  {t("forms.location")}
+</Divider>
             <Box
               sx={{
                 display: "grid",
