@@ -35,6 +35,7 @@ const STEPS_WITHOUT_DOTS = new Set<StepId>(["tablet_buscar", "exito"]);
 
 // ── Página de enlace inválido / caducado ──────────────────────────────────────
 function InvalidLink() {
+  const { t } = useTranslation();
   return (
     <div
       className="shell"
@@ -66,7 +67,7 @@ function InvalidLink() {
         >
           <Icon name="lock" size={32} color="var(--text-low)" />
         </div>
-        <h2
+      <h2
           style={{
             fontFamily: "'Cormorant Garamond', serif",
             fontSize: 26,
@@ -75,7 +76,7 @@ function InvalidLink() {
             marginBottom: 12,
           }}
         >
-          Enlace no válido
+          {t("invalidLink.title")}
         </h2>
         <p
           style={{
@@ -86,8 +87,7 @@ function InvalidLink() {
             margin: "0 auto",
           }}
         >
-          Este enlace no es válido o ha caducado. Por favor, acceda mediante el
-          enlace que recibió en su confirmación de reserva.
+          {t("invalidLink.subtitle")}
         </p>
         <p
           style={{
@@ -96,7 +96,7 @@ function InvalidLink() {
             color: "var(--text-low)",
           }}
         >
-          Si necesita ayuda, contacte con recepción.
+          {t("invalidLink.footer")}
         </p>
       </div>
     </div>

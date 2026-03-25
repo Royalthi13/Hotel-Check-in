@@ -357,7 +357,12 @@
     "max_limit": "La limite maximale est de 10.",
     "person_singular": "personne",
     "person_plural": "personnes"
-  },
+  },"invalidLink": {
+  "title": "Lien invalide",
+  "subtitle": "Ce lien n'est pas valide ou a expiré. Veuillez utiliser le lien reçu dans votre confirmation de réservation.",
+  "footer": "Si vous avez besoin d'aide, contactez la réception."
+}
+  ,
   "legal": {
     "title": "Informations Légales et Confidentialité",
     "intro": "Conformément au RGPD et à la réglementation en vigueur :",

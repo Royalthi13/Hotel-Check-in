@@ -357,7 +357,12 @@
     "max_limit": "Das Maximum ist 10.",
     "person_singular": "Person",
     "person_plural": "Personen"
-  },
+  },"invalidLink": {
+  "title": "Ungültiger Link",
+  "subtitle": "Dieser Link ist ungültig oder abgelaufen. Bitte verwenden Sie den Link aus Ihrer Buchungsbestätigung.",
+  "footer": "Bei Fragen wenden Sie sich an die Rezeption."
+}
+  ,
   "legal": {
     "title": "Rechtliche Informationen & Datenschutz",
     "intro": "Gemäß DSGVO und den geltenden Vorschriften:",
