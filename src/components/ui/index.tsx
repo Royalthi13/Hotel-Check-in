@@ -296,7 +296,7 @@ export const Header: React.FC<HeaderProps> = ({
   rightAction,
   extraContent,
   name,
-  room,
+  
 }) => {
   const { t } = useTranslation();
   return (
@@ -321,7 +321,7 @@ export const Header: React.FC<HeaderProps> = ({
       <div className="hdr-logo">L</div>
       <div>
         <div className="hdr-name">{name || "Lumina"}</div>
-        <div className="hdr-sub">{room || "Hotels & Resorts"}</div>
+       
       </div>
     </div>
 

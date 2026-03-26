@@ -328,21 +328,24 @@ export const ScreenFormPersonal: React.FC = () => {
                       >
                         {t("forms.doc_support")}
                         <Tooltip
-                          title={t("forms.doc_support_hint")}
-                          arrow
-                          placement="top"
-                        >
-                          <Box
-                            component="span"
-                            sx={{
-                              display: "flex",
-                              cursor: "help",
-                              color: "var(--text-low)",
-                            }}
-                          >
-                            <Icon name="info" size={14} />
-                          </Box>
-                        </Tooltip>
+  title={t("forms.doc_support_hint")}
+  arrow
+  placement="top"
+  enterTouchDelay={0}    // <-- CLAVE: Muestra el tooltip al instante al hacer "tap" en móvil
+  leaveTouchDelay={3000} // <-- Opcional: Mantiene el tooltip visible 3 segundos en pantalla táctil
+>
+  <Box
+    component="span"
+    onClick={(e) => e.stopPropagation()} // <-- Evita que el tap cierre el tooltip accidentalmente si burbujea
+    sx={{
+      display: "flex",
+      cursor: "pointer", // <-- Mejor 'pointer' que 'help' para indicar que es tocable
+      color: "var(--text-low)",
+    }}
+  >
+    <Icon name="info" size={14} />
+  </Box>
+</Tooltip>
                       </Box>
                     }
                     required
@@ -567,18 +570,8 @@ export const ScreenFormContacto: React.FC = () => {
                         }
                   }
                   error={!!errors.email}
-                  sx={{
-                    ...inputSx,
-                    ...(lockedFields?.email ? { opacity: 0.72 } : {}),
-                  }}
-                  InputProps={{
-                    readOnly: !!lockedFields?.email,
-                    endAdornment: lockedFields?.email ? (
-                      <InputAdornment position="end">
-                        <Icon name="lock" size={13} color="var(--text-low)" />
-                      </InputAdornment>
-                    ) : undefined,
-                  }}
+                 disabled={!!lockedFields?.email}
+                  sx={inputSx}
                   helperText={
                     lockedFields?.email
                       ? t("forms.field_from_reservation")
@@ -610,18 +603,8 @@ export const ScreenFormContacto: React.FC = () => {
                         }
                   }
                   error={!!errors.telefono}
-                  sx={{
-                    ...inputSx,
-                    ...(lockedFields?.telefono ? { opacity: 0.72 } : {}),
-                  }}
-                  InputProps={{
-                    readOnly: !!lockedFields?.telefono,
-                    endAdornment: lockedFields?.telefono ? (
-                      <InputAdornment position="end">
-                        <Icon name="lock" size={13} color="var(--text-low)" />
-                      </InputAdornment>
-                    ) : undefined,
-                  }}
+                  disabled={!!lockedFields?.telefono}
+                  sx={inputSx}
                   helperText={
                     lockedFields?.telefono
                       ? t("forms.field_from_reservation")
@@ -645,7 +628,11 @@ export const ScreenFormContacto: React.FC = () => {
               sx={inputSx}
             />
 
-            <div className="divlabel">{t("forms.location")}</div>
+            <Divider
+  sx={{ my: 1, typography: "overline", color: "var(--text-low)" }}
+>
+  {t("forms.location")}
+</Divider>
             <Box
               sx={{
                 display: "grid",
