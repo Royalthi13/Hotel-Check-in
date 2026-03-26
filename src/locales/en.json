@@ -103,7 +103,8 @@
     "save_partial": "Save and continue later",
     "next_guest": "Next person",
     "copy_link": "Copy link to share",
-    "copied": "Link copied!"
+    "copied": "Link copied!",
+    "offline": "It seems you have lost your internet connection."
   },
   "appShell": {
     "subtitle": "Complete your pre check-in and arrive at the hotel with no wait at reception.",

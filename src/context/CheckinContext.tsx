@@ -22,9 +22,10 @@ interface CheckinContextValue {
   handleSubmit: () => Promise<void>;
   handlePartialSubmit: () => Promise<void>;
 
-  // 🟢 AÑADIDO PARA LA VALIDACIÓN SENIOR
   validationTrigger: number;
   triggerFormValidation: () => void;
+
+  clearSubmitError: () => void;
 }
 
 const CheckinContext = createContext<CheckinContextValue | null>(null);
@@ -64,6 +65,10 @@ export const CheckinProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const triggerFormValidation = () => {
     setValidationTrigger((prev) => prev + 1);
+  };
+
+  const clearSubmitError = () => {
+    setSubmitError("");
   };
 
   useEffect(() => {
@@ -168,6 +173,7 @@ export const CheckinProvider: React.FC<{ children: React.ReactNode }> = ({
     handlePartialSubmit,
     validationTrigger,
     triggerFormValidation,
+    clearSubmitError,
   };
 
   return (

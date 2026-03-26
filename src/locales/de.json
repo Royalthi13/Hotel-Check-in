@@ -103,7 +103,8 @@
     "save_partial": "Speichern und später fortfahren",
     "next_guest": "Nächste Person",
     "copy_link": "Link zum Teilen kopieren",
-    "copied": "Link kopiert!"
+    "copied": "Link kopiert!",
+    "offline": "Es scheint, als hätten Sie Ihre Internetverbindung verloren."
   },
   "appShell": {
     "subtitle": "Schließen Sie Ihren Pre-Check-in ab und kommen Sie ohne Wartezeiten an der Rezeption im Hotel an.",

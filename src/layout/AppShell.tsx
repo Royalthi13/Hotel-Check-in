@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
+import { GlobalToast } from "@/components/GlobalToast";
 import { useTranslation } from "react-i18next";
 import { Header, Icon, ReservationCard } from "../components/ui";
 import type {
@@ -413,6 +414,7 @@ export const AppShell: React.FC<AppShellProps> = ({
           </main>
         </div>
       </div>
+      <GlobalToast />
     </div>
   );
 };

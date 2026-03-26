@@ -103,7 +103,8 @@
     "save_partial": "Guardar e continuar depois",
     "next_guest": "Próxima pessoa",
     "copy_link": "Copiar link para partilhar",
-    "copied": "Link copiado!"
+    "copied": "Link copiado!",
+    "offline": "Parece que você está sem conexão com a internet."
   },
   "appShell": {
     "subtitle": "Complete o seu pré check-in e chegue ao hotel sem esperas na receção.",
