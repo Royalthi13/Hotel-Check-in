@@ -158,10 +158,7 @@ export const AppShell: React.FC<AppShellProps> = ({
     currentStepIsInvalid(nav.step, guests, guestIndex, t);
 
   const summaryDisabled =
-    !onGoToRevision ||
-    activeStep === "revision" ||
-    activeStep === "exito" ||
-    stepInvalid;
+    !onGoToRevision || activeStep === "revision" || activeStep === "exito";
 
   const handleDragEnd = () => {
     if (dotSteps.length <= 1 || trackWidth === 0) return;
@@ -175,6 +172,10 @@ export const AppShell: React.FC<AppShellProps> = ({
       landedIndex <= maxDotReached || isStepUnlocked(targetStepId, landedIndex);
     const isBlockedByError = landedIndex > nav.dotIndex && stepInvalid;
 
+    if (isBlockedByError) {
+      window.dispatchEvent(new Event("FORCE_VALIDATE"));
+    }
+
     if (!isAllowed || isBlockedByError || landedIndex === nav.dotIndex) {
       animate(progressX, nav.dotIndex * stepWidth, {
         type: "spring",
@@ -187,6 +188,10 @@ export const AppShell: React.FC<AppShellProps> = ({
   };
 
   const handleGoToRevision = () => {
+    if (stepInvalid) {
+      window.dispatchEvent(new Event("FORCE_VALIDATE"));
+      return;
+    }
     if (!summaryDisabled) onGoToRevision?.();
   };
 
@@ -287,6 +292,90 @@ export const AppShell: React.FC<AppShellProps> = ({
                   <ReservationCard reserva={reserva} />
                 </div>
               )}
+
+              <nav className="sp-steps" aria-label="Progreso">
+                {SIDE_STEPS.map((s, i) => {
+                  const isActive = i === activeIdx;
+                  const isUnlocked = isStepUnlocked(s.id, i);
+
+                  const isRevision = s.id === "revision";
+                  const canGoToRevision =
+                    isRevision &&
+                    !!onGoToRevision &&
+                    !isActive &&
+                    activeStep !== "exito";
+
+                  const isClickable =
+                    canGoToRevision ||
+                    (isUnlocked && !isActive && s.id !== "exito");
+
+                  const isDone =
+                    isUnlocked && !isActive && !isRevision && s.id !== "exito";
+
+                  return (
+                    <div
+                      key={s.id}
+                      onClick={() => {
+                        if (
+                          stepInvalid &&
+                          (isClickable || isUnlocked) &&
+                          !isActive
+                        ) {
+                          window.dispatchEvent(new Event("FORCE_VALIDATE"));
+                          return;
+                        }
+
+                        if (canGoToRevision) {
+                          onGoToRevision();
+                          return;
+                        }
+
+                        if (isClickable) {
+                          const dotIdxInNav = nav.dotSteps.indexOf(s.id);
+                          if (dotIdxInNav !== -1) {
+                            actions.goToDotIndex(dotIdxInNav);
+                          } else {
+                            actions.goTo(
+                              s.id,
+                              i < activeIdx ? "back" : "forward",
+                              0,
+                            );
+                          }
+                        }
+                      }}
+                      className={[
+                        "sp-step",
+                        isActive ? "sp-step--active" : "",
+                        isDone ? "sp-step--done" : "",
+                        isClickable && !stepInvalid ? "sp-step--clickable" : "",
+                      ]
+                        .filter(Boolean)
+                        .join(" ")}
+                      style={{
+                        cursor:
+                          isClickable && !stepInvalid ? "pointer" : "default",
+                        opacity: isUnlocked || canGoToRevision ? 1 : 0.4,
+                      }}
+                    >
+                      <div className="sp-step-num">
+                        {isDone ? (
+                          <Icon name="check" size={12} color="#fff" />
+                        ) : (
+                          i + 1
+                        )}
+                      </div>
+                      <span className="sp-step-label">
+                        {t(`constants.steps.${s.id}`)}
+                      </span>
+                    </div>
+                  );
+                })}
+              </nav>
+
+              <div className="sp-footer">
+                <Icon name="lock" size={12} color="rgba(255,255,255,.3)" />
+                <span>{t("appShell.privacy_short")}</span>
+              </div>
             </div>
           </aside>
 

@@ -1,6 +1,6 @@
 // Ubicación: src/screens/ScreenForms.tsx
 
-import React, { useState } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { Button, Icon, Alert } from "@/components/ui";
 import { useZipCode } from "@/hooks/useZipCode";
@@ -63,7 +63,10 @@ export const ScreenFormPersonal: React.FC = () => {
 
   // 2. Reconstruimos las variables que antes nos pasaban como props
   const guestIndex = nav.guestIndex;
-  const data = state.guests[guestIndex] ?? {};
+  const data = useMemo(
+    () => state.guests[guestIndex] ?? {},
+    [state.guests, guestIndex],
+  );
   const allGuests = state.guests;
   const totalGuests = state.numPersonas;
   const isMainGuest = guestIndex === 0;
@@ -96,6 +99,14 @@ export const ScreenFormPersonal: React.FC = () => {
     500,
     [data.nombre],
   );
+
+  useEffect(() => {
+    const handleForceValidate = () =>
+      validate({ ...data, isTitular: isMainGuest });
+    window.addEventListener("FORCE_VALIDATE", handleForceValidate);
+    return () =>
+      window.removeEventListener("FORCE_VALIDATE", handleForceValidate);
+  }, [data, isMainGuest, validate]);
 
   const hasNextGuest = guestIndex < totalGuests - 1;
 
@@ -440,7 +451,11 @@ export const ScreenFormContacto: React.FC = () => {
 
   // 2. Reconstruimos las variables
   const guestIndex = nav.guestIndex;
-  const data = state.guests[guestIndex] ?? {};
+  const data = useMemo(
+    () => state.guests[guestIndex] ?? {},
+    [state.guests, guestIndex],
+  );
+
   const hasNextGuest = state.numPersonas > 1;
   const lockedFields = {
     email: !!state.knownGuest?.email,
@@ -484,7 +499,12 @@ export const ScreenFormContacto: React.FC = () => {
     500,
     [data.telefono],
   );
-
+  useEffect(() => {
+    const handleForceValidate = () => validate(data);
+    window.addEventListener("FORCE_VALIDATE", handleForceValidate);
+    return () =>
+      window.removeEventListener("FORCE_VALIDATE", handleForceValidate);
+  }, [data, validate]);
   return (
     <>
       <div className="sec-hdr">
