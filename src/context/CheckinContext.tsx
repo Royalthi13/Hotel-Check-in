@@ -21,10 +21,15 @@ interface CheckinContextValue {
   handleChooseMethod: (method: "scan" | "manual") => void;
   handleSubmit: () => Promise<void>;
   handlePartialSubmit: () => Promise<void>;
+
+  // 🟢 AÑADIDO PARA LA VALIDACIÓN SENIOR
+  validationTrigger: number;
+  triggerFormValidation: () => void;
 }
 
 const CheckinContext = createContext<CheckinContextValue | null>(null);
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const useCheckinContext = () => {
   const ctx = useContext(CheckinContext);
   if (!ctx)
@@ -54,6 +59,12 @@ export const CheckinProvider: React.FC<{ children: React.ReactNode }> = ({
   const [hasMinorsFlag, setHasMinorsFlag] = useState(
     () => sessionStorage.getItem(`hasMinors_${token}`) === "true",
   );
+
+  const [validationTrigger, setValidationTrigger] = useState(0);
+
+  const triggerFormValidation = () => {
+    setValidationTrigger((prev) => prev + 1);
+  };
 
   useEffect(() => {
     sessionStorage.setItem(`legalPassed_${token}`, String(legalPassed));
@@ -155,6 +166,8 @@ export const CheckinProvider: React.FC<{ children: React.ReactNode }> = ({
     handleChooseMethod,
     handleSubmit,
     handlePartialSubmit,
+    validationTrigger,
+    triggerFormValidation,
   };
 
   return (
