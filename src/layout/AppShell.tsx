@@ -18,6 +18,7 @@ import { LanguageSelector } from "../components/LanguageSelector";
 import "@/App.css";
 import { validatePersonal, validateContacto } from "../hooks/useFormValidation";
 import "./FluidProgression.css";
+import "./AppShell.css";
 
 const SIDE_STEPS: { id: StepId }[] = [
   { id: "inicio" },
@@ -81,6 +82,9 @@ interface AppShellProps {
   guestIndex?: number;
 }
 
+// 🟢 SOLUCIÓN TYPESCRIPT: Extendemos el tipo en lugar de usar "any"
+type ExtendedReserva = Reserva & { hotelName?: string; establishment?: string };
+
 export const AppShell: React.FC<AppShellProps> = ({
   nav,
   actions,
@@ -93,7 +97,6 @@ export const AppShell: React.FC<AppShellProps> = ({
 }) => {
   const { t } = useTranslation();
 
-  // 1. Declaración de Refs y Motion Values (Arriba para evitar errores de "used before declaration")
   const trackRef = useRef<HTMLDivElement>(null);
   const progressX = useMotionValue(0);
   const [trackWidth, setTrackWidth] = useState(0);
@@ -102,61 +105,44 @@ export const AppShell: React.FC<AppShellProps> = ({
   const activeStep = getActiveSideStep(nav.step);
   const activeIdx = SIDE_STEPS.findIndex((s) => s.id === activeStep);
 
-  // 2. Estado de progreso máximo alcanzado
   const [maxDotReached, setMaxDotReached] = useState(() =>
     nav.dotIndex >= 0 && nav.step !== "revision" && nav.step !== "exito"
       ? nav.dotIndex
       : 0,
   );
 
-  useEffect(() => {
-    setMaxDotReached((prev) => {
-      if (
-        nav.dotIndex > prev &&
-        nav.step !== "exito" &&
-        (nav.step !== "revision" ||
-          (nav.allowedSteps && nav.allowedSteps.has("form_extras")))
-      ) {
-        return nav.dotIndex;
-      }
-      return prev;
-    });
-  }, [nav.dotIndex, nav.step, nav.allowedSteps]);
+  // 🟢 SOLUCIÓN REACT: Evitamos el useEffect para derivar estado
+  const shouldUpdateMaxDot =
+    nav.dotIndex > maxDotReached &&
+    nav.step !== "exito" &&
+    (nav.step !== "revision" ||
+      (nav.allowedSteps && nav.allowedSteps.has("form_extras")));
 
-  // 3. Efecto de medición de ancho y sincronización inicial
+  if (shouldUpdateMaxDot) {
+    setMaxDotReached(nav.dotIndex);
+  }
+
   useEffect(() => {
     const measure = () => {
       if (trackRef.current) {
         const width = trackRef.current.offsetWidth;
         setTrackWidth(width);
-
-        // 🟢 CLAVE: Sincronización forzada inmediata 🟢
-        // Si no hay steps, no hacemos nada
         if (dotSteps.length > 1) {
           const stepWidth = width / (dotSteps.length - 1);
           const targetX = nav.dotIndex * stepWidth;
-
-          // Usamos set() para que sea instantáneo sin animación al cargar
           progressX.set(targetX);
         }
       }
     };
-
-    // Medida inmediata
     measure();
-
-    // Pequeño refuerzo por si el CSS tarda en aplicarse
     const timer = setTimeout(measure, 50);
-
     window.addEventListener("resize", measure);
     return () => {
       clearTimeout(timer);
       window.removeEventListener("resize", measure);
     };
-    // Añadimos nav.dotIndex para que se re-sincronice al cambiar de pantalla
   }, [showDots, dotSteps.length, nav.dotIndex, progressX]);
 
-  // 4. Lógica de validación
   const isStepUnlocked = (stepId: StepId, index: number) => {
     if (nav.allowedSteps) return nav.allowedSteps.has(stepId);
     if (activeStep === "revision" || activeStep === "exito") {
@@ -170,13 +156,13 @@ export const AppShell: React.FC<AppShellProps> = ({
     activeStep !== "exito" &&
     !!onGoToRevision &&
     currentStepIsInvalid(nav.step, guests, guestIndex, t);
+
   const summaryDisabled =
     !onGoToRevision ||
     activeStep === "revision" ||
     activeStep === "exito" ||
     stepInvalid;
 
-  // 5. Función de final de arrastre (Ahora SÍ se usa correctamente abajo)
   const handleDragEnd = () => {
     if (dotSteps.length <= 1 || trackWidth === 0) return;
     const stepWidth = trackWidth / (dotSteps.length - 1);
@@ -190,7 +176,6 @@ export const AppShell: React.FC<AppShellProps> = ({
     const isBlockedByError = landedIndex > nav.dotIndex && stepInvalid;
 
     if (!isAllowed || isBlockedByError || landedIndex === nav.dotIndex) {
-      // Si no puede ir, vuelve a su sitio con un muelle firme
       animate(progressX, nav.dotIndex * stepWidth, {
         type: "spring",
         stiffness: 500,
@@ -198,16 +183,16 @@ export const AppShell: React.FC<AppShellProps> = ({
       });
       return;
     }
-
     actions.goToDotIndex(landedIndex);
   };
 
   const handleGoToRevision = () => {
     if (!summaryDisabled) onGoToRevision?.();
   };
+
   const hotelDisplayName =
-    (reserva as any)?.hotelName ||
-    (reserva as any)?.establishment ||
+    (reserva as ExtendedReserva)?.hotelName ||
+    (reserva as ExtendedReserva)?.establishment ||
     t("brand.name") ||
     "Lumina";
 
@@ -235,7 +220,6 @@ export const AppShell: React.FC<AppShellProps> = ({
           }
         />
 
-        {/* 🟢 SLIDER SLEEK INSTAGRAM STYLE 🟢 */}
         {showDots && dotSteps.length > 0 && nav.dotIndex >= 0 && (
           <div className="dots-bar">
             <div className="swipe-dots-track" ref={trackRef}>

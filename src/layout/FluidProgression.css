@@ -1,81 +1,89 @@
 /* ════════════════════════════════════════════════════════════════════════
    SLIDER "INSTAGRAM" OPTIMIZADO (Sleek & Pro)
    ════════════════════════════════════════════════════════════════════════ */
+
 .dots-bar {
-  display: flex !important;
-  justify-content: center !important;
-  padding: 10px 24px 30px !important;
-  width: 100% !important;
-  user-select: none;
+  display: none;
 }
 
 @media (max-width: 1024px) {
   .dots-bar {
     display: flex;
-    background: var(--secondary);
-    padding: 8px 24px 24px;
     justify-content: center;
+    align-items: center;
     background: var(--secondary);
-    padding: 8px 24px 24px;
-    display: flex;
-    justify-content: center;
+    padding: 10px 24px 24px;
+    width: 100%;
     user-select: none;
+    flex-shrink: 0;
   }
-}
 
-.swipe-dots-track {
-  position: relative !important;
-  display: flex !important;
-  align-items: center !important;
-  justify-content: space-between !important;
-  width: 100% !important;
-  max-width: 200px !important;
-  height: 20px !important;
-  margin: 0 auto !important;
-}
-.dot-static {
-  width: 6px !important;
-  height: 6px !important;
-  border-radius: 50% !important;
-  background: rgba(255, 255, 255, 0.15) !important;
-  transition:
-    opacity 0.3s ease,
-    transform 0.3s ease;
-}
+  .swipe-dots-track {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    max-width: 200px;
+    height: 20px;
+    margin: 0 auto;
+  }
 
-.dot-static.is-done {
-  background: var(--primary) !important;
-  opacity: 0.5 !important;
-}
-/* 🟢 LA PÍLDORA (Alineación Pro) 🟢 */
-.dot-pill-active {
-  position: absolute !important;
-  /* 🟢 CLAVE 1: Empezamos en el centro del primer punto (radio 3px) */
-  left: 3px !important;
-  top: 50% !important;
-  width: 32px !important;
-  height: 6px !important;
-  background: var(--primary) !important;
-  border-radius: 10px !important;
-  z-index: 20 !important;
+  .dot-static {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.15);
+    transition:
+      opacity 0.3s ease,
+      transform 0.3s ease;
+  }
 
-  /* 🟢 CLAVE 2: Centramos la pastilla sobre ese punto */
-  /* margin-left = -(ancho_pastilla / 2) = -16px */
-  margin-left: -16px !important;
-  margin-top: -3px !important;
+  .dot-static.is-done {
+    background: var(--primary);
+    opacity: 0.5;
+  }
 
-  box-shadow: 0 4px 12px rgba(250, 134, 92, 0.4);
-  cursor: grab;
-  will-change: transform;
-}
-.dot-pill-active:active {
-  cursor: grabbing;
-}
+  .dot-pill-active {
+    position: absolute;
+    left: 0 !important;
+    top: 50% !important;
 
-/* Área táctil invisible (Fitts's Law) */
-.dot-pill-active::after {
-  content: "";
-  position: absolute;
-  inset: -18px;
-  border-radius: 30px;
+    width: 6px !important;
+    height: 6px !important;
+    background: transparent !important;
+    z-index: 20 !important;
+
+    margin-left: 0 !important;
+    margin-top: -3px !important;
+    cursor: grab;
+  }
+
+  .dot-pill-active::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 50%;
+    width: 32px;
+    height: 6px;
+    background: var(--primary);
+    border-radius: 10px;
+    transform: translateX(-50%);
+    box-shadow: 0 4px 12px rgba(250, 134, 92, 0.4);
+  }
+
+  .dot-pill-active:active {
+    cursor: grabbing;
+  }
+
+  .dot-pill-active::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 48px;
+    height: 48px;
+    transform: translate(-50%, -50%);
+    border-radius: 50%;
+  }
 }
