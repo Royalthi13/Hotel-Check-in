@@ -191,11 +191,14 @@
     "duplicate_doc": "Este documento já foi registado num outro hóspede."
   },
   "rooms": {
-    "habitacion_superior": "Quarto Superior",
-    "habitacion_doble": "Quarto Duplo",
     "habitacion_estandar": "Quarto Standard",
-    "suite": "Suite",
-    "suite_junior": "Junior Suite"
+    "habitacion_individual": "Quarto Individual",
+    "habitacion_doble": "Quarto Duplo",
+    "habitacion_superior": "Quarto Superior",
+    "habitacion_deluxe": "Quarto Deluxe",
+    "habitacion_familiar": "Quarto Familiar",
+    "suite_junior": "Suíte Júnior",
+    "suite": "Suíte"
   },
   "search": {
     "title_1": "Bem-vindo ao",

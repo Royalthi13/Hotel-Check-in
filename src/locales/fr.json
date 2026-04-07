@@ -369,6 +369,16 @@
     "btn_save": "Enregistrer la confirmation",
     "btn_add_time": "Ajouter l'heure d'arrivée"
   },
+  "rooms": {
+    "habitacion_estandar": "Chambre Standard",
+    "habitacion_individual": "Chambre Simple",
+    "habitacion_doble": "Chambre Double",
+    "habitacion_superior": "Chambre Supérieure",
+    "habitacion_deluxe": "Chambre Deluxe",
+    "habitacion_familiar": "Chambre Familiale",
+    "suite_junior": "Suite Junior",
+    "suite": "Suite"
+  },
   "disabled": {
     "title": "Pré-check-in non disponible",
     "default_reason": "Pour des raisons de sécurité ou politiques, la gestion doit se faire sur place.",

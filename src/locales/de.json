@@ -191,11 +191,14 @@
     "duplicate_doc": "Dieses Dokument wurde bereits für einen anderen Gast registriert."
   },
   "rooms": {
-    "habitacion_superior": "Superior Zimmer",
-    "habitacion_doble": "Doppelzimmer",
     "habitacion_estandar": "Standardzimmer",
-    "suite": "Suite",
-    "suite_junior": "Junior Suite"
+    "habitacion_individual": "Einzelzimmer",
+    "habitacion_doble": "Doppelzimmer",
+    "habitacion_superior": "Superior Zimmer",
+    "habitacion_deluxe": "Deluxe Zimmer",
+    "habitacion_familiar": "Familienzimmer",
+    "suite_junior": "Junior Suite",
+    "suite": "Suite"
   },
   "search": {
     "title_1": "Willkommen beim",

@@ -191,11 +191,14 @@
     "duplicate_doc": "Questo documento è già stato registrato per un altro ospite."
   },
   "rooms": {
-    "habitacion_superior": "Camera Superior",
-    "habitacion_doble": "Camera Doppia",
     "habitacion_estandar": "Camera Standard",
-    "suite": "Suite",
-    "suite_junior": "Junior Suite"
+    "habitacion_individual": "Camera Singola",
+    "habitacion_doble": "Camera Doppia",
+    "habitacion_superior": "Camera Superior",
+    "habitacion_deluxe": "Camera Deluxe",
+    "habitacion_familiar": "Camera Familiare",
+    "suite_junior": "Junior Suite",
+    "suite": "Suite"
   },
   "search": {
     "title_1": "Benvenuto al",

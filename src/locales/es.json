@@ -379,11 +379,14 @@
     "btn_add_time": "Añadir hora de llegada"
   },
   "rooms": {
-    "habitacion_superior": "Habitación Superior",
-    "habitacion_doble": "Habitación Doble",
     "habitacion_estandar": "Habitación Estándar",
-    "suite": "Suite",
-    "suite_junior": "Junior Suite"
+    "habitacion_individual": "Habitación Individual",
+    "habitacion_doble": "Habitación Doble",
+    "habitacion_superior": "Habitación Superior",
+    "habitacion_deluxe": "Habitación Deluxe",
+    "habitacion_familiar": "Habitación Familiar",
+    "suite_junior": "Junior Suite",
+    "suite": "Suite"
   },
   "disabled": {
     "title": "Pre-check-in no disponible",

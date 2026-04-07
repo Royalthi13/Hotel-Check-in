@@ -359,6 +359,14 @@ export const Header: React.FC<HeaderProps> = ({
 // ═══════════════════════════════════════════════════════════════════════════
 // RESERVATION CARD & LOADING SPINNER
 // ═══════════════════════════════════════════════════════════════════════════
+const formatRoomKey = (name: string) => {
+  if (!name) return "";
+  return name
+    .toLowerCase()
+    .normalize("NFD") // Descompone los acentos y tildes (ej: é -> e + ´)
+    .replace(/[\u0300-\u036f]/g, "") // Elimina esos acentos descompuestos
+    .replace(/\s+/g, "_"); // Reemplaza los espacios en blanco por guiones bajos
+};
 
 export const ReservationCard: React.FC<{ reserva: Reserva }> = ({
   reserva,
@@ -369,16 +377,32 @@ export const ReservationCard: React.FC<{ reserva: Reserva }> = ({
     return dayjs(fecha).locale(i18n.language).format("DD MMM YYYY");
   };
 
+  const renderHabitacion = (textoOriginal: string) => {
+    if (!textoOriginal) return "";
+
+    const numeroMatch = textoOriginal.match(/\d+/);
+
+    if (numeroMatch) {
+      return `${t("success.room")} ${numeroMatch[0]}`;
+    }
+
+    return t(`rooms.${formatRoomKey(textoOriginal)}`, {
+      defaultValue: textoOriginal,
+    });
+  };
+
   return (
     <div className="res-card">
       <div className="res-card-eyebrow">{t("welcome.summary_title")}</div>
-      <div className="res-card-name">{reserva.habitacion}</div>
+
+      <div className="res-card-name">
+        {renderHabitacion(reserva.habitacion)}
+      </div>
 
       <div className="res-card-row">
         <Icon name="calendar" size={13} />
-        {/* 2. Ahora las fechas se formatean solas según el idioma */}
         {formatFecha(reserva.fechaEntrada)} — {formatFecha(reserva.fechaSalida)}{" "}
-        ·{reserva.numNoches} {t("reservationCard.nights")}
+        · {reserva.numNoches} {t("reservationCard.nights")}
       </div>
 
       <div className="res-card-row">

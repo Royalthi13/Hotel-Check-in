@@ -876,20 +876,14 @@ export const ScreenFormContacto: React.FC = () => {
                   }}
                   onBlur={() => {
                     if (data.cp && data.pais && !esEspana) {
-                      const nombrePais =
-                        paisActual?.nameTranslated || data.pais;
-                      buscarCP(data.cp, nombrePais);
+                      buscarCP(data.cp, data.pais);
                     }
                   }}
                   onKeyDown={(e) => {
                     if (e.key === "Enter") {
                       e.preventDefault();
-
                       if (data.cp && data.pais && !esEspana) {
-                        buscarCP(
-                          data.cp,
-                          paisActual?.nameTranslated || data.pais,
-                        );
+                        buscarCP(data.cp, data.pais);
                       }
                     }
                   }}

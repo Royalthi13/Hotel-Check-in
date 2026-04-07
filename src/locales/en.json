@@ -191,11 +191,14 @@
     "duplicate_doc": "This document has already been registered for another guest."
   },
   "rooms": {
-    "habitacion_superior": "Superior Room",
-    "habitacion_doble": "Double Room",
     "habitacion_estandar": "Standard Room",
-    "suite": "Suite",
-    "suite_junior": "Junior Suite"
+    "habitacion_individual": "Single Room",
+    "habitacion_doble": "Double Room",
+    "habitacion_superior": "Superior Room",
+    "habitacion_deluxe": "Deluxe Room",
+    "habitacion_familiar": "Family Room",
+    "suite_junior": "Junior Suite",
+    "suite": "Suite"
   },
   "search": {
     "phone_prefix_placeholder": "Search country or prefix...",

@@ -11,7 +11,7 @@ export const MOCK_RESERVAS: Record<string, Reserva> = {
   },
   "99999": {
     confirmacion: "#LM-99999",
-    habitacion: "Habitación Superior",
+    habitacion: "Habitación Doble",
     fechaEntrada: "2025-04-15",
     fechaSalida: "2025-04-18",
     numHuespedes: 1,
