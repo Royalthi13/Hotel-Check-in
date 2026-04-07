@@ -1,5 +1,3 @@
-// Ubicación: src/screens/ScreenForms.tsx
-
 import React, { useState, useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { Button, Icon, Alert } from "@/components/ui";
@@ -27,7 +25,8 @@ import { usePlaces } from "@/hooks/usePlaces";
 import dayjs from "dayjs";
 import "dayjs/locale/es";
 import { useDebounce } from "@/hooks/useDebounce";
-import { useCheckinContext } from "@/context/CheckinContext"; // Importamos el contexto
+import { useCheckinContext } from "@/context/CheckinContext";
+import { formatDocument, formatPhoneNumber } from "@/utils/formatters";
 
 const inputSx = {
   "& :not(.MuiInputAdornment-root) > .MuiInputBase-root": {
@@ -55,7 +54,6 @@ const FieldError: React.FC<{ msg?: string }> = ({ msg }) =>
     </span>
   ) : null;
 
-// Eliminadas las Props. Ya no recibimos nada de App.tsx
 export const ScreenFormPersonal: React.FC = () => {
   // 1. Nos conectamos a la "nube" para bajar nuestros datos y funciones
   const { state, nav, actions, isSubmitting, token, handlePartialSubmit } =
@@ -311,7 +309,11 @@ export const ScreenFormPersonal: React.FC = () => {
                   fullWidth
                   value={data.numDoc ?? ""}
                   onChange={(e) => {
-                    onChange("numDoc", e.target.value.toUpperCase());
+                    const formatted = formatDocument(
+                      e.target.value,
+                      data.tipoDoc || "",
+                    );
+                    onChange("numDoc", formatted);
                     clearError("numDoc");
                   }}
                   error={!!errors.numDoc}
@@ -328,24 +330,24 @@ export const ScreenFormPersonal: React.FC = () => {
                       >
                         {t("forms.doc_support")}
                         <Tooltip
-  title={t("forms.doc_support_hint")}
-  arrow
-  placement="top"
-  enterTouchDelay={0}    // <-- CLAVE: Muestra el tooltip al instante al hacer "tap" en móvil
-  leaveTouchDelay={3000} // <-- Opcional: Mantiene el tooltip visible 3 segundos en pantalla táctil
->
-  <Box
-    component="span"
-    onClick={(e) => e.stopPropagation()} // <-- Evita que el tap cierre el tooltip accidentalmente si burbujea
-    sx={{
-      display: "flex",
-      cursor: "pointer", // <-- Mejor 'pointer' que 'help' para indicar que es tocable
-      color: "var(--text-low)",
-    }}
-  >
-    <Icon name="info" size={14} />
-  </Box>
-</Tooltip>
+                          title={t("forms.doc_support_hint")}
+                          arrow
+                          placement="top"
+                          enterTouchDelay={0} // <-- CLAVE: Muestra el tooltip al instante al hacer "tap" en móvil
+                          leaveTouchDelay={3000} // <-- Opcional: Mantiene el tooltip visible 3 segundos en pantalla táctil
+                        >
+                          <Box
+                            component="span"
+                            onClick={(e) => e.stopPropagation()} // <-- Evita que el tap cierre el tooltip accidentalmente si burbujea
+                            sx={{
+                              display: "flex",
+                              cursor: "pointer", // <-- Mejor 'pointer' que 'help' para indicar que es tocable
+                              color: "var(--text-low)",
+                            }}
+                          >
+                            <Icon name="info" size={14} />
+                          </Box>
+                        </Tooltip>
                       </Box>
                     }
                     required
@@ -570,7 +572,7 @@ export const ScreenFormContacto: React.FC = () => {
                         }
                   }
                   error={!!errors.email}
-                 disabled={!!lockedFields?.email}
+                  disabled={!!lockedFields?.email}
                   sx={inputSx}
                   helperText={
                     lockedFields?.email
@@ -595,10 +597,8 @@ export const ScreenFormContacto: React.FC = () => {
                     lockedFields?.telefono
                       ? undefined
                       : (e) => {
-                          onChange(
-                            "telefono",
-                            e.target.value.replace(/(?!^\+)[^\d]/g, ""),
-                          );
+                          const formatted = formatPhoneNumber(e.target.value);
+                          onChange("telefono", formatted);
                           clearError("telefono");
                         }
                   }
@@ -629,10 +629,10 @@ export const ScreenFormContacto: React.FC = () => {
             />
 
             <Divider
-  sx={{ my: 1, typography: "overline", color: "var(--text-low)" }}
->
-  {t("forms.location")}
-</Divider>
+              sx={{ my: 1, typography: "overline", color: "var(--text-low)" }}
+            >
+              {t("forms.location")}
+            </Divider>
             <Box
               sx={{
                 display: "grid",

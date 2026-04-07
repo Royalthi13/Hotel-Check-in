@@ -3,11 +3,12 @@ import { useTranslation } from "react-i18next";
 import "flag-icons/css/flag-icons.min.css";
 
 const LANGUAGES = [
-  { code: "es", label: "Español", country: "es" }, // ← quita flag, añade country
+  { code: "es", label: "Español", country: "es" },
   { code: "en", label: "English", country: "gb" },
   { code: "fr", label: "Français", country: "fr" },
   { code: "de", label: "Deutsch", country: "de" },
   { code: "pt", label: "Português", country: "pt" },
+  { code: "it", label: "Italiano", country: "it" },
 ];
 
 const FlagIcon: React.FC<{ country: string; label: string }> = ({
