@@ -2,11 +2,12 @@ import i18n from "i18next";
 import { initReactI18next } from "react-i18next";
 import LanguageDetector from "i18next-browser-languagedetector";
 
-import es from "./locales/es.json";
-import en from "./locales/en.json";
-import fr from "./locales/fr.json";
-import de from "./locales/de.json";
-import pt from "./locales/pt.json";
+import es from "@/locales/es.json";
+import en from "@/locales/en.json";
+import fr from "@/locales/fr.json";
+import de from "@/locales/de.json";
+import pt from "@/locales/pt.json";
+import it from "@/locales/it.json";
 
 i18n
   .use(LanguageDetector)
@@ -18,13 +19,14 @@ i18n
       fr: { translation: fr },
       de: { translation: de },
       pt: { translation: pt },
+      it: { translation: it },
     },
-    supportedLngs: ["es", "en", "fr", "de", "pt"],
+    supportedLngs: ["es", "en", "fr", "de", "pt", "it"],
     fallbackLng: "es",
     load: "languageOnly",
     detection: {
-      order: ["querystring","navigator", "localStorage", "htmlTag"],
-        lookupQuerystring: "lang",
+      order: ["querystring", "navigator", "localStorage", "htmlTag"],
+      lookupQuerystring: "lang",
       caches: ["localStorage"],
     },
     interpolation: {
