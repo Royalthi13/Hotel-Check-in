@@ -324,25 +324,46 @@ export const ScreenFormPersonal: React.FC = () => {
               {isDniOrNie && (
                 <div>
                   <TextField
+                    required
+                    InputLabelProps={{ required: false }}
                     label={
                       <Box
-                        sx={{ display: "flex", alignItems: "center", gap: 0.5 }}
+                        component="span"
+                        sx={{
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: 0.5,
+                        }}
                       >
                         {t("forms.doc_support")}
+
+                        <Box
+                          component="span"
+                          sx={{
+                            color: !!errors.soporteDoc
+                              ? "error.main"
+                              : "rgba(0, 0, 0, 0.6)",
+                            ml: 0.2,
+                            lineHeight: 1,
+                            transition: "color 0.2s ease",
+                          }}
+                        >
+                          *
+                        </Box>
+
                         <Tooltip
                           title={t("forms.doc_support_hint")}
                           arrow
                           placement="top"
-                          enterTouchDelay={0} // <-- CLAVE: Muestra el tooltip al instante al hacer "tap" en móvil
-                          leaveTouchDelay={3000} // <-- Opcional: Mantiene el tooltip visible 3 segundos en pantalla táctil
+                          enterTouchDelay={0}
                         >
                           <Box
                             component="span"
-                            onClick={(e) => e.stopPropagation()} // <-- Evita que el tap cierre el tooltip accidentalmente si burbujea
                             sx={{
                               display: "flex",
-                              cursor: "pointer", // <-- Mejor 'pointer' que 'help' para indicar que es tocable
+                              cursor: "pointer",
                               color: "var(--text-low)",
+                              ml: 0.5,
                             }}
                           >
                             <Icon name="info" size={14} />
@@ -350,7 +371,6 @@ export const ScreenFormPersonal: React.FC = () => {
                         </Tooltip>
                       </Box>
                     }
-                    required
                     fullWidth
                     value={data.soporteDoc ?? ""}
                     onChange={(e) => {
