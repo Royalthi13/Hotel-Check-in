@@ -326,7 +326,6 @@ export const AppShell: React.FC<AppShellProps> = ({
                     <div
                       key={s.id}
                       onClick={() => {
-                        // 🛑 BLOQUEO DE NAVEGACIÓN: Si hay errores, no permite cambiar de paso
                         if (
                           stepInvalid &&
                           (isClickable || isUnlocked) &&
