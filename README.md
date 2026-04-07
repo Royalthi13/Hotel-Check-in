@@ -1,54 +1,54 @@
-# 🏨 Lumina Hotels - Pre-Check-in Online
+# 🏨 Sistema de Pre-Check-in Online
 
-Plataforma web React para la gestión del pre-check-in online y quioscos físicos de Lumina Hotels. Permite a los huéspedes confirmar sus datos, añadir acompañantes (incluyendo declaración legal de menores), subir documentos y configurar sus preferencias antes de su llegada al hotel.
+Plataforma web de alto rendimiento desarrollada en React 19, diseñada para digitalizar y agilizar el proceso de recepción en hoteles boutique. La aplicación permite a los huéspedes completar su registro de forma remota o mediante quioscos táctiles, garantizando el cumplimiento legal y mejorando la experiencia del usuario (UX) antes de su llegada.
 
-## 🚀 Tecnologías Principales
+## 🌟 Características Principales
 
-- **Core:** React 19 + TypeScript + Vite
-- **Enrutamiento:** React Router DOM v7
-- **Estilos y UI:** CSS Modules (Variables CSS Globales), Material-UI (MUI v7), Emotion, Framer Motion (animaciones de transiciones)
-- **Internacionalización:** i18next (Soporte para ES, EN, FR, DE, PT)
-- **Manejo de Fechas:** Day.js
-- **Mocking de API (Desarrollo):** MSW (Mock Service Worker)
+- **Flujo de Asistente (Wizard) Inteligente:** Proceso guiado paso a paso para la recolección de datos personales, de contacto y preferencias.
+- **Gestión Multi-Huésped:** Capacidad para gestionar múltiples acompañantes bajo una misma reserva, diferenciando entre el titular y el resto de huéspedes.
+- **Validación de Menores de Edad:** Lógica de negocio integrada para la declaración legal de menores, incluyendo la captura de datos de tutores y parentesco.
+- **Captura de Documentación:** Sistema simulado de carga de documentos (DNI, NIE, Pasaporte) con validación de números de soporte y formatos específicos.
+- **Internacionalización Real (i18n):** Soporte completo para 5 idiomas (ES, EN, PT, FR, DE) que afecta a toda la interfaz, mensajes de error y formatos de fecha.
+- **Resumen y Revisión:** Pantalla final de verificación de datos antes del envío definitivo a los sistemas del hotel.
 
-## 🎨 Sistema de Diseño y Paleta de Colores
+## 🚀 Stack Tecnológico
 
-El proyecto utiliza un sistema de diseño basado en variables CSS (definidas en `src/App.css` y tipadas en `src/constants/index.ts`).
+- **Core:** React 19 + TypeScript + Vite.
+- **Estado Global:** Context API (`CheckinContext`) para una gestión eficiente y centralizada de los datos de la reserva entre pantallas.
+- **Enrutamiento:** React Router DOM v7 (Data Routes) para una navegación fluida y protegida.
+- **UI & Animaciones:**
+  - **Material-UI (MUI v7):** Implementación de componentes de formulario complejos, Autocompletes y DatePickers.
+  - **Framer Motion:** Animaciones de transición entre pasos para reducir la carga cognitiva del usuario.
+  - **CSS Modules:** Estilado modular con variables CSS globales para un mantenimiento sencillo del branding.
+- **Utilidades de Datos:**
+  - **i18next:** Motor de traducción dinámica.
+  - **Day.js:** Gestión de fechas con localización dinámica según el idioma del huésped.
 
-### Colores Principales
+## 🛠️ Arquitectura y Soluciones Técnicas
 
-- 🟠 **Primary:** `#fa865c` (Naranja coral)
-  - Dark: `#e5704a` | Light (Fondo): `#fef0ea`
-- 🔵 **Secondary:** `#324154` (Azul marino/Pizarra)
-  - Mid: `#4a5a6e` | Light: `#6a7a8e`
+### 1. Gestión de Validación de Lado del Cliente
 
-### Fondos y Superficies
+Se ha implementado una estrategia de **Validación Agóstica al Navegador** mediante el atributo `noValidate` en los formularios. Esto permite anular los mensajes nativos del navegador y sustituirlos por un motor de validación propio integrado con `i18next`, garantizando que el 100% de los errores sean coherentes con el idioma seleccionado.
 
-- ⚪ **Background Base:** `#e5e2dd` (Gris cálido claro)
-- ⬜ **Cards/White:** `#ffffff`
-- 🔘 **Bordes:** `#d0cbc4` (Normal) | `#e8e4de` (Light)
+### 2. Localización Dinámica de Datos (Context-Aware)
 
-### Estados y Alertas
+A diferencia de los sistemas estáticos, Lumina Hotels utiliza **Day.js** vinculado al estado de la aplicación. Las fechas de la reserva se formatean dinámicamente, traduciendo nombres de meses y aplicando reglas de capitalización visual mediante CSS, asegurando una interfaz profesional en cualquier cultura.
 
-- ✅ **Éxito (OK):** `#2d7a50` | Fondo: `#edf7f1`
-- ❌ **Error:** `#c0392b` | Fondo: `#fdf2f2`
+### 3. Diseño Responsivo y Equilibrio Óptico
 
-### Tipografía
+El Header y los componentes estructurales utilizan **CSS Grid Simétrico** (`100px 1fr 100px`) y posicionamiento absoluto en móviles para garantizar que el branding de Lumina se mantenga siempre como el punto focal, independientemente de la densidad de botones de acción en los laterales.
 
-- **Titulares:** `Cormorant Garamond` (Elegante, estilo hotel boutique)
-- **Cuerpo / UI:** `DM Sans` (Limpia, moderna, altamente legible)
-
-## 📂 Arquitectura del Proyecto
+## 📂 Estructura del Proyecto
 
 ```text
 src/
-├── assets/         # Imágenes estáticas y SVGs
-├── components/     # Componentes UI reutilizables (ErrorBoundary, LanguageSelector, index.tsx con iconos)
-├── constants/      # Constantes globales (Países, Docs, Colores, Steps del Wizard)
-├── hooks/          # Custom hooks (Lógica de estado del check-in, validación de formularios, debounce, APIs externas)
-├── layout/         # Componentes estructurales (AppShell con navegación lateral y animaciones)
-├── locales/        # Archivos JSON con las traducciones (i18n)
-├── mocks/          # MSW handlers para simular respuestas del servidor (desarrollo)
-├── screens/        # Vistas de la aplicación separadas por paso del wizard
-└── types/          # Definiciones de interfaces TypeScript
+├── components/     # UI Atómica: Botones, Iconos, Alertas y la ReservationCard
+├── context/        # CheckinContext: Gestión del estado global y persistencia
+├── hooks/          # useFormValidation, useZipCode, usePlaces, useDebounce
+├── layout/         # AppShell: Contenedor principal con navegación y animaciones
+├── locales/        # Diccionarios i18n (JSON) en 5 idiomas
+├── mocks/          # Mocking de API: Datos de reserva simulados en formato ISO
+├── screens/        # Vistas del Wizard: Personal, Contacto, Relaciones, Review
+├── types/          # Tipado estricto de TypeScript para el modelo de negocio
+└── utils/          # Lógica pura: Formateadores y validadores de documentos
 ```
