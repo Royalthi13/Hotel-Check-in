@@ -41,8 +41,6 @@ function validarDNI(num: string): boolean {
   return LETRAS_DNI[parseInt(digits, 10) % 23] === letra;
 }
 
-
-
 function validarNIE(num: string): boolean {
   const upper = num.toUpperCase();
   if (!/^[XYZ]\d{7}[A-Z]$/.test(upper)) return false;
@@ -86,7 +84,6 @@ export function validarNumeroDocumento(
       if (!validarDNI(n)) return t("validation.invalid_dni");
       break;
     case "NIF":
-     
       if (!validarDNI(n)) return t("validation.invalid_dni");
       break;
     case "NIE":
@@ -137,17 +134,15 @@ export function validatePersonal(
     const errorNum = validarNumeroDocumento(data.tipoDoc, data.numDoc ?? "", t);
     if (errorNum) e.numDoc = errorNum;
 
-    // FIX BUG MEDIUM #6: usar clave i18n correcta (sin defaultValue hardcodeado en ES)
-    // La clave "validation.required_doc_support" ahora existe en todos los locales
     if (data.tipoDoc === "DNI" || data.tipoDoc === "NIE") {
-  const soporte = data.soporteDoc?.trim();
+      const soporte = data.soporteDoc?.trim();
 
-  if (!soporte) {
-    e.soporteDoc = t("validation.required_doc_support");
-  } else if (!validarDocSupport(soporte)) {
-    e.soporteDoc = t("validation.invalid_doc_support");
-  }
-}
+      if (!soporte) {
+        e.soporteDoc = t("validation.required_doc_support");
+      } else if (!validarDocSupport(soporte)) {
+        e.soporteDoc = t("validation.invalid_doc_support");
+      }
+    }
   }
 
   return e;

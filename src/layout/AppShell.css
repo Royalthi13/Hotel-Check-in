@@ -496,68 +496,56 @@
   }
 }
 /* ════════════════════════════════════════════════════════════════════════
-   3. HEADER MÓVIL Y BOTONES (Grid Estructurado)
+   3. HEADER MÓVIL Y BOTONES (Versión Corregida y Simétrica)
    ════════════════════════════════════════════════════════════════════════ */
 @media (max-width: 1024px) {
   header.hdr,
   .hdr {
     display: grid !important;
-    grid-template-columns: 60px 1fr 100px !important;
+    /* 1. CLAVE: 100px exactos en cada lado para un centro matemático absoluto */
+    grid-template-columns: 100px 1fr 100px !important;
     align-items: center !important;
-    padding: 0 16px !important;
+    padding: 0 12px !important;
     height: 64px !important;
     background: var(--secondary) !important;
     border-bottom: 1px solid rgba(255, 255, 255, 0.05);
   }
 
-  .hdr-sub,
-  .hdr-brand-details .hdr-sub,
-  .hdr-back span,
-  .lang-btn .lang-code,
-  .lang-btn .lang-chevron,
-  .lang-btn span:not(.fi) {
-    display: none !important;
-  }
-
-  /* Branding desplazado a la izquierda */
   .hdr-brand {
     grid-column: 2 !important;
     display: flex !important;
     align-items: center !important;
-    gap: 10px !important;
-    justify-content: flex-start !important;
-    transform: translateX(-10px) !important;
-  }
-
-  .hdr-logo {
-    width: 36px !important;
-    height: 36px !important;
-    background: var(--primary) !important;
-    border-radius: 10px !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    font-weight: 700 !important;
-    color: white !important;
-    flex-shrink: 0;
+    justify-content: center !important; /* CENTRADO REAL */
+    gap: 12px !important;
+    transform: none !important;
+    min-width: 0;
   }
 
   .hdr-name {
     display: block !important;
     font-family: "Cormorant Garamond", serif !important;
-    font-size: 18px !important;
+    font-size: 16px !important;
     font-weight: 500 !important;
     color: #ffffff !important;
+    letter-spacing: 0.1em !important;
     white-space: nowrap;
   }
 
+  /* El botón de atrás pegado a la izquierda de su carril */
+  .hdr-back {
+    grid-column: 1 !important;
+    justify-self: start !important;
+  }
+
+  /* Las acciones de la derecha pegadas a la derecha de su carril */
   .hdr-actions-group {
     grid-column: 3 !important;
     display: flex !important;
     justify-content: flex-end !important;
-    gap: 12px !important;
+    gap: 8px !important;
   }
 
+  /* Estilos de botones circulares solo para móvil */
   .hdr-back,
   .lang-btn,
   .hdr-action {
@@ -573,13 +561,31 @@
     padding: 0 !important;
   }
 
+  /* Ocultamos textos y subdetalles en móvil */
+  .hdr-sub,
+  .hdr-brand-details .hdr-sub,
+  .hdr-back span,
+  .lang-btn .lang-code,
+  .lang-btn .lang-chevron,
+  .lang-btn span:not(.fi) {
+    display: none !important;
+  }
+
   .lang-btn .fi {
     margin: 0 !important;
     transform: scale(1.1);
   }
 }
+
+/* ════════════════════════════════════════════════════════════════════════
+   4. LIMPIEZA PARA ESCRITORIO (Blindaje)
+   ════════════════════════════════════════════════════════════════════════ */
 @media (min-width: 1024px) {
   .hdr-action {
+    display: none !important;
+  }
+
+  .hdr-back {
     display: none !important;
   }
 }

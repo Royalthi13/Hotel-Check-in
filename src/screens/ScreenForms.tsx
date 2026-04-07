@@ -153,7 +153,7 @@ export const ScreenFormPersonal: React.FC = () => {
               : t("forms.adult_tag")}
         </Typography>
       </div>
-      <form onSubmit={handleSubmit}>
+      <form onSubmit={handleSubmit} noValidate>
         {/* MEJORA DE SEGURIDAD: Bloquea todos los inputs a la vez si está enviando */}
         <fieldset
           disabled={isSubmitting}
@@ -546,6 +546,7 @@ export const ScreenFormContacto: React.FC = () => {
       </div>
       <form
         onSubmit={handleSubmit}
+        noValidate
         onKeyDown={(e) => {
           if (e.key === "Enter") {
             const target = e.target as HTMLInputElement;
