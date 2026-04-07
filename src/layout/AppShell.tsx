@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useMemo } from "react";
 import { GlobalToast } from "@/components/GlobalToast";
 import { useTranslation } from "react-i18next";
 import { Header, Icon, ReservationCard } from "../components/ui";
@@ -45,16 +45,18 @@ function currentStepIsInvalid(
   step: StepId,
   guests: PartialGuestData[],
   guestIndex: number,
-  t: ReturnType<typeof useTranslation>["t"],
+  t: any,
 ): boolean {
   const g = guests[guestIndex] ?? {};
-  if (step === "form_personal" || step === "escanear") {
+  const logicalStep = getActiveSideStep(step);
+
+  if (logicalStep === "form_personal") {
     return (
       Object.keys(validatePersonal({ ...g, isTitular: guestIndex === 0 }, t))
         .length > 0
     );
   }
-  if (step === "form_contacto") {
+  if (logicalStep === "form_contacto") {
     return Object.keys(validateContacto(g, t)).length > 0;
   }
   return false;
@@ -83,7 +85,6 @@ interface AppShellProps {
   guestIndex?: number;
 }
 
-// 🟢 SOLUCIÓN TYPESCRIPT: Extendemos el tipo en lugar de usar "any"
 type ExtendedReserva = Reserva & { hotelName?: string; establishment?: string };
 
 export const AppShell: React.FC<AppShellProps> = ({
@@ -97,11 +98,11 @@ export const AppShell: React.FC<AppShellProps> = ({
   guestIndex = 0,
 }) => {
   const { t } = useTranslation();
-
   const trackRef = useRef<HTMLDivElement>(null);
   const progressX = useMotionValue(0);
   const [trackWidth, setTrackWidth] = useState(0);
   const dotSteps = nav.dotSteps || [];
+  const prevIndexRef = useRef(nav.dotIndex);
 
   const activeStep = getActiveSideStep(nav.step);
   const activeIdx = SIDE_STEPS.findIndex((s) => s.id === activeStep);
@@ -112,43 +113,60 @@ export const AppShell: React.FC<AppShellProps> = ({
       : 0,
   );
 
-  // 🟢 SOLUCIÓN REACT: Evitamos el useEffect para derivar estado
-  const shouldUpdateMaxDot =
-    nav.dotIndex > maxDotReached &&
-    nav.step !== "exito" &&
-    (nav.step !== "revision" ||
-      (nav.allowedSteps && nav.allowedSteps.has("form_extras")));
+  // Sincronización de progreso máximo
+  useEffect(() => {
+    const canUpdate =
+      nav.dotIndex > maxDotReached &&
+      nav.step !== "exito" &&
+      (nav.step !== "revision" || nav.allowedSteps?.has("form_extras"));
+    if (canUpdate) setMaxDotReached(nav.dotIndex);
+  }, [nav.dotIndex, maxDotReached, nav.step, nav.allowedSteps]);
 
-  if (shouldUpdateMaxDot) {
-    setMaxDotReached(nav.dotIndex);
-  }
+  // Cálculos geométricos unificados para evitar redeclaraciones
+  const { safeWidth, stepWidth, targetX } = useMemo(() => {
+    const sw = Math.max(0, trackWidth - 6);
+    const stw = dotSteps.length > 1 ? sw / (dotSteps.length - 1) : 0;
+    const tx = Math.max(0, Math.min(nav.dotIndex, dotSteps.length - 1)) * stw;
+    return { safeWidth: sw, stepWidth: stw, targetX: tx };
+  }, [trackWidth, dotSteps.length, nav.dotIndex]);
 
+  // Medición del contenedor con doble check para asegurar layout
   useEffect(() => {
     const measure = () => {
-      if (trackRef.current) {
-        const width = trackRef.current.offsetWidth;
-        setTrackWidth(width);
-        if (dotSteps.length > 1) {
-          const stepWidth = width / (dotSteps.length - 1);
-          const targetX = nav.dotIndex * stepWidth;
-          progressX.set(targetX);
-        }
-      }
+      if (trackRef.current) setTrackWidth(trackRef.current.offsetWidth);
     };
     measure();
-    const timer = setTimeout(measure, 50);
+    const t1 = setTimeout(measure, 50);
+    const t2 = setTimeout(measure, 300);
     window.addEventListener("resize", measure);
     return () => {
-      clearTimeout(timer);
+      clearTimeout(t1);
+      clearTimeout(t2);
       window.removeEventListener("resize", measure);
     };
-  }, [showDots, dotSteps.length, nav.dotIndex, progressX]);
+  }, [showDots]);
+
+  // Sincronización de la bolita sin saltos visuales
+  useEffect(() => {
+    if (trackWidth > 0) {
+      if (prevIndexRef.current !== nav.dotIndex) {
+        animate(progressX, targetX, {
+          type: "spring",
+          stiffness: 500,
+          damping: 30,
+        });
+        prevIndexRef.current = nav.dotIndex;
+      } else {
+        progressX.stop();
+        progressX.set(targetX);
+      }
+    }
+  }, [trackWidth, targetX, progressX, nav.dotIndex]);
 
   const isStepUnlocked = (stepId: StepId, index: number) => {
     if (nav.allowedSteps) return nav.allowedSteps.has(stepId);
-    if (activeStep === "revision" || activeStep === "exito") {
+    if (activeStep === "revision" || activeStep === "exito")
       return stepId === "bienvenida" || stepId === activeStep;
-    }
     return index <= activeIdx;
   };
 
@@ -157,28 +175,21 @@ export const AppShell: React.FC<AppShellProps> = ({
     activeStep !== "exito" &&
     !!onGoToRevision &&
     currentStepIsInvalid(nav.step, guests, guestIndex, t);
-
   const summaryDisabled =
     !onGoToRevision || activeStep === "revision" || activeStep === "exito";
 
   const handleDragEnd = () => {
     if (dotSteps.length <= 1 || trackWidth === 0) return;
-    const stepWidth = trackWidth / (dotSteps.length - 1);
-
     let landedIndex = Math.round(progressX.get() / stepWidth);
     landedIndex = Math.max(0, Math.min(landedIndex, dotSteps.length - 1));
-
     const targetStepId = dotSteps[landedIndex];
     const isAllowed =
       landedIndex <= maxDotReached || isStepUnlocked(targetStepId, landedIndex);
     const isBlockedByError = landedIndex > nav.dotIndex && stepInvalid;
 
-    if (isBlockedByError) {
-      window.dispatchEvent(new Event("FORCE_VALIDATE"));
-    }
-
+    if (isBlockedByError) window.dispatchEvent(new Event("FORCE_VALIDATE"));
     if (!isAllowed || isBlockedByError || landedIndex === nav.dotIndex) {
-      animate(progressX, nav.dotIndex * stepWidth, {
+      animate(progressX, targetX, {
         type: "spring",
         stiffness: 500,
         damping: 30,
@@ -186,14 +197,6 @@ export const AppShell: React.FC<AppShellProps> = ({
       return;
     }
     actions.goToDotIndex(landedIndex);
-  };
-
-  const handleGoToRevision = () => {
-    if (stepInvalid) {
-      window.dispatchEvent(new Event("FORCE_VALIDATE"));
-      return;
-    }
-    if (!summaryDisabled) onGoToRevision?.();
   };
 
   const hotelDisplayName =
@@ -211,7 +214,6 @@ export const AppShell: React.FC<AppShellProps> = ({
           onLogoClick={() => actions.goTo("inicio", "back", 0)}
           extraContent={<LanguageSelector />}
           name={hotelDisplayName}
-          room={undefined}
           rightAction={
             onGoToRevision &&
             activeStep !== "revision" &&
@@ -219,47 +221,57 @@ export const AppShell: React.FC<AppShellProps> = ({
               ? {
                   label: t("common.summary"),
                   icon: "clipboard",
-                  onClick: handleGoToRevision,
+                  onClick: () =>
+                    stepInvalid
+                      ? window.dispatchEvent(new Event("FORCE_VALIDATE"))
+                      : onGoToRevision?.(),
                   disabled: summaryDisabled,
                 }
               : undefined
           }
         />
 
+        {/* --- BARRA MÓVIL (PUNTITOS) --- */}
         {showDots && dotSteps.length > 0 && nav.dotIndex >= 0 && (
           <div className="dots-bar">
             <div className="swipe-dots-track" ref={trackRef}>
-              {dotSteps.map((_, i) => {
-                const isDone = i < nav.dotIndex;
-                const isActive = i === nav.dotIndex;
-
-                return (
-                  <div
-                    key={i}
-                    className={`dot-static ${isDone ? "is-done" : ""}`}
-                    style={{
-                      opacity: isActive ? 0 : isDone ? 0.5 : 1,
-                      transform: isActive ? "scale(0)" : "scale(1)",
-                      transition: "all 0.3s ease",
-                    }}
-                  />
-                );
-              })}
-              <motion.div
-                className="dot-pill-active"
-                style={{ x: progressX }}
-                drag="x"
-                dragConstraints={trackRef}
-                dragElastic={0.1}
-                dragMomentum={false}
-                whileTap={{ scaleY: 1.4, scaleX: 1.05 }}
-                onDragEnd={handleDragEnd}
-              />
+              {trackWidth > 0 &&
+                dotSteps.map((_, i) => {
+                  const isDone = i <= maxDotReached && i !== nav.dotIndex;
+                  const isActive = i === nav.dotIndex;
+                  return (
+                    <div
+                      key={i}
+                      className={`dot-static ${isDone ? "is-done" : ""}`}
+                      style={{
+                        opacity: isActive ? 0 : isDone ? 1 : 0.35,
+                        transform: isActive ? "scale(0)" : "scale(1)",
+                        backgroundColor: isDone
+                          ? "var(--primary)"
+                          : "rgba(255, 255, 255, 0.4)",
+                        transition: "all 0.3s ease",
+                      }}
+                    />
+                  );
+                })}
+              {trackWidth > 0 && (
+                <motion.div
+                  className="dot-pill-active"
+                  style={{ x: progressX }}
+                  drag="x"
+                  dragConstraints={{ left: 0, right: safeWidth }}
+                  dragElastic={0.1}
+                  dragMomentum={false}
+                  whileTap={{ scaleY: 1.4, scaleX: 1.05 }}
+                  onDragEnd={handleDragEnd}
+                />
+              )}
             </div>
           </div>
         )}
 
         <div className="body-row">
+          {/* --- PANEL LATERAL (SIDEBAR) --- */}
           <aside className="side-panel">
             <div className="side-panel-inner">
               <div
@@ -271,25 +283,25 @@ export const AppShell: React.FC<AppShellProps> = ({
                 <em>Hotels</em>
               </div>
               <p className="sp-sub">{t("appShell.subtitle")}</p>
+
               <div className="sp-summary-wrapper">
                 <button
                   type="button"
                   className="sp-summary-btn sp-summary-btn--desktop"
-                  onClick={handleGoToRevision}
-                  disabled={summaryDisabled}
-                  title={
-                    stepInvalid ? t("appShell.fix_errors_tooltip") : undefined
+                  onClick={() =>
+                    stepInvalid
+                      ? window.dispatchEvent(new Event("FORCE_VALIDATE"))
+                      : onGoToRevision?.()
                   }
+                  disabled={summaryDisabled}
                 >
                   <Icon name="search" size={14} color="rgba(255,255,255,.8)" />
                   {t("appShell.booking_summary")}
                 </button>
               </div>
+
               {reserva && (
                 <div className="sp-reserva">
-                  <div className="sp-reserva-title">
-                    {t("appShell.booking_summary")}
-                  </div>
                   <ReservationCard reserva={reserva} />
                 </div>
               )}
@@ -298,18 +310,15 @@ export const AppShell: React.FC<AppShellProps> = ({
                 {SIDE_STEPS.map((s, i) => {
                   const isActive = i === activeIdx;
                   const isUnlocked = isStepUnlocked(s.id, i);
-
                   const isRevision = s.id === "revision";
                   const canGoToRevision =
                     isRevision &&
                     !!onGoToRevision &&
                     !isActive &&
                     activeStep !== "exito";
-
                   const isClickable =
                     canGoToRevision ||
                     (isUnlocked && !isActive && s.id !== "exito");
-
                   const isDone =
                     isUnlocked && !isActive && !isRevision && s.id !== "exito";
 
@@ -317,6 +326,7 @@ export const AppShell: React.FC<AppShellProps> = ({
                     <div
                       key={s.id}
                       onClick={() => {
+                        // 🛑 BLOQUEO DE NAVEGACIÓN: Si hay errores, no permite cambiar de paso
                         if (
                           stepInvalid &&
                           (isClickable || isUnlocked) &&
@@ -325,23 +335,19 @@ export const AppShell: React.FC<AppShellProps> = ({
                           window.dispatchEvent(new Event("FORCE_VALIDATE"));
                           return;
                         }
-
                         if (canGoToRevision) {
                           onGoToRevision();
                           return;
                         }
-
                         if (isClickable) {
-                          const dotIdxInNav = nav.dotSteps.indexOf(s.id);
-                          if (dotIdxInNav !== -1) {
-                            actions.goToDotIndex(dotIdxInNav);
-                          } else {
+                          const dIdx = nav.dotSteps.indexOf(s.id);
+                          if (dIdx !== -1) actions.goToDotIndex(dIdx);
+                          else
                             actions.goTo(
                               s.id,
                               i < activeIdx ? "back" : "forward",
                               0,
                             );
-                          }
                         }
                       }}
                       className={[
