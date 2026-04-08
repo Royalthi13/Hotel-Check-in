@@ -5,7 +5,13 @@ import "@/components/ui/buttons.css";
 import "@/components/ui/forms.css";
 import "@/components/ui/alerts.css";
 import "@/components/ui/misc.css";
-
+import dayjs from "dayjs";
+import "dayjs/locale/es";
+import "dayjs/locale/pt";
+import "dayjs/locale/en";
+import "dayjs/locale/fr";
+import "dayjs/locale/de";
+import "dayjs/locale/it";
 // ═══════════════════════════════════════════════════════════════════════════
 // ICON NAMES
 // ═══════════════════════════════════════════════════════════════════════════
@@ -251,25 +257,27 @@ export const ConfirmBlock: React.FC<{
 }> = ({ title, rows, onEdit }) => {
   const { t } = useTranslation();
   return (
-  <div className="confirm-card">
-    <div className="confirm-card-hdr">
-      <span>{title}</span>
-      {onEdit && (
-        <button type="button" onClick={onEdit}>
-          <Icon name="edit" size={12} />{t("review.edit_btn")}
-        </button>
-      )}
+    <div className="confirm-card">
+      <div className="confirm-card-hdr">
+        <span>{title}</span>
+        {onEdit && (
+          <button type="button" onClick={onEdit}>
+            <Icon name="edit" size={12} />
+            {t("review.edit_btn")}
+          </button>
+        )}
+      </div>
+      {rows
+        .filter(([, v]) => Boolean(v))
+        .map(([label, value]) => (
+          <div className="confirm-row" key={label}>
+            <span className="confirm-label">{label}</span>{" "}
+            <span className="confirm-value">{value}</span>
+          </div>
+        ))}
     </div>
-    {rows
-      .filter(([, v]) => Boolean(v))
-      .map(([label, value]) => (
-        <div className="confirm-row" key={label}>
-          <span className="confirm-label">{label}</span>{" "}
-          <span className="confirm-value">{value}</span>
-        </div>
-      ))}
-  </div>
-);}
+  );
+};
 
 // ═══════════════════════════════════════════════════════════════════════════
 // HEADER
@@ -296,80 +304,118 @@ export const Header: React.FC<HeaderProps> = ({
   rightAction,
   extraContent,
   name,
-  
 }) => {
   const { t } = useTranslation();
   return (
-  <div className="hdr">
-    {/* Slot 1: Navegación */}
-    <div className="hdr-side">
-      {canGoBack ? (
-        <button type="button" className="hdr-back" onClick={onBack}>
-          <Icon name="left" size={15} /> <span>{t("common.back")}</span>
-        </button>
-      ) : (
-        <div style={{ width: 62 }} />
-      )}
-    </div>
+    <div className="hdr">
+      {/* Slot 1: Navegación */}
+      <div className="hdr-side">
+        {canGoBack ? (
+          <button type="button" className="hdr-back" onClick={onBack}>
+            <Icon name="left" size={15} /> <span>{t("common.back")}</span>
+          </button>
+        ) : (
+          <div style={{ width: 62 }} />
+        )}
+      </div>
 
-    {/* Slot 2: Brand (Centro) - AHORA ES CLICABLE */}
-    <div
-      className="hdr-brand"
-      onClick={onLogoClick}
-      style={{ cursor: onLogoClick ? "pointer" : "default" }}
-    >
-      <div className="hdr-logo">L</div>
-      <div>
-        <div className="hdr-name">{name || "Lumina"}</div>
-       
+      {/* Slot 2: Brand (Centro) - AHORA ES CLICABLE */}
+      <div
+        className="hdr-brand"
+        onClick={onLogoClick}
+        style={{ cursor: onLogoClick ? "pointer" : "default" }}
+      >
+        <div className="hdr-logo">L</div>
+        <div>
+          <div className="hdr-name">{name || "Lumina"}</div>
+        </div>
+      </div>
+
+      {/* Slot 3: Acciones (Derecha) */}
+      <div className="hdr-side hdr-actions-group">
+        {extraContent}
+
+        {rightAction ? (
+          <button
+            type="button"
+            className="hdr-action"
+            onClick={rightAction.onClick}
+            disabled={rightAction.disabled}
+            title={rightAction.label}
+            style={{ padding: "0", width: "38px" }}
+          >
+            {rightAction.icon && (
+              <Icon name={rightAction.icon} size={16} color="#fff" />
+            )}
+          </button>
+        ) : (
+          !extraContent && <div style={{ width: 62 }} />
+        )}
       </div>
     </div>
-
-    {/* Slot 3: Acciones (Derecha) */}
-    <div className="hdr-side hdr-actions-group">
-      {extraContent}
-
-      {rightAction ? (
-        <button
-          type="button"
-          className="hdr-action"
-          onClick={rightAction.onClick}
-          disabled={rightAction.disabled}
-          title={rightAction.label}
-          style={{ padding: "0", width: "38px" }}
-        >
-          {rightAction.icon && (
-            <Icon name={rightAction.icon} size={16} color="#fff" />
-          )}
-        </button>
-      ) : (
-        !extraContent && <div style={{ width: 62 }} />
-      )}
-    </div>
-  </div>
-); }
-
+  );
+};
 
 // ═══════════════════════════════════════════════════════════════════════════
 // RESERVATION CARD & LOADING SPINNER
 // ═══════════════════════════════════════════════════════════════════════════
+const formatRoomKey = (name: string) => {
+  if (!name) return "";
+  return name
+    .toLowerCase()
+    .normalize("NFD") // Descompone los acentos y tildes (ej: é -> e + ´)
+    .replace(/[\u0300-\u036f]/g, "") // Elimina esos acentos descompuestos
+    .replace(/\s+/g, "_"); // Reemplaza los espacios en blanco por guiones bajos
+};
+
 export const ReservationCard: React.FC<{ reserva: Reserva }> = ({
   reserva,
-}) => (
-  <div className="res-card">
-    <div className="res-card-eyebrow">Su reserva</div>
-    <div className="res-card-name">{reserva.habitacion}</div>
-    <div className="res-card-row">
-      <Icon name="calendar" size={13} /> {reserva.fechaEntrada} —{" "}
-      {reserva.fechaSalida} · {reserva.numNoches} noches
+}) => {
+  const { t, i18n } = useTranslation();
+
+  const formatFecha = (fecha: string) => {
+    return dayjs(fecha).locale(i18n.language).format("DD MMM YYYY");
+  };
+
+  const renderHabitacion = (textoOriginal: string) => {
+    if (!textoOriginal) return "";
+
+    const numeroMatch = textoOriginal.match(/\d+/);
+
+    if (numeroMatch) {
+      return `${t("success.room")} ${numeroMatch[0]}`;
+    }
+
+    return t(`rooms.${formatRoomKey(textoOriginal)}`, {
+      defaultValue: textoOriginal,
+    });
+  };
+
+  return (
+    <div className="res-card">
+      <div className="res-card-eyebrow">{t("welcome.summary_title")}</div>
+
+      <div className="res-card-name">
+        {renderHabitacion(reserva.habitacion)}
+      </div>
+
+      <div className="res-card-row">
+        <Icon name="calendar" size={13} />
+        {formatFecha(reserva.fechaEntrada)} — {formatFecha(reserva.fechaSalida)}{" "}
+        · {reserva.numNoches} {t("reservationCard.nights")}
+      </div>
+
+      <div className="res-card-row">
+        <Icon name="bed" size={13} />
+        {reserva.numHuespedes}{" "}
+        {reserva.numHuespedes === 1
+          ? t("reservationCard.guest_singular")
+          : t("reservationCard.guest_plural")}{" "}
+        · {reserva.confirmacion}
+      </div>
     </div>
-    <div className="res-card-row">
-      <Icon name="bed" size={13} /> {reserva.numHuespedes}{" "}
-      {reserva.numHuespedes === 1 ? "huésped" : "huéspedes"} ·{" "}
-      {reserva.confirmacion}
-    </div>
-  </div>
-);
+  );
+};
 
 export const LoadingSpinner: React.FC<{ text?: string }> = ({ text }) => (
   <div className="loading">
