@@ -18,7 +18,8 @@ import "dayjs/locale/es";
 import "dayjs/locale/en";
 
 async function prepare() {
-  if (import.meta.env.DEV) {
+  // eslint-disable-next-line no-constant-condition
+  if (false) { 
     const { worker } = await import("./mocks/browser");
     await worker.start({
       serviceWorker: { url: "/mockServiceWorker.js" },

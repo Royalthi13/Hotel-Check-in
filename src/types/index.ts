@@ -25,6 +25,7 @@ export interface Reserva {
   fechaSalida: string;
   numHuespedes: number;
   numNoches: number;
+  client_id?: number;
 }
 
 // ─── Relación de un menor con un adulto del grupo ─────────────────────────────

@@ -2,8 +2,7 @@ import React, { useState } from "react";
 import { useTranslation } from "react-i18next"; // 1. Importamos el hook
 import { Field, Button, Alert, LoadingSpinner, Icon } from "@/components/ui";
 import type { Reserva } from "@/types";
-import { MOCK_RESERVAS } from "@/mocks/reservas-mock";
-
+import { getBookingById } from "@/api/bookings.service";
 interface Props {
   onFound: (reserva: Reserva) => void;
 }
@@ -29,7 +28,7 @@ export const ScreenTabletBuscar: React.FC<Props> = ({ onFound }) => {
     const trimmedContacto = contacto.trim();
 
     if (!trimmedNum || !trimmedContacto) {
-      setError(t("search.error_no_booking")); // Usamos la traducción, podrías añadir un error compuesto si quieres
+      setError(t("search.error_no_booking"));
       return;
     }
 
@@ -39,7 +38,7 @@ export const ScreenTabletBuscar: React.FC<Props> = ({ onFound }) => {
     const isPhone = phoneRegex.test(trimmedContacto);
 
     if (!isEmail && !isPhone) {
-      setError(t("validation.invalid_email")); // Reutilizamos un error de validación general
+      setError(t("validation.invalid_email"));
       return;
     }
 
@@ -47,33 +46,18 @@ export const ScreenTabletBuscar: React.FC<Props> = ({ onFound }) => {
     setLoading(true);
 
     try {
-      // 1. INTENTO CON API REAL (o MSW)
-      const res = await fetch(
-        `/api/reservas/${encodeURIComponent(trimmedNum)}`,
-      );
-      const data = (await res.json()) as {
-        ok: boolean;
-        reserva?: Reserva;
-        message?: string;
-      };
+      // LLAMADA A LA API REAL USANDO AXIOS Y EL MAPEO
+      const reserva = await getBookingById(trimmedNum);
+      
+      // Si todo va bien, pasamos la reserva mapeada hacia arriba
+      onFound(reserva);
 
-      if (res.ok && data.ok && data.reserva) {
-        onFound(data.reserva);
-        return;
-      }
-
-      const mockRes = MOCK_RESERVAS[trimmedNum as keyof typeof MOCK_RESERVAS];
-      if (mockRes) {
-        onFound(mockRes);
-      } else {
-        // En una app real usaríamos data.message si viene traducido desde el backend,
-        // pero aquí forzamos la traducción local por seguridad.
+    }  catch (err) {
+      // Le decimos a TypeScript qué forma esperamos que tenga el error
+      const error = err as { response?: { status: number } }; 
+      
+      if (error.response?.status === 404) {
         setError(t("search.error_not_found"));
-      }
-    } catch {
-      const mockRes = MOCK_RESERVAS[trimmedNum as keyof typeof MOCK_RESERVAS];
-      if (mockRes) {
-        onFound(mockRes);
       } else {
         setError(t("search.error_connection"));
       }
@@ -81,7 +65,6 @@ export const ScreenTabletBuscar: React.FC<Props> = ({ onFound }) => {
       setLoading(false);
     }
   };
-
 
   return (
     <form className="screen" onSubmit={buscar}>
