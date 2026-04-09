@@ -76,13 +76,12 @@ export function validarNumeroDocumento(
   num: string,
   t: TFunction,
 ): string | null {
-  const n = num.trim().toUpperCase();
+  // Quitar guiones que añade formatDocument antes de validar
+  const n = num.trim().toUpperCase().replace(/-/g, "");
   if (!n) return t("validation.required_doc_num");
 
   switch (tipo) {
     case "DNI":
-      if (!validarDNI(n)) return t("validation.invalid_dni");
-      break;
     case "NIF":
       if (!validarDNI(n)) return t("validation.invalid_dni");
       break;
