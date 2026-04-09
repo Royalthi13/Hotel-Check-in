@@ -190,6 +190,20 @@
     "missing_relationships": "Faltam parentescos por preencher. Reveja os dados.",
     "duplicate_doc": "Este documento já foi registado num outro hóspede."
   },
+  "auth": {
+    "verifying": "Verificando acesso...",
+    "error_invalid": "O link é inválido ou expirou.",
+    "error_server": "Erro de conexão com o servidor."
+  },
+  "verification": {
+    "title": "Acesso Seguro",
+    "booking_label": "Reserva",
+    "surname_label": "Sobrenome do titular",
+    "surname_placeholder": "Ex: Silva",
+    "button_loading": "Verificando...",
+    "button_submit": "Acessar o Check-in",
+    "error_message": "Não conseguimos verificar sua reserva. Por favor, verifique o sobrenome informado."
+  },
   "rooms": {
     "habitacion_estandar": "Quarto Standard",
     "habitacion_individual": "Quarto Individual",

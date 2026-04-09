@@ -190,6 +190,15 @@
     "missing_relationships": "Missing relationships to fill. Review all guests' data.",
     "duplicate_doc": "This document has already been registered for another guest."
   },
+  "verification": {
+    "title": "Secure Access",
+    "booking_label": "Booking",
+    "surname_label": "Lead guest's last name",
+    "surname_placeholder": "e.g. Smith",
+    "button_loading": "Verifying...",
+    "button_submit": "Access Check-in",
+    "error_message": "We could not verify your booking. Please check the last name provided."
+  },
   "rooms": {
     "habitacion_estandar": "Standard Room",
     "habitacion_individual": "Single Room",

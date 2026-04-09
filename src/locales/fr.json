@@ -369,6 +369,20 @@
     "btn_save": "Enregistrer la confirmation",
     "btn_add_time": "Ajouter l'heure d'arrivée"
   },
+  "auth": {
+    "verifying": "Vérification de l'accès en cours...",
+    "error_invalid": "Le lien est invalide ou a expiré.",
+    "error_server": "Erreur de connexion au serveur."
+  },
+  "verification": {
+    "title": "Accès Sécurisé",
+    "booking_label": "Réservation",
+    "surname_label": "Nom du titulaire",
+    "surname_placeholder": "Ex: Martin",
+    "button_loading": "Vérification...",
+    "button_submit": "Accéder au Check-in",
+    "error_message": "Nous n'avons pas pu vérifier votre réservation. Veuillez vérifier le nom fourni."
+  },
   "rooms": {
     "habitacion_estandar": "Chambre Standard",
     "habitacion_individual": "Chambre Simple",
