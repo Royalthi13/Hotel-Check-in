@@ -803,6 +803,14 @@ export const ScreenFormContacto: React.FC = () => {
               error={!!errors.direccion}
               sx={inputSx}
             />
+            {data.direccion && (
+  <span style={{
+    fontSize: 10, color: 'var(--ok)', display: 'flex',
+    alignItems: 'center', gap: 3, marginTop: 3,
+  }}>
+    📷 Auto-rellenado desde el DNI
+  </span>
+)}
 
             <Divider
               sx={{ my: 1, typography: "overline", color: "var(--text-low)" }}
@@ -874,11 +882,16 @@ export const ScreenFormContacto: React.FC = () => {
                     handleUpdate("cp", e.target.value.toUpperCase());
                     clearError("cp");
                   }}
-                  onBlur={() => {
-                    if (data.cp && data.pais && !esEspana) {
-                      buscarCP(data.cp, data.pais);
-                    }
-                  }}
+                 onBlur={() => {
+  if (data.cp && data.pais) {
+    // Para España: rellena ciudad/provincia desde el backend de ciudades
+    // Para otros países: usa zippopotam.us
+    // Solo si ciudad aún no está rellena (no sobreescribir si vino del OCR)
+    if (!data.ciudad?.trim()) {
+      buscarCP(data.cp, data.pais);
+    }
+  }
+}}
                   onKeyDown={(e) => {
                     if (e.key === "Enter") {
                       e.preventDefault();

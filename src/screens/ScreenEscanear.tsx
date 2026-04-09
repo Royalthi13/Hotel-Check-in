@@ -1,38 +1,22 @@
 // src/screens/ScreenEscanear.tsx
 //
-// FIXES v3 — pantalla negra iOS + nombres TD1 + mejor preprocesado
+// FIXES:
+//   1. Viewport expansion: el contenedor de la cámara tiene altura explícita
+//      calculada (no solo aspect-ratio) para evitar que el video lo expanda.
 //
-// PROBLEMA PANTALLA NEGRA (causa real):
-//   iOS Safari suspende el pipeline de renderizado de un <video> cuando detecta
-//   que está fuera del viewport visible, ya sea por display:none, visibility:hidden
-//   con width/height > 0, o position:fixed con coordenadas fuera de pantalla.
-//   El resultado es pantalla negra aunque el stream esté asignado y play() no falle.
+//   2. Video iOS pantalla negra: el <video> siempre está en el DOM dentro de
+//      un div width:1px height:1px. En fase 'camera', useEffect lo mueve
+//      (appendChild) al cameraWrapRef donde es visible. iOS Safari no renderiza
+//      <video> con display:none o visibility:hidden aunque el stream esté asignado.
 //
-// SOLUCIÓN DEFINITIVA (confirmada en foros Apple Developer y WebRTC samples):
-//   Un único <video> siempre montado en un div con width:0 height:0 overflow:hidden.
-//   En fase 'camera', useEffect lo mueve físicamente (appendChild) al wrapper del
-//   viewport de cámara (cameraWrapRef), donde es visible y puede renderizar el stream.
-//   Al salir de 'camera', se devuelve al contenedor oculto.
-//   Adicionalmente, al asignar srcObject, se aplican los atributos playsinline/autoplay/muted
-//   directamente al nodo DOM (no solo via props de React) para máxima compatibilidad iOS.
+//   3. Gallery accept="image/*": acepta HEIC, WebP y cualquier formato que el
+//      browser pueda renderizar (lo normaliza el canvas en loadExifCorrectedBlob).
 //
-// PROBLEMA NOMBRES TD1:
-//   En TD1 la línea 3 contiene: APELLIDO1<APELLIDO2<<NOMBRE1<NOMBRE2<<<...
-//   El separador apellido/nombre es << (doble filler).
-//   La librería mrz (cheminfo) devuelve lastName con todos los apellidos y firstName
-//   con todos los nombres, pero los fusiona. Ahora parseamos la línea raw directamente
-//   usando result.details para obtener los rangos exactos de caracteres de la librería,
-//   lo que nos da el raw sin padding artificial.
-//
-// MEJORAS image-js:
-//   - sharpen() antes de level() para recuperar bordes borrosos (fotos con pulso)
-//   - Variante binarizada (mask threshold) para documentos con reflejos en plástico
-//   - Variante con gamma correction para imágenes oscuras (poca luz ambiental)
-//   - Parámetros de level() ajustados a rangos documentados para OCR de texto impreso
+//   4. Fallback nativo con recovery: si getUserMedia falla, abre <input capture>.
+//      Si la página se recarga (OS mató el proceso por RAM), lo detectamos con
+//      sessionStorage y avisamos al usuario.
 
-import React, {
-  useRef, useState, useEffect, useCallback,
-} from 'react';
+import React, { useRef, useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Alert, Button, Icon } from '@/components/ui';
 import { useDocumentOCR } from '@/hooks/useDocumentOCR';
@@ -49,6 +33,7 @@ type Phase = 'idle' | 'camera' | 'selected' | 'processing' | 'success' | 'error'
 
 const SESSION_KEY = 'lumina_scan_fallback_open';
 
+// ─── Badge de confianza ───────────────────────────────────────────────────────
 const ConfidenceBadge: React.FC<{ value: number }> = ({ value }) => {
   const pct = Math.round(value * 100);
   const { color, label } =
@@ -58,6 +43,7 @@ const ConfidenceBadge: React.FC<{ value: number }> = ({ value }) => {
   return <div style={{ fontSize: 13, color, fontWeight: 500, marginTop: 4 }}>{label}</div>;
 };
 
+// ─── Componente principal ─────────────────────────────────────────────────────
 export const ScreenEscanear: React.FC<Props> = ({ onScanned, onSkip }) => {
   const { t } = useTranslation();
   const { processDocument, isProcessing, progress, terminate } = useDocumentOCR();
@@ -69,6 +55,10 @@ export const ScreenEscanear: React.FC<Props> = ({ onScanned, onSkip }) => {
   const [warnMsg,   setWarnMsg]   = useState('');
   const [confianza, setConfianza] = useState<number | null>(null);
 
+  // FIX: altura explícita del viewport de cámara para evitar expansión
+  // Se calcula como min(62.5vw, 52vh) — nunca más grande que el 52% de la pantalla
+  const [cameraH, setCameraH] = useState(300);
+
   const videoRef      = useRef<HTMLVideoElement>(null);
   const hiddenRef     = useRef<HTMLDivElement>(null);
   const cameraWrapRef = useRef<HTMLDivElement>(null);
@@ -76,80 +66,81 @@ export const ScreenEscanear: React.FC<Props> = ({ onScanned, onSkip }) => {
   const galleryRef    = useRef<HTMLInputElement>(null);
   const nativeRef     = useRef<HTMLInputElement>(null);
 
-  // ── Recovery ──────────────────────────────────────────────────────────────
+  // Calcular altura del viewport de cámara al montar y en resize
+  useEffect(() => {
+    const calc = () => {
+      const vw = window.innerWidth;
+      const vh = window.innerHeight;
+      // ratio 16:10 del .scan-viewport, limitado al 50% del alto
+      setCameraH(Math.round(Math.min(vw * 0.625, vh * 0.50)));
+    };
+    calc();
+    window.addEventListener('resize', calc);
+    return () => window.removeEventListener('resize', calc);
+  }, []);
+
+  // Recovery: la página se recargó mientras la cámara nativa estaba abierta
   useEffect(() => {
     if (sessionStorage.getItem(SESSION_KEY)) {
       sessionStorage.removeItem(SESSION_KEY);
       setWarnMsg(
         'La sesión de la cámara se interrumpió al volver al navegador. ' +
-        'Intenta de nuevo o usa la galería para subir la foto.'
+        'Intenta de nuevo o usa la galería para subir la foto que tomaste.'
       );
     }
   }, []);
 
+  // Cleanup al desmontar
   useEffect(() => {
     return () => { stopCamera(); terminate(); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // ── FIX PANTALLA NEGRA: mover el nodo <video> al wrapper visible ──────────
-  // Se ejecuta después de cada render donde phase cambia.
-  // En fase 'camera': appendChild al cameraWrapRef (visible → iOS renderiza).
-  // En cualquier otra fase: devolver al hiddenRef (oculto pero activo en DOM).
+  // FIX PANTALLA NEGRA iOS: mover el <video> al contenedor visible/oculto según fase
+  // iOS Safari suspende el pipeline de renderizado del video cuando está oculto.
+  // La solución es tenerlo siempre en el DOM pero moverlo al wrapper visible
+  // cuando se necesita mostrar, y a un div de 1px cuando no.
   useEffect(() => {
     const video   = videoRef.current;
     const hidden  = hiddenRef.current;
     const wrapper = cameraWrapRef.current;
-
     if (!video || !hidden) return;
 
     if (phase === 'camera' && wrapper) {
-      // Aplicar estilos para que cubra todo el wrapper antes de moverlo
+      // Estilos para cubrir el wrapper completamente
       video.style.cssText = [
-        'position:absolute',
-        'inset:0',
-        'width:100%',
-        'height:100%',
-        'object-fit:cover',
-        'display:block',
-        'z-index:0',
+        'position:absolute', 'inset:0',
+        'width:100%', 'height:100%',
+        'object-fit:cover', 'display:block', 'z-index:0',
       ].join(';');
-
-      // Asegurar atributos DOM — React puede no haberlos sincronizado aún
-      video.setAttribute('autoplay', '');
-      video.setAttribute('muted', '');
+      // Atributos DOM directos — React puede no haberlos sincronizado aún en iOS
+      video.setAttribute('autoplay',    '');
+      video.setAttribute('muted',       '');
       video.setAttribute('playsinline', '');
-
       wrapper.appendChild(video);
-
-      // Llamar play() si el stream ya está asignado (puede haberlo sido antes del move)
       if (video.srcObject && video.paused) {
-        video.play().catch(() => { /* autoplay policy — ok */ });
+        video.play().catch(() => { /* autoplay policy — normal en iOS */ });
       }
     } else {
-      // Estilos de ocultación: ocupa 0px, sigue en el DOM, browser no lo suspende
+      // Ocultar: 1px para que el browser no suspenda el elemento (distinto a display:none)
       video.style.cssText = [
-        'position:static',
-        'width:1px',
-        'height:1px',
-        'opacity:0',
-        'pointer-events:none',
+        'position:fixed', 'top:-9999px', 'left:-9999px',
+        'width:1px', 'height:1px', 'opacity:0', 'pointer-events:none',
       ].join(';');
-
-      if (video.parentElement !== hidden) {
-        hidden.appendChild(video);
-      }
+      if (video.parentElement !== hidden) hidden.appendChild(video);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [phase]);
+
+  // ── Gestión de cámara ─────────────────────────────────────────────────────
 
   const stopCamera = useCallback(() => {
     if (streamRef.current) {
       streamRef.current.getTracks().forEach(t => t.stop());
       streamRef.current = null;
     }
-    const video = videoRef.current;
-    if (video) { video.pause(); video.srcObject = null; }
+    const v = videoRef.current;
+    if (v) { v.pause(); v.srcObject = null; }
   }, []);
 
   const startCamera = useCallback(async () => {
@@ -157,6 +148,7 @@ export const ScreenEscanear: React.FC<Props> = ({ onScanned, onSkip }) => {
     setWarnMsg('');
 
     if (!navigator.mediaDevices?.getUserMedia) {
+      // Contexto inseguro (HTTP) o browser muy antiguo → fallback nativo
       openNativeCamera();
       return;
     }
@@ -164,6 +156,7 @@ export const ScreenEscanear: React.FC<Props> = ({ onScanned, onSkip }) => {
     try {
       let stream: MediaStream;
       try {
+        // Resolución ideal: suficiente para OCR pero no exagerada
         stream = await navigator.mediaDevices.getUserMedia({
           video: {
             facingMode: { ideal: 'environment' },
@@ -172,52 +165,53 @@ export const ScreenEscanear: React.FC<Props> = ({ onScanned, onSkip }) => {
           },
         });
       } catch {
+        // Constraints relajadas: cualquier resolución disponible
         stream = await navigator.mediaDevices.getUserMedia({
           video: { facingMode: 'environment' },
         });
       }
 
       streamRef.current = stream;
-
-      const video = videoRef.current;
-      if (video) {
-        video.srcObject = stream;
-        // Si el useEffect ya movió el video al wrapper (raro pero posible
-        // si startCamera se llama cuando phase ya era 'camera'), hacer play() aquí.
-        if (video.parentElement === cameraWrapRef.current && video.paused) {
-          try { await video.play(); } catch { /* ok */ }
+      const v = videoRef.current;
+      if (v) {
+        v.srcObject = stream;
+        // El useEffect (disparado por setPhase) moverá el video y llamará play()
+        // Si el video ya estaba en el wrapper (edge case), play() directamente
+        if (v.parentElement === cameraWrapRef.current && v.paused) {
+          v.play().catch(() => {});
         }
       }
-
-      // El setPhase dispara el useEffect que moverá el video y llamará play()
       setPhase('camera');
     } catch (err) {
       console.warn('[Camera] getUserMedia falló:', (err as Error).message);
+      // Permiso denegado o no disponible → cámara nativa como fallback
       openNativeCamera();
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const openNativeCamera = () => {
+    // Flag para detectar recarga al volver de la cámara nativa
     sessionStorage.setItem(SESSION_KEY, 'true');
     nativeRef.current?.click();
   };
 
   const captureFrame = useCallback(() => {
-    const video = videoRef.current;
-    if (!video || !streamRef.current) return;
+    const v = videoRef.current;
+    if (!v || !streamRef.current) return;
 
     const canvas = document.createElement('canvas');
-    canvas.width  = video.videoWidth  || 1280;
-    canvas.height = video.videoHeight || 720;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
+    canvas.width  = v.videoWidth  || 1280;
+    canvas.height = v.videoHeight || 720;
+    canvas.getContext('2d')!.drawImage(v, 0, 0);
 
-    ctx.drawImage(video, 0, 0);
+    // Liberar stream ANTES del OCR — reduce pico de RAM
     stopCamera();
 
     canvas.toBlob(
       blob => {
         if (!blob) { setPhase('idle'); return; }
+        // La foto ya viene del canvas → ya tiene EXIF aplicado
+        // (drawImage sobre el video ya tiene la orientación correcta)
         const f = new File([blob], `scan_${Date.now()}.jpg`, { type: 'image/jpeg' });
         handleFile(f);
       },
@@ -226,20 +220,17 @@ export const ScreenEscanear: React.FC<Props> = ({ onScanned, onSkip }) => {
     );
   }, [stopCamera]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // ── Manejo de archivos ────────────────────────────────────────────────────
+
   const handleFile = useCallback((f: File | null | undefined) => {
     sessionStorage.removeItem(SESSION_KEY);
     if (!f) return;
-
-    if (f.size > 20 * 1024 * 1024) {
+    if (f.size > 25 * 1024 * 1024) {
       setErrorMsg(t('scan.error_size'));
       setPhase('idle');
       return;
     }
-
-    setPreview(prev => {
-      if (prev) URL.revokeObjectURL(prev);
-      return URL.createObjectURL(f);
-    });
+    setPreview(prev => { if (prev) URL.revokeObjectURL(prev); return URL.createObjectURL(f); });
     setErrorMsg('');
     setWarnMsg('');
     setConfianza(null);
@@ -247,6 +238,8 @@ export const ScreenEscanear: React.FC<Props> = ({ onScanned, onSkip }) => {
     setPhase('selected');
   }, [t]);
 
+  // FIX: accept="image/*" acepta cualquier imagen (HEIC, WebP, etc.)
+  // La corrección EXIF y conversión de formato la hace loadExifCorrectedBlob en el hook.
   const onGalleryChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     handleFile(e.target.files?.[0]);
     e.target.value = '';
@@ -258,19 +251,17 @@ export const ScreenEscanear: React.FC<Props> = ({ onScanned, onSkip }) => {
     e.target.value = '';
   };
 
+  // ── OCR ───────────────────────────────────────────────────────────────────
+
   const handleProcess = async () => {
     if (!file) return;
     setPhase('processing');
     setErrorMsg('');
-
     const result = await processDocument(file);
-
     if (result.ok && result.data) {
       setConfianza(result.confianza ?? null);
       setPhase('success');
-      setTimeout(() => {
-        onScanned({ ...result.data, docFile: file, docUploaded: true });
-      }, 1200);
+      setTimeout(() => onScanned({ ...result.data, docFile: file, docUploaded: true }), 1200);
     } else {
       setPhase('error');
       setErrorMsg(result.error ?? t('scan.error_read'));
@@ -287,22 +278,25 @@ export const ScreenEscanear: React.FC<Props> = ({ onScanned, onSkip }) => {
     setConfianza(null);
   };
 
+  // ─── Render ───────────────────────────────────────────────────────────────
+
   return (
     <>
-      <input ref={galleryRef} type="file" accept="image/jpeg,image/png,image/webp"
-        style={{ display: 'none' }} onChange={onGalleryChange} aria-label={t('scan.btn_gallery')} />
+      {/* Inputs siempre en el DOM */}
+      <input ref={galleryRef} type="file" accept="image/*"
+        style={{ display: 'none' }} onChange={onGalleryChange}
+        aria-label={t('scan.btn_gallery')} />
       <input ref={nativeRef} type="file" accept="image/*" capture="environment"
-        style={{ display: 'none' }} onChange={onNativeCameraChange} aria-label={t('scan.btn_capture')} />
+        style={{ display: 'none' }} onChange={onNativeCameraChange}
+        aria-label={t('scan.btn_capture')} />
 
-      {/* ── Contenedor del video — siempre en el DOM ─────────────────────────
-          width:0 height:0 overflow:hidden: ocupa 0px de layout.
-          NO usa display:none ni visibility:hidden con dimensiones > 0.
-          El browser mantiene el elemento activo para poder recibir streams.
-          En fase 'camera', useEffect mueve el <video> al cameraWrapRef. ── */}
-      <div ref={hiddenRef} style={{ width: 0, height: 0, overflow: 'hidden' }} aria-hidden="true">
+      {/* FIX iOS pantalla negra: video siempre en DOM, en div de 1px cuando no se usa */}
+      <div ref={hiddenRef} aria-hidden="true"
+        style={{ position: 'fixed', top: -9999, left: -9999, width: 1, height: 1, overflow: 'hidden' }}>
         <video ref={videoRef} autoPlay playsInline muted />
       </div>
 
+      {/* Cabecera */}
       <div className="sec-hdr">
         <h2>{t('scan.title')}</h2>
         <p>{t('scan.subtitle')}</p>
@@ -314,9 +308,9 @@ export const ScreenEscanear: React.FC<Props> = ({ onScanned, onSkip }) => {
         </div>
       )}
 
-      <div style={{ padding: '0 24px', flex: 1, display: 'flex', flexDirection: 'column', gap: 0 }}>
+      <div style={{ padding: '0 24px', flex: 1, display: 'flex', flexDirection: 'column' }}>
 
-        {/* ════ IDLE ═══════════════════════════════════════════════════════ */}
+        {/* ════ IDLE ══════════════════════════════════════════════════════ */}
         {phase === 'idle' && (
           <>
             <div className="scan-viewport">
@@ -341,7 +335,7 @@ export const ScreenEscanear: React.FC<Props> = ({ onScanned, onSkip }) => {
                 <Icon name="camera" size={26} color="#fff" />
               </button>
               <button type="button" className="scan-side-btn"
-                onClick={() => galleryRef.current?.click()} title={t('scan.btn_gallery')}>
+                onClick={() => galleryRef.current?.click()} title="Subir foto">
                 <Icon name="flash" size={18} color="var(--text-mid)" />
               </button>
             </div>
@@ -351,7 +345,9 @@ export const ScreenEscanear: React.FC<Props> = ({ onScanned, onSkip }) => {
             <button type="button" className="upload-area"
               style={{ width: '100%', cursor: 'pointer' }}
               onClick={() => galleryRef.current?.click()}>
-              <div className="upload-icon"><Icon name="upload" size={22} color="var(--text-mid)" /></div>
+              <div className="upload-icon">
+                <Icon name="upload" size={22} color="var(--text-mid)" />
+              </div>
               <div className="upload-title">{t('scan.upload_title')}</div>
               <div className="upload-sub">{t('scan.upload_sub')}</div>
             </button>
@@ -371,33 +367,46 @@ export const ScreenEscanear: React.FC<Props> = ({ onScanned, onSkip }) => {
               <ul style={{ margin: 0, paddingLeft: 16 }}>
                 <li><strong>DNI:</strong> fotografíe el <strong>reverso</strong> — las 3 líneas de código en la franja inferior</li>
                 <li><strong>Pasaporte:</strong> fotografíe la página con la foto y los datos</li>
-                <li>Iluminación uniforme, sin reflejos ni sombras</li>
-                <li>Documento plano y completamente visible</li>
+                <li>Iluminación uniforme, sin reflejos ni sombras sobre el documento</li>
+                <li>Documento plano y completamente visible en la foto</li>
               </ul>
             </div>
           </>
         )}
 
-        {/* ════ CAMERA ══════════════════════════════════════════════════════
-            ref={cameraWrapRef} es el destino del appendChild en el useEffect.
-            Debe ser position:relative para que el video absolute se ancle aquí.
-        ════════════════════════════════════════════════════════════════════ */}
+        {/* ════ CAMERA ════════════════════════════════════════════════════
+            FIX EXPANSION: altura calculada explícitamente (cameraH),
+            no solo con aspect-ratio. El video se inserta via useEffect.
+        ════════════════════════════════════════════════════════════════ */}
         {phase === 'camera' && (
           <>
-            <div ref={cameraWrapRef} className="scan-viewport"
-              style={{ position: 'relative', overflow: 'hidden', background: '#000' }}>
-              {/* El <video> lo inserta el useEffect — no lo ponemos aquí en JSX */}
-
-              <div style={{
-                position: 'absolute', inset: 0,
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                pointerEvents: 'none', zIndex: 1,
+            {/* FIX: height explícito calculado — nunca se expande más allá */}
+            <div ref={cameraWrapRef}
+              style={{
+                width: '100%',
+                height: cameraH,
+                position: 'relative',
+                overflow: 'hidden',
+                background: '#000',
+                borderRadius: 'var(--r-lg)',
+                marginBottom: 14,
+                flexShrink: 0,
               }}>
+              {/* El <video> lo mueve aquí el useEffect — no va en JSX */}
+
+              {/* Overlay de guía de encuadre (sobre el video, z-index:1) */}
+              <div style={{
+                position: 'absolute', inset: 0, zIndex: 1,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                pointerEvents: 'none',
+              }}>
+                {/* Marco con ratio 1.585:1 (ratio DNI físico 85.6×54mm) */}
                 <div style={{
-                  width: '88%', aspectRatio: '1.585 / 1',
-                  border: '2.5px solid rgba(250, 134, 92, 0.95)',
+                  width: '86%',
+                  aspectRatio: '1.585 / 1',
+                  border: '2.5px solid rgba(250,134,92,0.9)',
                   borderRadius: 8,
-                  boxShadow: '0 0 0 9999px rgba(0, 0, 0, 0.42)',
+                  boxShadow: '0 0 0 9999px rgba(0,0,0,0.45)',
                   position: 'relative',
                 }}>
                   <div className="scan-corner tl" style={{ borderColor: 'var(--primary)' }} />
@@ -416,7 +425,7 @@ export const ScreenEscanear: React.FC<Props> = ({ onScanned, onSkip }) => {
               </div>
             </div>
 
-            <div className="scan-controls" style={{ marginTop: 14 }}>
+            <div className="scan-controls">
               <button type="button" className="scan-side-btn"
                 onClick={() => { stopCamera(); setPhase('idle'); }} title="Cancelar">
                 <Icon name="left" size={18} color="var(--text-mid)" />
@@ -436,23 +445,23 @@ export const ScreenEscanear: React.FC<Props> = ({ onScanned, onSkip }) => {
               marginTop: 10, fontSize: 12, color: 'var(--text-low)',
               textAlign: 'center', lineHeight: 1.5,
             }}>
-              Encuadre el documento dentro del marco · Mantenga el móvil en horizontal
+              Encuadre el documento completo dentro del marco
             </p>
           </>
         )}
 
-        {/* ════ SELECTED ════════════════════════════════════════════════════ */}
+        {/* ════ SELECTED ══════════════════════════════════════════════════ */}
         {phase === 'selected' && file && (
           <>
             {preview && (
               <div style={{
                 borderRadius: 'var(--r-lg)', overflow: 'hidden',
                 border: '2px solid var(--border)', background: '#111',
-                maxHeight: 280, display: 'flex',
+                maxHeight: 260, display: 'flex',
                 alignItems: 'center', justifyContent: 'center', marginBottom: 14,
               }}>
                 <img src={preview} alt="Vista previa"
-                  style={{ maxWidth: '100%', maxHeight: 280, objectFit: 'contain' }} />
+                  style={{ maxWidth: '100%', maxHeight: 260, objectFit: 'contain' }} />
               </div>
             )}
 
@@ -481,7 +490,8 @@ export const ScreenEscanear: React.FC<Props> = ({ onScanned, onSkip }) => {
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               <Button variant="primary" onClick={handleProcess}>
-                <Icon name="scan" size={16} color="#fff" />{t('scan.btn_process')}
+                <Icon name="scan" size={16} color="#fff" />
+                {t('scan.btn_process')}
               </Button>
               <Button variant="secondary" onClick={handleDiscard}>
                 {t('scan.btn_discard')}
@@ -490,7 +500,7 @@ export const ScreenEscanear: React.FC<Props> = ({ onScanned, onSkip }) => {
           </>
         )}
 
-        {/* ════ PROCESSING ══════════════════════════════════════════════════ */}
+        {/* ════ PROCESSING ════════════════════════════════════════════════ */}
         {phase === 'processing' && (
           <div style={{ padding: '8px 0' }}>
             {preview && (
@@ -511,14 +521,12 @@ export const ScreenEscanear: React.FC<Props> = ({ onScanned, onSkip }) => {
                 }} />
               </div>
             )}
-
             <div style={{
               fontSize: 14, fontWeight: 600, color: 'var(--text)',
               marginBottom: 12, textAlign: 'center', minHeight: 20,
             }}>
               {progress.fase || t('scan.btn_reading')}
             </div>
-
             <div style={{
               height: 6, background: 'var(--border)', borderRadius: 99,
               overflow: 'hidden', marginBottom: 8,
@@ -529,14 +537,13 @@ export const ScreenEscanear: React.FC<Props> = ({ onScanned, onSkip }) => {
                 borderRadius: 99, transition: 'width 0.35s ease',
               }} />
             </div>
-
             <div style={{ fontSize: 12, color: 'var(--text-low)', textAlign: 'center' }}>
               {progress.pct} % · Procesamiento local — los datos no salen de su dispositivo
             </div>
           </div>
         )}
 
-        {/* ════ SUCCESS ═════════════════════════════════════════════════════ */}
+        {/* ════ SUCCESS ════════════════════════════════════════════════════ */}
         {phase === 'success' && (
           <div style={{ textAlign: 'center', padding: '20px 0' }}>
             <div style={{
@@ -558,7 +565,7 @@ export const ScreenEscanear: React.FC<Props> = ({ onScanned, onSkip }) => {
           </div>
         )}
 
-        {/* ════ ERROR ═══════════════════════════════════════════════════════ */}
+        {/* ════ ERROR ══════════════════════════════════════════════════════ */}
         {phase === 'error' && (
           <>
             <div style={{
@@ -566,7 +573,7 @@ export const ScreenEscanear: React.FC<Props> = ({ onScanned, onSkip }) => {
               border: '1px solid rgba(192,57,43,.2)', borderRadius: 'var(--r)',
               display: 'flex', alignItems: 'flex-start', gap: 10, marginBottom: 16,
             }}>
-              <Icon name="warn" size={18} color="var(--err)" style={{ flexShrink: 0 }} />
+              <Icon name="warn" size={18} color="var(--err)" />
               <div>
                 <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--err)', marginBottom: 4 }}>
                   No se pudo leer el documento
@@ -585,22 +592,26 @@ export const ScreenEscanear: React.FC<Props> = ({ onScanned, onSkip }) => {
                 Causas frecuentes:
               </strong>
               <ul style={{ margin: 0, paddingLeft: 16 }}>
-                <li>DNI: se fotografió el <strong>anverso</strong> — necesita el <strong>reverso</strong> (las líneas de código)</li>
-                <li>Reflejos de luz o flash sobre el plástico del documento</li>
-                <li>Imagen borrosa (mueva el dispositivo despacio)</li>
-                <li>La franja inferior del documento quedó cortada</li>
+                <li>DNI: se fotografió el <strong>anverso</strong> — necesita el <strong>reverso</strong></li>
+                <li>Reflejos o flash sobre el plástico del documento</li>
+                <li>Imagen borrosa o el documento no está completamente visible</li>
+                <li>La franja inferior con el código quedó cortada</li>
               </ul>
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               <Button variant="primary" onClick={() => { handleDiscard(); startCamera(); }}>
-                <Icon name="camera" size={16} color="#fff" />Volver a intentar con la cámara
+                <Icon name="camera" size={16} color="#fff" />
+                Volver a intentar con la cámara
               </Button>
               <Button variant="secondary"
                 onClick={() => { handleDiscard(); galleryRef.current?.click(); }}>
-                <Icon name="img" size={16} />Subir foto desde la galería
+                <Icon name="img" size={16} />
+                Subir foto desde la galería
               </Button>
-              <Button variant="secondary" onClick={onSkip}>{t('scan.btn_manual')}</Button>
+              <Button variant="secondary" onClick={onSkip}>
+                {t('scan.btn_manual')}
+              </Button>
             </div>
           </>
         )}
@@ -610,7 +621,9 @@ export const ScreenEscanear: React.FC<Props> = ({ onScanned, onSkip }) => {
         <>
           <div className="spacer" />
           <div className="btn-row">
-            <Button variant="secondary" onClick={onSkip}>{t('scan.btn_manual')}</Button>
+            <Button variant="secondary" onClick={onSkip}>
+              {t('scan.btn_manual')}
+            </Button>
           </div>
           <div style={{ height: 12 }} />
         </>
