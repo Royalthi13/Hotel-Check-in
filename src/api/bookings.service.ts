@@ -1,53 +1,75 @@
+
 import { api } from "./axiosInstance";
-import type { Reserva } from "../types";
-
-// 1. Definimos cómo es el objeto exacto que viene de tu FastAPI
-interface BackendBooking {
-  id: number;
-  room_id: number;
-  room_name: string;
-  check_in: string;
-  check_out: string;
-  client_id: number;
-  client_name: string;
-  client_surname: string;
-  status_id: number;
-  status_name: string;
-  persons: number;
-  notes: string;
-  // ... el resto de campos del backend
-}
-
-// 2. Hacemos la llamada GET y mapeamos al formato del frontend
-export const getBookingById = async (bookingId: string | number): Promise<Reserva> => {
-  // FastAPI Endpoint real
-  const { data } = await api.get<BackendBooking>(`/bookings/${bookingId}`);
-
-  // Traducimos el BackendBooking a tu Reserva de React
+import type { BookingResponse, BookingUpdatePayload } from "./api.types";
+import type { Reserva } from "@/types";
+ 
+function toReserva(b: BookingResponse): Reserva {
+  const msPerDay  = 1000 * 60 * 60 * 24;
+  const checkIn   = new Date(b.check_in);
+  const checkOut  = new Date(b.check_out);
+  const numNoches =
+    b.num_nights ??
+    Math.round((checkOut.getTime() - checkIn.getTime()) / msPerDay);
+ 
+  const habitacion =
+    b.room?.room_type?.name ??
+    (b.room?.room_number ? `Habitación ${b.room.room_number}` : "—");
+ 
   return {
-    confirmacion: `#LM-${data.id}`, 
-    habitacion: data.room_name || "Habitación por asignar",
-    fechaEntrada: data.check_in,
-    fechaSalida: data.check_out,
-    numHuespedes: data.persons,
-    // Calculamos las noches basándonos en las fechas
-    numNoches: calculateNights(data.check_in, data.check_out),
-    
-    // ¡MUY IMPORTANTE! Lo necesitamos para buscar al huésped principal luego
-    client_id: data.client_id, 
+    confirmacion: b.confirmation_number ?? `#LM-${b.id}`,
+    habitacion,
+    fechaEntrada: b.check_in,
+    fechaSalida:  b.check_out,
+    numHuespedes: b.num_guests ?? 1,
+    numNoches,
   };
-};
-
-// 3. NUEVO: Función para actualizar la reserva (Para cuando terminen el check-in)
-export const updateBooking = async (bookingId: string | number, payload: Record<string, unknown>) => {
-  // Según tu Swagger, tienes un endpoint PUT /bookings/{booking_id}
-  // Aquí puedes enviar el cambio de estado, firmas, u observaciones
-  const { data } = await api.put(`/bookings/${bookingId}`, payload);
-  return data;
-};
-
-// 4. Función auxiliar para calcular las noches
-const calculateNights = (inDate: string, outDate: string): number => {
-  const diffTime = Math.abs(new Date(outDate).getTime() - new Date(inDate).getTime());
-  return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-};
+}
+ 
+export async function getBookingById(bookingId: string | number): Promise<{
+  reserva:   Reserva;
+  clientId:  number | null;
+  bookingId: number;
+}> {
+  const { data } = await api.get<BookingResponse>(`/bookings/${bookingId}`);
+  return {
+    reserva:   toReserva(data),
+    clientId:  data.client_id ?? null,
+    bookingId: data.id,
+  };
+}
+ 
+export async function searchBookingByConfirmation(
+  query: string
+): Promise<{ reserva: Reserva; clientId: number | null } | null> {
+  try {
+    const result = await getBookingById(query);
+    return { reserva: result.reserva, clientId: result.clientId };
+  } catch {
+    // no encontrado por ID, intentar por confirmation_number
+  }
+ 
+  try {
+    const { data } = await api.get<BookingResponse[]>("/bookings", {
+      params: { confirmation_number: query },
+    });
+    const match = Array.isArray(data) ? data[0] : null;
+    if (!match) return null;
+    return {
+      reserva:  toReserva(match),
+      clientId: match.client_id ?? null,
+    };
+  } catch {
+    return null;
+  }
+}
+ 
+export async function updateBookingCheckin(
+  bookingId: number,
+  payload: { horaLlegada?: string; observaciones?: string }
+): Promise<void> {
+  const body: BookingUpdatePayload = {};
+  if (payload.horaLlegada)   body.arrival_time  = payload.horaLlegada;
+  if (payload.observaciones) body.observations  = payload.observaciones;
+  if (Object.keys(body).length === 0) return;
+  await api.put(`/bookings/${bookingId}`, body);
+}

@@ -1,61 +1,72 @@
-import { useState } from "react";
 
+import { useState, useCallback } from "react";
+import { searchCitiesByName } from "@/api/cities.service";
+ 
 export interface Municipio {
-  nombre: string;
+  nombre:    string;
   provincia: string;
 }
-
-const API_BASE_URL = import.meta.env.VITE_API_URL ?? "";
-
-const quitarAcentos = (str: string) =>
-  str.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-
+ 
 export function usePlaces() {
-  const [sugerenciasProvincias, setSugerenciasProvincias] = useState<string[]>(
-    [],
+  const [sugerenciasProvincias, setSugerenciasProvincias] = useState<string[]>([]);
+  const [sugerenciasMunicipios, setSugerenciasMunicipios] = useState<Municipio[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+ 
+  const cargarProvincias = useCallback(async (texto: string) => {
+    if (!texto || texto.length < 2) {
+      setSugerenciasProvincias([]);
+      return;
+    }
+    setIsLoading(true);
+    try {
+      const cities = await searchCitiesByName(texto);
+      const provincias = [
+        ...new Set(
+          cities
+            .map((c) => c.province)
+            .filter((p) => p && p.toLowerCase().includes(texto.toLowerCase()))
+        ),
+      ].slice(0, 8);
+      setSugerenciasProvincias(provincias);
+    } catch {
+      setSugerenciasProvincias([]);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+ 
+  const cargarMunicipios = useCallback(
+    async (texto: string, provincia?: string) => {
+      if (!texto || texto.length < 2) {
+        setSugerenciasMunicipios([]);
+        return;
+      }
+      setIsLoading(true);
+      try {
+        const cities = await searchCitiesByName(texto);
+        const municipios: Municipio[] = cities
+          .filter((c) =>
+            provincia
+              ? c.province.toLowerCase() === provincia.toLowerCase()
+              : true
+          )
+          .map((c) => ({ nombre: c.name, provincia: c.province }));
+        setSugerenciasMunicipios(municipios);
+      } catch {
+        setSugerenciasMunicipios([]);
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    []
   );
-  const [sugerenciasMunicipios, setSugerenciasMunicipios] = useState<
-    Municipio[]
-  >([]);
-
-  const cargarProvincias = async (texto: string) => {
-    if (!texto || !API_BASE_URL) {
-      setSugerenciasProvincias([]);
-      return;
-    }
-    try {
-      const res = await fetch(
-        `${API_BASE_URL}/api/provincias?q=${encodeURIComponent(quitarAcentos(texto))}`,
-      );
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data: string[] = await res.json();
-      setSugerenciasProvincias(data);
-    } catch {
-      setSugerenciasProvincias([]);
-    }
-  };
-
-  const cargarMunicipios = async (texto: string, provincia?: string) => {
-    if (!texto || !API_BASE_URL) {
-      setSugerenciasMunicipios([]);
-      return;
-    }
-    try {
-      const params = new URLSearchParams({ q: quitarAcentos(texto) });
-      if (provincia) params.append("provincia", provincia);
-      const res = await fetch(`${API_BASE_URL}/api/municipios?${params}`);
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data: Municipio[] = await res.json();
-      setSugerenciasMunicipios(data);
-    } catch {
-      setSugerenciasMunicipios([]);
-    }
-  };
-
+ 
   return {
     sugerenciasProvincias,
     sugerenciasMunicipios,
     cargarProvincias,
     cargarMunicipios,
+    isLoading,
   };
 }
+ 
