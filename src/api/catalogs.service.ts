@@ -13,22 +13,27 @@ const cache: {
 export async function getCountries(): Promise<CountryResponse[]> {
   if (cache.countries) return cache.countries;
   const { data } = await apiAuth.get<CountryResponse[]>("/countries");
-  cache.countries = Array.isArray(data) ? data : [];
-  return cache.countries;
+  // MEDIO: No cachear arrays vacíos — probablemente un error de red, no datos reales.
+  // Si cacheamos [] como válido, el usuario ve listas de países vacías durante toda la sesión.
+  const result = Array.isArray(data) ? data : [];
+  if (result.length > 0) cache.countries = result;
+  return result;
 }
 
 export async function getDocumentTypes(): Promise<DocumentTypeResponse[]> {
   if (cache.documentTypes) return cache.documentTypes;
   const { data } = await apiAuth.get<DocumentTypeResponse[]>("/documents_type");
-  cache.documentTypes = Array.isArray(data) ? data : [];
-  return cache.documentTypes;
+  const result = Array.isArray(data) ? data : [];
+  if (result.length > 0) cache.documentTypes = result;
+  return result;
 }
 
 export async function getRelationships(): Promise<RelationshipResponse[]> {
   if (cache.relationships) return cache.relationships;
   const { data } = await apiAuth.get<RelationshipResponse[]>("/relationships");
-  cache.relationships = Array.isArray(data) ? data : [];
-  return cache.relationships;
+  const result = Array.isArray(data) ? data : [];
+  if (result.length > 0) cache.relationships = result;
+  return result;
 }
 
 export function clearCatalogsCache(): void {

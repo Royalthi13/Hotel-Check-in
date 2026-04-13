@@ -3,7 +3,6 @@ import { Translation } from "react-i18next";
 
 interface Props {
   children: React.ReactNode;
-  /** Componente de fallback opcional. Si no se pasa, muestra el UI por defecto. */
   fallback?: React.ReactNode;
 }
 
@@ -12,9 +11,6 @@ interface State {
   message: string;
 }
 
-/**
- * ErrorBoundary para el wizard de check-in.
- */
 export class ErrorBoundary extends React.Component<Props, State> {
   constructor(props: Props) {
     super(props);
@@ -24,17 +20,19 @@ export class ErrorBoundary extends React.Component<Props, State> {
   static getDerivedStateFromError(error: Error): State {
     return {
       hasError: true,
-      message: error?.message ?? "Error desconocido", // Esto es interno técnico, no hace falta traducirlo
+      message: error?.message ?? "Error desconocido",
     };
   }
 
   componentDidCatch(error: Error, info: React.ErrorInfo) {
-    // En producción aquí iría Sentry.captureException(error, { extra: info })
-    console.error("[ErrorBoundary]", error, info.componentStack);
+    // BAJO: solo loguear en desarrollo para no exponer internos en producción.
+    if (import.meta.env.DEV) {
+      console.error("[ErrorBoundary]", error, info.componentStack);
+    }
+    // En producción: Sentry.captureException(error, { extra: info });
   }
 
   handleReload = () => {
-    // Reiniciar el boundary limpiando el estado de error
     this.setState({ hasError: false, message: "" });
   };
 
@@ -43,7 +41,6 @@ export class ErrorBoundary extends React.Component<Props, State> {
       if (this.props.fallback) return this.props.fallback;
 
       return (
-        // 2. Usamos <Translation> para obtener la función 't'
         <Translation>
           {(t) => (
             <div
@@ -57,7 +54,6 @@ export class ErrorBoundary extends React.Component<Props, State> {
                 textAlign: "center",
               }}
             >
-              {/* Icono de error */}
               <div
                 style={{
                   width: 72,

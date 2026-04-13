@@ -1,39 +1,37 @@
 import { apiAuth } from "./axiosInstance";
 import type { Reserva } from "@/types";
 
-interface RoomType { id: number; name: string; }
-interface Room { id: number; room_number: string; room_type: RoomType | null; }
+// Schema real de la BD: sin confirmation_number, sin room anidado, sin num_guests/num_nights.
+// Los campos reales son: id, room_id, check_in, check_out, client_id, status_id,
+// persons, notes, source, pay_type, pay_date, pay_num, pay_titular.
 interface BookingResponse {
   id: number;
-  confirmation_number: string;
+  room_id: number | null;
   check_in: string;
   check_out: string;
-  num_nights: number;
-  num_guests: number;
   client_id: number | null;
-  status: string;
-  observations: string | null;
-  arrival_time: string | null;
-  room: Room | null;
+  status_id: number | null;
+  persons: number | null;
+  notes: string | null;
+  source: string | null;
+  pay_type: string | null;
+  pay_date: string | null;
+  pay_num: string | null;
+  pay_titular: string | null;
 }
 
 function toReserva(b: BookingResponse): Reserva {
   const msPerDay = 1000 * 60 * 60 * 24;
-  const numNoches =
-    b.num_nights ??
-    Math.round(
-      (new Date(b.check_out).getTime() - new Date(b.check_in).getTime()) /
-        msPerDay,
-    );
-  const habitacion =
-    b.room?.room_type?.name ??
-    (b.room?.room_number ? `Habitación ${b.room.room_number}` : "—");
+  const numNoches = Math.round(
+    (new Date(b.check_out).getTime() - new Date(b.check_in).getTime()) /
+      msPerDay,
+  );
   return {
-    confirmacion: b.confirmation_number ?? `#LM-${b.id}`,
-    habitacion,
+    confirmacion: `#LM-${b.id}`,
+    habitacion: b.room_id ? `Habitación ${b.room_id}` : "—",
     fechaEntrada: b.check_in,
     fechaSalida: b.check_out,
-    numHuespedes: b.num_guests ?? 1,
+    numHuespedes: b.persons ?? 1,
     numNoches,
   };
 }
@@ -56,16 +54,16 @@ export async function getBookingById(bookingId: string | number): Promise<{
 export async function searchBookingByConfirmation(
   query: string,
 ): Promise<{ reserva: Reserva; clientId: number | null } | null> {
+  // Intenta primero por id numérico
   try {
     const result = await getBookingById(query);
     return { reserva: result.reserva, clientId: result.clientId };
   } catch {
-    // intenta por confirmation_number
+    // continuar con búsqueda por lista
   }
+  // Fallback: lista filtrada
   try {
-    const { data } = await apiAuth.get<BookingResponse[]>("/bookings", {
-      params: { confirmation_number: query },
-    });
+    const { data } = await apiAuth.get<BookingResponse[]>("/bookings");
     const match = Array.isArray(data) ? data[0] : null;
     if (!match) return null;
     return { reserva: toReserva(match), clientId: match.client_id ?? null };

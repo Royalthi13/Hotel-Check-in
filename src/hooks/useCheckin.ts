@@ -14,7 +14,7 @@ import type {
 } from "@/types";
 import { FLOW_STEPS_LINK, DOT_STEPS_BASE } from "@/constants";
 import { loadCheckinData } from "@/api/chekin.service";
-import { loginGuest } from "@/api/auth.service";
+import { loginMagicLink } from "@/api/auth.service";
 
 // ── Persistencia en sesión ────────────────────────────────────────────────────
 function getSession<T>(key: string, fallback: T): T {
@@ -211,8 +211,10 @@ export function useCheckin(tokenUrl?: string, stepUrl?: string) {
   const stateRef = useRef(state);
   const isInternalNavRef = useRef(false);
   const navigateRef = useRef(navigate);
+  // ALTO: ref para isNavigating timer — evita leak si el componente se desmonta
+const navTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);  // ALTO: ref para activeGuestIndex — evita stale closure en goTo
+  const activeGuestIndexRef = useRef(0);
 
-  // Mantiene navigateRef siempre actualizado sin añadirlo a deps del efecto de carga
   useEffect(() => {
     navigateRef.current = navigate;
   });
@@ -220,7 +222,19 @@ export function useCheckin(tokenUrl?: string, stepUrl?: string) {
   useEffect(() => {
     stateRef.current = state;
   }, [state]);
-  useEffect(() => setSession(`state_${token}`, state), [state, token]);
+
+  // ALTO: Excluir docFile de la persistencia en sessionStorage.
+  // docFile es un objeto File que JSON.stringify convierte a {} silenciosamente,
+  // corrompiendo el estado al restaurarlo. Los datos personales (PII) se eliminan
+  // de esta clave al completar el flujo con SESSION_KEYS_TO_CLEAR en CheckinContext.
+  useEffect(() => {
+    const persistableState = {
+      ...state,
+      guests: state.guests.map((g) => ({ ...g, docFile: null })),
+    };
+    setSession(`state_${token}`, persistableState);
+  }, [state, token]);
+
   useEffect(
     () => setSession(`history_${token}`, appHistory),
     [appHistory, token],
@@ -252,10 +266,16 @@ export function useCheckin(tokenUrl?: string, stepUrl?: string) {
 
         if (!yaAutenticado) {
           try {
-            await loginGuest(token, "");
+            // CRÍTICO: usar loginMagicLink (credenciales de servicio del .env),
+            // NO loginGuest — que intenta /auth/guest-login con surname vacío y da 401.
+            await loginMagicLink(token);
           } catch (authErr) {
-            console.error("[useCheckin] ❌ LOGIN FALLIDO:", authErr);
-            if (!cancelled) navigateRef.current("/invalid", { replace: true });
+            if (import.meta.env.DEV) {
+              console.error("[useCheckin] ❌ LOGIN FALLIDO:", authErr);
+            }
+            // ALTO: guard cancelled ANTES de cualquier efecto secundario
+            if (cancelled) return;
+            navigateRef.current("/invalid", { replace: true });
             return;
           }
         }
@@ -273,8 +293,12 @@ export function useCheckin(tokenUrl?: string, stepUrl?: string) {
           sessionStorage.setItem(`clientId_${token}`, String(result.clientId));
 
       } catch (err) {
+        // ALTO: guard cancelled ANTES de navegar — evita actualizaciones en
+        // componentes desmontados si load() sigue en vuelo al desmontar.
         if (cancelled) return;
-        console.error("[useCheckin] ❌ ERROR AL CARGAR RESERVA:", err);
+        if (import.meta.env.DEV) {
+          console.error("[useCheckin] ❌ ERROR AL CARGAR RESERVA:", err);
+        }
         navigateRef.current("/invalid", { replace: true });
       } finally {
         if (!cancelled) setIsLoading(false);
@@ -286,9 +310,15 @@ export function useCheckin(tokenUrl?: string, stepUrl?: string) {
       cancelled = true;
     };
   // navigate se excluye de deps intencionadamente — se accede via navigateRef
-  // para evitar que re-ejecute load() en cada navegación
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token, dispatch]);
+
+  // Limpiar el timer de isNavigating al desmontar (MEDIO fix)
+  useEffect(() => {
+    return () => {
+      if (navTimerRef.current) clearTimeout(navTimerRef.current);
+    };
+  }, []);
 
   const actualStep =
     (stepUrl as StepId) ??
@@ -301,6 +331,11 @@ export function useCheckin(tokenUrl?: string, stepUrl?: string) {
     return 0;
   })();
 
+  // ALTO: mantener ref sincronizada con activeGuestIndex para evitar stale closure en goTo
+  useEffect(() => {
+    activeGuestIndexRef.current = activeGuestIndex;
+  }, [activeGuestIndex]);
+
   const goTo = useCallback(
     (nextStep: StepId, dir: NavDirection = "forward", gIdx?: number) => {
       if (isNavigating) return;
@@ -310,13 +345,18 @@ export function useCheckin(tokenUrl?: string, stepUrl?: string) {
       setNavDirection(dir);
       setAppHistory((prev) => [
         ...prev,
-        { step: nextStep, guestIndex: gIdx ?? activeGuestIndex },
+        // ALTO: usar activeGuestIndexRef.current en lugar de activeGuestIndex
+        // para evitar stale closure cuando appHistory cambia entre renders.
+        { step: nextStep, guestIndex: gIdx ?? activeGuestIndexRef.current },
       ]);
       if (dir === "forward") navigate(`/checkin/${token}/${nextStep}`);
       else navigate(`/checkin/${token}/${nextStep}`, { replace: true });
-      setTimeout(() => setIsNavigating(false), 350);
+      // MEDIO: guardar el timer en ref para poder cancelarlo en unmount
+      navTimerRef.current = setTimeout(() => setIsNavigating(false), 350);
     },
-    [navigate, token, activeGuestIndex, isNavigating],
+    // activeGuestIndex eliminado de deps — se accede via ref para evitar recreaciones
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [navigate, token, isNavigating],
   );
 
   const goBack = useCallback(() => {
@@ -439,7 +479,7 @@ export function useCheckin(tokenUrl?: string, stepUrl?: string) {
         dispatch({
           type: "APPLY_SCAN",
           data,
-          guestIdx: idx ?? activeGuestIndex,
+          guestIdx: idx ?? activeGuestIndexRef.current,
         }),
       setHoraLlegada: (v) => dispatch({ type: "SET_HORA_LLEGADA", value: v }),
       setObservaciones: (v) =>
@@ -457,7 +497,6 @@ export function useCheckin(tokenUrl?: string, stepUrl?: string) {
       dotSteps,
       currentDotIndex,
       nextGuest,
-      activeGuestIndex,
     ],
   );
 

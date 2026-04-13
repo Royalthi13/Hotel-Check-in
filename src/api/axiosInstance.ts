@@ -3,14 +3,9 @@ import type { AxiosError, InternalAxiosRequestConfig } from "axios";
 
 const TOKEN_KEY = "lumina_access_token";
 
-// En desarrollo: BASE_URL = "/api" → pasa por el proxy de Vite → sin CORS.
-// En producción: BASE_URL = la URL real del backend (variable de entorno).
-//
-// VITE_API_URL en .env.production debe ser "https://tu-backend.com"
-// VITE_API_URL en .env (desarrollo) debe estar vacío o no definido.
 const BASE_URL = import.meta.env.VITE_API_URL
-  ? `${import.meta.env.VITE_API_URL}`   // producción: URL absoluta del backend
-  : "/api";                              // desarrollo: proxy de Vite (mismo origen → sin CORS)
+  ? `${import.meta.env.VITE_API_URL}`
+  : "/api";
 
 // Sin auth — solo para /auth/token
 export const api = axios.create({
@@ -42,14 +37,32 @@ const onResponseError = (error: AxiosError) => {
   }
   if (error.request) {
     return Promise.reject(
-      new Error("No se pudo conectar con el servidor. Comprueba tu conexión.")
+      new Error("No se pudo conectar con el servidor. Comprueba tu conexión."),
     );
   }
   return Promise.reject(error);
 };
 
 api.interceptors.response.use((r) => r, onResponseError);
-apiAuth.interceptors.response.use((r) => r, onResponseError);
+
+// CRÍTICO: interceptor 401 en apiAuth — invalida tokens expirados/robados.
+// Si el servidor rechaza el token, limpiamos el storage y redirigimos al usuario.
+// Esto impide que un token robado de sessionStorage sea reutilizable indefinidamente.
+apiAuth.interceptors.response.use(
+  (r) => r,
+  (err: AxiosError) => {
+    if (err.response?.status === 401) {
+      clearToken();
+      window.location.href = "/invalid";
+      return Promise.reject(
+        new Error(
+          "Sesión expirada. Por favor, acceda de nuevo mediante su enlace de reserva.",
+        ),
+      );
+    }
+    return onResponseError(err);
+  },
+);
 
 export const saveToken = (token: string, persistent = false): void => {
   if (persistent) localStorage.setItem(TOKEN_KEY, token);

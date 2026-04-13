@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import { Button, Icon, Alert } from "@/components/ui";
 import { useZipCode } from "@/hooks/useZipCode";
@@ -9,6 +9,7 @@ import {
   validateContacto,
 } from "@/hooks/useFormValidation";
 import type { PartialGuestData } from "@/types";
+import type { TFunction } from "i18next";
 import { DatePicker } from "@mui/x-date-pickers";
 import {
   TextField,
@@ -418,9 +419,13 @@ export const ScreenFormContacto: React.FC = () => {
     [state.knownGuest],
   );
 
-  const { errors, validate, clearError } = useFormValidation(
-    (d: PartialGuestData, t) => validateContacto(d, t, lockedFields),
+  // MEDIO: memorizar el validator para evitar que useFormValidation reciba una
+  // nueva función en cada render, forzando la recreación de validate y re-renders en cadena.
+  const contactoValidator = useCallback(
+    (d: PartialGuestData, tf: TFunction) => validateContacto(d, tf, lockedFields),
+    [lockedFields],
   );
+  const { errors, validate, clearError } = useFormValidation(contactoValidator);
 
   const { buscarCP, isSearching } = useZipCode((key, val) =>
     handleUpdate(key, val),
@@ -570,8 +575,6 @@ export const ScreenFormContacto: React.FC = () => {
           p: 1,
         }}
       >
-        {" "}
-        {/* 🟢 overflowX: "hidden" mata el scroll horizontal */}
         {filtered.length > 0 ? (
           filtered.map((c) => (
             <MenuItem
@@ -592,7 +595,6 @@ export const ScreenFormContacto: React.FC = () => {
                 alt=""
                 style={{ borderRadius: "2px", flexShrink: 0 }}
               />
-
               <Typography
                 sx={{
                   flexGrow: 1,
@@ -604,7 +606,6 @@ export const ScreenFormContacto: React.FC = () => {
               >
                 {c.nameTranslated}
               </Typography>
-
               {showDial && c.dial && (
                 <Typography
                   sx={{
@@ -804,13 +805,19 @@ export const ScreenFormContacto: React.FC = () => {
               sx={inputSx}
             />
             {data.direccion && (
-  <span style={{
-    fontSize: 10, color: 'var(--ok)', display: 'flex',
-    alignItems: 'center', gap: 3, marginTop: 3,
-  }}>
-    📷 Auto-rellenado desde el DNI
-  </span>
-)}
+              <span
+                style={{
+                  fontSize: 10,
+                  color: "var(--ok)",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 3,
+                  marginTop: 3,
+                }}
+              >
+                {t("forms.autofill_from_doc")}
+              </span>
+            )}
 
             <Divider
               sx={{ my: 1, typography: "overline", color: "var(--text-low)" }}
@@ -882,16 +889,11 @@ export const ScreenFormContacto: React.FC = () => {
                     handleUpdate("cp", e.target.value.toUpperCase());
                     clearError("cp");
                   }}
-                 onBlur={() => {
-  if (data.cp && data.pais) {
-    // Para España: rellena ciudad/provincia desde el backend de ciudades
-    // Para otros países: usa zippopotam.us
-    // Solo si ciudad aún no está rellena (no sobreescribir si vino del OCR)
-    if (!data.ciudad?.trim()) {
-      buscarCP(data.cp, data.pais);
-    }
-  }
-}}
+                  onBlur={() => {
+                    if (data.cp && data.pais && !data.ciudad?.trim()) {
+                      buscarCP(data.cp, data.pais);
+                    }
+                  }}
                   onKeyDown={(e) => {
                     if (e.key === "Enter") {
                       e.preventDefault();
