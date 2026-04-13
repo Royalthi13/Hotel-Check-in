@@ -1,14 +1,16 @@
-import React, {  useContext, useState, useEffect } from "react";
+import React, { useContext, useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useCheckin } from "@/hooks/useCheckin";
 import { submitCheckin, savePartialCheckin } from "@/api/chekin.service";
-import type { CheckinState, CheckinNav, CheckinActions } from "@/types";
+import type {
+  CheckinState,
+  CheckinNav,
+  CheckinActions,
+  PartialGuestData,
+} from "@/types";
 import axios from "axios";
-import { CheckinContext } from "./CheckinContextDef";  // ← aquí arriba
-
-
-
+import { CheckinContext } from "./CheckinContextDef"; // ← aquí arriba
 
 export const CheckinProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
@@ -90,12 +92,13 @@ export const CheckinProvider: React.FC<{ children: React.ReactNode }> = ({
     setIsSubmitting(true);
     try {
       const { bookingId, clientId } = getBackendIds();
+      const mappedGuests = state.guests.map(mapGuestForBackend);
 
       if (isPartial) {
         const newClientId = await savePartialCheckin(
           bookingId,
           clientId,
-          state.guests[0],
+          mappedGuests[0],
         );
         sessionStorage.setItem(`clientId_${token}`, String(newClientId));
         setIsPartialSuccess(true);
@@ -105,7 +108,7 @@ export const CheckinProvider: React.FC<{ children: React.ReactNode }> = ({
       await submitCheckin({
         bookingId,
         clientId,
-        guests: state.guests,
+        guests: mappedGuests,
         horaLlegada: state.horaLlegada,
         observaciones: state.observaciones,
       });

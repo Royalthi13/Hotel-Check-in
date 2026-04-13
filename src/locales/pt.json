@@ -205,13 +205,10 @@
     "error_message": "Não conseguimos verificar sua reserva. Por favor, verifique o sobrenome informado."
   },
   "rooms": {
-    "habitacion_estandar": "Quarto Standard",
-    "habitacion_individual": "Quarto Individual",
-    "habitacion_doble": "Quarto Duplo",
-    "habitacion_superior": "Quarto Superior",
-    "habitacion_deluxe": "Quarto Deluxe",
-    "habitacion_familiar": "Quarto Familiar",
-    "suite_junior": "Suíte Júnior",
+    "individual": "Quarto Individual",
+    "doble": "Quarto Twin",
+    "triple": "Quarto Triplo",
+    "matrimonio": "Quarto de Casal",
     "suite": "Suíte"
   },
   "search": {

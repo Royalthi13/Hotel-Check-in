@@ -17,6 +17,20 @@ export type StepId =
   | "revision"
   | "exito";
 
+// ─── Room Type ──────────────────────────────────────────────────────────────────
+
+export type RoomTypeName =
+  | "Individual"
+  | "Doble"
+  | "Triple"
+  | "Matrimonio"
+  | "Suite";
+
+export interface RoomTypeResponse {
+  id: number;
+  name: RoomTypeName;
+}
+
 // ─── Reserva ──────────────────────────────────────────────────────────────────
 export interface Reserva {
   confirmacion: string;

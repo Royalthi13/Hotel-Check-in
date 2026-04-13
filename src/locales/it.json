@@ -205,13 +205,10 @@
     "error_message": "Non siamo riusciti a verificare la tua prenotazione. Controlla il cognome inserito."
   },
   "rooms": {
-    "habitacion_estandar": "Camera Standard",
-    "habitacion_individual": "Camera Singola",
-    "habitacion_doble": "Camera Doppia",
-    "habitacion_superior": "Camera Superior",
-    "habitacion_deluxe": "Camera Deluxe",
-    "habitacion_familiar": "Camera Familiare",
-    "suite_junior": "Junior Suite",
+    "individual": "Camera Singola",
+    "doble": "Camera Doppia",
+    "triple": "Camera Tripla",
+    "matrimonio": "Camera Matrimoniale",
     "suite": "Suite"
   },
   "search": {

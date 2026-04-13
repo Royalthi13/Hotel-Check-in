@@ -200,13 +200,10 @@
     "error_message": "We could not verify your booking. Please check the last name provided."
   },
   "rooms": {
-    "habitacion_estandar": "Standard Room",
-    "habitacion_individual": "Single Room",
-    "habitacion_doble": "Double Room",
-    "habitacion_superior": "Superior Room",
-    "habitacion_deluxe": "Deluxe Room",
-    "habitacion_familiar": "Family Room",
-    "suite_junior": "Junior Suite",
+    "individual": "Single Room",
+    "doble": "Twin Room",
+    "triple": "Triple Room",
+    "matrimonio": "Double Room",
     "suite": "Suite"
   },
   "search": {
