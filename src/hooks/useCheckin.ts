@@ -16,7 +16,7 @@ import { FLOW_STEPS_LINK, DOT_STEPS_BASE } from "@/constants";
 import { loadCheckinData } from "@/api/chekin.service";
 import { loginMagicLink } from "@/api/auth.service";
 
-// ── Funciones de persistencia en sesión ──────────────────────────────────────
+// ── Persistencia en sesión ────────────────────────────────────────────────────
 function getSession<T>(key: string, fallback: T): T {
   try {
     const stored = sessionStorage.getItem(key);
@@ -32,7 +32,7 @@ function setSession<T>(key: string, value: T): void {
   } catch {}
 }
 
-// ── Tipos y Estado inicial ──────────────────────────────────────────────────
+// ── Tipos y Estado inicial ────────────────────────────────────────────────────
 export type CheckinAction =
   | { type: "SET_KNOWN_GUEST"; guest: GuestData }
   | { type: "SET_RESERVA_TABLET"; reserva: Reserva }
@@ -91,7 +91,7 @@ function mergeGuests(
   );
 }
 
-// ── Reducer ──────────────────────────────────────────────────────────────────
+// ── Reducer ───────────────────────────────────────────────────────────────────
 export function checkinReducer(
   state: CheckinState,
   action: CheckinAction,
@@ -188,7 +188,7 @@ export function checkinReducer(
   }
 }
 
-// ── Hook Principal ───────────────────────────────────────────────────────────
+// ── Hook Principal ────────────────────────────────────────────────────────────
 export function useCheckin(tokenUrl?: string, stepUrl?: string) {
   const navigate = useNavigate();
   const token = tokenUrl ?? "new";
@@ -210,6 +210,12 @@ export function useCheckin(tokenUrl?: string, stepUrl?: string) {
 
   const stateRef = useRef(state);
   const isInternalNavRef = useRef(false);
+  const navigateRef = useRef(navigate);
+
+  // Mantiene navigateRef siempre actualizado sin añadirlo a deps del efecto de carga
+  useEffect(() => {
+    navigateRef.current = navigate;
+  });
 
   useEffect(() => {
     stateRef.current = state;
@@ -229,7 +235,7 @@ export function useCheckin(tokenUrl?: string, stepUrl?: string) {
     [],
   );
 
-  // ── Carga via Axios con Login Mágico Automático ──────────────────────────
+  // ── Carga con Login Automático ────────────────────────────────────────────
   useEffect(() => {
     if (token === "new") {
       setIsLoading(false);
@@ -240,24 +246,24 @@ export function useCheckin(tokenUrl?: string, stepUrl?: string) {
 
     async function load() {
       try {
-        // 1. INTENTO DE LOGIN AUTOMÁTICO
-        if (!sessionStorage.getItem("token")) {
+        const yaAutenticado =
+          sessionStorage.getItem("lumina_access_token") ??
+          localStorage.getItem("lumina_access_token");
+
+        if (!yaAutenticado) {
           try {
             await loginMagicLink(token);
           } catch (authErr) {
-            console.error(
-              "[useCheckin] El enlace mágico no es válido:",
-              authErr,
-            );
-            if (!cancelled) navigate("/invalid", { replace: true });
+            console.error("[useCheckin] ❌ LOGIN FALLIDO:", authErr);
+            if (!cancelled) navigateRef.current("/invalid", { replace: true });
             return;
           }
         }
 
-        // 2. CARGA DE DATOS DE LA RESERVA
         const result = await loadCheckinData(token);
 
         if (cancelled) return;
+
         if (result.knownGuest)
           dispatch({ type: "SET_KNOWN_GUEST", guest: result.knownGuest });
         dispatch({ type: "SET_RESERVA", reserva: result.reserva });
@@ -265,10 +271,11 @@ export function useCheckin(tokenUrl?: string, stepUrl?: string) {
         sessionStorage.setItem(`bookingId_${token}`, String(result.bookingId));
         if (result.clientId)
           sessionStorage.setItem(`clientId_${token}`, String(result.clientId));
+
       } catch (err) {
         if (cancelled) return;
-        console.error("[useCheckin] Error al cargar datos:", err);
-        navigate("/invalid", { replace: true });
+        console.error("[useCheckin] ❌ ERROR AL CARGAR RESERVA:", err);
+        navigateRef.current("/invalid", { replace: true });
       } finally {
         if (!cancelled) setIsLoading(false);
       }
@@ -278,7 +285,10 @@ export function useCheckin(tokenUrl?: string, stepUrl?: string) {
     return () => {
       cancelled = true;
     };
-  }, [token, dispatch, navigate]);
+  // navigate se excluye de deps intencionadamente — se accede via navigateRef
+  // para evitar que re-ejecute load() en cada navegación
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [token, dispatch]);
 
   const actualStep =
     (stepUrl as StepId) ??

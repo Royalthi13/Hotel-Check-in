@@ -29,7 +29,7 @@ import { usePlaces } from "@/hooks/usePlaces";
 import dayjs from "dayjs";
 import "dayjs/locale/es";
 import { useDebounce } from "@/hooks/useDebounce";
-import { useCheckinContext } from "@/context/CheckinContext";
+import { useCheckinContext } from "@/context/useCheckinContext";
 import { formatDocument, formatPhoneNumber } from "@/utils/formatters";
 
 const inputSx = {
@@ -960,7 +960,7 @@ export const ScreenFormContacto: React.FC = () => {
                     value={data.ciudad || ""}
                     onInputChange={(_, v) => {
                       handleUpdate("ciudad", v || "");
-                      cargarMunicipios(v || "", data.provincia as string);
+                      cargarMunicipios(v || "");
                       clearError("ciudad");
                     }}
                     renderInput={(p) => (

@@ -1,51 +1,54 @@
-
 import { useState, useCallback } from "react";
 import { getCityByCode } from "@/api/cities.service";
-import { api } from "@/api/axiosInstance";
 import type { PartialGuestData } from "@/types";
- 
+
 type OnChangeFn = (key: keyof PartialGuestData, value: unknown) => void;
- 
+
 const PAIS_A_ISO2: Record<string, string> = {
-  ES: "es", GB: "gb", FR: "fr", DE: "de", IT: "it",
+  GB: "gb", FR: "fr", DE: "de", IT: "it",
   NL: "nl", BE: "be", PT: "pt", IE: "ie", US: "us",
   CH: "ch", SE: "se", NO: "no", DK: "dk", AT: "at",
   PL: "pl", FI: "fi", MX: "mx", AR: "ar", CO: "co",
+  CA: "ca", AU: "au", NZ: "nz", BR: "br", CL: "cl",
 };
- 
-interface ZippopotamResponse {
-  places: Array<{
-    "place name": string;
-    state: string;
-  }>;
+
+interface ZippopotamPlace {
+  "place name": string;
+  state: string;
 }
- 
+interface ZippopotamResponse {
+  places: ZippopotamPlace[];
+}
+
 export function useZipCode(onChange: OnChangeFn) {
   const [isSearching, setIsSearching] = useState(false);
- 
+
   const buscarCP = useCallback(
     async (cp: string, pais: string) => {
       if (!cp.trim() || !pais) return;
       setIsSearching(true);
- 
+
       try {
         if (pais === "ES") {
-          // Backend FastAPI
+          // GET /cities/{code} — la tabla solo tiene codcity y name.
+          // El codcity del backend es el código INE del municipio, no el CP.
+          // Si el usuario escribe el CP (5 dígitos), los 2 primeros = provincia,
+          // pero no hay lookup directo por CP en el backend actual.
+          // Buscamos por si el código coincide directamente.
           const city = await getCityByCode(cp);
-          if (city) {
-            if (city.name)     onChange("ciudad",    city.name);
-            if (city.province) onChange("provincia", city.province);
-          }
+          if (city?.name) onChange("ciudad", city.name);
+          // Nota: sin campo province en la DB, no rellenamos provincia automáticamente.
         } else {
-          // API externa para países extranjeros
+          // API pública para países extranjeros
           const iso2 = PAIS_A_ISO2[pais];
           if (!iso2) return;
- 
-          const { data } = await api.get<ZippopotamResponse>(
+
+          const res = await fetch(
             `https://api.zippopotam.us/${iso2}/${cp.trim()}`,
-            { baseURL: "" }
           );
- 
+          if (!res.ok) return;
+
+          const data: ZippopotamResponse = await res.json();
           const place = data?.places?.[0];
           if (place) {
             if (place["place name"]) onChange("ciudad",    place["place name"]);
@@ -53,13 +56,13 @@ export function useZipCode(onChange: OnChangeFn) {
           }
         }
       } catch {
-        // CP no encontrado: el usuario lo escribe a mano
+        // CP no encontrado — el usuario lo escribe a mano
       } finally {
         setIsSearching(false);
       }
     },
-    [onChange]
+    [onChange],
   );
- 
+
   return { buscarCP, isSearching };
 }

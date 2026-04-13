@@ -1,10 +1,14 @@
+// src/mocks/handlers.ts
+// Handlers MSW que replican el comportamiento del backend real.
+// En producción, estos mocks se bypassan y las llamadas van al servidor.
+// En desarrollo (VITE_USE_MOCKS=true), este worker intercepta las peticiones.
 
 import { http, HttpResponse, delay } from "msw";
- 
+
 type ClientRecord    = Record<string, unknown>;
 type BookingRecord   = Record<string, unknown>;
 type CompanionRecord = { id: number; booking_id: number; client_id: number; relationship?: string };
- 
+
 const CLIENTS: Record<number, ClientRecord> = {
   1: {
     id: 1, name: "María", surname: "García", second_surname: "Fernández",
@@ -25,7 +29,7 @@ const CLIENTS: Record<number, ClientRecord> = {
     vat: null, is_minor: false,
   },
 };
- 
+
 const BOOKINGS: Record<number, BookingRecord> = {
   78432: {
     id: 78432, confirmation_number: "#LM-78432",
@@ -49,16 +53,34 @@ const BOOKINGS: Record<number, BookingRecord> = {
     room: { id: 7, room_number: "343", room_type: { id: 1, name: "Habitación Estándar" } },
   },
 };
- 
+
 let nextClientId    = 100;
 let nextCompanionId = 200;
 const companions: CompanionRecord[] = [];
- 
+
+// ── Mock ciudades — muestra mínima que replica el schema real (codcity, name) ──
+// En desarrollo con el backend levantado, estas rutas no se usan (onUnhandledRequest: bypass).
+// Solo actúan si el backend está caído y se quiere probar el UI offline.
+const MOCK_CITIES = [
+  { codcity: "28079", name: "Madrid" },
+  { codcity: "28016", name: "Majadahonda" },
+  { codcity: "08019", name: "Barcelona" },
+  { codcity: "41091", name: "Sevilla" },
+  { codcity: "46250", name: "Valencia" },
+  { codcity: "50297", name: "Zaragoza" },
+  { codcity: "29067", name: "Málaga" },
+  { codcity: "48020", name: "Bilbao" },
+];
+
 export const handlers = [
+
+  // ── Auth ────────────────────────────────────────────────────────────────────
   http.post("/auth/token", async () => {
     await delay(300);
-    return HttpResponse.json({ access_token: "mock-dev-token", token_type: "bearer" });
+    return HttpResponse.json({ access_token: "mock-dev-token-jwt", token_type: "bearer" });
   }),
+
+  // ── Bookings ─────────────────────────────────────────────────────────────────
   http.get("/bookings/:id", async ({ params }) => {
     await delay(600);
     const booking = BOOKINGS[Number(params.id)];
@@ -74,12 +96,30 @@ export const handlers = [
     }
     return HttpResponse.json(Object.values(BOOKINGS));
   }),
+  http.get("/bookings/:id/companions", async ({ params }) => {
+    await delay(300);
+    const bookingId = Number(params.id);
+    return HttpResponse.json(companions.filter((c) => c.booking_id === bookingId));
+  }),
   http.put("/bookings/:id", async ({ params, request }) => {
     await delay(400);
     const booking = BOOKINGS[Number(params.id)];
     if (!booking) return HttpResponse.json({ detail: "Not found" }, { status: 404 });
     Object.assign(booking, await request.json());
     return HttpResponse.json(booking);
+  }),
+
+  // ── Clients ──────────────────────────────────────────────────────────────────
+  http.get("/clients/search", async ({ request }) => {
+    await delay(300);
+    const q = new URL(request.url).searchParams.get("q")?.toLowerCase() ?? "";
+    const results = Object.values(CLIENTS).filter(
+      (c) =>
+        String(c.name).toLowerCase().includes(q) ||
+        String(c.surname).toLowerCase().includes(q) ||
+        String(c.document_number).toLowerCase().includes(q),
+    );
+    return HttpResponse.json(results);
   }),
   http.get("/clients/:id", async ({ params }) => {
     await delay(400);
@@ -107,13 +147,26 @@ export const handlers = [
     if (!CLIENTS[id]) return HttpResponse.json({ detail: "Not found" }, { status: 404 });
     return HttpResponse.json({ ...CLIENTS[id], validated: true });
   }),
+  http.delete("/clients/:id", async ({ params }) => {
+    await delay(300);
+    delete CLIENTS[Number(params.id)];
+    return new HttpResponse(null, { status: 204 });
+  }),
+
+  // ── Companions ───────────────────────────────────────────────────────────────
   http.get("/companions/booking/:bookingId", async ({ params }) => {
     await delay(300);
-    return HttpResponse.json(companions.filter((c) => c.booking_id === Number(params.bookingId)));
+    return HttpResponse.json(
+      companions.filter((c) => c.booking_id === Number(params.bookingId)),
+    );
   }),
   http.post("/companions", async ({ request }) => {
     await delay(400);
-    const body = await request.json() as { booking_id: number; client_id: number; relationship?: string };
+    const body = await request.json() as {
+      booking_id: number;
+      client_id: number;
+      relationship?: string;
+    };
     const newCompanion: CompanionRecord = { id: nextCompanionId++, ...body };
     companions.push(newCompanion);
     return HttpResponse.json(newCompanion, { status: 201 });
@@ -124,51 +177,80 @@ export const handlers = [
     if (idx !== -1) companions.splice(idx, 1);
     return new HttpResponse(null, { status: 204 });
   }),
+
+  // ── Cities — schema real: { codcity, name } ──────────────────────────────────
+  // IMPORTANTE: /cities/name/:name debe ir ANTES de /cities/:code
   http.get("/cities/name/:name", async ({ params }) => {
-    await delay(200);
-    // Mock básico - el backend real devolverá los datos reales
-    const name = String(params.name).toLowerCase();
-    const mockCities = [
-      { code: "28079", name: "Madrid",    province: "Madrid",    postal_code: "28001" },
-      { code: "08019", name: "Barcelona", province: "Barcelona", postal_code: "08001" },
-      { code: "41091", name: "Sevilla",   province: "Sevilla",   postal_code: "41001" },
-      { code: "46250", name: "Valencia",  province: "Valencia",  postal_code: "46001" },
-      { code: "50297", name: "Zaragoza",  province: "Zaragoza",  postal_code: "50001" },
-    ].filter((c) => c.name.toLowerCase().startsWith(name));
-    return HttpResponse.json(mockCities);
+    await delay(150);
+    const search = String(params.name).toLowerCase();
+    const results = MOCK_CITIES.filter((c) =>
+      c.name.toLowerCase().includes(search),
+    );
+    return results.length > 0
+      ? HttpResponse.json(results)
+      : new HttpResponse(null, { status: 204 });
   }),
   http.get("/cities/:code", async ({ params }) => {
     await delay(200);
-    const mockByCP: Record<string, object> = {
-      "28001": { code: "28079", name: "Madrid",    province: "Madrid",    postal_code: "28001" },
-      "08001": { code: "08019", name: "Barcelona", province: "Barcelona", postal_code: "08001" },
-      "41001": { code: "41091", name: "Sevilla",   province: "Sevilla",   postal_code: "41001" },
-      "46001": { code: "46250", name: "Valencia",  province: "Valencia",  postal_code: "46001" },
-    };
-    const city = mockByCP[String(params.code)];
-    if (!city) return HttpResponse.json({ detail: "Not found" }, { status: 404 });
+    const code = String(params.code);
+    const city = MOCK_CITIES.find((c) => c.codcity === code);
+    if (!city) return HttpResponse.json({ detail: "Ciudad no encontrada" }, { status: 404 });
     return HttpResponse.json(city);
   }),
-  http.get("/countries", () => HttpResponse.json([
-    { codpais: "ESP", name: "España",          iso2: "ES" },
-    { codpais: "GBR", name: "United Kingdom",  iso2: "GB" },
-    { codpais: "FRA", name: "France",           iso2: "FR" },
-    { codpais: "DEU", name: "Germany",          iso2: "DE" },
-    { codpais: "ITA", name: "Italy",            iso2: "IT" },
-    { codpais: "PRT", name: "Portugal",         iso2: "PT" },
-  ])),
-  http.get("/documents_type", () => HttpResponse.json([
-    { coddoc: "DNI",       name: "DNI" },
-    { coddoc: "NIE",       name: "NIE" },
-    { coddoc: "Pasaporte", name: "Pasaporte" },
-    { coddoc: "CIF",       name: "CIF" },
-    { coddoc: "Otro",      name: "Otro" },
-  ])),
-  http.get("/relationships", () => HttpResponse.json([
-    { codrelation: "hijo",    name: "Hijo/a" },
-    { codrelation: "sobrino", name: "Sobrino/a" },
-    { codrelation: "tutor",   name: "Tutor legal" },
-    { codrelation: "otro",    name: "Otro" },
-  ])),
+
+  // ── Countries ────────────────────────────────────────────────────────────────
+  http.get("/countries/name/:name", async () => {
+    await delay(150);
+    return HttpResponse.json([]);
+  }),
+  http.get("/countries", () =>
+    HttpResponse.json([
+      { codpais: "ESP", name: "España",          iso2: "ES" },
+      { codpais: "GBR", name: "United Kingdom",  iso2: "GB" },
+      { codpais: "FRA", name: "France",           iso2: "FR" },
+      { codpais: "DEU", name: "Germany",          iso2: "DE" },
+      { codpais: "ITA", name: "Italy",            iso2: "IT" },
+      { codpais: "PRT", name: "Portugal",         iso2: "PT" },
+      { codpais: "USA", name: "United States",    iso2: "US" },
+      { codpais: "MEX", name: "México",           iso2: "MX" },
+      { codpais: "ARG", name: "Argentina",        iso2: "AR" },
+    ]),
+  ),
+
+  // ── Catalogs ─────────────────────────────────────────────────────────────────
+  http.get("/documents_type", () =>
+    HttpResponse.json([
+      { coddoc: "DNI",       name: "DNI" },
+      { coddoc: "NIE",       name: "NIE" },
+      { coddoc: "Pasaporte", name: "Pasaporte" },
+      { coddoc: "CIF",       name: "CIF" },
+      { coddoc: "Otro",      name: "Otro" },
+    ]),
+  ),
+  http.get("/relationships", () =>
+    HttpResponse.json([
+      { codrelation: "hijo",    name: "Hijo/a" },
+      { codrelation: "sobrino", name: "Sobrino/a" },
+      { codrelation: "tutor",   name: "Tutor legal" },
+      { codrelation: "otro",    name: "Otro" },
+    ]),
+  ),
+
+  // ── Room Status / Type ────────────────────────────────────────────────────────
+  http.get("/room_status", () =>
+    HttpResponse.json([
+      { id: 1, name: "Disponible" },
+      { id: 2, name: "Ocupada" },
+      { id: 3, name: "Limpieza" },
+      { id: 4, name: "Mantenimiento" },
+    ]),
+  ),
+  http.get("/room_type", () =>
+    HttpResponse.json([
+      { id: 1, name: "Habitación Estándar" },
+      { id: 2, name: "Habitación Doble" },
+      { id: 3, name: "Suite Junior" },
+      { id: 4, name: "Suite" },
+    ]),
+  ),
 ];
- 

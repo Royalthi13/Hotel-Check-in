@@ -1,72 +1,44 @@
-
 import { useState, useCallback } from "react";
 import { searchCitiesByName } from "@/api/cities.service";
- 
+
+// La tabla cities solo tiene codcity y name.
+// El autocomplete devuelve nombres de ciudades.
 export interface Municipio {
-  nombre:    string;
-  provincia: string;
+  nombre: string;
 }
- 
+
 export function usePlaces() {
-  const [sugerenciasProvincias, setSugerenciasProvincias] = useState<string[]>([]);
   const [sugerenciasMunicipios, setSugerenciasMunicipios] = useState<Municipio[]>([]);
   const [isLoading, setIsLoading] = useState(false);
- 
-  const cargarProvincias = useCallback(async (texto: string) => {
+
+  // Autocomplete de ciudades a partir del texto escrito
+  const cargarMunicipios = useCallback(async (texto: string) => {
     if (!texto || texto.length < 2) {
-      setSugerenciasProvincias([]);
+      setSugerenciasMunicipios([]);
       return;
     }
     setIsLoading(true);
     try {
       const cities = await searchCitiesByName(texto);
-      const provincias = [
-        ...new Set(
-          cities
-            .map((c) => c.province)
-            .filter((p) => p && p.toLowerCase().includes(texto.toLowerCase()))
-        ),
-      ].slice(0, 8);
-      setSugerenciasProvincias(provincias);
+      setSugerenciasMunicipios(cities.map((c) => ({ nombre: c.name })));
     } catch {
-      setSugerenciasProvincias([]);
+      setSugerenciasMunicipios([]);
     } finally {
       setIsLoading(false);
     }
   }, []);
- 
-  const cargarMunicipios = useCallback(
-    async (texto: string, provincia?: string) => {
-      if (!texto || texto.length < 2) {
-        setSugerenciasMunicipios([]);
-        return;
-      }
-      setIsLoading(true);
-      try {
-        const cities = await searchCitiesByName(texto);
-        const municipios: Municipio[] = cities
-          .filter((c) =>
-            provincia
-              ? c.province.toLowerCase() === provincia.toLowerCase()
-              : true
-          )
-          .map((c) => ({ nombre: c.name, provincia: c.province }));
-        setSugerenciasMunicipios(municipios);
-      } catch {
-        setSugerenciasMunicipios([]);
-      } finally {
-        setIsLoading(false);
-      }
-    },
-    []
-  );
- 
+
+  const limpiarSugerencias = useCallback(() => {
+    setSugerenciasMunicipios([]);
+  }, []);
+
   return {
-    sugerenciasProvincias,
     sugerenciasMunicipios,
-    cargarProvincias,
+    // Compatibilidad con el código existente que usa cargarProvincias
+    sugerenciasProvincias: [] as string[],
+    cargarProvincias: (_texto: string) => Promise.resolve(),
     cargarMunicipios,
+    limpiarSugerencias,
     isLoading,
   };
 }
- 

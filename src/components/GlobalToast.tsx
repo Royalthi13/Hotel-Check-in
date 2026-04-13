@@ -1,6 +1,6 @@
 import React, { useEffect } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { useCheckinContext } from "../context/CheckinContext";
+import { useCheckinContext } from "../context/useCheckinContext";
 import { Icon } from "./ui";
 import { useTranslation } from "react-i18next";
 

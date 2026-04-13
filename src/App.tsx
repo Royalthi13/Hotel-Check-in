@@ -1,11 +1,11 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import "./App.css";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
-import { CheckinProvider, useCheckinContext } from "@/context/CheckinContext";
+import { useCheckinContext } from "@/context/useCheckinContext";
 import { AppShell } from "@/layout/AppShell";
 import { LoadingSpinner, Alert, Icon } from "@/components/ui";
 import { useTranslation } from "react-i18next";
-
+import { CheckinProvider } from "@/context/CheckinContext";
 // --- PANTALLAS ---
 import { ScreenTabletBuscar } from "@/screens/ScreenTabletBuscar";
 import { ScreenBienvenida } from "@/screens/ScreenBienvenida";

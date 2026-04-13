@@ -1,44 +1,14 @@
-import React, { createContext, useContext, useState, useEffect } from "react";
+import React, {  useContext, useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useCheckin } from "@/hooks/useCheckin";
 import { submitCheckin, savePartialCheckin } from "@/api/chekin.service";
 import type { CheckinState, CheckinNav, CheckinActions } from "@/types";
 import axios from "axios";
+import { CheckinContext } from "./CheckinContextDef";  // ← aquí arriba
 
-interface CheckinContextValue {
-  state: CheckinState;
-  nav: CheckinNav;
-  actions: CheckinActions;
-  isLoading: boolean;
-  submitError: string;
-  isSubmitting: boolean;
-  isOffline: boolean;
-  isPartialSuccess: boolean;
-  legalPassed: boolean;
-  setLegalPassed: React.Dispatch<React.SetStateAction<boolean>>;
-  hasMinorsFlag: boolean;
-  setHasMinorsFlag: React.Dispatch<React.SetStateAction<boolean>>;
-  token: string;
-  handleChooseMethod: (method: "scan" | "manual") => void;
-  handleSubmit: () => Promise<void>;
-  handlePartialSubmit: () => Promise<void>;
-  validationTrigger: number;
-  triggerFormValidation: () => void;
-  clearSubmitError: () => void;
-}
 
-const CheckinContext = createContext<CheckinContextValue | null>(null);
 
-// eslint-disable-next-line react-refresh/only-export-components
-export const useCheckinContext = () => {
-  const ctx = useContext(CheckinContext);
-  if (!ctx)
-    throw new Error(
-      "useCheckinContext debe usarse dentro de un CheckinProvider",
-    );
-  return ctx;
-};
 
 export const CheckinProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
