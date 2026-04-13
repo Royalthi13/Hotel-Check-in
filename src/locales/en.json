@@ -200,11 +200,11 @@
     "error_message": "We could not verify your booking. Please check the last name provided."
   },
   "rooms": {
-    "Individual": "Single Room",
-    "Doble": "Twin Room",
-    "Triple": "Triple Room",
-    "Matrimonio": "Double Room",
-    "Suite": "Suite"
+    "individual": "Single Room",
+    "doble": "Twin Room",
+    "triple": "Triple Room",
+    "matrimonio": "Double Room",
+    "suite": "Suite"
   },
   "search": {
     "phone_prefix_placeholder": "Search country or prefix...",

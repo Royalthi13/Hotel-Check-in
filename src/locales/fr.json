@@ -384,11 +384,11 @@
     "error_message": "Nous n'avons pas pu vérifier votre réservation. Veuillez vérifier le nom fourni."
   },
   "rooms": {
-    "Individual": "Chambre Individuelle",
-    "Doble": "Chambre Twin",
-    "Triple": "Chambre Triple",
-    "Matrimonio": "Chambre Double",
-    "Suite": "Suite"
+    "individual": "Chambre Individuelle",
+    "doble": "Chambre Twin",
+    "triple": "Chambre Triple",
+    "matrimonio": "Chambre Double",
+    "suite": "Suite"
   },
   "disabled": {
     "title": "Pré-check-in non disponible",

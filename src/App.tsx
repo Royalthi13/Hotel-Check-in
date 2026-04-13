@@ -255,7 +255,10 @@ export default function App() {
     <BrowserRouter>
       <Routes>
         {/* El enlace del email ahora apunta directamente aquí: /checkin/TOKEN/inicio */}
-        <Route path="/" element={<Navigate to="/invalid" replace />} />
+        <Route
+          path="/"
+          element={<Navigate to="/checkin/new/inicio" replace />}
+        />
 
         {/* Ruta para el staff/tablet */}
         <Route

@@ -2,6 +2,7 @@ import React from "react";
 import ReactDOM from "react-dom/client";
 import App from "./App";
 import "./index.css";
+import "./App.css";
 import "./i18n";
 import "@/styles/variables.css";
 import "@/styles/base.css";

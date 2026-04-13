@@ -388,11 +388,11 @@
     "error_message": "No hemos podido verificar tu reserva. Comprueba el apellido del titular."
   },
   "rooms": {
-    "Individual": "Habitación Individual",
-    "Doble": "Habitación Doble",
-    "Triple": "Habitación Triple",
-    "Matrimonio": "Habitación de Matrimonio",
-    "Suite": "Suite"
+    "individual": "Habitación Individual",
+    "doble": "Habitación Doble",
+    "triple": "Habitación Triple",
+    "matrimonio": "Habitación de Matrimonio",
+    "suite": "Suite"
   },
   "disabled": {
     "title": "Pre-check-in no disponible",

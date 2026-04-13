@@ -34,7 +34,7 @@ export interface RoomTypeResponse {
 // ─── Reserva ──────────────────────────────────────────────────────────────────
 export interface Reserva {
   confirmacion: string;
-  habitacion: RoomTypeName;
+  habitacion: string;
   fechaEntrada: string;
   fechaSalida: string;
   numHuespedes: number;

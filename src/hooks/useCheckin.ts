@@ -14,7 +14,7 @@ import type {
 } from "@/types";
 import { FLOW_STEPS_LINK, DOT_STEPS_BASE } from "@/constants";
 import { loadCheckinData } from "@/api/chekin.service";
-import { loginMagicLink } from "@/api/auth.service";
+import { loginGuest } from "@/api/auth.service";
 
 // ── Funciones de persistencia en sesión ──────────────────────────────────────
 function getSession<T>(key: string, fallback: T): T {
@@ -243,7 +243,7 @@ export function useCheckin(tokenUrl?: string, stepUrl?: string) {
         // 1. INTENTO DE LOGIN AUTOMÁTICO
         if (!sessionStorage.getItem("token")) {
           try {
-            await loginMagicLink(token);
+            await loginGuest(token, "");
           } catch (authErr) {
             console.error(
               "[useCheckin] El enlace mágico no es válido:",

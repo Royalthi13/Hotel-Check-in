@@ -200,11 +200,11 @@
     "error_message": "Non siamo riusciti a verificare la tua prenotazione. Controlla il cognome inserito."
   },
   "rooms": {
-    "Individual": "Camera Singola",
-    "Doble": "Camera Doppia",
-    "Triple": "Camera Tripla",
-    "Matrimonio": "Camera Matrimoniale",
-    "Suite": "Suite"
+    "individual": "Camera Singola",
+    "doble": "Camera Doppia",
+    "triple": "Camera Tripla",
+    "matrimonio": "Camera Matrimoniale",
+    "suite": "Suite"
   },
   "search": {
     "title_1": "Benvenuto al",

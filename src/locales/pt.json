@@ -205,11 +205,11 @@
     "error_message": "Não conseguimos verificar sua reserva. Por favor, verifique o sobrenome informado."
   },
   "rooms": {
-    "Individual": "Quarto Individual",
-    "Doble": "Quarto Twin",
-    "Triple": "Quarto Triplo",
-    "Matrimonio": "Quarto de Casal",
-    "Suite": "Suíte"
+    "individual": "Quarto Individual",
+    "doble": "Quarto Twin",
+    "triple": "Quarto Triplo",
+    "matrimonio": "Quarto de Casal",
+    "suite": "Suíte"
   },
   "search": {
     "title_1": "Bem-vindo ao",

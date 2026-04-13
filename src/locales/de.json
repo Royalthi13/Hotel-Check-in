@@ -205,11 +205,11 @@
     "error_message": "Wir konnten Ihre Buchung nicht überprüfen. Bitte kontrollieren Sie den angegebenen Nachnamen."
   },
   "rooms": {
-    "Individual": "Einzelzimmer",
-    "Doble": "Zweibettzimmer",
-    "Triple": "Dreibettzimmer",
-    "Matrimonio": "Doppelzimmer",
-    "Suite": "Suite"
+    "individual": "Einzelzimmer",
+    "doble": "Zweibettzimmer",
+    "triple": "Dreibettzimmer",
+    "matrimonio": "Doppelzimmer",
+    "suite": "Suite"
   },
   "search": {
     "title_1": "Willkommen beim",
