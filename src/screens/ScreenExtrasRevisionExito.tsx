@@ -101,6 +101,17 @@ function isGuestValid(
 // ═══════════════════════════════════════════════════════════════════════════
 // REVISION
 // ═══════════════════════════════════════════════════════════════════════════
+
+const INVERSE_RELATIONSHIP: Record<string, string> = {
+  "Padre o Madre": "Hijo/a",
+  "Tutor/a legal": "Tutelado/a",
+  "Abuelo/a": "Nieto/a",
+  "Hermano/a": "Hermano/a menor",
+  "Tío/a": "Sobrino/a",
+  "Otro familiar": "Familiar a cargo",
+  "Otro (Autorizado)": "Menor autorizado",
+};
+
 interface RevisionProps {
   state: CheckinState;
   isSubmitting: boolean;
@@ -119,8 +130,6 @@ export const ScreenRevision: React.FC<RevisionProps> = ({
   const main = guests[0] ?? {};
 
   const isDataComplete = guests.every((g, idx) => isGuestValid(g, idx, t));
-
-  // ✅ NUEVO ESTADO: Controla la casilla RGPD localmente
   const [isConfirmed, setIsConfirmed] = useState(false);
 
   const fullName = (g: typeof main) =>
@@ -139,65 +148,129 @@ export const ScreenRevision: React.FC<RevisionProps> = ({
             <ReservationCard reserva={reserva} />
           </div>
         )}
-      <div className="confirm-grid">
-        {guests.map((g, idx) => (
-          <React.Fragment key={idx}>
-            <ConfirmBlock
-              title={
-                idx === 0
-                  ? t("review.main_guest_personal")
-                  : t("review.companion_personal", { count: idx + 1 })
-              }
-              onEdit={() => onEditStep("form_personal", idx)}
-              rows={((): Array<[string, string | undefined | null]> => [
-                [t("forms.full_name"), fullName(g) || null],
-                [
-                  t("forms.gender"),
-                  g.sexo ? t(`constants.sexos.${g.sexo}`) : null,
-                ],
-                [t("forms.birthdate_clean"), g.fechaNac ?? null],
-                [
-                  t("forms.nationality"),
-                  g.nacionalidad
-                    ? t(`constants.nacionalidades.${g.nacionalidad}`)
-                    : null,
-                ],
-                ...(g.esMenor && (g.relacionesConAdultos ?? []).length > 0
-                  ? (g.relacionesConAdultos ?? []).map((r) => {
-                      const label = t("review.relation_adult", {
-                        count: r.adultoIndex + 1,
+        <div className="confirm-grid">
+          {guests.map((g, idx) => {
+            const menoresAcargo = !g.esMenor
+              ? guests.filter(
+                  (m) =>
+                    m.esMenor &&
+                    m.relacionesConAdultos?.some((r) => r.adultoIndex === idx),
+                )
+              : [];
+
+            return (
+              <React.Fragment key={idx}>
+                <ConfirmBlock
+                  title={
+                    idx === 0
+                      ? t("review.main_guest_personal")
+                      : t("review.companion_personal", { count: idx + 1 })
+                  }
+                  onEdit={() => onEditStep("form_personal", idx)}
+                  rows={((): Array<[string, string | undefined | null]> => {
+                    const baseRows: Array<[string, string | undefined | null]> =
+                      [
+                        [t("forms.full_name"), fullName(g) || null],
+                        [
+                          t("forms.gender"),
+                          g.sexo ? t(`constants.sexos.${g.sexo}`) : null,
+                        ],
+                        [t("forms.birthdate_clean"), g.fechaNac ?? null],
+                        [
+                          t("forms.nationality"),
+                          g.nacionalidad
+                            ? t(`constants.nacionalidades.${g.nacionalidad}`)
+                            : null,
+                        ],
+                      ];
+
+                    if (
+                      g.esMenor &&
+                      (g.relacionesConAdultos ?? []).length > 0
+                    ) {
+                      const relacionesReales = (
+                        g.relacionesConAdultos ?? []
+                      ).filter((r) => {
+                        const adultoDestino = guests[r.adultoIndex];
+                        return adultoDestino && !adultoDestino.esMenor;
                       });
-                      const value = (r.parentesco ?? "").trim()
-                        ? t(`constants.parentescos.${r.parentesco}`)
-                        : "—";
-                      const row: [string, string] = [label, value];
-                      return row;
-                    })
-                  : []),
-              ])()}
-            />
-            <ConfirmBlock
-              title={
-                idx === 0
-                  ? t("review.main_guest_doc")
-                  : t("review.companion_doc", { count: idx + 1 })
-              }
-              onEdit={() => onEditStep("form_personal", idx)}
-              rows={[
-                [
-                  t("forms.doc_type"),
-                  g.tipoDoc ? t(`constants.documentos.${g.tipoDoc}`) : null,
-                ],
-                [t("forms.doc_number"), g.numDoc ?? null],
-                ...(g.vat ? [[t("forms.vat"), g.vat] as [string, string]] : []),
-                [
-                  t("forms.photo"),
-                  g.docUploaded ? t("review.photo_attached") : "—",
-                ],
-              ]}
-            />
-          </React.Fragment>
-        ))}
+
+                      const relacionesRows = relacionesReales.map((r) => {
+                        const label = t("review.relation_adult", {
+                          count: r.adultoIndex + 1,
+                          defaultValue: `Relación con adulto ${r.adultoIndex + 1}`,
+                        });
+                        const rawParentesco = (r.parentesco ?? "").trim();
+
+                        const value =
+                          INVERSE_RELATIONSHIP[rawParentesco] ||
+                          (rawParentesco
+                            ? t(
+                                `constants.parentescos.${rawParentesco}`,
+                                rawParentesco,
+                              )
+                            : "—");
+
+                        return [label, value] as [string, string];
+                      });
+                      baseRows.push(...relacionesRows);
+                    }
+
+                    if (!g.esMenor && menoresAcargo.length > 0) {
+                      menoresAcargo.forEach((menor) => {
+                        const relacion = menor.relacionesConAdultos?.find(
+                          (r) => r.adultoIndex === idx,
+                        );
+                        const rawParentesco = (
+                          relacion?.parentesco ?? ""
+                        ).trim();
+                        const nombreMenor =
+                          [menor.nombre, menor.apellido]
+                            .filter(Boolean)
+                            .join(" ") || "Menor";
+
+                        const value = rawParentesco
+                          ? t(
+                              `constants.parentescos.${rawParentesco}`,
+                              rawParentesco,
+                            )
+                          : "—";
+
+                        baseRows.push([
+                          `Responsable de (${nombreMenor})`,
+                          value,
+                        ]);
+                      });
+                    }
+
+                    return baseRows;
+                  })()}
+                />
+                <ConfirmBlock
+                  title={
+                    idx === 0
+                      ? t("review.main_guest_doc")
+                      : t("review.companion_doc", { count: idx + 1 })
+                  }
+                  onEdit={() => onEditStep("form_personal", idx)}
+                  rows={[
+                    [
+                      t("forms.doc_type"),
+                      g.tipoDoc ? t(`constants.documentos.${g.tipoDoc}`) : null,
+                    ],
+                    [t("forms.doc_number"), g.numDoc ?? null],
+                    ...(g.vat
+                      ? [[t("forms.vat"), g.vat] as [string, string]]
+                      : []),
+                    [
+                      t("forms.photo"),
+                      g.docUploaded ? t("review.photo_attached") : "—",
+                    ],
+                  ]}
+                />
+              </React.Fragment>
+            );
+          })}
         </div>
 
         <ConfirmBlock
@@ -248,7 +321,6 @@ export const ScreenRevision: React.FC<RevisionProps> = ({
           variant="primary"
           iconRight={isSubmitting ? undefined : "check"}
           onClick={onSubmit}
-          // ✅ CORRECCIÓN: El botón evalúa 'isConfirmed' (el estado local del checkbox)
           disabled={!isConfirmed || !isDataComplete || isSubmitting}
         >
           {isSubmitting ? (
