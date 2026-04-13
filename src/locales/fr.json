@@ -384,14 +384,11 @@
     "error_message": "Nous n'avons pas pu vérifier votre réservation. Veuillez vérifier le nom fourni."
   },
   "rooms": {
-    "habitacion_estandar": "Chambre Standard",
-    "habitacion_individual": "Chambre Simple",
-    "habitacion_doble": "Chambre Double",
-    "habitacion_superior": "Chambre Supérieure",
-    "habitacion_deluxe": "Chambre Deluxe",
-    "habitacion_familiar": "Chambre Familiale",
-    "suite_junior": "Suite Junior",
-    "suite": "Suite"
+    "Individual": "Chambre Individuelle",
+    "Doble": "Chambre Twin",
+    "Triple": "Chambre Triple",
+    "Matrimonio": "Chambre Double",
+    "Suite": "Suite"
   },
   "disabled": {
     "title": "Pré-check-in non disponible",

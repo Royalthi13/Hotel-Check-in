@@ -378,15 +378,21 @@
     "btn_save": "Guardar confirmación",
     "btn_add_time": "Añadir hora de llegada"
   },
+  "verification": {
+    "title": "Acceso Seguro",
+    "booking_label": "Reserva",
+    "surname_label": "Primer apellido del titular",
+    "surname_placeholder": "Ej: García",
+    "button_loading": "Verificando...",
+    "button_submit": "Acceder al Check-in",
+    "error_message": "No hemos podido verificar tu reserva. Comprueba el apellido del titular."
+  },
   "rooms": {
-    "habitacion_estandar": "Habitación Estándar",
-    "habitacion_individual": "Habitación Individual",
-    "habitacion_doble": "Habitación Doble",
-    "habitacion_superior": "Habitación Superior",
-    "habitacion_deluxe": "Habitación Deluxe",
-    "habitacion_familiar": "Habitación Familiar",
-    "suite_junior": "Junior Suite",
-    "suite": "Suite"
+    "Individual": "Habitación Individual",
+    "Doble": "Habitación Doble",
+    "Triple": "Habitación Triple",
+    "Matrimonio": "Habitación de Matrimonio",
+    "Suite": "Suite"
   },
   "disabled": {
     "title": "Pre-check-in no disponible",
