@@ -1,28 +1,34 @@
 import axios from "axios";
-import type { AxiosError } from "axios";
+import type { AxiosError, InternalAxiosRequestConfig } from "axios";
 
-const BASE_URL = import.meta.env.VITE_API_URL ?? "http://localhost:8000";
 const TOKEN_KEY = "lumina_access_token";
+
+// En desarrollo: BASE_URL = "/api" → pasa por el proxy de Vite → sin CORS.
+// En producción: BASE_URL = la URL real del backend (variable de entorno).
+//
+// VITE_API_URL en .env.production debe ser "https://tu-backend.com"
+// VITE_API_URL en .env (desarrollo) debe estar vacío o no definido.
+const BASE_URL = import.meta.env.VITE_API_URL
+  ? `${import.meta.env.VITE_API_URL}`   // producción: URL absoluta del backend
+  : "/api";                              // desarrollo: proxy de Vite (mismo origen → sin CORS)
 
 // Sin auth — solo para /auth/token
 export const api = axios.create({
   baseURL: BASE_URL,
-  headers: { "Content-Type": "application/json" },
   timeout: 15_000,
 });
 
 // Con auth — añade Bearer token automáticamente
 export const apiAuth = axios.create({
   baseURL: BASE_URL,
-  headers: { "Content-Type": "application/json" },
   timeout: 15_000,
 });
 
-apiAuth.interceptors.request.use((config) => {
-  const token =
-    sessionStorage.getItem(TOKEN_KEY) ?? localStorage.getItem(TOKEN_KEY);
+apiAuth.interceptors.request.use((config: InternalAxiosRequestConfig) => {
+  const token = getToken();
   if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
+    config.headers = config.headers ?? {};
+    config.headers["Authorization"] = `Bearer ${token}`;
   }
   return config;
 });

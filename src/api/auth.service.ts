@@ -1,4 +1,4 @@
-import { api, saveToken, clearToken } from "./axiosInstance";
+import { api, saveToken, clearToken, getToken } from "./axiosInstance";
 
 // Login estándar (staff/admin)
 export async function login(
@@ -19,8 +19,17 @@ export function logout(): void {
 }
 
 // Login mágico: el token de la URL es el booking_id, NO un JWT.
-// Hacemos login real con las credenciales de servicio del .env
+// Hace login real con las credenciales de servicio del .env.
+//
+// CORRECCIÓN: comprobamos primero si ya hay token válido en storage
+// para no hacer una petición de login innecesaria en cada render.
+// La Promise no resuelve hasta que saveToken ha guardado el JWT,
+// garantizando que la siguiente llamada a apiAuth ya lleva el header.
 export async function loginMagicLink(_magicToken: string): Promise<void> {
+  // Si ya hay token en sesión, reutilizarlo (evita login redundante)
+  const existing = getToken();
+  if (existing) return;
+
   const username = import.meta.env.VITE_SERVICE_USER;
   const password = import.meta.env.VITE_SERVICE_PASS;
 
@@ -35,6 +44,8 @@ export async function loginMagicLink(_magicToken: string): Promise<void> {
     new URLSearchParams({ username, password }),
     { headers: { "Content-Type": "application/x-www-form-urlencoded" } },
   );
+
+  // saveToken es síncrono — cuando esta línea termina, getToken() ya devuelve el JWT
   saveToken(data.access_token, false);
 }
 

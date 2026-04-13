@@ -2,15 +2,10 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import path from "path";
 
-// https://vitejs.dev/config/
 export default defineConfig({
   plugins: [react()],
   resolve: {
     alias: {
-      // Permite imports como:
-      //   import { Button } from '@/components/ui'
-      //   import { useCheckin } from '@/hooks/useCheckin'
-      //   import type { StepId } from '@/types'
       "@": path.resolve(__dirname, "./src"),
     },
   },
@@ -22,7 +17,7 @@ export default defineConfig({
       "/api": {
         target: "http://localhost:8000",
         changeOrigin: true,
-        // Esto borra "/api-tutor" antes de enviárselo a FastAPI
+        // /api/auth/token  →  http://localhost:8000/auth/token
         rewrite: (path) => path.replace(/^\/api/, ""),
       },
     },

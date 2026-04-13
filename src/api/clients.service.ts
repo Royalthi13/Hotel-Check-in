@@ -21,7 +21,6 @@ const CODPAIS_TO_ISO2: Record<string, string> = Object.fromEntries(
   Object.entries(ISO2_TO_CODPAIS).map(([k, v]) => [v, k]),
 );
 
-// Nacionalidad texto → codpais (FK countries)
 const NAC_TO_CODPAIS: Record<string, string> = {
   "Española": "ESP", "Inglesa": "GBR", "Francesa": "FRA",
   "Alemana": "DEU", "Italiana": "ITA", "Portuguesa": "PRT",
@@ -34,7 +33,6 @@ const CODPAIS_TO_NAC: Record<string, string> = {
   "USA": "Estadounidense", "ARG": "Argentina", "MEX": "Mexicana",
 };
 
-// Tipo documento → coddoc BD real: CIF, NIE, NIF, OTRO, PAS
 const DOC_TO_COD: Record<string, string> = {
   "DNI":       "NIF",
   "NIF":       "NIF",
@@ -72,23 +70,15 @@ interface ClientResponse {
   pre_checkin_send: string | null;
 }
 
+// ── Payload hacia el backend ──────────────────────────────────────────────────
+// CORRECCIÓN: usamos Record<string, string | boolean> en vez de campos opcionales
+// para que JSON.stringify no incluya claves con valor undefined (causa 422 en
+// algunos backends FastAPI/Pydantic que rechazan campos desconocidos).
 interface ClientPayload {
   name: string;
   surname: string;
-  address?: string;
-  city?: string;
-  province?: string;
-  cp?: string;
   country: string;
-  nationality?: string;
-  vat?: string;
-  phone?: string;
-  email?: string;
-  observations?: string;
-  doc_type?: string;
-  doc_support?: string;
-  birth?: string;
-  sex?: string;
+  [key: string]: string | boolean | undefined;
 }
 
 function toGuestData(c: ClientResponse): GuestData {
@@ -115,17 +105,19 @@ function toGuestData(c: ClientResponse): GuestData {
   };
 }
 
+// CORRECCIÓN PRINCIPAL: eliminamos las claves cuyo valor es undefined/vacío
+// antes de enviar, para que el backend no reciba campos nulos inesperados.
 export function toClientPayload(g: PartialGuestData): ClientPayload {
   const codpais = ISO2_TO_CODPAIS[g.pais ?? "ES"] ?? "ESP";
   const nacCod  = NAC_TO_CODPAIS[g.nacionalidad ?? ""] ?? codpais;
   const docCod  = DOC_TO_COD[g.tipoDoc ?? ""] ?? undefined;
 
-  return {
-    name:        (g.nombre    ?? "").trim(),
-    surname:     (g.apellido  ?? "").trim(),
+  const raw: Record<string, string | boolean | undefined> = {
+    name:        (g.nombre    ?? "").trim() || undefined,
+    surname:     (g.apellido  ?? "").trim() || undefined,
     sex:         g.sexo === "Hombre" ? "M" : g.sexo === "Mujer" ? "F" : undefined,
     birth:       g.fechaNac   || undefined,
-    nationality: nacCod,
+    nationality: nacCod       || undefined,
     email:       (g.email     ?? "").trim() || undefined,
     phone:       (g.telefono  ?? "").trim() || undefined,
     address:     (g.direccion ?? "").trim() || undefined,
@@ -137,6 +129,16 @@ export function toClientPayload(g: PartialGuestData): ClientPayload {
     doc_support: (g.numDoc    ?? "").trim() || undefined,
     vat:         (g.vat       ?? "").trim() || undefined,
   };
+
+  // Eliminar claves undefined para que no lleguen al backend
+  const payload: ClientPayload = { name: raw.name as string, surname: raw.surname as string, country: codpais };
+  for (const [key, value] of Object.entries(raw)) {
+    if (value !== undefined) {
+      payload[key] = value;
+    }
+  }
+
+  return payload;
 }
 
 export async function getClientById(clientId: number): Promise<GuestData> {

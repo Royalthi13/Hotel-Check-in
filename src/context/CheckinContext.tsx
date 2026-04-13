@@ -3,14 +3,8 @@ import { useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useCheckin } from "@/hooks/useCheckin";
 import { submitCheckin, savePartialCheckin } from "@/api/chekin.service";
-import type {
-  CheckinState,
-  CheckinNav,
-  CheckinActions,
-  PartialGuestData,
-} from "@/types";
-import axios from "axios";
-import { CheckinContext } from "./CheckinContextDef"; // ← aquí arriba
+import type { CheckinState, CheckinNav, CheckinActions } from "@/types";
+import { CheckinContext } from "./CheckinContextDef";
 
 export const CheckinProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
@@ -92,13 +86,12 @@ export const CheckinProvider: React.FC<{ children: React.ReactNode }> = ({
     setIsSubmitting(true);
     try {
       const { bookingId, clientId } = getBackendIds();
-      const mappedGuests = state.guests.map(mapGuestForBackend);
 
       if (isPartial) {
         const newClientId = await savePartialCheckin(
           bookingId,
           clientId,
-          mappedGuests[0],
+          state.guests[0],
         );
         sessionStorage.setItem(`clientId_${token}`, String(newClientId));
         setIsPartialSuccess(true);
@@ -108,7 +101,7 @@ export const CheckinProvider: React.FC<{ children: React.ReactNode }> = ({
       await submitCheckin({
         bookingId,
         clientId,
-        guests: mappedGuests,
+        guests: state.guests,
         horaLlegada: state.horaLlegada,
         observaciones: state.observaciones,
       });
@@ -117,15 +110,15 @@ export const CheckinProvider: React.FC<{ children: React.ReactNode }> = ({
       SESSION_KEYS_TO_CLEAR.forEach((key) => sessionStorage.removeItem(key));
       actions.goTo("exito", "forward");
     } catch (err: unknown) {
+      // CORRECCIÓN: el interceptor de axiosInstance ya normaliza todos los
+      // errores a instancias de Error con mensaje legible. No necesitamos
+      // importar axios ni hacer isAxiosError aquí.
       let msg = t("errorBoundary.title");
 
-      if (axios.isAxiosError(err)) {
-        msg =
-          err.response?.data?.message ||
-          err.response?.data?.detail ||
-          err.message;
-      } else if (err instanceof Error) {
+      if (err instanceof Error) {
         msg = err.message;
+      } else if (typeof err === "string") {
+        msg = err;
       }
 
       setSubmitError(msg);
@@ -138,7 +131,7 @@ export const CheckinProvider: React.FC<{ children: React.ReactNode }> = ({
   const handleSubmit = () => submitToServer(false);
   const handlePartialSubmit = () => submitToServer(true);
 
-  const value: CheckinContextValue = {
+  const value = {
     state,
     nav,
     actions,
