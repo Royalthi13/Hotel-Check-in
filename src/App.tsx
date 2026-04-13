@@ -24,6 +24,7 @@ import type { StepId, Reserva } from "@/types";
 const STEPS_WITHOUT_DOTS = new Set<StepId>(["tablet_buscar", "exito"]);
 
 // ── Página de enlace inválido / caducado ──────────────────────────────────────
+// Dentro de App.tsx
 function InvalidLink() {
   const { t } = useTranslation();
   return (
@@ -87,9 +88,9 @@ function InvalidLink() {
   );
 }
 
+// ── Lógica del Wizard (Se mantiene igual que tu código) ───────────────────────
 function CheckinWizard() {
   const { t } = useTranslation();
-
   const {
     state,
     nav,
@@ -248,14 +249,15 @@ function CheckinWizard() {
   );
 }
 
+// ── Rutas de la Aplicación ───────────────────────────────────────────────────
 export default function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route
-          path="/"
-          element={<Navigate to="/checkin/99999/inicio" replace />}
-        />
+        {/* El enlace del email ahora apunta directamente aquí: /checkin/TOKEN/inicio */}
+        <Route path="/" element={<Navigate to="/invalid" replace />} />
+
+        {/* Ruta para el staff/tablet */}
         <Route
           path="/checkin/kiosko/tablet_buscar"
           element={
@@ -266,10 +268,12 @@ export default function App() {
             </ErrorBoundary>
           }
         />
+
         <Route
           path="/checkin/:token"
           element={<Navigate to="inicio" replace />}
         />
+
         <Route
           path="/checkin/:token/:step"
           element={
@@ -280,6 +284,7 @@ export default function App() {
             </ErrorBoundary>
           }
         />
+
         <Route path="/invalid" element={<InvalidLink />} />
         <Route path="*" element={<InvalidLink />} />
       </Routes>

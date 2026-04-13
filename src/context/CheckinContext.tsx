@@ -1,11 +1,11 @@
- 
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useCheckin } from "@/hooks/useCheckin";
 import { submitCheckin, savePartialCheckin } from "@/api/chekin.service";
 import type { CheckinState, CheckinNav, CheckinActions } from "@/types";
- 
+import axios from "axios";
+
 interface CheckinContextValue {
   state: CheckinState;
   nav: CheckinNav;
@@ -27,116 +27,167 @@ interface CheckinContextValue {
   triggerFormValidation: () => void;
   clearSubmitError: () => void;
 }
- 
+
 const CheckinContext = createContext<CheckinContextValue | null>(null);
- 
+
 // eslint-disable-next-line react-refresh/only-export-components
 export const useCheckinContext = () => {
   const ctx = useContext(CheckinContext);
-  if (!ctx) throw new Error("useCheckinContext debe usarse dentro de un CheckinProvider");
+  if (!ctx)
+    throw new Error(
+      "useCheckinContext debe usarse dentro de un CheckinProvider",
+    );
   return ctx;
 };
- 
-export const CheckinProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+
+export const CheckinProvider: React.FC<{ children: React.ReactNode }> = ({
+  children,
+}) => {
   const { t } = useTranslation();
   const { token: urlToken, step } = useParams();
   const token = urlToken ?? "new";
- 
+
   const [state, nav, actions, isLoading] = useCheckin(token, step);
- 
-  const [submitError,       setSubmitError]      = useState("");
-  const [isSubmitting,      setIsSubmitting]      = useState(false);
-  const [isOffline,         setIsOffline]         = useState(!navigator.onLine);
-  const [isPartialSuccess,  setIsPartialSuccess]  = useState(false);
+
+  const [submitError, setSubmitError] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isOffline, setIsOffline] = useState(!navigator.onLine);
+  const [isPartialSuccess, setIsPartialSuccess] = useState(false);
   const [validationTrigger, setValidationTrigger] = useState(0);
- 
+
   const [legalPassed, setLegalPassed] = useState(
-    () => sessionStorage.getItem(`legalPassed_${token}`) === "true"
+    () => sessionStorage.getItem(`legalPassed_${token}`) === "true",
   );
   const [hasMinorsFlag, setHasMinorsFlag] = useState(
-    () => sessionStorage.getItem(`hasMinors_${token}`) === "true"
+    () => sessionStorage.getItem(`hasMinors_${token}`) === "true",
   );
- 
+
   useEffect(() => {
     sessionStorage.setItem(`legalPassed_${token}`, String(legalPassed));
   }, [legalPassed, token]);
- 
+
   useEffect(() => {
     sessionStorage.setItem(`hasMinors_${token}`, String(hasMinorsFlag));
   }, [hasMinorsFlag, token]);
- 
+
   useEffect(() => {
-    const on  = () => setIsOffline(false);
+    const on = () => setIsOffline(false);
     const off = () => setIsOffline(true);
-    window.addEventListener("online",  on);
+    window.addEventListener("online", on);
     window.addEventListener("offline", off);
-    return () => { window.removeEventListener("online", on); window.removeEventListener("offline", off); };
+    return () => {
+      window.removeEventListener("online", on);
+      window.removeEventListener("offline", off);
+    };
   }, []);
- 
-  const clearSubmitError      = () => setSubmitError("");
+
+  const clearSubmitError = () => setSubmitError("");
   const triggerFormValidation = () => setValidationTrigger((v) => v + 1);
- 
+
   const getBackendIds = () => ({
-    bookingId: parseInt(sessionStorage.getItem(`bookingId_${token}`) ?? "0", 10),
-    clientId:  sessionStorage.getItem(`clientId_${token}`)
-                 ? parseInt(sessionStorage.getItem(`clientId_${token}`)!, 10)
-                 : null,
+    bookingId: parseInt(
+      sessionStorage.getItem(`bookingId_${token}`) ?? "0",
+      10,
+    ),
+    clientId: sessionStorage.getItem(`clientId_${token}`)
+      ? parseInt(sessionStorage.getItem(`clientId_${token}`)!, 10)
+      : null,
   });
- 
+
   const SESSION_KEYS_TO_CLEAR = [
-    `state_${token}`, `history_${token}`, `allowedSteps_${token}`,
-    `legalPassed_${token}`, `hasMinors_${token}`, `modoFlujo_${token}`,
-    `bookingId_${token}`, `clientId_${token}`,
+    `state_${token}`,
+    `history_${token}`,
+    `allowedSteps_${token}`,
+    `legalPassed_${token}`,
+    `hasMinors_${token}`,
+    `modoFlujo_${token}`,
+    `bookingId_${token}`,
+    `clientId_${token}`,
   ];
- 
+
   const handleChooseMethod = (method: "scan" | "manual") => {
     sessionStorage.setItem(`modoFlujo_${token}`, method);
     actions.setNumPersonas(state.reserva?.numHuespedes ?? 1);
-    actions.goTo(method === "scan" ? "escanear" : "form_personal", "forward", 0);
+    actions.goTo(
+      method === "scan" ? "escanear" : "form_personal",
+      "forward",
+      0,
+    );
   };
- 
+
   const submitToServer = async (isPartial: boolean): Promise<void> => {
     setSubmitError("");
     setIsSubmitting(true);
     try {
       const { bookingId, clientId } = getBackendIds();
- 
+
       if (isPartial) {
-        const newClientId = await savePartialCheckin(bookingId, clientId, state.guests[0]);
+        const newClientId = await savePartialCheckin(
+          bookingId,
+          clientId,
+          state.guests[0],
+        );
         sessionStorage.setItem(`clientId_${token}`, String(newClientId));
         setIsPartialSuccess(true);
         return;
       }
- 
+
       await submitCheckin({
-        bookingId, clientId,
-        guests:        state.guests,
-        horaLlegada:   state.horaLlegada,
+        bookingId,
+        clientId,
+        guests: state.guests,
+        horaLlegada: state.horaLlegada,
         observaciones: state.observaciones,
       });
- 
+
       setIsPartialSuccess(false);
       SESSION_KEYS_TO_CLEAR.forEach((key) => sessionStorage.removeItem(key));
       actions.goTo("exito", "forward");
- 
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : t("errorBoundary.title");
+      let msg = t("errorBoundary.title");
+
+      if (axios.isAxiosError(err)) {
+        msg =
+          err.response?.data?.message ||
+          err.response?.data?.detail ||
+          err.message;
+      } else if (err instanceof Error) {
+        msg = err.message;
+      }
+
       setSubmitError(msg);
       throw err;
     } finally {
       setIsSubmitting(false);
     }
   };
- 
-  const handleSubmit        = () => submitToServer(false);
+
+  const handleSubmit = () => submitToServer(false);
   const handlePartialSubmit = () => submitToServer(true);
- 
+
   const value: CheckinContextValue = {
-    state, nav, actions, isLoading, submitError, isSubmitting, isOffline,
-    isPartialSuccess, legalPassed, setLegalPassed, hasMinorsFlag, setHasMinorsFlag,
-    token, handleChooseMethod, handleSubmit, handlePartialSubmit,
-    validationTrigger, triggerFormValidation, clearSubmitError,
+    state,
+    nav,
+    actions,
+    isLoading,
+    submitError,
+    isSubmitting,
+    isOffline,
+    isPartialSuccess,
+    legalPassed,
+    setLegalPassed,
+    hasMinorsFlag,
+    setHasMinorsFlag,
+    token,
+    handleChooseMethod,
+    handleSubmit,
+    handlePartialSubmit,
+    validationTrigger,
+    triggerFormValidation,
+    clearSubmitError,
   };
- 
-  return <CheckinContext.Provider value={value}>{children}</CheckinContext.Provider>;
+
+  return (
+    <CheckinContext.Provider value={value}>{children}</CheckinContext.Provider>
+  );
 };

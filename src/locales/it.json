@@ -190,6 +190,20 @@
     "missing_relationships": "Mancano parentele da compilare. Rivedi i dati.",
     "duplicate_doc": "Questo documento è già stato registrato per un altro ospite."
   },
+  "auth": {
+    "verifying": "Verifica dell'accesso in corso...",
+    "error_invalid": "Il link non è valido o è scaduto.",
+    "error_server": "Errore di connessione con il server."
+  },
+  "verification": {
+    "title": "Accesso Sicuro",
+    "booking_label": "Prenotazione",
+    "surname_label": "Cognome del titolare",
+    "surname_placeholder": "Es: Rossi",
+    "button_loading": "Verifica in corso...",
+    "button_submit": "Accedi al Check-in",
+    "error_message": "Non siamo riusciti a verificare la tua prenotazione. Controlla il cognome inserito."
+  },
   "rooms": {
     "habitacion_estandar": "Camera Standard",
     "habitacion_individual": "Camera Singola",

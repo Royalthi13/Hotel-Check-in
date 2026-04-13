@@ -190,6 +190,20 @@
     "missing_relationships": "Fehlende Verwandtschaftsangaben. Überprüfen Sie alle Daten.",
     "duplicate_doc": "Dieses Dokument wurde bereits für einen anderen Gast registriert."
   },
+  "auth": {
+    "verifying": "Zugang wird überprüft...",
+    "error_invalid": "Der Link ist ungültig oder abgelaufen.",
+    "error_server": "Verbindungsfehler zum Server."
+  },
+  "verification": {
+    "title": "Sicherer Zugang",
+    "booking_label": "Buchung",
+    "surname_label": "Nachname des Hauptgasts",
+    "surname_placeholder": "Bsp: Müller",
+    "button_loading": "Wird überprüft...",
+    "button_submit": "Zum Check-in",
+    "error_message": "Wir konnten Ihre Buchung nicht überprüfen. Bitte kontrollieren Sie den angegebenen Nachnamen."
+  },
   "rooms": {
     "habitacion_estandar": "Standardzimmer",
     "habitacion_individual": "Einzelzimmer",
