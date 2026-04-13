@@ -250,17 +250,16 @@ function CheckinWizard() {
 }
 
 // ── Rutas de la Aplicación ───────────────────────────────────────────────────
+//
 export default function App() {
   return (
     <BrowserRouter>
       <Routes>
-        {/* El enlace del email ahora apunta directamente aquí: /checkin/TOKEN/inicio */}
-        <Route
-          path="/"
-          element={<Navigate to="/checkin/new/inicio" replace />}
-        />
+        {/* 1. Si alguien entra a la raíz (/), el sistema asume que es personal del hotel.
+               Redirigimos a /checkin/new. El Hook detectará el "new" y mostrará la búsqueda. */}
+        <Route path="/" element={<Navigate to="/checkin/new" replace />} />
 
-        {/* Ruta para el staff/tablet */}
+        {/* 2. Ruta para el staff/tablet específica (opcional, por si la usas directamente) */}
         <Route
           path="/checkin/kiosko/tablet_buscar"
           element={
@@ -272,11 +271,21 @@ export default function App() {
           }
         />
 
+        {/* 3. CAMBIO CLAVE: Quitamos el Navigate a "inicio". 
+               Ahora cargamos el Wizard directamente. Él decidirá qué pantalla mostrar 
+               según si el token es "new" o un código real. */}
         <Route
           path="/checkin/:token"
-          element={<Navigate to="inicio" replace />}
+          element={
+            <ErrorBoundary>
+              <CheckinProvider>
+                <CheckinWizard />
+              </CheckinProvider>
+            </ErrorBoundary>
+          }
         />
 
+        {/* 4. Ruta para pasos específicos del flujo */}
         <Route
           path="/checkin/:token/:step"
           element={

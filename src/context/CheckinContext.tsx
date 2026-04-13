@@ -3,8 +3,14 @@ import { useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useCheckin } from "@/hooks/useCheckin";
 import { submitCheckin, savePartialCheckin } from "@/api/chekin.service";
-import type { CheckinState, CheckinNav, CheckinActions } from "@/types";
+import type {
+  CheckinState,
+  CheckinNav,
+  CheckinActions,
+  PartialGuestData,
+} from "@/types";
 import axios from "axios";
+import { ClientPayload } from "@/api/api.types";
 
 interface CheckinContextValue {
   state: CheckinState;
@@ -39,7 +45,30 @@ export const useCheckinContext = () => {
     );
   return ctx;
 };
+//
 
+// --- MAPEO DE DATOS PARA EL BACKEND ---
+const mapGuestForBackend = (guest: PartialGuestData): ClientPayload => {
+  return {
+    name: guest.nombre || "",
+    surname: guest.apellido || "",
+    second_surname: guest.apellido2 || "",
+    gender: guest.sexo === "Hombre" ? "M" : "F",
+    birth_date: guest.fechaNac,
+    nationality: guest.nacionalidad,
+    email: guest.email,
+    phone: guest.telefono,
+    address: guest.direccion,
+    city: guest.ciudad,
+    province: guest.provincia,
+    postal_code: guest.cp,
+    country: guest.pais,
+    document_type: guest.tipoDoc,
+    document_number: guest.numDoc,
+    support_number: guest.soporteDoc,
+    is_minor: guest.esMenor,
+  };
+};
 export const CheckinProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
@@ -120,12 +149,13 @@ export const CheckinProvider: React.FC<{ children: React.ReactNode }> = ({
     setIsSubmitting(true);
     try {
       const { bookingId, clientId } = getBackendIds();
+      const mappedGuests = state.guests.map(mapGuestForBackend);
 
       if (isPartial) {
         const newClientId = await savePartialCheckin(
           bookingId,
           clientId,
-          state.guests[0],
+          mappedGuests[0],
         );
         sessionStorage.setItem(`clientId_${token}`, String(newClientId));
         setIsPartialSuccess(true);
@@ -135,7 +165,7 @@ export const CheckinProvider: React.FC<{ children: React.ReactNode }> = ({
       await submitCheckin({
         bookingId,
         clientId,
-        guests: state.guests,
+        guests: mappedGuests,
         horaLlegada: state.horaLlegada,
         observaciones: state.observaciones,
       });
