@@ -79,6 +79,10 @@ export const ScreenFormPersonal: React.FC = () => {
   const { errors, validate, clearError } = useFormValidation(validatePersonal);
   const [duplicateError, setDuplicateError] = useState("");
 
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
+  const [helpOpen, setHelpOpen] = useState(false);
+
   const isMainGuest = guestIndex === 0;
   const fechaNac = data.fechaNac ? dayjs(data.fechaNac) : null;
   const isDniOrNie = data.tipoDoc === "DNI" || data.tipoDoc === "NIE";
@@ -299,44 +303,12 @@ export const ScreenFormPersonal: React.FC = () => {
                 />
                 <FieldError msg={errors.numDoc} />
               </div>
+
               {isDniOrNie && (
                 <div>
                   <TextField
                     required
-                    label={
-                      <Box
-                        component="span"
-                        sx={{
-                          display: "inline-flex",
-                          alignItems: "center",
-                          gap: 0.5,
-                        }}
-                      >
-                        {t("forms.doc_support")}
-                        <Box
-                          component="span"
-                          sx={{
-                            color: !!errors.soporteDoc
-                              ? "error.main"
-                              : "rgba(0, 0, 0, 0.6)",
-                          }}
-                        >
-                          *
-                        </Box>
-                        <Tooltip
-                          title={t("forms.doc_support_hint")}
-                          arrow
-                          placement="top"
-                        >
-                          <Box
-                            component="span"
-                            sx={{ display: "flex", cursor: "pointer", ml: 0.5 }}
-                          >
-                            <Icon name="info" size={14} />
-                          </Box>
-                        </Tooltip>
-                      </Box>
-                    }
+                    label={t("forms.doc_support")}
                     fullWidth
                     value={data.soporteDoc ?? ""}
                     onChange={(e) => {
@@ -345,18 +317,87 @@ export const ScreenFormPersonal: React.FC = () => {
                     }}
                     error={!!errors.soporteDoc}
                     sx={inputSx}
-                    InputLabelProps={{ required: false }}
+                    InputProps={{
+                      endAdornment: (
+                        <InputAdornment position="end">
+                          <Tooltip
+                            title={isMobile ? "" : t("forms.doc_support_hint")}
+                            arrow
+                            placement="top"
+                          >
+                            <Box
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setHelpOpen(true);
+                              }}
+                              sx={{
+                                display: "flex",
+                                cursor: "pointer",
+                                color: "var(--primary)",
+                                p: 0.5,
+                              }}
+                            >
+                              <Icon name="info" size={18} />
+                            </Box>
+                          </Tooltip>
+                        </InputAdornment>
+                      ),
+                    }}
                   />
                   <FieldError msg={errors.soporteDoc} />
+
+                  <Dialog
+                    open={helpOpen}
+                    onClose={() => setHelpOpen(false)}
+                    PaperProps={{
+                      sx: { borderRadius: "16px", p: 2, maxWidth: 320 },
+                    }}
+                  >
+                    <Box
+                      sx={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                        mb: 1,
+                      }}
+                    >
+                      <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
+                        {t("forms.doc_support")}
+                      </Typography>
+                      <Box
+                        onClick={() => setHelpOpen(false)}
+                        sx={{
+                          cursor: "pointer",
+                          opacity: 0.5,
+                          transform: "rotate(45deg)",
+                          display: "flex",
+                        }}
+                      >
+                        <Icon name="plus" size={20} />
+                      </Box>
+                    </Box>
+                    <Typography variant="body2" color="text.secondary">
+                      {t("forms.doc_support_hint")}
+                    </Typography>
+                    <Button
+                      variant="primary"
+                      onClick={() => setHelpOpen(false)}
+                      style={{ marginTop: "16px", width: "100%" }}
+                    >
+                      {t("common.continue")}
+                    </Button>
+                  </Dialog>
                 </div>
               )}
             </Box>
           </Box>
+
           {duplicateError && (
             <Box sx={{ padding: "0 var(--px)", mt: 2 }}>
               <Alert variant="err">{duplicateError}</Alert>
             </Box>
           )}
+
           <div className="spacer" />
           <div
             className="btn-row"
@@ -392,7 +433,6 @@ export const ScreenFormPersonal: React.FC = () => {
     </>
   );
 };
-
 // --- COMPONENTE 2: DATOS DE CONTACTO ---
 
 const menuPaperSx = {
