@@ -1,8 +1,9 @@
-import React, { useContext, useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useCheckin } from "@/hooks/useCheckin";
 import { submitCheckin, savePartialCheckin } from "@/api/chekin.service";
+import { clearCatalogsCache } from "@/api/catalogs.service";
 import type { CheckinState, CheckinNav, CheckinActions } from "@/types";
 import { CheckinContext } from "./CheckinContextDef";
 
@@ -15,9 +16,9 @@ export const CheckinProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const [state, nav, actions, isLoading] = useCheckin(token, step);
 
-  const [submitError, setSubmitError] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isOffline, setIsOffline] = useState(!navigator.onLine);
+  const [submitError, setSubmitError]         = useState("");
+  const [isSubmitting, setIsSubmitting]       = useState(false);
+  const [isOffline, setIsOffline]             = useState(!navigator.onLine);
   const [isPartialSuccess, setIsPartialSuccess] = useState(false);
   const [validationTrigger, setValidationTrigger] = useState(0);
 
@@ -37,28 +38,38 @@ export const CheckinProvider: React.FC<{ children: React.ReactNode }> = ({
   }, [hasMinorsFlag, token]);
 
   useEffect(() => {
-    const on = () => setIsOffline(false);
+    const on  = () => setIsOffline(false);
     const off = () => setIsOffline(true);
-    window.addEventListener("online", on);
+    window.addEventListener("online",  on);
     window.addEventListener("offline", off);
     return () => {
-      window.removeEventListener("online", on);
+      window.removeEventListener("online",  on);
       window.removeEventListener("offline", off);
     };
   }, []);
 
-  const clearSubmitError = () => setSubmitError("");
+  const clearSubmitError    = () => setSubmitError("");
   const triggerFormValidation = () => setValidationTrigger((v) => v + 1);
 
-  const getBackendIds = () => ({
-    bookingId: parseInt(
-      sessionStorage.getItem(`bookingId_${token}`) ?? "0",
-      10,
-    ),
-    clientId: sessionStorage.getItem(`clientId_${token}`)
-      ? parseInt(sessionStorage.getItem(`clientId_${token}`)!, 10)
-      : null,
-  });
+  // FIX: lanza error descriptivo si el bookingId no está en sessionStorage.
+  // Antes devolvía 0 silenciosamente → PUT /bookings/0 → 404 sin explicación.
+  // Esto puede ocurrir en modo incógnito, tras borrado manual de sessionStorage
+  // o si el usuario llega a la pantalla de revisión sin haber pasado por la carga.
+  const getBackendIds = () => {
+    const rawId   = sessionStorage.getItem(`bookingId_${token}`);
+    const bookingId = rawId ? parseInt(rawId, 10) : null;
+
+    if (!bookingId || isNaN(bookingId)) {
+      throw new Error(
+        "No se pudo identificar la reserva. Por favor, recargue la página o acceda de nuevo mediante el enlace de su reserva.",
+      );
+    }
+
+    const rawClientId = sessionStorage.getItem(`clientId_${token}`);
+    const clientId    = rawClientId ? parseInt(rawClientId, 10) : null;
+
+    return { bookingId, clientId };
+  };
 
   const SESSION_KEYS_TO_CLEAR = [
     `state_${token}`,
@@ -85,6 +96,7 @@ export const CheckinProvider: React.FC<{ children: React.ReactNode }> = ({
     setSubmitError("");
     setIsSubmitting(true);
     try {
+      // FIX: getBackendIds ahora lanza si bookingId es 0/NaN
       const { bookingId, clientId } = getBackendIds();
 
       if (isPartial) {
@@ -101,26 +113,25 @@ export const CheckinProvider: React.FC<{ children: React.ReactNode }> = ({
       await submitCheckin({
         bookingId,
         clientId,
-        guests: state.guests,
-        horaLlegada: state.horaLlegada,
+        guests:        state.guests,
+        horaLlegada:   state.horaLlegada,
         observaciones: state.observaciones,
       });
 
       setIsPartialSuccess(false);
+
+      // Limpiar estado de sesión
       SESSION_KEYS_TO_CLEAR.forEach((key) => sessionStorage.removeItem(key));
+
+      // FIX: limpiar caché de catálogos para que el siguiente usuario
+      // (en una tablet de recepción) no reutilice datos de la sesión anterior.
+      clearCatalogsCache();
+
       actions.goTo("exito", "forward");
     } catch (err: unknown) {
-      // CORRECCIÓN: el interceptor de axiosInstance ya normaliza todos los
-      // errores a instancias de Error con mensaje legible. No necesitamos
-      // importar axios ni hacer isAxiosError aquí.
       let msg = t("errorBoundary.title");
-
-      if (err instanceof Error) {
-        msg = err.message;
-      } else if (typeof err === "string") {
-        msg = err;
-      }
-
+      if (err instanceof Error)      msg = err.message;
+      else if (typeof err === "string") msg = err;
       setSubmitError(msg);
       throw err;
     } finally {
@@ -128,7 +139,7 @@ export const CheckinProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   };
 
-  const handleSubmit = () => submitToServer(false);
+  const handleSubmit        = () => submitToServer(false);
   const handlePartialSubmit = () => submitToServer(true);
 
   const value = {
