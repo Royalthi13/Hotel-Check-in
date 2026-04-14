@@ -17,6 +17,8 @@ export const ScreenCheckinInicio: React.FC<Props> = ({ reserva, onNext }) => {
   const { t } = useTranslation();
 
   const [legalOpen, setLegalOpen] = useState(false);
+  const [showErrors, setShowErrors] = useState(false); // 🚨 Control de Errores Visuales
+
   const [acceptedLegal, setAcceptedLegal] = useState<boolean>(() => {
     return sessionStorage.getItem("lumina_acceptedLegal") === "true";
   });
@@ -26,12 +28,22 @@ export const ScreenCheckinInicio: React.FC<Props> = ({ reserva, onNext }) => {
   });
 
   useEffect(() => {
+    const handleErrorEvent = () => setShowErrors(true);
+    window.addEventListener("FORCE_VALIDATE", handleErrorEvent);
+    return () => window.removeEventListener("FORCE_VALIDATE", handleErrorEvent);
+  }, []);
+
+  useEffect(() => {
     sessionStorage.setItem("lumina_acceptedLegal", String(acceptedLegal));
+    window.dispatchEvent(new Event("LOCAL_STATE_CHANGED")); // Aviso al cerebro principal
+    if (acceptedLegal) setShowErrors(false);
   }, [acceptedLegal]);
 
   useEffect(() => {
     if (hayMenores !== null) {
       sessionStorage.setItem("lumina_hayMenores", hayMenores);
+      window.dispatchEvent(new Event("LOCAL_STATE_CHANGED")); // Aviso al cerebro principal
+      setShowErrors(false);
     }
   }, [hayMenores]);
 
@@ -59,11 +71,10 @@ export const ScreenCheckinInicio: React.FC<Props> = ({ reserva, onNext }) => {
           padding: "10px var(--px) 24px",
           display: "flex",
           flexDirection: "column",
-          gap: "36px", // Espaciado amplio y uniforme entre secciones
+          gap: "36px",
           flex: 1,
         }}
       >
-        {/* 1. RESUMEN DE LA RESERVA */}
         {reserva && (
           <div>
             <div
@@ -89,8 +100,17 @@ export const ScreenCheckinInicio: React.FC<Props> = ({ reserva, onNext }) => {
 
         {/* 2. PREGUNTA DE MENORES */}
         <div>
-          <div className="divlabel" style={{ marginTop: 0, marginBottom: 16 }}>
+          <div
+            className="divlabel"
+            style={{
+              marginTop: 0,
+              marginBottom: 16,
+              color:
+                showErrors && hayMenores === null ? "var(--error)" : "inherit",
+            }}
+          >
             {t("welcome.question_minors")}
+            {showErrors && hayMenores === null && " *"}
           </div>
           <div
             style={{
@@ -108,7 +128,11 @@ export const ScreenCheckinInicio: React.FC<Props> = ({ reserva, onNext }) => {
                 borderRadius: "var(--r)",
                 border: "1.5px solid",
                 borderColor:
-                  hayMenores === "no" ? "var(--primary)" : "var(--border)",
+                  hayMenores === "no"
+                    ? "var(--primary)"
+                    : showErrors && hayMenores === null
+                      ? "var(--error)"
+                      : "var(--border)",
                 background:
                   hayMenores === "no" ? "var(--primary-lt)" : "var(--white)",
                 cursor: "pointer",
@@ -128,7 +152,11 @@ export const ScreenCheckinInicio: React.FC<Props> = ({ reserva, onNext }) => {
                   fontSize: "var(--fs-md)",
                   fontWeight: hayMenores === "no" ? 600 : 400,
                   color:
-                    hayMenores === "no" ? "var(--primary-d)" : "var(--text)",
+                    hayMenores === "no"
+                      ? "var(--primary-d)"
+                      : showErrors && hayMenores === null
+                        ? "var(--error)"
+                        : "var(--text)",
                 }}
               >
                 {t("common.no")}
@@ -144,7 +172,11 @@ export const ScreenCheckinInicio: React.FC<Props> = ({ reserva, onNext }) => {
                 borderRadius: "var(--r)",
                 border: "1.5px solid",
                 borderColor:
-                  hayMenores === "yes" ? "var(--primary)" : "var(--border)",
+                  hayMenores === "yes"
+                    ? "var(--primary)"
+                    : showErrors && hayMenores === null
+                      ? "var(--error)"
+                      : "var(--border)",
                 background:
                   hayMenores === "yes" ? "var(--primary-lt)" : "var(--white)",
                 cursor: "pointer",
@@ -164,7 +196,11 @@ export const ScreenCheckinInicio: React.FC<Props> = ({ reserva, onNext }) => {
                   fontSize: "var(--fs-md)",
                   fontWeight: hayMenores === "yes" ? 600 : 400,
                   color:
-                    hayMenores === "yes" ? "var(--primary-d)" : "var(--text)",
+                    hayMenores === "yes"
+                      ? "var(--primary-d)"
+                      : showErrors && hayMenores === null
+                        ? "var(--error)"
+                        : "var(--text)",
                 }}
               >
                 {t("common.yes")}
@@ -173,51 +209,48 @@ export const ScreenCheckinInicio: React.FC<Props> = ({ reserva, onNext }) => {
           </div>
         </div>
 
-     {/* 3. CONDICIONES LEGALES Y CHECKBOX INTEGRADO */}
+        {/* 3. CONDICIONES LEGALES Y CHECKBOX INTEGRADO */}
         <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-          {/* Cabecera clicable — abre/cierra el acordeón */}
-<button
-  type="button"
-  onClick={() => setLegalOpen((v) => !v)}
-  style={{
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "flex-start", // todo pegado a la izquierda
-    background: "none",
-    border: "none",
-    cursor: "pointer",
-    padding: 0,
-    width: "100%", // ocupa todo el ancho para evitar problemas
-    gap: 0,
-  }}
->
-  <div className="divlabel" style={{ margin: 0, border: "none" }}>
-    {t("legal.title")}
-  </div>
+          <button
+            type="button"
+            onClick={() => setLegalOpen((v) => !v)}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "flex-start",
+              background: "none",
+              border: "none",
+              cursor: "pointer",
+              padding: 0,
+              width: "100%",
+              gap: 0,
+            }}
+          >
+            <div className="divlabel" style={{ margin: 0, border: "none" }}>
+              {t("legal.title")}
+            </div>
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 16 16"
+              fill="none"
+              style={{
+                marginLeft: 6,
+                transition: "transform 0.25s ease",
+                transform: legalOpen ? "rotate(180deg)" : "rotate(0deg)",
+                color: "var(--primary)",
+              }}
+            >
+              <path
+                d="M3 5l5 5 5-5"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+          </button>
 
-  <svg
-    width="16"
-    height="16"
-    viewBox="0 0 16 16"
-    fill="none"
-    style={{
-      marginLeft: 6, // separa icono del texto
-      transition: "transform 0.25s ease",
-      transform: legalOpen ? "rotate(180deg)" : "rotate(0deg)",
-      color: "var(--primary)",
-    }}
-  >
-    <path
-      d="M3 5l5 5 5-5"
-      stroke="currentColor"
-      strokeWidth="1.8"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    />
-  </svg>
-</button>
-
-          {/* Contenido colapsable */}
           {legalOpen && (
             <div
               style={{
@@ -235,19 +268,31 @@ export const ScreenCheckinInicio: React.FC<Props> = ({ reserva, onNext }) => {
               <p style={{ marginBottom: 12 }}>{t("legal.intro")}</p>
               {sectionsArray.map((section, idx) => (
                 <div key={idx} style={{ marginBottom: 12 }}>
-                  <strong style={{ color: "var(--text)", display: "block", marginBottom: 2 }}>
+                  <strong
+                    style={{
+                      color: "var(--text)",
+                      display: "block",
+                      marginBottom: 2,
+                    }}
+                  >
                     {section.h}
                   </strong>
                   {section.p}
                 </div>
               ))}
-              <p style={{ marginTop: 12, fontStyle: "italic", color: "var(--text-low)" }}>
+              <p
+                style={{
+                  marginTop: 12,
+                  fontStyle: "italic",
+                  color: "var(--text-low)",
+                }}
+              >
                 {t("legal.footer")}
               </p>
             </div>
           )}
 
-          {/* Checkbox rediseñado (ya no se expande a los bordes, encaja con la caja de arriba) */}
+          {/* CHECKBOX BLINDADO CONTRA ERRORES */}
           <label
             style={{
               display: "flex",
@@ -255,10 +300,15 @@ export const ScreenCheckinInicio: React.FC<Props> = ({ reserva, onNext }) => {
               gap: "14px",
               padding: "16px",
               background: "var(--primary-lt)",
-              border: "1px solid rgba(250, 134, 92, 0.25)",
+              border: "1px solid",
+              borderColor:
+                showErrors && !acceptedLegal
+                  ? "var(--error)"
+                  : "rgba(250, 134, 92, 0.25)",
               borderRadius: "var(--r)",
               cursor: "pointer",
               marginTop: "4px",
+              transition: "border-color 0.3s ease",
             }}
           >
             <input
@@ -268,7 +318,10 @@ export const ScreenCheckinInicio: React.FC<Props> = ({ reserva, onNext }) => {
               style={{
                 width: "20px",
                 height: "20px",
-                accentColor: "var(--primary)",
+                accentColor:
+                  showErrors && !acceptedLegal
+                    ? "var(--error)"
+                    : "var(--primary)",
                 flexShrink: 0,
                 marginTop: "1px",
                 cursor: "pointer",
@@ -278,8 +331,10 @@ export const ScreenCheckinInicio: React.FC<Props> = ({ reserva, onNext }) => {
               style={{
                 fontSize: "14px",
                 fontWeight: 500,
-                color: "var(--text)",
+                color:
+                  showErrors && !acceptedLegal ? "var(--error)" : "var(--text)",
                 lineHeight: 1.4,
+                transition: "color 0.3s ease",
               }}
             >
               {t("legal.accept_check")}

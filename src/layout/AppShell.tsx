@@ -41,6 +41,7 @@ function getActiveSideStep(step: StepId): StepId {
   return DOT_FOR[step] ?? step;
 }
 
+// 🛡️ AHORA VALIDA TAMBIÉN LA PANTALLA DE INICIO
 function currentStepIsInvalid(
   step: StepId,
   guests: PartialGuestData[],
@@ -49,6 +50,12 @@ function currentStepIsInvalid(
 ): boolean {
   const g = guests[guestIndex] ?? {};
   const logicalStep = getActiveSideStep(step);
+
+  if (logicalStep === "inicio") {
+    const accepted = sessionStorage.getItem("lumina_acceptedLegal") === "true";
+    const hayMenores = sessionStorage.getItem("lumina_hayMenores");
+    return !accepted || !hayMenores;
+  }
 
   if (logicalStep === "form_personal") {
     return (
@@ -113,7 +120,20 @@ export const AppShell: React.FC<AppShellProps> = ({
       : 0,
   );
 
-  // Sincronización de progreso máximo
+  const [maxSideIdxReached, setMaxSideIdxReached] = useState(() =>
+    activeIdx >= 0 && nav.step !== "revision" && nav.step !== "exito"
+      ? activeIdx
+      : 0,
+  );
+
+  // 🔄 SINCRONIZADOR: Escucha los cambios de checkboxes locales
+  const [, forceRender] = useState(0);
+  useEffect(() => {
+    const handler = () => forceRender((n) => n + 1);
+    window.addEventListener("LOCAL_STATE_CHANGED", handler);
+    return () => window.removeEventListener("LOCAL_STATE_CHANGED", handler);
+  }, []);
+
   useEffect(() => {
     const canUpdate =
       nav.dotIndex > maxDotReached &&
@@ -122,7 +142,14 @@ export const AppShell: React.FC<AppShellProps> = ({
     if (canUpdate) setMaxDotReached(nav.dotIndex);
   }, [nav.dotIndex, maxDotReached, nav.step, nav.allowedSteps]);
 
-  // Cálculos geométricos unificados para evitar redeclaraciones
+  useEffect(() => {
+    const canUpdate =
+      activeIdx > maxSideIdxReached &&
+      nav.step !== "exito" &&
+      (nav.step !== "revision" || nav.allowedSteps?.has("form_extras"));
+    if (canUpdate) setMaxSideIdxReached(activeIdx);
+  }, [activeIdx, maxSideIdxReached, nav.step, nav.allowedSteps]);
+
   const { safeWidth, stepWidth, targetX } = useMemo(() => {
     const sw = Math.max(0, trackWidth - 6);
     const stw = dotSteps.length > 1 ? sw / (dotSteps.length - 1) : 0;
@@ -130,7 +157,6 @@ export const AppShell: React.FC<AppShellProps> = ({
     return { safeWidth: sw, stepWidth: stw, targetX: tx };
   }, [trackWidth, dotSteps.length, nav.dotIndex]);
 
-  // Medición del contenedor con doble check para asegurar layout
   useEffect(() => {
     const measure = () => {
       if (trackRef.current) setTrackWidth(trackRef.current.offsetWidth);
@@ -146,7 +172,6 @@ export const AppShell: React.FC<AppShellProps> = ({
     };
   }, [showDots]);
 
-  // Sincronización de la bolita sin saltos visuales
   useEffect(() => {
     if (trackWidth > 0) {
       if (prevIndexRef.current !== nav.dotIndex) {
@@ -164,6 +189,11 @@ export const AppShell: React.FC<AppShellProps> = ({
   }, [trackWidth, targetX, progressX, nav.dotIndex]);
 
   const isStepUnlocked = (stepId: StepId, index: number) => {
+    if (maxSideIdxReached === 0) return index === 0;
+
+    if (stepId === "revision" && !!onGoToRevision && activeStep !== "exito")
+      return true;
+
     if (nav.allowedSteps) return nav.allowedSteps.has(stepId);
     if (activeStep === "revision" || activeStep === "exito")
       return stepId === "bienvenida" || stepId === activeStep;
@@ -175,6 +205,7 @@ export const AppShell: React.FC<AppShellProps> = ({
     activeStep !== "exito" &&
     !!onGoToRevision &&
     currentStepIsInvalid(nav.step, guests, guestIndex, t);
+
   const summaryDisabled =
     !onGoToRevision || activeStep === "revision" || activeStep === "exito";
 
@@ -185,7 +216,8 @@ export const AppShell: React.FC<AppShellProps> = ({
     const targetStepId = dotSteps[landedIndex];
     const isAllowed =
       landedIndex <= maxDotReached || isStepUnlocked(targetStepId, landedIndex);
-    const isBlockedByError = landedIndex > nav.dotIndex && stepInvalid;
+    const isBlockedByError =
+      landedIndex > nav.dotIndex && stepInvalid && targetStepId !== "revision";
 
     if (isBlockedByError) window.dispatchEvent(new Event("FORCE_VALIDATE"));
     if (!isAllowed || isBlockedByError || landedIndex === nav.dotIndex) {
@@ -206,8 +238,19 @@ export const AppShell: React.FC<AppShellProps> = ({
     "Lumina";
 
   return (
-    <div className="shell">
-      <div className="card">
+    <div
+      className="shell"
+      style={{ minHeight: "100vh", display: "flex", flexDirection: "column" }}
+    >
+      <div
+        className="card"
+        style={{
+          flex: 1,
+          display: "flex",
+          flexDirection: "column",
+          overflow: "hidden",
+        }}
+      >
         <Header
           canGoBack={nav.canGoBack}
           onBack={actions.goBack}
@@ -217,7 +260,8 @@ export const AppShell: React.FC<AppShellProps> = ({
           rightAction={
             onGoToRevision &&
             activeStep !== "revision" &&
-            activeStep !== "exito"
+            activeStep !== "exito" &&
+            maxSideIdxReached > 0
               ? {
                   label: t("common.summary"),
                   icon: "clipboard",
@@ -231,7 +275,6 @@ export const AppShell: React.FC<AppShellProps> = ({
           }
         />
 
-        {/* --- BARRA MÓVIL (PUNTITOS) --- */}
         {showDots && dotSteps.length > 0 && nav.dotIndex >= 0 && (
           <div className="dots-bar">
             <div className="swipe-dots-track" ref={trackRef}>
@@ -270,8 +313,10 @@ export const AppShell: React.FC<AppShellProps> = ({
           </div>
         )}
 
-        <div className="body-row">
-          {/* --- PANEL LATERAL (SIDEBAR) --- */}
+        <div
+          className="body-row"
+          style={{ flex: 1, display: "flex", alignItems: "stretch" }}
+        >
           <aside className="side-panel">
             <div className="side-panel-inner">
               <div
@@ -293,7 +338,8 @@ export const AppShell: React.FC<AppShellProps> = ({
                       ? window.dispatchEvent(new Event("FORCE_VALIDATE"))
                       : onGoToRevision?.()
                   }
-                  disabled={summaryDisabled}
+                  disabled={summaryDisabled || maxSideIdxReached === 0}
+                  style={{ opacity: maxSideIdxReached === 0 ? 0.3 : 1 }}
                 >
                   <Icon name="search" size={14} color="rgba(255,255,255,.8)" />
                   {t("appShell.booking_summary")}
@@ -309,42 +355,59 @@ export const AppShell: React.FC<AppShellProps> = ({
               <nav className="sp-steps" aria-label="Progreso">
                 {SIDE_STEPS.map((s, i) => {
                   const isActive = i === activeIdx;
-                  const isUnlocked = isStepUnlocked(s.id, i);
+                  const isUnlocked =
+                    isStepUnlocked(s.id, i) ||
+                    (maxSideIdxReached > 0 && i <= maxSideIdxReached);
                   const isRevision = s.id === "revision";
+
                   const canGoToRevision =
                     isRevision &&
                     !!onGoToRevision &&
                     !isActive &&
-                    activeStep !== "exito";
+                    activeStep !== "exito" &&
+                    maxSideIdxReached > 0;
+
                   const isClickable =
                     canGoToRevision ||
                     (isUnlocked && !isActive && s.id !== "exito");
+
                   const isDone =
-                    isUnlocked && !isActive && !isRevision && s.id !== "exito";
+                    i <= maxSideIdxReached &&
+                    !isActive &&
+                    !isRevision &&
+                    s.id !== "exito";
+
+                  const isGoingBackward = i < activeIdx;
 
                   return (
                     <div
                       key={s.id}
                       onClick={() => {
+                        const isTargetRevision = s.id === "revision";
+
                         if (
                           stepInvalid &&
-                          (isClickable || isUnlocked) &&
-                          !isActive
+                          isClickable &&
+                          !isActive &&
+                          !isGoingBackward &&
+                          !isTargetRevision
                         ) {
                           window.dispatchEvent(new Event("FORCE_VALIDATE"));
                           return;
                         }
+
                         if (canGoToRevision) {
                           onGoToRevision();
                           return;
                         }
+
                         if (isClickable) {
                           const dIdx = nav.dotSteps.indexOf(s.id);
                           if (dIdx !== -1) actions.goToDotIndex(dIdx);
                           else
                             actions.goTo(
                               s.id,
-                              i < activeIdx ? "back" : "forward",
+                              isGoingBackward ? "back" : "forward",
                               0,
                             );
                         }
@@ -353,13 +416,21 @@ export const AppShell: React.FC<AppShellProps> = ({
                         "sp-step",
                         isActive ? "sp-step--active" : "",
                         isDone ? "sp-step--done" : "",
-                        isClickable && !stepInvalid ? "sp-step--clickable" : "",
+                        isClickable &&
+                        (!stepInvalid || isGoingBackward || s.id === "revision")
+                          ? "sp-step--clickable"
+                          : "",
                       ]
                         .filter(Boolean)
                         .join(" ")}
                       style={{
                         cursor:
-                          isClickable && !stepInvalid ? "pointer" : "default",
+                          isClickable &&
+                          (!stepInvalid ||
+                            isGoingBackward ||
+                            s.id === "revision")
+                            ? "pointer"
+                            : "default",
                         opacity: isUnlocked || canGoToRevision ? 1 : 0.4,
                       }}
                     >
@@ -392,6 +463,9 @@ export const AppShell: React.FC<AppShellProps> = ({
               overflowX: "hidden",
               display: "flex",
               flex: 1,
+              flexDirection: "column",
+              backgroundColor: "var(--white)",
+              minHeight: "100%",
             }}
           >
             <AnimatePresence mode="wait" initial={false} custom={nav.direction}>
