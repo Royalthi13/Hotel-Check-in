@@ -79,20 +79,24 @@ export const ScreenFormExtras: React.FC<FormExtrasProps> = ({
 
 // ═══════════════════════════════════════════════════════════════════════════
 // Helper: valida un huésped completo
+// CORRECCIÓN: validateContacto ahora se aplica a TODOS los huéspedes,
+// no solo al titular (idx===0). Email/teléfono y país son obligatorios
+// para todos — acompañantes incluidos.
 // ═══════════════════════════════════════════════════════════════════════════
 function isGuestValid(
   g: PartialGuestData,
   idx: number,
   t: ReturnType<typeof useTranslation>["t"],
 ): boolean {
+  // Datos personales requeridos para todos
   const personalErrors = validatePersonal({ ...g, isTitular: idx === 0 }, t);
   if (Object.keys(personalErrors).length > 0) return false;
 
-  if (idx === 0) {
-    const contactErrors = validateContacto(g, t);
-    if (Object.keys(contactErrors).length > 0) return false;
-  }
+  // Contacto requerido para TODOS (email/teléfono + país)
+  const contactErrors = validateContacto(g, t);
+  if (Object.keys(contactErrors).length > 0) return false;
 
+  // Menores: deben tener al menos una relación declarada
   if (g.esMenor && (g.relacionesConAdultos ?? []).length === 0) return false;
 
   return true;
@@ -120,7 +124,6 @@ export const ScreenRevision: React.FC<RevisionProps> = ({
 
   const isDataComplete = guests.every((g, idx) => isGuestValid(g, idx, t));
 
-  // ✅ NUEVO ESTADO: Controla la casilla RGPD localmente
   const [isConfirmed, setIsConfirmed] = useState(false);
 
   const fullName = (g: typeof main) =>
@@ -139,65 +142,65 @@ export const ScreenRevision: React.FC<RevisionProps> = ({
             <ReservationCard reserva={reserva} />
           </div>
         )}
-      <div className="confirm-grid">
-        {guests.map((g, idx) => (
-          <React.Fragment key={idx}>
-            <ConfirmBlock
-              title={
-                idx === 0
-                  ? t("review.main_guest_personal")
-                  : t("review.companion_personal", { count: idx + 1 })
-              }
-              onEdit={() => onEditStep("form_personal", idx)}
-              rows={((): Array<[string, string | undefined | null]> => [
-                [t("forms.full_name"), fullName(g) || null],
-                [
-                  t("forms.gender"),
-                  g.sexo ? t(`constants.sexos.${g.sexo}`) : null,
-                ],
-                [t("forms.birthdate_clean"), g.fechaNac ?? null],
-                [
-                  t("forms.nationality"),
-                  g.nacionalidad
-                    ? t(`constants.nacionalidades.${g.nacionalidad}`)
-                    : null,
-                ],
-                ...(g.esMenor && (g.relacionesConAdultos ?? []).length > 0
-                  ? (g.relacionesConAdultos ?? []).map((r) => {
-                      const label = t("review.relation_adult", {
-                        count: r.adultoIndex + 1,
-                      });
-                      const value = (r.parentesco ?? "").trim()
-                        ? t(`constants.parentescos.${r.parentesco}`)
-                        : "—";
-                      const row: [string, string] = [label, value];
-                      return row;
-                    })
-                  : []),
-              ])()}
-            />
-            <ConfirmBlock
-              title={
-                idx === 0
-                  ? t("review.main_guest_doc")
-                  : t("review.companion_doc", { count: idx + 1 })
-              }
-              onEdit={() => onEditStep("form_personal", idx)}
-              rows={[
-                [
-                  t("forms.doc_type"),
-                  g.tipoDoc ? t(`constants.documentos.${g.tipoDoc}`) : null,
-                ],
-                [t("forms.doc_number"), g.numDoc ?? null],
-                ...(g.vat ? [[t("forms.vat"), g.vat] as [string, string]] : []),
-                [
-                  t("forms.photo"),
-                  g.docUploaded ? t("review.photo_attached") : "—",
-                ],
-              ]}
-            />
-          </React.Fragment>
-        ))}
+        <div className="confirm-grid">
+          {guests.map((g, idx) => (
+            <React.Fragment key={idx}>
+              <ConfirmBlock
+                title={
+                  idx === 0
+                    ? t("review.main_guest_personal")
+                    : t("review.companion_personal", { count: idx + 1 })
+                }
+                onEdit={() => onEditStep("form_personal", idx)}
+                rows={((): Array<[string, string | undefined | null]> => [
+                  [t("forms.full_name"), fullName(g) || null],
+                  [
+                    t("forms.gender"),
+                    g.sexo ? t(`constants.sexos.${g.sexo}`) : null,
+                  ],
+                  [t("forms.birthdate_clean"), g.fechaNac ?? null],
+                  [
+                    t("forms.nationality"),
+                    g.nacionalidad
+                      ? t(`constants.nacionalidades.${g.nacionalidad}`)
+                      : null,
+                  ],
+                  ...(g.esMenor && (g.relacionesConAdultos ?? []).length > 0
+                    ? (g.relacionesConAdultos ?? []).map((r) => {
+                        const label = t("review.relation_adult", {
+                          count: r.adultoIndex + 1,
+                        });
+                        const value = (r.parentesco ?? "").trim()
+                          ? t(`constants.parentescos.${r.parentesco}`)
+                          : "—";
+                        const row: [string, string] = [label, value];
+                        return row;
+                      })
+                    : []),
+                ])()}
+              />
+              <ConfirmBlock
+                title={
+                  idx === 0
+                    ? t("review.main_guest_doc")
+                    : t("review.companion_doc", { count: idx + 1 })
+                }
+                onEdit={() => onEditStep("form_personal", idx)}
+                rows={[
+                  [
+                    t("forms.doc_type"),
+                    g.tipoDoc ? t(`constants.documentos.${g.tipoDoc}`) : null,
+                  ],
+                  [t("forms.doc_number"), g.numDoc ?? null],
+                  ...(g.vat ? [[t("forms.vat"), g.vat] as [string, string]] : []),
+                  [
+                    t("forms.photo"),
+                    g.docUploaded ? t("review.photo_attached") : "—",
+                  ],
+                ]}
+              />
+            </React.Fragment>
+          ))}
         </div>
 
         <ConfirmBlock
@@ -248,7 +251,6 @@ export const ScreenRevision: React.FC<RevisionProps> = ({
           variant="primary"
           iconRight={isSubmitting ? undefined : "check"}
           onClick={onSubmit}
-          // ✅ CORRECCIÓN: El botón evalúa 'isConfirmed' (el estado local del checkbox)
           disabled={!isConfirmed || !isDataComplete || isSubmitting}
         >
           {isSubmitting ? (

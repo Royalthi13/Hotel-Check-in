@@ -4,10 +4,13 @@ import { getCompanionsByBooking, createCompanion, deleteCompanion } from "./comp
 import type { GuestData, PartialGuestData, Reserva }      from "@/types";
 
 export interface CheckinLoadResult {
-  reserva:    Reserva;
-  knownGuest: GuestData | null;
-  clientId:   number | null;
-  bookingId:  number;
+  reserva:     Reserva;
+  knownGuest:  GuestData | null;
+  clientId:    number | null;
+  bookingId:   number;
+  // FIX: los acompañantes ya guardados en la BD se cargan aquí para
+  // pre-rellenar el wizard si el usuario vuelve a la misma URL.
+  companions:  GuestData[];
 }
 
 export interface CheckinSubmitPayload {
@@ -21,6 +24,7 @@ export interface CheckinSubmitPayload {
 export async function loadCheckinData(token: string): Promise<CheckinLoadResult> {
   const { reserva, clientId, bookingId } = await getBookingById(token);
 
+  // 1. Titular
   let knownGuest: GuestData | null = null;
   if (clientId) {
     try {
@@ -30,14 +34,36 @@ export async function loadCheckinData(token: string): Promise<CheckinLoadResult>
     }
   }
 
-  return { reserva, knownGuest, clientId, bookingId };
+  // 2. Acompañantes — si ya se rellenaron en un envío previo los recuperamos
+  //    para pre-rellenar el wizard cuando el usuario vuelve a la misma URL.
+  let companions: GuestData[] = [];
+  try {
+    const companionList = await getCompanionsByBooking(bookingId);
+    if (companionList.length > 0) {
+      const results = await Promise.all(
+        companionList.map(async (c) => {
+          try {
+            return await getClientById(c.client_id);
+          } catch {
+            return null;
+          }
+        }),
+      );
+      companions = results.filter((g): g is GuestData => g !== null);
+    }
+  } catch {
+    // Si falla la carga de acompañantes continuamos sin ellos
+    companions = [];
+  }
+
+  return { reserva, knownGuest, clientId, bookingId, companions };
 }
 
 export async function submitCheckin(payload: CheckinSubmitPayload): Promise<void> {
   const { bookingId, clientId, guests, horaLlegada, observaciones } = payload;
   const [mainGuest, ...companionGuests] = guests;
 
-  // 1. Titular
+  // 1. Titular: actualizar si ya existía, crear si es nuevo
   let mainClientId = clientId;
   if (mainGuest) {
     if (mainClientId) {
@@ -47,33 +73,27 @@ export async function submitCheckin(payload: CheckinSubmitPayload): Promise<void
     }
   }
 
-  // 2. Acompañantes: borrar existentes y recrear.
-  // MEDIO: no hay transacción — si falla a mitad, la reserva queda con datos parciales.
-  // Solución definitiva requeriría un endpoint de batch en el backend.
+  // 2. Acompañantes: borrar existentes y recrear con datos frescos.
+  // El parentesco del menor va en clients.relationship, no en companions.
   try {
     const existing = await getCompanionsByBooking(bookingId);
     const toDelete = existing.filter((c) => c.client_id !== mainClientId);
     await Promise.all(toDelete.map((c) => deleteCompanion(c.id)));
   } catch {
-    // si falla la limpieza, continuar igualmente
+    // Si falla la limpieza, continuar igualmente
   }
 
   for (const guest of companionGuests) {
     if (!guest.nombre?.trim() && !guest.numDoc?.trim()) continue;
 
     const companionClientId = await createClient(guest);
-    const relationship = guest.esMenor
-      ? (guest.relacionesConAdultos?.[0]?.parentesco ?? undefined)
-      : undefined;
-
     await createCompanion({
-      booking_id:   bookingId,
-      client_id:    companionClientId,
-      relationship,
+      booking_id: bookingId,
+      client_id:  companionClientId,
     });
   }
 
-  // 3. Actualizar reserva
+  // 3. Actualizar reserva: notas + hora llegada + pre_checking=true
   await updateBookingCheckin(bookingId, { horaLlegada, observaciones });
 }
 
@@ -82,12 +102,7 @@ export async function savePartialCheckin(
   clientId: number | null,
   mainGuest: PartialGuestData,
 ): Promise<number> {
-  // bookingId está reservado para uso futuro — la asociación booking ↔ client
-  // se establece en el submitCheckin completo. Aquí solo persistimos los datos
-  // del huésped principal para que no los pierda si cierra el navegador.
-  // TODO: cuando el backend exponga PUT /bookings/{id}/client, usarlo aquí.
-  void bookingId;
-
+  void bookingId; // TODO: PATCH /bookings/{id}/client cuando el backend lo exponga
   if (clientId) {
     await updateClient(clientId, mainGuest);
     return clientId;

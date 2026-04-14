@@ -32,7 +32,7 @@ function setSession<T>(key: string, value: T): void {
   } catch {}
 }
 
-// ── Tipos y Estado inicial ────────────────────────────────────────────────────
+// ── Tipos ─────────────────────────────────────────────────────────────────────
 export type CheckinAction =
   | { type: "SET_KNOWN_GUEST"; guest: GuestData }
   | { type: "SET_RESERVA_TABLET"; reserva: Reserva }
@@ -57,6 +57,8 @@ export type CheckinAction =
   | { type: "SET_LEGAL_PASSED"; value: boolean }
   | { type: "SET_HAS_MINORS_FLAG"; value: boolean }
   | { type: "RESTORE_FULL_STATE"; payload: CheckinState }
+  // FIX: acción nueva para cargar acompañantes recuperados de la BD
+  | { type: "SET_COMPANIONS_LOADED"; companions: GuestData[] }
   | { type: "RESET" };
 
 interface HistoryEntry {
@@ -103,6 +105,7 @@ export function checkinReducer(
         knownGuest: action.guest,
         guests: [{ ...action.guest, esMenor: false }],
       };
+
     case "SET_RESERVA_TABLET":
       return {
         ...state,
@@ -112,12 +115,14 @@ export function checkinReducer(
         numMenores: 0,
         guests: mergeGuests([], action.reserva.numHuespedes),
       };
+
     case "SET_RESERVA":
       return {
         ...state,
         reserva: action.reserva,
         numPersonas: action.reserva.numHuespedes,
       };
+
     case "SET_NUM_PERSONAS": {
       const newGuests = mergeGuests(state.guests ?? [], action.total);
       return {
@@ -128,6 +133,39 @@ export function checkinReducer(
         numMenores: newGuests.filter((g) => g.esMenor).length,
       };
     }
+
+    // ── FIX: carga de acompañantes desde la BD ─────────────────────────────
+    // Se llama cuando el usuario vuelve a la misma URL después de completar
+    // el pre-checkin. Coloca a los acompañantes en guests[1..N] y recalcula
+    // esMenor para cada uno a partir de su fechaNac real.
+    case "SET_COMPANIONS_LOADED": {
+      const mainGuest = state.guests[0] ?? { esMenor: false, relacionesConAdultos: [] };
+
+      const companionGuests = action.companions.map((c) => ({
+        ...c,
+        // recalcular esMenor desde la fecha (toGuestData ya lo hace, pero
+        // lo forzamos aquí también por si llega sin calcular)
+        esMenor: c.fechaNac
+          ? dayjs().diff(dayjs(c.fechaNac), "years") < 18
+          : (c.esMenor ?? false),
+        relacionesConAdultos: c.relacionesConAdultos ?? [],
+      }));
+
+      const allGuests = [mainGuest, ...companionGuests];
+      const numMenores = allGuests.filter((g) => g.esMenor).length;
+      const numAdultos = allGuests.filter((g) => !g.esMenor).length;
+
+      return {
+        ...state,
+        guests: allGuests,
+        // Si la reserva dice que hay más personas que companions guardados,
+        // respetar el número mayor (puede que falten por guardar)
+        numPersonas: Math.max(state.numPersonas, allGuests.length),
+        numAdultos,
+        numMenores,
+      };
+    }
+
     case "UPDATE_GUEST": {
       const guests = [...state.guests];
       let finalValue = action.value;
@@ -142,6 +180,7 @@ export function checkinReducer(
       guests[action.index] = updated;
       return { ...state, guests };
     }
+
     case "UPDATE_RELACION": {
       const guests = [...state.guests];
       const menor = { ...guests[action.menorIndex] };
@@ -155,20 +194,19 @@ export function checkinReducer(
         if (idx >= 0)
           rels[idx] = { ...rels[idx], parentesco: action.parentesco };
         else
-          rels.push({
-            adultoIndex: action.adultoIndex,
-            parentesco: action.parentesco,
-          });
+          rels.push({ adultoIndex: action.adultoIndex, parentesco: action.parentesco });
         menor.relacionesConAdultos = rels;
       }
       guests[action.menorIndex] = menor;
       return { ...state, guests };
     }
+
     case "APPLY_SCAN": {
       const guests = [...state.guests];
       guests[action.guestIdx] = { ...guests[action.guestIdx], ...action.data };
       return { ...state, guests };
     }
+
     case "SET_HORA_LLEGADA":
       return { ...state, horaLlegada: action.value };
     case "SET_OBSERVACIONES":
@@ -208,25 +246,16 @@ export function useCheckin(tokenUrl?: string, stepUrl?: string) {
   const [navDirection, setNavDirection] = useState<NavDirection>("forward");
   const [isNavigating, setIsNavigating] = useState(false);
 
-  const stateRef = useRef(state);
-  const isInternalNavRef = useRef(false);
-  const navigateRef = useRef(navigate);
-  // ALTO: ref para isNavigating timer — evita leak si el componente se desmonta
-const navTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);  // ALTO: ref para activeGuestIndex — evita stale closure en goTo
+  const stateRef            = useRef(state);
+  const isInternalNavRef    = useRef(false);
+  const navigateRef         = useRef(navigate);
+  const navTimerRef         = useRef<ReturnType<typeof setTimeout> | null>(null);
   const activeGuestIndexRef = useRef(0);
 
-  useEffect(() => {
-    navigateRef.current = navigate;
-  });
+  useEffect(() => { navigateRef.current = navigate; });
+  useEffect(() => { stateRef.current = state; }, [state]);
 
-  useEffect(() => {
-    stateRef.current = state;
-  }, [state]);
-
-  // ALTO: Excluir docFile de la persistencia en sessionStorage.
-  // docFile es un objeto File que JSON.stringify convierte a {} silenciosamente,
-  // corrompiendo el estado al restaurarlo. Los datos personales (PII) se eliminan
-  // de esta clave al completar el flujo con SESSION_KEYS_TO_CLEAR en CheckinContext.
+  // Excluir docFile de sessionStorage (File no es serializable)
   useEffect(() => {
     const persistableState = {
       ...state,
@@ -235,10 +264,7 @@ const navTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);  // ALTO
     setSession(`state_${token}`, persistableState);
   }, [state, token]);
 
-  useEffect(
-    () => setSession(`history_${token}`, appHistory),
-    [appHistory, token],
-  );
+  useEffect(() => setSession(`history_${token}`, appHistory), [appHistory, token]);
   useEffect(
     () => setSession(`allowedSteps_${token}`, Array.from(allowedSteps)),
     [allowedSteps, token],
@@ -249,7 +275,7 @@ const navTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);  // ALTO
     [],
   );
 
-  // ── Carga con Login Automático ────────────────────────────────────────────
+  // ── Carga inicial ─────────────────────────────────────────────────────────
   useEffect(() => {
     if (token === "new") {
       setIsLoading(false);
@@ -266,14 +292,10 @@ const navTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);  // ALTO
 
         if (!yaAutenticado) {
           try {
-            // CRÍTICO: usar loginMagicLink (credenciales de servicio del .env),
-            // NO loginGuest — que intenta /auth/guest-login con surname vacío y da 401.
             await loginMagicLink(token);
           } catch (authErr) {
-            if (import.meta.env.DEV) {
+            if (import.meta.env.DEV)
               console.error("[useCheckin] ❌ LOGIN FALLIDO:", authErr);
-            }
-            // ALTO: guard cancelled ANTES de cualquier efecto secundario
             if (cancelled) return;
             navigateRef.current("/invalid", { replace: true });
             return;
@@ -281,24 +303,34 @@ const navTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);  // ALTO
         }
 
         const result = await loadCheckinData(token);
-
         if (cancelled) return;
 
+        // 1. Titular
         if (result.knownGuest)
           dispatch({ type: "SET_KNOWN_GUEST", guest: result.knownGuest });
+
+        // 2. Reserva (numPersonas, habitación, fechas…)
         dispatch({ type: "SET_RESERVA", reserva: result.reserva });
 
+        // 3. FIX: acompañantes ya guardados en BD → rellenan guests[1..N]
+        //    Esto hace que al volver a la URL todos los datos aparezcan
+        //    pre-rellenados en el wizard.
+        if (result.companions.length > 0) {
+          dispatch({
+            type: "SET_COMPANIONS_LOADED",
+            companions: result.companions,
+          });
+        }
+
+        // IDs para el submit
         sessionStorage.setItem(`bookingId_${token}`, String(result.bookingId));
         if (result.clientId)
           sessionStorage.setItem(`clientId_${token}`, String(result.clientId));
 
       } catch (err) {
-        // ALTO: guard cancelled ANTES de navegar — evita actualizaciones en
-        // componentes desmontados si load() sigue en vuelo al desmontar.
         if (cancelled) return;
-        if (import.meta.env.DEV) {
+        if (import.meta.env.DEV)
           console.error("[useCheckin] ❌ ERROR AL CARGAR RESERVA:", err);
-        }
         navigateRef.current("/invalid", { replace: true });
       } finally {
         if (!cancelled) setIsLoading(false);
@@ -306,18 +338,13 @@ const navTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);  // ALTO
     }
 
     load();
-    return () => {
-      cancelled = true;
-    };
-  // navigate se excluye de deps intencionadamente — se accede via navigateRef
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token, dispatch]);
 
-  // Limpiar el timer de isNavigating al desmontar (MEDIO fix)
+  // Limpiar timer de isNavigating al desmontar
   useEffect(() => {
-    return () => {
-      if (navTimerRef.current) clearTimeout(navTimerRef.current);
-    };
+    return () => { if (navTimerRef.current) clearTimeout(navTimerRef.current); };
   }, []);
 
   const actualStep =
@@ -331,7 +358,6 @@ const navTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);  // ALTO
     return 0;
   })();
 
-  // ALTO: mantener ref sincronizada con activeGuestIndex para evitar stale closure en goTo
   useEffect(() => {
     activeGuestIndexRef.current = activeGuestIndex;
   }, [activeGuestIndex]);
@@ -345,16 +371,12 @@ const navTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);  // ALTO
       setNavDirection(dir);
       setAppHistory((prev) => [
         ...prev,
-        // ALTO: usar activeGuestIndexRef.current en lugar de activeGuestIndex
-        // para evitar stale closure cuando appHistory cambia entre renders.
         { step: nextStep, guestIndex: gIdx ?? activeGuestIndexRef.current },
       ]);
       if (dir === "forward") navigate(`/checkin/${token}/${nextStep}`);
       else navigate(`/checkin/${token}/${nextStep}`, { replace: true });
-      // MEDIO: guardar el timer en ref para poder cancelarlo en unmount
       navTimerRef.current = setTimeout(() => setIsNavigating(false), 350);
     },
-    // activeGuestIndex eliminado de deps — se accede via ref para evitar recreaciones
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [navigate, token, isNavigating],
   );
@@ -365,9 +387,7 @@ const navTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);  // ALTO
     setAppHistory((prev) => {
       if (prev.length > 1) {
         const next = prev.slice(0, -1);
-        navigate(`/checkin/${token}/${next[next.length - 1].step}`, {
-          replace: true,
-        });
+        navigate(`/checkin/${token}/${next[next.length - 1].step}`, { replace: true });
         return next;
       }
       navigate(-1);
@@ -384,23 +404,28 @@ const navTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);  // ALTO
     return () => window.removeEventListener("popstate", onPop);
   }, []);
 
+  // ── nextGuest ─────────────────────────────────────────────────────────────
+  // TODOS los huéspedes pasan por personal → contacto.
+  // Tras contacto del último → menores → extras.
   const nextGuest = useCallback(
     (currIdx: number, from: StepId) => {
       const { guests, numPersonas } = stateRef.current;
+
       if (from === "form_personal") {
-        if (currIdx === 0) return goTo("form_contacto", "forward", 0);
-        if (currIdx + 1 < numPersonas)
-          return goTo("form_personal", "forward", currIdx + 1);
+        return goTo("form_contacto", "forward", currIdx);
       }
-      if (from === "form_contacto" && numPersonas > 1)
-        return goTo("form_personal", "forward", 1);
-      if (
-        ["form_personal", "form_contacto", "form_relaciones"].includes(from)
-      ) {
-        const nextM =
-          from === "form_relaciones"
-            ? guests.findIndex((g, i) => i > currIdx && g.esMenor)
-            : guests.findIndex((g) => g.esMenor);
+
+      if (from === "form_contacto") {
+        if (currIdx + 1 < numPersonas) {
+          return goTo("form_personal", "forward", currIdx + 1);
+        }
+        const nextM = guests.findIndex((g) => g.esMenor);
+        if (nextM >= 0) return goTo("form_relaciones", "forward", nextM);
+        return goTo("form_extras", "forward", 0);
+      }
+
+      if (from === "form_relaciones") {
+        const nextM = guests.findIndex((g, i) => i > currIdx && g.esMenor);
         if (nextM >= 0) return goTo("form_relaciones", "forward", nextM);
         return goTo("form_extras", "forward", 0);
       }
@@ -434,16 +459,7 @@ const navTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);  // ALTO
       allowedSteps,
       isNavigating,
     }),
-    [
-      actualStep,
-      activeGuestIndex,
-      navDirection,
-      dotSteps,
-      currentDotIndex,
-      canGoBack,
-      allowedSteps,
-      isNavigating,
-    ],
+    [actualStep, activeGuestIndex, navDirection, dotSteps, currentDotIndex, canGoBack, allowedSteps, isNavigating],
   );
 
   const actions: CheckinActions = useMemo(
@@ -464,40 +480,21 @@ const navTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);  // ALTO
       updateGuest: (index, key, value) =>
         dispatch({ type: "UPDATE_GUEST", index, key, value }),
       updateRelacion: (menorIndex, adultoIndex, parentesco) =>
-        dispatch({
-          type: "UPDATE_RELACION",
-          menorIndex,
-          adultoIndex,
-          parentesco,
-        }),
+        dispatch({ type: "UPDATE_RELACION", menorIndex, adultoIndex, parentesco }),
       confirmKnownGuest: () => {
         const { knownGuest } = stateRef.current;
-        if (knownGuest)
-          dispatch({ type: "SET_KNOWN_GUEST", guest: knownGuest });
+        if (knownGuest) dispatch({ type: "SET_KNOWN_GUEST", guest: knownGuest });
       },
       applyScannedData: (data, idx) =>
-        dispatch({
-          type: "APPLY_SCAN",
-          data,
-          guestIdx: idx ?? activeGuestIndexRef.current,
-        }),
+        dispatch({ type: "APPLY_SCAN", data, guestIdx: idx ?? activeGuestIndexRef.current }),
       setHoraLlegada: (v) => dispatch({ type: "SET_HORA_LLEGADA", value: v }),
-      setObservaciones: (v) =>
-        dispatch({ type: "SET_OBSERVACIONES", value: v }),
+      setObservaciones: (v) => dispatch({ type: "SET_OBSERVACIONES", value: v }),
       nextGuest,
       setRgpdAcepted: (v) => dispatch({ type: "SET_RGPD", value: v }),
       setLegalPassed: (v) => dispatch({ type: "SET_LEGAL_PASSED", value: v }),
-      setHasMinorsFlag: (v) =>
-        dispatch({ type: "SET_HAS_MINORS_FLAG", value: v }),
+      setHasMinorsFlag: (v) => dispatch({ type: "SET_HAS_MINORS_FLAG", value: v }),
     }),
-    [
-      goTo,
-      goBack,
-      dispatch,
-      dotSteps,
-      currentDotIndex,
-      nextGuest,
-    ],
+    [goTo, goBack, dispatch, dotSteps, currentDotIndex, nextGuest],
   );
 
   return [state, nav, actions, isLoading] as const;

@@ -67,7 +67,7 @@ const FieldError: React.FC<{ msg?: string }> = ({ msg }) =>
     </span>
   ) : null;
 
-// --- COMPONENTE 1: DATOS PERSONALES ---
+// ─── COMPONENTE 1: DATOS PERSONALES ─────────────────────────────────────────
 export const ScreenFormPersonal: React.FC = () => {
   const { state, nav, actions, isSubmitting, handlePartialSubmit } =
     useCheckinContext();
@@ -377,15 +377,15 @@ export const ScreenFormPersonal: React.FC = () => {
                 {t("common.save_partial")}
               </Button>
             )}
+            {/* CORRECCIÓN: siempre "Continuar" — el siguiente paso es siempre
+                form_contacto del mismo huésped, no el siguiente huésped */}
             <Button
               variant="primary"
               type="submit"
               iconRight="right"
               style={{ flex: 1, minWidth: "200px" }}
             >
-              {guestIndex < state.numPersonas - 1
-                ? t("common.next_guest")
-                : t("common.continue")}
+              {t("common.continue")}
             </Button>
           </div>
         </fieldset>
@@ -394,7 +394,7 @@ export const ScreenFormPersonal: React.FC = () => {
   );
 };
 
-// --- COMPONENTE 2: DATOS DE CONTACTO ---
+// ─── COMPONENTE 2: DATOS DE CONTACTO ────────────────────────────────────────
 export const ScreenFormContacto: React.FC = () => {
   const { state, nav, actions, isSubmitting, handlePartialSubmit } =
     useCheckinContext();
@@ -411,18 +411,19 @@ export const ScreenFormContacto: React.FC = () => {
   const handleUpdate = (key: keyof PartialGuestData, value: unknown) =>
     actions.updateGuest(guestIndex, key, value);
 
+  // CORRECCIÓN: lockedFields solo aplica al titular (guestIndex===0).
+  // Los acompañantes no tienen datos previos — sus campos no deben bloquearse.
   const lockedFields = useMemo(
     () => ({
-      email: !!state.knownGuest?.email,
-      telefono: !!state.knownGuest?.telefono,
+      email:    guestIndex === 0 ? !!state.knownGuest?.email    : false,
+      telefono: guestIndex === 0 ? !!state.knownGuest?.telefono : false,
     }),
-    [state.knownGuest],
+    [state.knownGuest, guestIndex],
   );
 
-  // MEDIO: memorizar el validator para evitar que useFormValidation reciba una
-  // nueva función en cada render, forzando la recreación de validate y re-renders en cadena.
   const contactoValidator = useCallback(
-    (d: PartialGuestData, tf: TFunction) => validateContacto(d, tf, lockedFields),
+    (d: PartialGuestData, tf: TFunction) =>
+      validateContacto(d, tf, lockedFields),
     [lockedFields],
   );
   const { errors, validate, clearError } = useFormValidation(contactoValidator);
@@ -439,14 +440,12 @@ export const ScreenFormContacto: React.FC = () => {
 
   const esEspana = data.pais === "ES";
 
-  const [anchorElPrefijo, setAnchorElPrefijo] = useState<null | HTMLElement>(
-    null,
-  );
-  const [anchorElPais, setAnchorElPais] = useState<null | HTMLElement>(null);
+  const [anchorElPrefijo, setAnchorElPrefijo] = useState<null | HTMLElement>(null);
+  const [anchorElPais,    setAnchorElPais]    = useState<null | HTMLElement>(null);
   const [prefijoModalOpen, setPrefijoModalOpen] = useState(false);
-  const [paisModalOpen, setPaisModalOpen] = useState(false);
+  const [paisModalOpen,    setPaisModalOpen]    = useState(false);
   const [prefijoSearch, setPrefijoSearch] = useState("");
-  const [paisSearch, setPaisSearch] = useState("");
+  const [paisSearch,    setPaisSearch]    = useState("");
 
   const prefijosTraducidos = useMemo(() => {
     const lang = i18n.language.split("-")[0];
@@ -454,20 +453,15 @@ export const ScreenFormContacto: React.FC = () => {
     return PREFIJOS_TELEFONICOS.map((c) => {
       let name = t(`constants.paises.${c.code}`);
       if (name === `constants.paises.${c.code}`) {
-        try {
-          name = displayNames.of(c.code) || c.code;
-        } catch {
-          name = c.code;
-        }
+        try { name = displayNames.of(c.code) || c.code; } catch { name = c.code; }
       }
       return { ...c, nameTranslated: name };
     }).sort((a, b) => a.nameTranslated.localeCompare(b.nameTranslated, lang));
   }, [t, i18n.language]);
 
   const prefijoActual =
-    prefijosTraducidos.find(
-      (p) => p.dial === ((data as any).prefijo || "+34"),
-    ) || prefijosTraducidos.find((p) => p.code === "ES");
+    prefijosTraducidos.find((p) => p.dial === ((data as any).prefijo || "+34")) ||
+    prefijosTraducidos.find((p) => p.code === "ES");
   const paisActual =
     prefijosTraducidos.find((p) => p.code === (data.pais || "ES")) ||
     prefijosTraducidos.find((p) => p.code === "ES");
@@ -476,9 +470,7 @@ export const ScreenFormContacto: React.FC = () => {
     () =>
       prefijosTraducidos.filter(
         (c) =>
-          c.nameTranslated
-            .toLowerCase()
-            .includes(prefijoSearch.toLowerCase()) ||
+          c.nameTranslated.toLowerCase().includes(prefijoSearch.toLowerCase()) ||
           c.dial.includes(prefijoSearch),
       ),
     [prefijosTraducidos, prefijoSearch],
@@ -497,17 +489,12 @@ export const ScreenFormContacto: React.FC = () => {
   }, []);
 
   useDebounce(
-    () => {
-      if (data.email?.includes("@")) validate(data);
-    },
+    () => { if (data.email?.includes("@")) validate(data); },
     500,
     [data.email],
   );
-
   useDebounce(
-    () => {
-      if ((data.telefono?.length ?? 0) >= 7) validate(data);
-    },
+    () => { if ((data.telefono?.length ?? 0) >= 7) validate(data); },
     500,
     [data.telefono],
   );
@@ -515,9 +502,10 @@ export const ScreenFormContacto: React.FC = () => {
   useEffect(() => {
     const handleForceValidate = () => validate(data);
     window.addEventListener("FORCE_VALIDATE", handleForceValidate);
-    return () =>
-      window.removeEventListener("FORCE_VALIDATE", handleForceValidate);
+    return () => window.removeEventListener("FORCE_VALIDATE", handleForceValidate);
   }, [data, validate]);
+
+  const isMainGuest = guestIndex === 0;
 
   const RenderList = (
     onSelect: (c: any) => void,
@@ -580,13 +568,7 @@ export const ScreenFormContacto: React.FC = () => {
             <MenuItem
               key={c.code}
               onClick={() => onSelect(c)}
-              sx={{
-                gap: 2,
-                borderRadius: "10px",
-                py: 1.5,
-                mb: 0.5,
-                maxWidth: "100%",
-              }}
+              sx={{ gap: 2, borderRadius: "10px", py: 1.5, mb: 0.5, maxWidth: "100%" }}
             >
               <img
                 width="22"
@@ -621,9 +603,7 @@ export const ScreenFormContacto: React.FC = () => {
             </MenuItem>
           ))
         ) : (
-          <Typography
-            sx={{ p: 4, textAlign: "center", color: "text.secondary" }}
-          >
+          <Typography sx={{ p: 4, textAlign: "center", color: "text.secondary" }}>
             {t("search.no_results")}
           </Typography>
         )}
@@ -643,7 +623,19 @@ export const ScreenFormContacto: React.FC = () => {
         >
           {t("forms.contact_title")}
         </Typography>
-        <p>{t("forms.contact_subtitle")}</p>
+        {/* AÑADIDO: contador de huésped para que el usuario sepa de quién
+            está rellenando los datos de contacto */}
+        <Typography variant="body2" color="var(--text-low)">
+          {t("forms.guest_counter", {
+            current: guestIndex + 1,
+            total: state.numPersonas,
+          })}
+          {isMainGuest
+            ? ` · ${t("forms.main_guest_tag")}`
+            : data.esMenor
+              ? t("forms.minor_tag")
+              : t("forms.adult_tag")}
+        </Typography>
       </div>
 
       <form
@@ -705,9 +697,7 @@ export const ScreenFormContacto: React.FC = () => {
                       : (e) => {
                           handleUpdate(
                             "telefono",
-                            formatPhoneNumber(
-                              e.target.value.replace(/\D/g, ""),
-                            ),
+                            formatPhoneNumber(e.target.value.replace(/\D/g, "")),
                           );
                           clearError("telefono");
                         }
@@ -735,11 +725,8 @@ export const ScreenFormContacto: React.FC = () => {
                             display: "flex",
                             alignItems: "center",
                             gap: 0.5,
-                            cursor: lockedFields.telefono
-                              ? "default"
-                              : "pointer",
-                            px: 1,
-                            py: 0.5,
+                            cursor: lockedFields.telefono ? "default" : "pointer",
+                            px: 1, py: 0.5,
                             borderRadius: "8px",
                             "&:hover": {
                               bgcolor: lockedFields.telefono
@@ -761,30 +748,18 @@ export const ScreenFormContacto: React.FC = () => {
                             sx={{
                               fontSize: "0.9rem",
                               fontWeight: 700,
-                              color: lockedFields.telefono
-                                ? "text.disabled"
-                                : "text.primary",
+                              color: lockedFields.telefono ? "text.disabled" : "text.primary",
                             }}
                           >
                             {prefijoActual?.dial}
                           </Typography>
                           {!lockedFields.telefono && (
-                            <div
-                              style={{
-                                transform: "rotate(90deg)",
-                                display: "flex",
-                                opacity: 0.5,
-                                marginLeft: 2,
-                              }}
-                            >
+                            <div style={{ transform: "rotate(90deg)", display: "flex", opacity: 0.5, marginLeft: 2 }}>
                               <Icon name="right" size={12} />
                             </div>
                           )}
                         </Box>
-                        <Divider
-                          sx={{ height: 24, ml: 1 }}
-                          orientation="vertical"
-                        />
+                        <Divider sx={{ height: 24, ml: 1 }} orientation="vertical" />
                       </InputAdornment>
                     ),
                   }}
@@ -804,20 +779,6 @@ export const ScreenFormContacto: React.FC = () => {
               error={!!errors.direccion}
               sx={inputSx}
             />
-            {data.direccion && (
-              <span
-                style={{
-                  fontSize: 10,
-                  color: "var(--ok)",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 3,
-                  marginTop: 3,
-                }}
-              >
-                {t("forms.autofill_from_doc")}
-              </span>
-            )}
 
             <Divider
               sx={{ my: 1, typography: "overline", color: "var(--text-low)" }}
@@ -865,13 +826,7 @@ export const ScreenFormContacto: React.FC = () => {
                     ),
                     endAdornment: (
                       <InputAdornment position="end">
-                        <div
-                          style={{
-                            transform: "rotate(90deg)",
-                            display: "flex",
-                            opacity: 0.5,
-                          }}
-                        >
+                        <div style={{ transform: "rotate(90deg)", display: "flex", opacity: 0.5 }}>
                           <Icon name="right" size={14} />
                         </div>
                       </InputAdornment>
@@ -1006,13 +961,15 @@ export const ScreenFormContacto: React.FC = () => {
                 {t("common.save_partial")}
               </Button>
             )}
+            {/* Desde contacto: si quedan más huéspedes → "Siguiente persona",
+                si es el último → "Continuar" (hacia menores o extras) */}
             <Button
               variant="primary"
               type="submit"
               iconRight="right"
               style={{ flex: 1, minWidth: "200px" }}
             >
-              {nav.guestIndex < state.numPersonas - 1
+              {guestIndex < state.numPersonas - 1
                 ? t("common.next_guest")
                 : t("common.continue")}
             </Button>
@@ -1020,6 +977,7 @@ export const ScreenFormContacto: React.FC = () => {
         </fieldset>
       </form>
 
+      {/* Modales y menús de prefijo/país */}
       <Dialog
         open={prefijoModalOpen}
         onClose={() => setPrefijoModalOpen(false)}
@@ -1028,16 +986,9 @@ export const ScreenFormContacto: React.FC = () => {
         PaperProps={{ sx: modalPaperSx }}
       >
         {RenderList(
-          (c) => {
-            handleUpdate("prefijo" as any, c.dial);
-            setPrefijoModalOpen(false);
-            setPrefijoSearch("");
-          },
-          prefijoSearch,
-          setPrefijoSearch,
-          prefijosFiltrados,
-          t("search.phone_prefix_placeholder"),
-          true,
+          (c) => { handleUpdate("prefijo" as any, c.dial); setPrefijoModalOpen(false); setPrefijoSearch(""); },
+          prefijoSearch, setPrefijoSearch, prefijosFiltrados,
+          t("search.phone_prefix_placeholder"), true,
         )}
       </Dialog>
 
@@ -1049,16 +1000,9 @@ export const ScreenFormContacto: React.FC = () => {
         PaperProps={{ sx: modalPaperSx }}
       >
         {RenderList(
-          (c) => {
-            handleUpdate("pais", c.code);
-            setPaisModalOpen(false);
-            setPaisSearch("");
-          },
-          paisSearch,
-          setPaisSearch,
-          paisesFiltrados,
-          t("search.country_placeholder"),
-          false,
+          (c) => { handleUpdate("pais", c.code); setPaisModalOpen(false); setPaisSearch(""); },
+          paisSearch, setPaisSearch, paisesFiltrados,
+          t("search.country_placeholder"), false,
         )}
       </Dialog>
 
@@ -1066,26 +1010,12 @@ export const ScreenFormContacto: React.FC = () => {
         anchorEl={anchorElPrefijo}
         open={Boolean(anchorElPrefijo)}
         onClose={() => setAnchorElPrefijo(null)}
-        PaperProps={{
-          sx: {
-            borderRadius: "15px",
-            mt: 1,
-            boxShadow: "0 10px 40px rgba(0,0,0,0.1)",
-            overflow: "hidden",
-          },
-        }}
+        PaperProps={{ sx: { borderRadius: "15px", mt: 1, boxShadow: "0 10px 40px rgba(0,0,0,0.1)", overflow: "hidden" } }}
       >
         {RenderList(
-          (c) => {
-            handleUpdate("prefijo" as any, c.dial);
-            setAnchorElPrefijo(null);
-            setPrefijoSearch("");
-          },
-          prefijoSearch,
-          setPrefijoSearch,
-          prefijosFiltrados,
-          t("search.phone_prefix_placeholder"),
-          true,
+          (c) => { handleUpdate("prefijo" as any, c.dial); setAnchorElPrefijo(null); setPrefijoSearch(""); },
+          prefijoSearch, setPrefijoSearch, prefijosFiltrados,
+          t("search.phone_prefix_placeholder"), true,
         )}
       </Menu>
 
@@ -1093,26 +1023,12 @@ export const ScreenFormContacto: React.FC = () => {
         anchorEl={anchorElPais}
         open={Boolean(anchorElPais)}
         onClose={() => setAnchorElPais(null)}
-        PaperProps={{
-          sx: {
-            borderRadius: "15px",
-            mt: 1,
-            boxShadow: "0 10px 40px rgba(0,0,0,0.1)",
-            overflow: "hidden",
-          },
-        }}
+        PaperProps={{ sx: { borderRadius: "15px", mt: 1, boxShadow: "0 10px 40px rgba(0,0,0,0.1)", overflow: "hidden" } }}
       >
         {RenderList(
-          (c) => {
-            handleUpdate("pais", c.code);
-            setAnchorElPais(null);
-            setPaisSearch("");
-          },
-          paisSearch,
-          setPaisSearch,
-          paisesFiltrados,
-          t("search.country_placeholder"),
-          false,
+          (c) => { handleUpdate("pais", c.code); setAnchorElPais(null); setPaisSearch(""); },
+          paisSearch, setPaisSearch, paisesFiltrados,
+          t("search.country_placeholder"), false,
         )}
       </Menu>
     </>
