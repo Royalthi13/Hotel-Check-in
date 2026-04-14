@@ -128,6 +128,7 @@
     }
   },
   "common": {
+    "of": "of ",
     "no": "No",
     "yes": "Yes",
     "back": "Back",
@@ -425,8 +426,7 @@
     "this_minor": "this minor",
     "declare_adult_1": "I declare that ",
     "declare_adult_2": " acts as",
-    "declare_minor_1": "of the minor ",
-    "of": "of "
+    "declare_minor_1": "of the minor "
   },
   "guestsCount": {
     "title_booking": "How many people will stay?",

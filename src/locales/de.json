@@ -128,6 +128,7 @@
     }
   },
   "common": {
+    "of": "von ",
     "no": "Nein",
     "yes": "Ja",
     "back": "Zurück",
@@ -409,6 +410,7 @@
     "footer": "Wenden Sie sich an die Rezeption, falls das Problem weiterhin besteht."
   },
   "minors": {
+    "of": "von ",
     "this_minor": "diese/n Minderjährige/n",
     "declare_adult_1": "Ich erkläre, dass ",
     "declare_adult_2": " als",
@@ -423,8 +425,7 @@
     "booking_holder": "Buchungsinhaber",
     "relation_with": "Beziehung zu {{name}}",
     "select_relationship": "— Verwandtschaftsverhältnis auswählen —",
-    "mandatory_legal_field": "Dieses Feld ist gesetzlich vorgeschrieben",
-    "of": "von "
+    "mandatory_legal_field": "Dieses Feld ist gesetzlich vorgeschrieben"
   },
 
   "invalidLink": {

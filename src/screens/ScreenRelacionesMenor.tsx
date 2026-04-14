@@ -89,11 +89,9 @@ export const ScreenRelacionesMenor: React.FC<Props> = ({
           color="text.secondary"
           sx={{ fontSize: "var(--fs-sm)" }}
         >
-          {t(
-            "minors.declare_relationship_1",
-            "Indique qué adulto se hace responsable de ",
-          )}
-          <strong>{nombreMenor}</strong>.
+          {t("minors.declare_relationship_1", "Declare la relación con ")}
+          <strong>{nombreMenor}</strong>
+          {t("minors.declare_relationship_2", " con cada adulto del grupo.")}
         </Typography>
       </Box>
 

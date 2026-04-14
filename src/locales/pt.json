@@ -128,6 +128,7 @@
     }
   },
   "common": {
+    "of": "de ",
     "no": "Não",
     "yes": "Sim",
     "back": "Voltar",
@@ -423,7 +424,8 @@
     "booking_holder": "Titular da reserva",
     "relation_with": "Relação com {{name}}",
     "select_relationship": "— Selecionar parentesco —",
-    "mandatory_legal_field": "Este campo é obrigatório por lei"
+    "mandatory_legal_field": "Este campo é obrigatório por lei",
+    "of": "de "
   },
 
   "reservationCard": {

@@ -128,6 +128,7 @@
     }
   },
   "common": {
+    "of": "de ",
     "no": "Non",
     "yes": "Oui",
     "back": "Retour",
@@ -409,6 +410,7 @@
     "footer": "Si le problème persiste, contactez la réception."
   },
   "minors": {
+    "of": "de ",
     "this_minor": "ce/cette mineur(e)",
     "declare_adult_1": "Je déclare que ",
     "declare_adult_2": " agit en qualité de",
@@ -423,8 +425,7 @@
     "booking_holder": "Titulaire de la réservation",
     "relation_with": "Relation avec {{name}}",
     "select_relationship": "— Sélectionner la relation —",
-    "mandatory_legal_field": "Ce champ est obligatoire par la loi",
-    "of": "de "
+    "mandatory_legal_field": "Ce champ est obligatoire par la loi"
   },
   "invalidLink": {
     "title": "Lien invalide",

@@ -136,6 +136,7 @@
   },
 
   "common": {
+    "of": "de ",
     "no": "No",
     "yes": "Sí",
     "back": "Atrás",
@@ -418,6 +419,7 @@
     "guest_plural": "huéspedes"
   },
   "minors": {
+    "of": "de ",
     "this_minor": "este/a menor",
     "declare_adult_1": "Declaro que ",
     "declare_adult_2": " actúa en calidad de",
@@ -432,8 +434,7 @@
     "booking_holder": "Titular de la reserva",
     "relation_with": "Relación con {{name}}",
     "select_relationship": "— Seleccionar parentesco —",
-    "mandatory_legal_field": "Este campo es obligatorio por ley",
-    "of": "de "
+    "mandatory_legal_field": "Este campo es obligatorio por ley"
   },
 
   "guestsCount": {

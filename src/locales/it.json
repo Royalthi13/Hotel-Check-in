@@ -128,6 +128,7 @@
     }
   },
   "common": {
+    "of": "di ",
     "no": "No",
     "yes": "Sì",
     "back": "Indietro",
@@ -409,6 +410,7 @@
     "footer": "Se il problema persiste, contatta la reception."
   },
   "minors": {
+    "of": "di ",
     "this_minor": "questo/a minore",
     "declare_adult_1": "Dichiaro che ",
     "declare_adult_2": " agisce in qualità di",
@@ -423,8 +425,7 @@
     "booking_holder": "Titolare della prenotazione",
     "relation_with": "Relazione con {{name}}",
     "select_relationship": "— Selezionare parentela —",
-    "mandatory_legal_field": "Questo campo è obbligatorio per legge",
-    "of": "di "
+    "mandatory_legal_field": "Questo campo è obbligatorio per legge"
   },
   "reservationCard": {
     "nights": "notti",
