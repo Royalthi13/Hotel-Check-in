@@ -327,6 +327,7 @@
     "footer": "If you need help, please contact reception."
   },
   "review": {
+    "responsible_for": "Responsible for ({{name}})",
     "confirm_title": "Your registered data",
     "confirm_sub": "We found your profile. Check that the data is correct before continuing.",
     "confirm_alert": "If any data has changed, click Edit to update it.",
@@ -420,7 +421,12 @@
     "booking_holder": "Booking holder",
     "relation_with": "Relationship with {{name}}",
     "select_relationship": "— Select relationship —",
-    "mandatory_legal_field": "This field is legally mandatory"
+    "mandatory_legal_field": "This field is legally mandatory",
+    "this_minor": "this minor",
+    "declare_adult_1": "I declare that ",
+    "declare_adult_2": " acts as",
+    "declare_minor_1": "of the minor ",
+    "of": "of "
   },
   "guestsCount": {
     "title_booking": "How many people will stay?",

@@ -325,6 +325,7 @@
     "error_read": "Impossibile leggere chiaramente i dati. Evita i riflessi."
   },
   "review": {
+    "responsible_for": "Responsabile di ({{name}})",
     "confirm_title": "I tuoi dati registrati",
     "confirm_sub": "Abbiamo trovato il tuo profilo. Verifica se i dati sono corretti.",
     "confirm_alert": "Se qualche dato è cambiato, clicca su Modifica.",
@@ -408,17 +409,22 @@
     "footer": "Se il problema persiste, contatta la reception."
   },
   "minors": {
+    "this_minor": "questo/a minore",
+    "declare_adult_1": "Dichiaro che ",
+    "declare_adult_2": " agisce in qualità di",
+    "declare_minor_1": "del/della minore ",
     "adult_fallback": "Adulto {{count}}",
     "minor_fallback": "Minore {{count}}",
-    "relationship_title": "Grado di parentela",
-    "declare_relationship_1": "Dichiara la parentela di ",
-    "declare_relationship_2": " con ogni adulto.",
-    "legal_warning_title": "Requisito legale (INT/1922/2003):",
-    "legal_warning_text": " Gli hotel sono tenuti a registrare la parentela dei minori con gli adulti.",
+    "relationship_title": "Rapporto di parentela",
+    "declare_relationship_1": "Dichiari la relazione di ",
+    "declare_relationship_2": " con ogni adulto del gruppo.",
+    "legal_warning_title": "Requisito legale (Ordinanza INT/1922/2003):",
+    "legal_warning_text": " Le strutture alberghiere sono obbligate a registrare il rapporto di parentela o di tutela dei minori con gli adulti accompagnatori.",
     "booking_holder": "Titolare della prenotazione",
     "relation_with": "Relazione con {{name}}",
-    "select_relationship": "— Seleziona parentela —",
-    "mandatory_legal_field": "Questo campo è obbligatorio per legge"
+    "select_relationship": "— Selezionare parentela —",
+    "mandatory_legal_field": "Questo campo è obbligatorio per legge",
+    "of": "di "
   },
   "reservationCard": {
     "nights": "notti",

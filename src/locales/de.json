@@ -325,6 +325,7 @@
     "error_read": "Daten konnten nicht klar gelesen werden. Vermeiden Sie Blendungen."
   },
   "review": {
+    "responsible_for": "Verantwortlich für ({{name}})",
     "confirm_title": "Ihre registrierten Daten",
     "confirm_sub": "Wir haben Ihr Profil gefunden. Überprüfen Sie, ob die Daten korrekt sind.",
     "confirm_alert": "Wenn sich Daten geändert haben, klicken Sie auf Bearbeiten.",
@@ -408,17 +409,22 @@
     "footer": "Wenden Sie sich an die Rezeption, falls das Problem weiterhin besteht."
   },
   "minors": {
-    "adult_fallback": "Erwachsener {{count}}",
-    "minor_fallback": "Minderjähriger {{count}}",
+    "this_minor": "diese/n Minderjährige/n",
+    "declare_adult_1": "Ich erkläre, dass ",
+    "declare_adult_2": " als",
+    "declare_minor_1": "des/der Minderjährigen agiert ",
+    "adult_fallback": "Erwachsene/r {{count}}",
+    "minor_fallback": "Minderjährige/r {{count}}",
     "relationship_title": "Verwandtschaftsverhältnis",
     "declare_relationship_1": "Geben Sie die Beziehung von ",
-    "declare_relationship_2": " zu jedem Erwachsenen an.",
-    "legal_warning_title": "Gesetzliche Vorschrift (INT/1922/2003):",
-    "legal_warning_text": " Hotels sind verpflichtet, die Verwandtschaft von Minderjährigen zu erfassen.",
+    "declare_relationship_2": " zu jedem Erwachsenen der Gruppe an.",
+    "legal_warning_title": "Gesetzliche Anforderung (Erlass INT/1922/2003):",
+    "legal_warning_text": " Hotelbetriebe sind verpflichtet, das Verwandtschafts- oder Vormundschaftsverhältnis von Minderjährigen zu begleitenden Erwachsenen zu registrieren.",
     "booking_holder": "Buchungsinhaber",
-    "relation_with": "Verwandtschaft mit {{name}}",
-    "select_relationship": "— Verwandtschaft wählen —",
-    "mandatory_legal_field": "Dieses Feld ist gesetzlich vorgeschrieben"
+    "relation_with": "Beziehung zu {{name}}",
+    "select_relationship": "— Verwandtschaftsverhältnis auswählen —",
+    "mandatory_legal_field": "Dieses Feld ist gesetzlich vorgeschrieben",
+    "of": "von "
   },
 
   "invalidLink": {

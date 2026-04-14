@@ -325,6 +325,7 @@
     "error_read": "Não foi possível ler os dados claramente. Evite reflexos."
   },
   "review": {
+    "responsible_for": "Responsável por ({{name}})",
     "confirm_title": "Os seus dados registados",
     "confirm_sub": "Encontrámos o seu perfil. Verifique se os dados estão corretos.",
     "confirm_alert": "Se algum dado tiver mudado, clique em Editar.",
@@ -408,13 +409,17 @@
     "footer": "Se o problema persistir, contacte a receção."
   },
   "minors": {
+    "this_minor": "este/a menor",
+    "declare_adult_1": "Declaro que ",
+    "declare_adult_2": " atua na qualidade de",
+    "declare_minor_1": "do/da menor ",
     "adult_fallback": "Adulto {{count}}",
     "minor_fallback": "Menor {{count}}",
     "relationship_title": "Relação de parentesco",
     "declare_relationship_1": "Declare a relação de ",
-    "declare_relationship_2": " com cada adulto.",
-    "legal_warning_title": "Exigência legal (INT/1922/2003):",
-    "legal_warning_text": " Os hotéis são obrigados a registar o parentesco dos menores com os adultos.",
+    "declare_relationship_2": " com cada adulto do grupo.",
+    "legal_warning_title": "Requisito legal (Ordem INT/1922/2003):",
+    "legal_warning_text": " Os estabelecimentos hoteleiros são obrigados a registar o parentesco ou relação de tutela dos menores com os adultos acompanhantes.",
     "booking_holder": "Titular da reserva",
     "relation_with": "Relação com {{name}}",
     "select_relationship": "— Selecionar parentesco —",

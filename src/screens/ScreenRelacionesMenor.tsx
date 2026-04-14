@@ -39,7 +39,6 @@ export const ScreenRelacionesMenor: React.FC<Props> = ({
 
   const [expandedIds, setExpandedIds] = useState<number[]>(() => {
     const adultosValidosIds = adultos.map((a) => a.originalIndex);
-
     const relacionesPreviasReales = (menor.relacionesConAdultos || [])
       .filter((r) => adultosValidosIds.includes(r.adultoIndex))
       .map((r) => r.adultoIndex);
@@ -52,8 +51,7 @@ export const ScreenRelacionesMenor: React.FC<Props> = ({
   const tieneNombre = menor.nombre || menor.apellido;
   const nombreMenor = tieneNombre
     ? [menor.nombre, menor.apellido].filter(Boolean).join(" ")
-    : "este menor";
-
+    : t("minors.this_minor", "este/a menor");
   const relaciones = menor.relacionesConAdultos ?? [];
 
   const toggleAdulto = (idx: number) => {
@@ -91,15 +89,21 @@ export const ScreenRelacionesMenor: React.FC<Props> = ({
           color="text.secondary"
           sx={{ fontSize: "var(--fs-sm)" }}
         >
-          Indique qué adulto se hace responsable de{" "}
+          {t(
+            "minors.declare_relationship_1",
+            "Indique qué adulto se hace responsable de ",
+          )}
           <strong>{nombreMenor}</strong>.
         </Typography>
       </Box>
 
       <Box sx={{ p: { xs: 2, sm: 3 }, flex: 1 }}>
         <Alert variant="warm" style={{ marginBottom: 20 }}>
-          <strong>Aviso Legal: </strong>
-          Todo menor debe estar vinculado a un adulto responsable de la reserva.
+          <strong>{t("minors.legal_warning_title", "Aviso Legal: ")}</strong>
+          {t(
+            "minors.legal_warning_text",
+            "Todo menor debe estar vinculado a un adulto responsable de la reserva.",
+          )}
         </Alert>
 
         <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
@@ -111,8 +115,8 @@ export const ScreenRelacionesMenor: React.FC<Props> = ({
             const nombreAdulto =
               [adulto.nombre, adulto.apellido].filter(Boolean).join(" ") ||
               (adulto.originalIndex === 0
-                ? "Titular de la Reserva"
-                : `Acompañante Adulto`);
+                ? t("common.main_guest", "Titular de la Reserva")
+                : t("forms.adult_tag", "Acompañante Adulto"));
 
             return (
               <Paper
@@ -154,8 +158,8 @@ export const ScreenRelacionesMenor: React.FC<Props> = ({
                     </Typography>
                     <Typography variant="caption" color="text.secondary">
                       {adulto.originalIndex === 0
-                        ? "Huésped Principal"
-                        : "Adulto"}
+                        ? t("common.main_guest", "Huésped Principal")
+                        : t("forms.adult_tag", "Adulto")}
                     </Typography>
                   </Box>
                 </Box>
@@ -183,8 +187,9 @@ export const ScreenRelacionesMenor: React.FC<Props> = ({
                       <Typography
                         sx={{ color: "var(--text)", fontSize: "15px" }}
                       >
-                        Declaro que <strong>{nombreAdulto}</strong> actúa en
-                        calidad de
+                        {t("minors.declare_adult_1", "Declaro que ")}
+                        <strong>{nombreAdulto}</strong>
+                        {t("minors.declare_adult_2", " actúa en calidad de")}
                       </Typography>
 
                       <FormControl
@@ -219,7 +224,7 @@ export const ScreenRelacionesMenor: React.FC<Props> = ({
                           }}
                         >
                           <MenuItem value="" disabled>
-                            <em>Seleccionar...</em>
+                            <em>{t("minors.select_relationship")}</em>
                           </MenuItem>
                           {PARENTESCOS_MENOR.map((p) => (
                             <MenuItem key={p} value={p}>
@@ -228,11 +233,11 @@ export const ScreenRelacionesMenor: React.FC<Props> = ({
                           ))}
                         </Select>
                       </FormControl>
-
                       <Typography
                         sx={{ color: "var(--text)", fontSize: "15px" }}
                       >
-                        del menor <strong>{nombreMenor}</strong>.
+                        {t("common.of", "de ")}
+                        <strong>{nombreMenor}</strong>.
                       </Typography>
                     </Box>
                   </Box>
@@ -260,7 +265,7 @@ export const ScreenRelacionesMenor: React.FC<Props> = ({
             disabled={isSubmitting}
             style={{ flex: 1, minWidth: "160px" }}
           >
-            Guardar y Pausar
+            {t("common.save_partial", "Guardar y Pausar")}
           </Button>
         )}
         <Button
@@ -273,7 +278,7 @@ export const ScreenRelacionesMenor: React.FC<Props> = ({
           iconRight="right"
           style={{ flex: 2, minWidth: "200px" }}
         >
-          Continuar
+          {t("common.continue", "Continuar")}
         </Button>
       </Box>
     </Box>

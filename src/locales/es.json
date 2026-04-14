@@ -313,6 +313,7 @@
     "error_read": "No hemos podido leer los datos con claridad. Asegúrese de que la imagen tiene buena luz, no está borrosa y no tiene reflejos del flash."
   },
   "review": {
+    "responsible_for": "Responsable de ({{name}})",
     "confirm_title": "Sus datos registrados",
     "confirm_sub": "Hemos encontrado su perfil. Compruebe que los datos son correctos antes de continuar.",
     "confirm_alert": "Si algún dato ha cambiado, pulse Editar para actualizarlo.",
@@ -417,6 +418,10 @@
     "guest_plural": "huéspedes"
   },
   "minors": {
+    "this_minor": "este/a menor",
+    "declare_adult_1": "Declaro que ",
+    "declare_adult_2": " actúa en calidad de",
+    "declare_minor_1": "del/la menor ",
     "adult_fallback": "Adulto {{count}}",
     "minor_fallback": "Menor {{count}}",
     "relationship_title": "Relación de parentesco",
@@ -427,8 +432,10 @@
     "booking_holder": "Titular de la reserva",
     "relation_with": "Relación con {{name}}",
     "select_relationship": "— Seleccionar parentesco —",
-    "mandatory_legal_field": "Este campo es obligatorio por ley"
+    "mandatory_legal_field": "Este campo es obligatorio por ley",
+    "of": "de "
   },
+
   "guestsCount": {
     "title_booking": "¿Cuántas personas se alojarán?",
     "title_manual": "¿Cuántas personas son en total?",

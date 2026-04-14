@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Field, Button, Alert, ConfirmBlock, Icon } from "@/components/ui";
 import { ReservationCard } from "@/components/ui";
-import { HORAS_LLEGADA } from "@/constants";
+import { HORAS_LLEGADA, INVERSE_RELATIONSHIP_MAPPING } from "@/constants";
 import { validatePersonal, validateContacto } from "@/hooks/useFormValidation";
 import type { CheckinState, PartialGuestData } from "@/types";
 import "@/App.css";
@@ -102,16 +102,6 @@ function isGuestValid(
 // REVISION
 // ═══════════════════════════════════════════════════════════════════════════
 
-const INVERSE_RELATIONSHIP: Record<string, string> = {
-  "Padre o Madre": "Hijo/a",
-  "Tutor/a legal": "Tutelado/a",
-  "Abuelo/a": "Nieto/a",
-  "Hermano/a": "Hermano/a menor",
-  "Tío/a": "Sobrino/a",
-  "Otro familiar": "Familiar a cargo",
-  "Otro (Autorizado)": "Menor autorizado",
-};
-
 interface RevisionProps {
   state: CheckinState;
   isSubmitting: boolean;
@@ -202,14 +192,13 @@ export const ScreenRevision: React.FC<RevisionProps> = ({
                         });
                         const rawParentesco = (r.parentesco ?? "").trim();
 
-                        const value =
-                          INVERSE_RELATIONSHIP[rawParentesco] ||
-                          (rawParentesco
-                            ? t(
-                                `constants.parentescos.${rawParentesco}`,
-                                rawParentesco,
-                              )
-                            : "—");
+                        const inverseKey =
+                          INVERSE_RELATIONSHIP_MAPPING[rawParentesco] ||
+                          rawParentesco;
+
+                        const value = inverseKey
+                          ? t(`constants.parentescos.${inverseKey}`, inverseKey)
+                          : "—";
 
                         return [label, value] as [string, string];
                       });
@@ -229,6 +218,11 @@ export const ScreenRevision: React.FC<RevisionProps> = ({
                             .filter(Boolean)
                             .join(" ") || "Menor";
 
+                        const label = t("review.responsible_for", {
+                          name: nombreMenor,
+                          defaultValue: `Responsable de (${nombreMenor})`,
+                        });
+
                         const value = rawParentesco
                           ? t(
                               `constants.parentescos.${rawParentesco}`,
@@ -236,10 +230,7 @@ export const ScreenRevision: React.FC<RevisionProps> = ({
                             )
                           : "—";
 
-                        baseRows.push([
-                          `Responsable de (${nombreMenor})`,
-                          value,
-                        ]);
+                        baseRows.push([label, value]);
                       });
                     }
 
@@ -342,7 +333,6 @@ export const ScreenRevision: React.FC<RevisionProps> = ({
     </>
   );
 };
-
 // ═══════════════════════════════════════════════════════════════════════════
 // ÉXITO
 // ═══════════════════════════════════════════════════════════════════════════

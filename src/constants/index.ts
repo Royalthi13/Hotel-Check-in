@@ -145,6 +145,24 @@ export const PARENTESCOS_MENOR = [
   "Otro",
 ];
 
+export const INVERSE_RELATIONSHIP_MAPPING: Record<string, string> = {
+  "Abuelo/a": "Nieto/a",
+  "Bisabuelo/a": "Bisnieto/a",
+  "Bisnieto/a": "Bisabuelo/a",
+  "Cuñado/a": "Cuñado/a",
+  "Cónyuge/a": "Cónyuge/a",
+  "Hijo/a": "Padre o Madre",
+  "Hermano/a": "Hermano/a",
+  "Nieto/a": "Abuelo/a",
+  "Padre o Madre": "Hijo/a",
+  "Sobrino/a": "Tío/a",
+  "Suegro/a": "Yerno o nuera",
+  "Tío/a": "Sobrino/a",
+  "Yerno o nuera": "Suegro/a",
+  "Tutor/a": "Tutelado/a",
+  Otro: "Otro",
+};
+
 export const PREFIJOS_TELEFONICOS = [
   { code: "AF", dial: "+93" },
   { code: "AL", dial: "+355" },
