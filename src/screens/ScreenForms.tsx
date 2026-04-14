@@ -9,7 +9,6 @@ import {
   validateContacto,
 } from "@/hooks/useFormValidation";
 import type { PartialGuestData } from "@/types";
-import type { TFunction } from "i18next";
 import { DatePicker } from "@mui/x-date-pickers";
 import {
   TextField,
@@ -395,6 +394,7 @@ export const ScreenFormPersonal: React.FC = () => {
 };
 
 // --- COMPONENTE 2: DATOS DE CONTACTO ---
+// --- COMPONENTE 2: DATOS DE CONTACTO ---
 export const ScreenFormContacto: React.FC = () => {
   const { state, nav, actions, isSubmitting, handlePartialSubmit } =
     useCheckinContext();
@@ -419,10 +419,8 @@ export const ScreenFormContacto: React.FC = () => {
     [state.knownGuest],
   );
 
-  // MEDIO: memorizar el validator para evitar que useFormValidation reciba una
-  // nueva función en cada render, forzando la recreación de validate y re-renders en cadena.
   const contactoValidator = useCallback(
-    (d: PartialGuestData, tf: TFunction) => validateContacto(d, tf, lockedFields),
+    (d: PartialGuestData, tf: any) => validateContacto(d, tf, lockedFields),
     [lockedFields],
   );
   const { errors, validate, clearError } = useFormValidation(contactoValidator);
@@ -430,12 +428,10 @@ export const ScreenFormContacto: React.FC = () => {
   const { buscarCP, isSearching } = useZipCode((key, val) =>
     handleUpdate(key, val),
   );
-  const {
-    sugerenciasProvincias,
-    sugerenciasMunicipios,
-    cargarProvincias,
-    cargarMunicipios,
-  } = usePlaces();
+
+  // 👇 CORRECCIÓN 1: Importamos correctamente TODO lo necesario de usePlaces
+  const { sugerenciasProvincias, sugerenciasMunicipios, cargarMunicipios } =
+    usePlaces();
 
   const esEspana = data.pais === "ES";
 
@@ -468,6 +464,7 @@ export const ScreenFormContacto: React.FC = () => {
     prefijosTraducidos.find(
       (p) => p.dial === ((data as any).prefijo || "+34"),
     ) || prefijosTraducidos.find((p) => p.code === "ES");
+
   const paisActual =
     prefijosTraducidos.find((p) => p.code === (data.pais || "ES")) ||
     prefijosTraducidos.find((p) => p.code === "ES");
@@ -832,6 +829,7 @@ export const ScreenFormContacto: React.FC = () => {
                 gap: 2,
               }}
             >
+              {/* PAÍS */}
               <div>
                 <TextField
                   label={t("forms.country")}
@@ -880,6 +878,8 @@ export const ScreenFormContacto: React.FC = () => {
                 />
                 <FieldError msg={errors.pais} />
               </div>
+
+              {/* CÓDIGO POSTAL */}
               <div>
                 <TextField
                   label={t("forms.zipcode")}
@@ -890,14 +890,16 @@ export const ScreenFormContacto: React.FC = () => {
                     clearError("cp");
                   }}
                   onBlur={() => {
-                    if (data.cp && data.pais && !data.ciudad?.trim()) {
+                    // 👇 CORRECCIÓN 2: Llama siempre si hay país y CP
+                    if (data.cp && data.pais) {
                       buscarCP(data.cp, data.pais);
                     }
                   }}
                   onKeyDown={(e) => {
                     if (e.key === "Enter") {
                       e.preventDefault();
-                      if (data.cp && data.pais && !esEspana) {
+                      // 👇 CORRECCIÓN 3: Quitamos el !esEspana para que funcione también en España
+                      if (data.cp && data.pais) {
                         buscarCP(data.cp, data.pais);
                       }
                     }
@@ -923,15 +925,19 @@ export const ScreenFormContacto: React.FC = () => {
                 gap: 2,
               }}
             >
+              {/* PROVINCIA */}
               <div>
                 {esEspana ? (
                   <Autocomplete
                     freeSolo
                     options={sugerenciasProvincias || []}
-                    value={data.provincia || ""}
-                    onInputChange={(_, v) => {
-                      handleUpdate("provincia", v || "");
-                      cargarProvincias(v || "");
+                    value={data.provincia || null} // Null evita bugs de Material UI
+                    onChange={(_, newValue) => {
+                      handleUpdate("provincia", newValue || "");
+                      clearError("provincia");
+                    }}
+                    onInputChange={(_, newInputValue) => {
+                      handleUpdate("provincia", newInputValue || "");
                       clearError("provincia");
                     }}
                     renderInput={(p) => (
@@ -954,15 +960,22 @@ export const ScreenFormContacto: React.FC = () => {
                 )}
                 <FieldError msg={errors.provincia} />
               </div>
+
+              {/* CIUDAD */}
               <div>
                 {esEspana ? (
                   <Autocomplete
                     freeSolo
                     options={(sugerenciasMunicipios || []).map((m) => m.nombre)}
-                    value={data.ciudad || ""}
-                    onInputChange={(_, v) => {
-                      handleUpdate("ciudad", v || "");
-                      cargarMunicipios(v || "");
+                    value={data.ciudad || null} // Null evita bugs de Material UI
+                    onChange={(_, newValue) => {
+                      handleUpdate("ciudad", newValue || "");
+                      clearError("ciudad");
+                    }}
+                    onInputChange={(_, newInputValue) => {
+                      handleUpdate("ciudad", newInputValue || "");
+                      // 👇 CORRECCIÓN 4: Pasamos la provincia para que usePlaces la filtre
+                      cargarMunicipios(newInputValue || "", data.provincia);
                       clearError("ciudad");
                     }}
                     renderInput={(p) => (
@@ -987,6 +1000,7 @@ export const ScreenFormContacto: React.FC = () => {
               </div>
             </Box>
           </Box>
+
           <div className="spacer" />
           <div
             className="btn-row"
@@ -1046,7 +1060,15 @@ export const ScreenFormContacto: React.FC = () => {
         onClose={() => setPaisModalOpen(false)}
         fullWidth
         maxWidth="xs"
-        PaperProps={{ sx: modalPaperSx }}
+        PaperProps={{
+          sx: {
+            borderRadius: "16px",
+            maxHeight: "80vh",
+            margin: "16px",
+            backgroundColor: "#fff",
+            overflow: "hidden",
+          },
+        }}
       >
         {RenderList(
           (c) => {

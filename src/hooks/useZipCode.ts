@@ -1,21 +1,41 @@
 import { useState, useCallback } from "react";
-import { getCityByCode } from "@/api/cities.service";
 import type { PartialGuestData } from "@/types";
+import { INE_A_PROVINCIA } from "./usePlaces";
 
 type OnChangeFn = (key: keyof PartialGuestData, value: unknown) => void;
 
 const PAIS_A_ISO2: Record<string, string> = {
-  GB: "gb", FR: "fr", DE: "de", IT: "it",
-  NL: "nl", BE: "be", PT: "pt", IE: "ie", US: "us",
-  CH: "ch", SE: "se", NO: "no", DK: "dk", AT: "at",
-  PL: "pl", FI: "fi", MX: "mx", AR: "ar", CO: "co",
-  CA: "ca", AU: "au", NZ: "nz", BR: "br", CL: "cl",
+  GB: "gb",
+  FR: "fr",
+  DE: "de",
+  IT: "it",
+  NL: "nl",
+  BE: "be",
+  PT: "pt",
+  IE: "ie",
+  US: "us",
+  CH: "ch",
+  SE: "se",
+  NO: "no",
+  DK: "dk",
+  AT: "at",
+  PL: "pl",
+  FI: "fi",
+  MX: "mx",
+  AR: "ar",
+  CO: "co",
+  CA: "ca",
+  AU: "au",
+  NZ: "nz",
+  BR: "br",
+  CL: "cl",
 };
 
 interface ZippopotamPlace {
   "place name": string;
   state: string;
 }
+
 interface ZippopotamResponse {
   places: ZippopotamPlace[];
 }
@@ -30,16 +50,11 @@ export function useZipCode(onChange: OnChangeFn) {
 
       try {
         if (pais === "ES") {
-          // GET /cities/{code} — la tabla solo tiene codcity y name.
-          // El codcity del backend es el código INE del municipio, no el CP.
-          // Si el usuario escribe el CP (5 dígitos), los 2 primeros = provincia,
-          // pero no hay lookup directo por CP en el backend actual.
-          // Buscamos por si el código coincide directamente.
-          const city = await getCityByCode(cp);
-          if (city?.name) onChange("ciudad", city.name);
-          // Nota: sin campo province en la DB, no rellenamos provincia automáticamente.
+          const provCode = cp.substring(0, 2);
+          if (INE_A_PROVINCIA[provCode]) {
+            onChange("provincia", INE_A_PROVINCIA[provCode]);
+          }
         } else {
-          // API pública para países extranjeros
           const iso2 = PAIS_A_ISO2[pais];
           if (!iso2) return;
 
@@ -50,13 +65,13 @@ export function useZipCode(onChange: OnChangeFn) {
 
           const data: ZippopotamResponse = await res.json();
           const place = data?.places?.[0];
+
           if (place) {
-            if (place["place name"]) onChange("ciudad",    place["place name"]);
-            if (place.state)         onChange("provincia", place.state);
+            if (place["place name"]) onChange("ciudad", place["place name"]);
+            if (place.state) onChange("provincia", place.state);
           }
         }
       } catch {
-        // CP no encontrado — el usuario lo escribe a mano
       } finally {
         setIsSearching(false);
       }
