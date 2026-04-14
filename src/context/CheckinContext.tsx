@@ -1,9 +1,8 @@
-import React, { useContext, useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useCheckin } from "@/hooks/useCheckin";
 import { submitCheckin, savePartialCheckin } from "@/api/chekin.service";
-import type { CheckinState, CheckinNav, CheckinActions } from "@/types";
 import { CheckinContext } from "./CheckinContextDef";
 
 export const CheckinProvider: React.FC<{ children: React.ReactNode }> = ({
@@ -12,6 +11,8 @@ export const CheckinProvider: React.FC<{ children: React.ReactNode }> = ({
   const { t } = useTranslation();
   const { token: urlToken, step } = useParams();
   const token = urlToken ?? "new";
+
+  const PERSISTENCE_KEY = `h_ckin_data_${token}`;
 
   const [state, nav, actions, isLoading] = useCheckin(token, step);
 
@@ -28,6 +29,7 @@ export const CheckinProvider: React.FC<{ children: React.ReactNode }> = ({
     () => sessionStorage.getItem(`hasMinors_${token}`) === "true",
   );
 
+  // --- PERSISTENCIA LEGAL ---
   useEffect(() => {
     sessionStorage.setItem(`legalPassed_${token}`, String(legalPassed));
   }, [legalPassed, token]);
@@ -36,6 +38,7 @@ export const CheckinProvider: React.FC<{ children: React.ReactNode }> = ({
     sessionStorage.setItem(`hasMinors_${token}`, String(hasMinorsFlag));
   }, [hasMinorsFlag, token]);
 
+  // --- DETECTOR ONLINE/OFFLINE ---
   useEffect(() => {
     const on = () => setIsOffline(false);
     const off = () => setIsOffline(true);
@@ -46,6 +49,38 @@ export const CheckinProvider: React.FC<{ children: React.ReactNode }> = ({
       window.removeEventListener("offline", off);
     };
   }, []);
+
+  // ---  LÓGICA DE PERSISTENCIA (LOCALSTORAGE) ---
+
+  useEffect(() => {
+    if (state.guests && state.guests.length > 0) {
+      const backup = {
+        guests: state.guests,
+        timestamp: Date.now(),
+      };
+      localStorage.setItem(PERSISTENCE_KEY, JSON.stringify(backup));
+    }
+  }, [state.guests, PERSISTENCE_KEY]);
+
+  useEffect(() => {
+    const saved = localStorage.getItem(PERSISTENCE_KEY);
+    if (saved) {
+      try {
+        const { guests, timestamp } = JSON.parse(saved);
+        const isExpired = Date.now() - timestamp > 2 * 60 * 60 * 1000;
+
+        if (!isExpired && guests && guests.length > 0) {
+          if (typeof actions.updateGuest === "function") {
+            actions.setGuests?.(guests);
+          }
+        }
+      } catch (e) {
+        console.error("Error recuperando persistencia local", e);
+      }
+    }
+  }, [PERSISTENCE_KEY, actions]);
+
+  // --- LIMPIEZA Y AUXILIARES ---
 
   const clearSubmitError = () => setSubmitError("");
   const triggerFormValidation = () => setValidationTrigger((v) => v + 1);
@@ -107,19 +142,15 @@ export const CheckinProvider: React.FC<{ children: React.ReactNode }> = ({
       });
 
       setIsPartialSuccess(false);
+
       SESSION_KEYS_TO_CLEAR.forEach((key) => sessionStorage.removeItem(key));
+      localStorage.removeItem(PERSISTENCE_KEY);
+
       actions.goTo("exito", "forward");
     } catch (err: unknown) {
-      // CORRECCIÓN: el interceptor de axiosInstance ya normaliza todos los
-      // errores a instancias de Error con mensaje legible. No necesitamos
-      // importar axios ni hacer isAxiosError aquí.
       let msg = t("errorBoundary.title");
-
-      if (err instanceof Error) {
-        msg = err.message;
-      } else if (typeof err === "string") {
-        msg = err;
-      }
+      if (err instanceof Error) msg = err.message;
+      else if (typeof err === "string") msg = err;
 
       setSubmitError(msg);
       throw err;

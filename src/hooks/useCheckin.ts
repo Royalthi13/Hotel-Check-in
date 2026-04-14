@@ -5,7 +5,6 @@ import type {
   CheckinState,
   AppMode,
   Reserva,
-  GuestData,
   PartialGuestData,
   StepId,
   CheckinNav,
@@ -16,28 +15,18 @@ import { FLOW_STEPS_LINK, DOT_STEPS_BASE } from "@/constants";
 import { loadCheckinData } from "@/api/chekin.service";
 import { loginMagicLink } from "@/api/auth.service";
 
-// ── Persistencia en sesión ────────────────────────────────────────────────────
-function getSession<T>(key: string, fallback: T): T {
-  try {
-    const stored = sessionStorage.getItem(key);
-    return stored ? (JSON.parse(stored) as T) : fallback;
-  } catch {
-    return fallback;
-  }
+// ── Tipos Internos (Necesarios para que el Hook funcione) ───────────────────
+interface HistoryEntry {
+  step: StepId;
+  guestIndex: number;
 }
 
-function setSession<T>(key: string, value: T): void {
-  try {
-    sessionStorage.setItem(key, JSON.stringify(value));
-  } catch {}
-}
-
-// ── Tipos y Estado inicial ────────────────────────────────────────────────────
-export type CheckinAction =
-  | { type: "SET_KNOWN_GUEST"; guest: GuestData }
+type CheckinAction =
+  | { type: "SET_KNOWN_GUEST"; guest: any }
   | { type: "SET_RESERVA_TABLET"; reserva: Reserva }
   | { type: "SET_RESERVA"; reserva: Reserva }
   | { type: "SET_NUM_PERSONAS"; total: number }
+  | { type: "SET_GUESTS"; guests: PartialGuestData[] }
   | {
       type: "UPDATE_GUEST";
       index: number;
@@ -50,7 +39,7 @@ export type CheckinAction =
       adultoIndex: number;
       parentesco: string;
     }
-  | { type: "APPLY_SCAN"; data: Partial<GuestData>; guestIdx: number }
+  | { type: "APPLY_SCAN"; data: Partial<any>; guestIdx: number }
   | { type: "SET_HORA_LLEGADA"; value: string }
   | { type: "SET_OBSERVACIONES"; value: string }
   | { type: "SET_RGPD"; value: boolean }
@@ -59,9 +48,38 @@ export type CheckinAction =
   | { type: "RESTORE_FULL_STATE"; payload: CheckinState }
   | { type: "RESET" };
 
-interface HistoryEntry {
-  step: StepId;
-  guestIndex: number;
+// ── Helpers de Persistencia (LAS QUE FALTABAN) ───────────────────────────────
+function getSession<T>(key: string, fallback: T): T {
+  try {
+    const stored = sessionStorage.getItem(key);
+    return stored ? (JSON.parse(stored) as T) : fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+function getInitialState(token: string, mode: AppMode): CheckinState {
+  const localKey = `h_ckin_data_${token}`;
+  const sessionKey = `state_${token}`;
+
+  try {
+    // 1. Prioridad: LocalStorage (Si refresca o vuelve)
+    const local = localStorage.getItem(localKey);
+    if (local) {
+      const { guests, timestamp } = JSON.parse(local);
+      // Solo si tiene menos de 2 horas
+      if (Date.now() - timestamp < 2 * 60 * 60 * 1000) {
+        const state = buildEmptyState(mode);
+        return { ...state, guests };
+      }
+    }
+    // 2. Alternativa: SessionStorage
+    const session = sessionStorage.getItem(sessionKey);
+    if (session) return JSON.parse(session);
+  } catch (e) {
+    console.error("Error cargando persistencia inicial", e);
+  }
+  return buildEmptyState(mode);
 }
 
 export function buildEmptyState(appMode: AppMode): CheckinState {
@@ -97,7 +115,11 @@ export function checkinReducer(
   action: CheckinAction,
 ): CheckinState {
   switch (action.type) {
+    case "SET_GUESTS":
+      return { ...state, guests: action.guests };
     case "SET_KNOWN_GUEST":
+      // Evitamos sobreescribir si el usuario ya empezó a rellenar
+      if (state.guests.some((g) => g.nombre || g.numDoc)) return state;
       return {
         ...state,
         knownGuest: action.guest,
@@ -194,8 +216,9 @@ export function useCheckin(tokenUrl?: string, stepUrl?: string) {
   const token = tokenUrl ?? "new";
   const initialMode: AppMode = token === "new" ? "tablet" : "link";
 
+  // Carga inicial síncrona
   const [state, setState] = useState<CheckinState>(() =>
-    getSession(`state_${token}`, buildEmptyState(initialMode)),
+    getInitialState(token, initialMode),
   );
   const [appHistory, setAppHistory] = useState<HistoryEntry[]>(() =>
     getSession(`history_${token}`, []),
@@ -204,6 +227,7 @@ export function useCheckin(tokenUrl?: string, stepUrl?: string) {
     const stored = getSession<StepId[] | null>(`allowedSteps_${token}`, null);
     return new Set(stored ?? ["inicio", "tablet_buscar"]);
   });
+
   const [isLoading, setIsLoading] = useState(token !== "new");
   const [navDirection, setNavDirection] = useState<NavDirection>("forward");
   const [isNavigating, setIsNavigating] = useState(false);
@@ -211,36 +235,36 @@ export function useCheckin(tokenUrl?: string, stepUrl?: string) {
   const stateRef = useRef(state);
   const isInternalNavRef = useRef(false);
   const navigateRef = useRef(navigate);
-  // ALTO: ref para isNavigating timer — evita leak si el componente se desmonta
-const navTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);  // ALTO: ref para activeGuestIndex — evita stale closure en goTo
+  const navTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const activeGuestIndexRef = useRef(0);
 
   useEffect(() => {
     navigateRef.current = navigate;
   });
-
   useEffect(() => {
     stateRef.current = state;
   }, [state]);
 
-  // ALTO: Excluir docFile de la persistencia en sessionStorage.
-  // docFile es un objeto File que JSON.stringify convierte a {} silenciosamente,
-  // corrompiendo el estado al restaurarlo. Los datos personales (PII) se eliminan
-  // de esta clave al completar el flujo con SESSION_KEYS_TO_CLEAR en CheckinContext.
+  // Sincronización con SessionStorage
   useEffect(() => {
     const persistableState = {
       ...state,
       guests: state.guests.map((g) => ({ ...g, docFile: null })),
     };
-    setSession(`state_${token}`, persistableState);
+    sessionStorage.setItem(`state_${token}`, JSON.stringify(persistableState));
   }, [state, token]);
 
   useEffect(
-    () => setSession(`history_${token}`, appHistory),
+    () =>
+      sessionStorage.setItem(`history_${token}`, JSON.stringify(appHistory)),
     [appHistory, token],
   );
   useEffect(
-    () => setSession(`allowedSteps_${token}`, Array.from(allowedSteps)),
+    () =>
+      sessionStorage.setItem(
+        `allowedSteps_${token}`,
+        JSON.stringify(Array.from(allowedSteps)),
+      ),
     [allowedSteps, token],
   );
 
@@ -249,39 +273,28 @@ const navTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);  // ALTO
     [],
   );
 
-  // ── Carga con Login Automático ────────────────────────────────────────────
   useEffect(() => {
     if (token === "new") {
       setIsLoading(false);
       return;
     }
-
     let cancelled = false;
-
     async function load() {
       try {
         const yaAutenticado =
           sessionStorage.getItem("lumina_access_token") ??
           localStorage.getItem("lumina_access_token");
-
         if (!yaAutenticado) {
           try {
-            // CRÍTICO: usar loginMagicLink (credenciales de servicio del .env),
-            // NO loginGuest — que intenta /auth/guest-login con surname vacío y da 401.
             await loginMagicLink(token);
           } catch (authErr) {
-            if (import.meta.env.DEV) {
-              console.error("[useCheckin] ❌ LOGIN FALLIDO:", authErr);
-            }
-            // ALTO: guard cancelled ANTES de cualquier efecto secundario
             if (cancelled) return;
+            localStorage.removeItem(`h_ckin_data_${token}`);
             navigateRef.current("/invalid", { replace: true });
             return;
           }
         }
-
         const result = await loadCheckinData(token);
-
         if (cancelled) return;
 
         if (result.knownGuest)
@@ -291,29 +304,20 @@ const navTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);  // ALTO
         sessionStorage.setItem(`bookingId_${token}`, String(result.bookingId));
         if (result.clientId)
           sessionStorage.setItem(`clientId_${token}`, String(result.clientId));
-
       } catch (err) {
-        // ALTO: guard cancelled ANTES de navegar — evita actualizaciones en
-        // componentes desmontados si load() sigue en vuelo al desmontar.
         if (cancelled) return;
-        if (import.meta.env.DEV) {
-          console.error("[useCheckin] ❌ ERROR AL CARGAR RESERVA:", err);
-        }
+        localStorage.removeItem(`h_ckin_data_${token}`);
         navigateRef.current("/invalid", { replace: true });
       } finally {
         if (!cancelled) setIsLoading(false);
       }
     }
-
     load();
     return () => {
       cancelled = true;
     };
-  // navigate se excluye de deps intencionadamente — se accede via navigateRef
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token, dispatch]);
 
-  // Limpiar el timer de isNavigating al desmontar (MEDIO fix)
   useEffect(() => {
     return () => {
       if (navTimerRef.current) clearTimeout(navTimerRef.current);
@@ -323,7 +327,6 @@ const navTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);  // ALTO
   const actualStep =
     (stepUrl as StepId) ??
     (initialMode === "tablet" ? "tablet_buscar" : "inicio");
-
   const activeGuestIndex = (() => {
     for (let i = appHistory.length - 1; i >= 0; i--) {
       if (appHistory[i].step === actualStep) return appHistory[i].guestIndex;
@@ -331,7 +334,6 @@ const navTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);  // ALTO
     return 0;
   })();
 
-  // ALTO: mantener ref sincronizada con activeGuestIndex para evitar stale closure en goTo
   useEffect(() => {
     activeGuestIndexRef.current = activeGuestIndex;
   }, [activeGuestIndex]);
@@ -345,17 +347,12 @@ const navTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);  // ALTO
       setNavDirection(dir);
       setAppHistory((prev) => [
         ...prev,
-        // ALTO: usar activeGuestIndexRef.current en lugar de activeGuestIndex
-        // para evitar stale closure cuando appHistory cambia entre renders.
         { step: nextStep, guestIndex: gIdx ?? activeGuestIndexRef.current },
       ]);
       if (dir === "forward") navigate(`/checkin/${token}/${nextStep}`);
       else navigate(`/checkin/${token}/${nextStep}`, { replace: true });
-      // MEDIO: guardar el timer en ref para poder cancelarlo en unmount
       navTimerRef.current = setTimeout(() => setIsNavigating(false), 350);
     },
-    // activeGuestIndex eliminado de deps — se accede via ref para evitar recreaciones
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     [navigate, token, isNavigating],
   );
 
@@ -412,16 +409,14 @@ const navTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);  // ALTO
     const base = state.appMode === "link" ? FLOW_STEPS_LINK : DOT_STEPS_BASE;
     const flujo = sessionStorage.getItem(`modoFlujo_${token}`);
     return flujo === "manual" ? base.filter((s) => s !== "escanear") : base;
-  }, [state.appMode, token, actualStep]);
+  }, [state.appMode, token]);
 
   const canGoBack =
     appHistory.length > 0 &&
     !["exito", "tablet_buscar", "inicio"].includes(actualStep);
-
   let currentDotIndex = dotSteps.indexOf(actualStep);
-  if (["confirmar_datos", "form_relaciones"].includes(actualStep)) {
+  if (["confirmar_datos", "form_relaciones"].includes(actualStep))
     currentDotIndex = dotSteps.indexOf("form_personal");
-  }
 
   const nav: CheckinNav = useMemo(
     () => ({
@@ -461,6 +456,7 @@ const navTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);  // ALTO
         goTo("bienvenida", "forward", 0);
       },
       setNumPersonas: (total) => dispatch({ type: "SET_NUM_PERSONAS", total }),
+      setGuests: (guests) => dispatch({ type: "SET_GUESTS", guests }),
       updateGuest: (index, key, value) =>
         dispatch({ type: "UPDATE_GUEST", index, key, value }),
       updateRelacion: (menorIndex, adultoIndex, parentesco) =>
@@ -490,14 +486,7 @@ const navTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);  // ALTO
       setHasMinorsFlag: (v) =>
         dispatch({ type: "SET_HAS_MINORS_FLAG", value: v }),
     }),
-    [
-      goTo,
-      goBack,
-      dispatch,
-      dotSteps,
-      currentDotIndex,
-      nextGuest,
-    ],
+    [goTo, goBack, dispatch, dotSteps, currentDotIndex, nextGuest],
   );
 
   return [state, nav, actions, isLoading] as const;

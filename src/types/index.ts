@@ -141,4 +141,5 @@ export interface CheckinActions {
   setLegalPassed: (v: boolean) => void;
   setHasMinorsFlag: (v: boolean) => void;
   handleSubmit?: () => Promise<void>;
+  setGuests: (guests: PartialGuestData[]) => void;
 }
