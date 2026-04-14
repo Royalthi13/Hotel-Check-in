@@ -125,8 +125,6 @@ export const HORAS_LLEGADA = [
 
 export const SEXOS = ["Hombre", "Mujer", "No indicar"];
 
-export const RELACIONES_MENOR = ["Hijo/a", "Sobrino/a", "Tutor legal", "Otra"];
-
 export const PARENTESCOS_MENOR = [
   "Abuelo/a",
   "Bisabuelo/a",
