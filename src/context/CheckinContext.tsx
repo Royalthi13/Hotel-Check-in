@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { useCheckin } from "@/hooks/useCheckin";
 import { submitCheckin, savePartialCheckin } from "@/api/chekin.service";
 import { CheckinContext } from "./CheckinContextDef";
+import CryptoJS from "crypto-js";
 
 export const CheckinProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
@@ -51,34 +52,19 @@ export const CheckinProvider: React.FC<{ children: React.ReactNode }> = ({
   }, []);
 
   // ---  LÓGICA DE PERSISTENCIA (LOCALSTORAGE) ---
-
   useEffect(() => {
     if (state.guests && state.guests.length > 0) {
       const backup = {
         guests: state.guests,
         timestamp: Date.now(),
       };
-      localStorage.setItem(PERSISTENCE_KEY, JSON.stringify(backup));
-    }
-  }, [state.guests, PERSISTENCE_KEY]);
 
-  useEffect(() => {
-    const saved = localStorage.getItem(PERSISTENCE_KEY);
-    if (saved) {
-      try {
-        const { guests, timestamp } = JSON.parse(saved);
-        const isExpired = Date.now() - timestamp > 2 * 60 * 60 * 1000;
+      const jsonString = JSON.stringify(backup);
+      const encryptedData = CryptoJS.AES.encrypt(jsonString, token).toString();
 
-        if (!isExpired && guests && guests.length > 0) {
-          if (typeof actions.updateGuest === "function") {
-            actions.setGuests?.(guests);
-          }
-        }
-      } catch (e) {
-        console.error("Error recuperando persistencia local", e);
-      }
+      localStorage.setItem(PERSISTENCE_KEY, encryptedData);
     }
-  }, [PERSISTENCE_KEY, actions]);
+  }, [state.guests, PERSISTENCE_KEY, token]);
 
   // --- LIMPIEZA Y AUXILIARES ---
 

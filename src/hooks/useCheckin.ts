@@ -14,6 +14,7 @@ import type {
 import { FLOW_STEPS_LINK, DOT_STEPS_BASE } from "@/constants";
 import { loadCheckinData } from "@/api/chekin.service";
 import { loginMagicLink } from "@/api/auth.service";
+import CryptoJS from "crypto-js";
 
 // ── Tipos Internos (Necesarios para que el Hook funcione) ───────────────────
 interface HistoryEntry {
@@ -63,22 +64,30 @@ function getInitialState(token: string, mode: AppMode): CheckinState {
   const sessionKey = `state_${token}`;
 
   try {
-    // 1. Prioridad: LocalStorage (Si refresca o vuelve)
     const local = localStorage.getItem(localKey);
     if (local) {
-      const { guests, timestamp } = JSON.parse(local);
-      // Solo si tiene menos de 2 horas
-      if (Date.now() - timestamp < 2 * 60 * 60 * 1000) {
+      const bytes = CryptoJS.AES.decrypt(local, token);
+      const decryptedString = bytes.toString(CryptoJS.enc.Utf8);
+
+      if (!decryptedString) throw new Error("Fallo de descifrado");
+
+      const { guests, timestamp } = JSON.parse(decryptedString);
+
+      if (Date.now() - timestamp < 30 * 60 * 1000) {
         const state = buildEmptyState(mode);
         return { ...state, guests };
+      } else {
+        localStorage.removeItem(localKey);
       }
     }
-    // 2. Alternativa: SessionStorage
+
     const session = sessionStorage.getItem(sessionKey);
     if (session) return JSON.parse(session);
   } catch (e) {
-    console.error("Error cargando persistencia inicial", e);
+    console.error("Firma inválida o datos caducados", e);
+    localStorage.removeItem(localKey);
   }
+
   return buildEmptyState(mode);
 }
 
@@ -118,7 +127,6 @@ export function checkinReducer(
     case "SET_GUESTS":
       return { ...state, guests: action.guests };
     case "SET_KNOWN_GUEST":
-      // Evitamos sobreescribir si el usuario ya empezó a rellenar
       if (state.guests.some((g) => g.nombre || g.numDoc)) return state;
       return {
         ...state,
@@ -418,6 +426,15 @@ export function useCheckin(tokenUrl?: string, stepUrl?: string) {
   if (["confirmar_datos", "form_relaciones"].includes(actualStep))
     currentDotIndex = dotSteps.indexOf("form_personal");
 
+  const maxAllowedDotIndex = useMemo(() => {
+    let maxIdx = 0;
+    allowedSteps.forEach((step) => {
+      const idx = dotSteps.indexOf(step as StepId);
+      if (idx > maxIdx) maxIdx = idx;
+    });
+    return maxIdx;
+  }, [allowedSteps, dotSteps]);
+
   const nav: CheckinNav = useMemo(
     () => ({
       step: actualStep,
@@ -428,6 +445,7 @@ export function useCheckin(tokenUrl?: string, stepUrl?: string) {
       canGoBack,
       allowedSteps,
       isNavigating,
+      maxAllowedDotIndex,
     }),
     [
       actualStep,
@@ -438,6 +456,7 @@ export function useCheckin(tokenUrl?: string, stepUrl?: string) {
       canGoBack,
       allowedSteps,
       isNavigating,
+      maxAllowedDotIndex,
     ],
   );
 
