@@ -26,7 +26,7 @@ import {
   Menu,
 } from "@mui/material";
 import { usePlaces } from "@/hooks/usePlaces";
-import dayjs from "dayjs";
+import dayjs, { type Dayjs } from "dayjs";
 import "dayjs/locale/es";
 import { useDebounce } from "@/hooks/useDebounce";
 import { useCheckinContext } from "@/context/useCheckinContext";
@@ -228,7 +228,7 @@ export const ScreenFormPersonal: React.FC = () => {
                   label={t("forms.birthdate")}
                   value={fechaNac}
                   disableFuture
-                  onChange={(v: any) => {
+                 onChange={(v: Dayjs | null) => {
                     handleUpdate(
                       "fechaNac",
                       v?.isValid() ? v.format("YYYY-MM-DD") : "",
@@ -441,7 +441,7 @@ const menuPaperSx = {
   boxShadow: "0 10px 40px rgba(0,0,0,0.1)",
   overflow: "hidden",
 };
-
+type PrefixItem = { code: string; dial: string; nameTranslated: string };
 export const ScreenFormContacto: React.FC = () => {
   const { state, nav, actions, isSubmitting, handlePartialSubmit } =
     useCheckinContext();
@@ -537,10 +537,10 @@ export const ScreenFormContacto: React.FC = () => {
     [prefijosTraducidos, paisSearch],
   );
 
-  useEffect(() => {
+ useEffect(() => {
     if (!data.pais) handleUpdate("pais", "ES");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
   // --- SECCIÓN DE HOOKS (DEBOUNCES) ---
 
   useDebounce(
@@ -566,9 +566,8 @@ export const ScreenFormContacto: React.FC = () => {
       }
     },
     1200,
-    [data.cp, data.pais],
+    [data.cp], // data.pais intencionalmente excluido — cambiar país no debe re-disparar la búsqueda del CP actual
   );
-
   useEffect(() => {
     const handleForceValidate = () => validate(data);
     window.addEventListener("FORCE_VALIDATE", handleForceValidate);
@@ -578,11 +577,12 @@ export const ScreenFormContacto: React.FC = () => {
 
   const isMainGuest = guestIndex === 0;
 
+
   const RenderList = (
-    onSelect: (c: any) => void,
+    onSelect: (c: PrefixItem) => void,
     searchVal: string,
     setSearchVal: (v: string) => void,
-    filtered: any[],
+    filtered: PrefixItem[],
     placeholderText: string,
     showDial: boolean,
   ) => (
@@ -1095,8 +1095,7 @@ export const ScreenFormContacto: React.FC = () => {
         PaperProps={{ sx: modalPaperSx }}
       >
         {RenderList(
-          (c) => {
-            handleUpdate("prefijo" as any, c.dial);
+          (c) => {handleUpdate("prefijo", c.dial);
             setPrefijoModalOpen(false);
             setPrefijoSearch("");
           },
@@ -1136,8 +1135,7 @@ export const ScreenFormContacto: React.FC = () => {
         PaperProps={{ sx: menuPaperSx }}
       >
         {RenderList(
-          (c) => {
-            handleUpdate("prefijo" as any, c.dial);
+          (c) => {handleUpdate("prefijo", c.dial);
             setAnchorElPrefijo(null);
             setPrefijoSearch("");
           },

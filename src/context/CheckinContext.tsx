@@ -12,7 +12,17 @@ export const CheckinProvider: React.FC<{ children: React.ReactNode }> = ({
   const { t } = useTranslation();
   const { token: urlToken, step } = useParams();
   const token = urlToken ?? "new";
-
+// Genera o recupera una clave de cifrado de sesión aleatoria.
+// Usar el token (booking_id) como clave es trivialmente débil.
+const getSessionEncKey = (): string => {
+  const SKEY = 'lumina_enc_key';
+  let key = sessionStorage.getItem(SKEY);
+  if (!key) {
+    key = crypto.randomUUID();
+    sessionStorage.setItem(SKEY, key);
+  }
+  return key;
+};
   const PERSISTENCE_KEY = `h_ckin_data_${token}`;
 
   const [state, nav, actions, isLoading] = useCheckin(token, step);
@@ -62,8 +72,7 @@ export const CheckinProvider: React.FC<{ children: React.ReactNode }> = ({
       };
 
       const jsonString = JSON.stringify(backup);
-      const encryptedData = CryptoJS.AES.encrypt(jsonString, token).toString();
-
+     const encryptedData = CryptoJS.AES.encrypt(jsonString, getSessionEncKey()).toString();
       localStorage.setItem(PERSISTENCE_KEY, encryptedData);
     }
   }, [state.guests, PERSISTENCE_KEY, token]);
@@ -122,9 +131,9 @@ export const CheckinProvider: React.FC<{ children: React.ReactNode }> = ({
           bookingId,
           clientId,
           state.guests[0],
-        );
-        sessionStorage.setItem(`clientId_${token}`, String(newClientId));
+        );sessionStorage.setItem(`clientId_${token}`, String(newClientId));
         setIsPartialSuccess(true);
+        actions.goTo("exito", "forward");
         return;
       }
 

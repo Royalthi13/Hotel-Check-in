@@ -183,8 +183,9 @@ export function toClientPayload(g: PartialGuestData): Record<string, unknown> {
     birth:       g.fechaNac       || null,
     nationality: nacCod,
     country:     codpais,
-    email:       str(g.email),
-    phone:       str(g.telefono),
+    email:       str(g.email),phone:       g.telefono?.trim()
+                   ? `${g.prefijo ?? '+34'} ${g.telefono.trim()}`.trim()
+                   : null,
     address:     str(g.direccion),
     city:        str(g.ciudad),
     province:    str(g.provincia),

@@ -24,7 +24,7 @@ interface HistoryEntry {
 }
 
 type CheckinAction =
-  | { type: "SET_KNOWN_GUEST"; guest: any }
+ | { type: "SET_KNOWN_GUEST"; guest: GuestData }
   | { type: "SET_RESERVA_TABLET"; reserva: Reserva }
   | { type: "SET_RESERVA"; reserva: Reserva }
   | { type: "SET_NUM_PERSONAS"; total: number }
@@ -41,7 +41,7 @@ type CheckinAction =
       adultoIndex: number;
       parentesco: string;
     }
-  | { type: "APPLY_SCAN"; data: Partial<any>; guestIdx: number }
+| { type: "APPLY_SCAN"; data: Partial<GuestData>; guestIdx: number }
   | { type: "SET_HORA_LLEGADA"; value: string }
   | { type: "SET_OBSERVACIONES"; value: string }
   | { type: "SET_RGPD"; value: boolean }
@@ -69,7 +69,8 @@ function getInitialState(token: string, mode: AppMode): CheckinState {
   try {
     const local = localStorage.getItem(localKey);
     if (local) {
-      const bytes = CryptoJS.AES.decrypt(local, token);
+     const encKey = sessionStorage.getItem('lumina_enc_key') ?? token;
+      const bytes = CryptoJS.AES.decrypt(local, encKey);
       const decryptedString = bytes.toString(CryptoJS.enc.Utf8);
 
       if (!decryptedString) throw new Error("Fallo de descifrado");
@@ -129,8 +130,7 @@ export function checkinReducer(
   switch (action.type) {
     case "SET_GUESTS":
       return { ...state, guests: action.guests };
-    case "SET_KNOWN_GUEST":
-      if (state.guests.some((g) => g.nombre || g.numDoc)) return state;
+   case "SET_KNOWN_GUEST":
       return {
         ...state,
         knownGuest: action.guest,
@@ -333,36 +333,46 @@ export function useCheckin(tokenUrl?: string, stepUrl?: string) {
         if (!yaAutenticado) {
           try {
             await loginMagicLink(token);
-          } catch (authErr) {
+          } catch  {
             if (cancelled) return;
             localStorage.removeItem(`h_ckin_data_${token}`);
             navigateRef.current("/invalid", { replace: true });
             return;
           }
-        }
-        const result = await loadCheckinData(token);
+        }const result = await loadCheckinData(token);
         if (cancelled) return;
 
-        // 1. Titular
-        if (result.knownGuest)
-          dispatch({ type: "SET_KNOWN_GUEST", guest: result.knownGuest });
-
-        // 2. Reserva
-        dispatch({ type: "SET_RESERVA", reserva: result.reserva });
-
-        // 3. Acompañantes
-        if (result.companions.length > 0) {
-          dispatch({
-            type: "SET_COMPANIONS_LOADED",
-            companions: result.companions,
-          });
-        }
-
-        // IDs para el submit
+        // IDs siempre necesarios
         sessionStorage.setItem(`bookingId_${token}`, String(result.bookingId));
         if (result.clientId)
           sessionStorage.setItem(`clientId_${token}`, String(result.clientId));
-      } catch (err) {
+
+        // Reserva siempre
+        dispatch({ type: "SET_RESERVA", reserva: result.reserva });
+
+        // Si ya completó el pre-checkin → redirigir a exito sin más
+        if (result.isAlreadyCheckedIn) {
+          if (result.knownGuest)
+            dispatch({ type: "SET_KNOWN_GUEST", guest: result.knownGuest });
+          navigateRef.current(`/checkin/${token}/exito`, { replace: true });
+        } else {
+          // Titular — solo pre-rellenar si el usuario no tiene datos propios
+          const hasOwnData =
+            stateRef.current.guests[0]?.nombre?.trim() ||
+            stateRef.current.guests[0]?.numDoc?.trim();
+          if (result.knownGuest && !hasOwnData) {
+            dispatch({ type: "SET_KNOWN_GUEST", guest: result.knownGuest });
+          }
+
+          // Acompañantes
+          if (result.companions.length > 0) {
+            dispatch({
+              type: "SET_COMPANIONS_LOADED",
+              companions: result.companions,
+            });
+          }
+        }
+      } catch {
         if (cancelled) return;
         localStorage.removeItem(`h_ckin_data_${token}`);
         navigateRef.current("/invalid", { replace: true });

@@ -34,9 +34,8 @@ export interface RoomTypeResponse {
 export interface RelacionDB {
   codrelation: string;
   name: string;
-  linked_relation: string;
+  linked_relation: string | null;
 }
-
 // ─── Reserva ──────────────────────────────────────────────────────────────────
 export interface Reserva {
   confirmacion: string;
@@ -82,9 +81,9 @@ export interface GuestData {
 
   // Documento
   tipoDoc: string;
-  numDoc: string;
-  soporteDoc?: string;
+  numDoc: string;soporteDoc?: string;
   vat?: string;
+  prefijo?: string;
   docFile?: File | null;
   docUploaded?: boolean;
 }
@@ -119,7 +118,8 @@ export interface CheckinNav {
   dotIndex: number;
   canGoBack: boolean;
   allowedSteps: Set<StepId>;
-  isNavigating: boolean;
+ isNavigating: boolean;
+  maxAllowedDotIndex: number;
 }
 
 export interface CheckinActions {
