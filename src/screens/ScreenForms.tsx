@@ -2,7 +2,9 @@ import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import { Button, Icon, Alert } from "@/components/ui";
 import { useZipCode } from "@/hooks/useZipCode";
-import { TIPOS_DOCUMENTO, SEXOS, PREFIJOS_TELEFONICOS } from "@/constants";
+import { SEXOS, PREFIJOS_TELEFONICOS } from "@/constants";
+import { getDocumentTypes, DocumentTypeResponse } from "@/api/catalogs.service";
+
 import {
   useFormValidation,
   validatePersonal,
@@ -83,9 +85,19 @@ export const ScreenFormPersonal: React.FC = () => {
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   const [helpOpen, setHelpOpen] = useState(false);
 
+  // --- NUEVA LLAMADA A LA API ---
+  const [documentos, setDocumentos] = useState<DocumentTypeResponse[]>([]);
+
+  useEffect(() => {
+    getDocumentTypes()
+      .then((data) => setDocumentos(data))
+      .catch(console.error);
+  }, []);
+  // ------------------------------
+
   const isMainGuest = guestIndex === 0;
   const fechaNac = data.fechaNac ? dayjs(data.fechaNac) : null;
-  const isDniOrNie = data.tipoDoc === "DNI" || data.tipoDoc === "NIE";
+  const isDniOrNie = data.tipoDoc === "NIF" || data.tipoDoc === "NIE";
 
   const handleUpdate = (key: keyof PartialGuestData, value: unknown) =>
     actions.updateGuest(guestIndex, key, value);
@@ -277,9 +289,9 @@ export const ScreenFormPersonal: React.FC = () => {
                   error={!!errors.tipoDoc}
                   sx={inputSx}
                 >
-                  {TIPOS_DOCUMENTO.map((doc) => (
-                    <MenuItem key={doc} value={doc}>
-                      {t(`constants.documentos.${doc}`)}
+                  {documentos.map((doc) => (
+                    <MenuItem key={doc.coddoc} value={doc.coddoc}>
+                      {t(`constants.documentos.${doc.coddoc}`, doc.name)}
                     </MenuItem>
                   ))}
                 </TextField>
@@ -757,7 +769,7 @@ export const ScreenFormContacto: React.FC = () => {
                   required={
                     !lockedFields.email && !lockedFields.telefono
                       ? !data.telefono?.trim()
-                      : !lockedFields.telefono
+                      : !lockedFields.email
                   }
                   sx={inputSx}
                 />

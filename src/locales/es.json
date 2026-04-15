@@ -78,8 +78,7 @@
       "Otra": "Otra"
     },
     "documentos": {
-      "DNI": "DNI",
-      "NIF": "NIF",
+      "NIF": "DNI/NIF",
       "CIF": "CIF",
       "Pasaporte": "Pasaporte",
       "NIE": "NIE",

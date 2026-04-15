@@ -1,49 +1,71 @@
 import { apiAuth } from "./axiosInstance";
-import type { RelacionDB } from "@/types"; // <-- Importamos tu tipo completo con linked_relation
+import type { RelacionDB } from "@/types";
 
-interface CountryResponse {
-  codpais: string;
-  name: string;
+// ── 1. INTERFACES (La forma de los datos) ──────────────────────────
+
+export interface CountryResponse {
+  codpais: string; // Ej: "ESP", "FRA", "GBR"
+  name: string; // Ej: "España", "Francia"
 }
 
-interface DocumentTypeResponse {
-  coddoc: string;
-  name: string;
+export interface DocumentTypeResponse {
+  coddoc: string; // Ej: "NIF", "PAS"
+  name: string; // Ej: "DNI/NIF", "Pasaporte"
 }
 
-// Ya no necesitamos RelationshipResponse porque usaremos RelacionDB
+// ── 2. CACHÉ (Para no saturar al servidor) ─────────────────────────
 
 const cache: {
   countries?: CountryResponse[];
   documentTypes?: DocumentTypeResponse[];
-  relationships?: RelacionDB[]; // <-- Cambiado para usar el tipo bueno
+  relationships?: RelacionDB[];
 } = {};
 
+// ── 3. FUNCIONES DE LLAMADA A LA API ───────────────────────────────
+
 export async function getCountries(): Promise<CountryResponse[]> {
+  // Si ya los tenemos en memoria, los devolvemos al instante
   if (cache.countries) return cache.countries;
+
   const { data } = await apiAuth.get<CountryResponse[]>("/countries");
-  // No cachear arrays vacíos — probable error de red, no datos reales.
   const result = Array.isArray(data) ? data : [];
-  if (result.length > 0) cache.countries = result;
+
+  if (result.length > 0) {
+    // Ordenamos alfabéticamente por nombre antes de guardar en caché
+    result.sort((a, b) => a.name.localeCompare(b.name));
+    cache.countries = result;
+  }
+
   return result;
 }
 
 export async function getDocumentTypes(): Promise<DocumentTypeResponse[]> {
   if (cache.documentTypes) return cache.documentTypes;
+
   const { data } = await apiAuth.get<DocumentTypeResponse[]>("/documents_type");
   const result = Array.isArray(data) ? data : [];
-  if (result.length > 0) cache.documentTypes = result;
+
+  if (result.length > 0) {
+    cache.documentTypes = result;
+  }
+
   return result;
 }
 
-// 🚀 Fusión completada: Caché + Tipo correcto en una sola función
 export async function getRelationships(): Promise<RelacionDB[]> {
   if (cache.relationships) return cache.relationships;
+
   const { data } = await apiAuth.get<RelacionDB[]>("/relationships");
   const result = Array.isArray(data) ? data : [];
-  if (result.length > 0) cache.relationships = result;
+
+  if (result.length > 0) {
+    cache.relationships = result;
+  }
+
   return result;
 }
+
+// ── 4. UTILIDADES ──────────────────────────────────────────────────
 
 export function clearCatalogsCache(): void {
   delete cache.countries;
