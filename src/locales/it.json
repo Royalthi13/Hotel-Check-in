@@ -91,23 +91,7 @@
       "Mujer": "Donna",
       "No indicar": "Preferisco non dirlo"
     },
-    "parentescos": {
-      "Abuelo/a": "Nonno / Nonna",
-      "Bisabuelo/a": "Bisnonno / Bisnonna",
-      "Bisnieto/a": "Pronipote",
-      "Cuñado/a": "Cognato / Cognata",
-      "Cónyuge/a": "Coniuge",
-      "Hijo/a": "Figlio / Figlia",
-      "Hermano/a": "Fratello / Sorella",
-      "Nieto/a": "Nipote",
-      "Padre o Madre": "Padre o Madre",
-      "Sobrino/a": "Nipote",
-      "Suegro/a": "Suocero / Suocera",
-      "Tío/a": "Zio / Zia",
-      "Yerno o nuera": "Genero / Nuora",
-      "Tutor/a": "Tutore legale",
-      "Otro": "Altro"
-    },
+
     "horas": {
       "No especificada": "Non specificata",
       "Después de medianoche": "Dopo mezzanotte"
@@ -126,6 +110,23 @@
       "revision": "Revisione",
       "exito": "Completato"
     }
+  },
+  "parentescos": {
+    "AB": "Nonno/a",
+    "BA": "Bisnonno/a",
+    "BN": "Bisnipote",
+    "CD": "Cognato/a",
+    "CY": "Coniuge",
+    "HJ": "Figlio/a",
+    "HR": "Fratello / Sorella",
+    "NI": "Nipote (di nonni)",
+    "OT": "Altro",
+    "PM": "Genitore",
+    "SB": "Nipote (di zii)",
+    "SG": "Suocero/a",
+    "TI": "Zio/a",
+    "TU": "Tutore",
+    "YN": "Genero / Nuora"
   },
   "common": {
     "of": "di ",

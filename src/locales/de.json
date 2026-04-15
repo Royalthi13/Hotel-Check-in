@@ -91,23 +91,7 @@
       "Mujer": "Weiblich",
       "No indicar": "Keine Angabe"
     },
-    "parentescos": {
-      "Abuelo/a": "Großelternteil",
-      "Bisabuelo/a": "Urgroßelternteil",
-      "Bisnieto/a": "Urenkel/in",
-      "Cuñado/a": "Schwager/Schwägerin",
-      "Cónyuge/a": "Ehepartner/in",
-      "Hijo/a": "Kind",
-      "Hermano/a": "Geschwister",
-      "Nieto/a": "Enkel/in",
-      "Padre o Madre": "Elternteil",
-      "Sobrino/a": "Neffe/Nichte",
-      "Suegro/a": "Schwiegervater/mutter",
-      "Tío/a": "Onkel/Tante",
-      "Yerno o nuera": "Schwiegersohn/tochter",
-      "Tutor/a": "Vormund",
-      "Otro": "Andere"
-    },
+
     "horas": {
       "No especificada": "Keine Angabe",
       "Después de medianoche": "Nach Mitternacht"
@@ -126,6 +110,23 @@
       "revision": "Überprüfung",
       "exito": "Abgeschlossen"
     }
+  },
+  "parentescos": {
+    "AB": "Großelternteil",
+    "BA": "Urgroßelternteil",
+    "BN": "Urenkel/in",
+    "CD": "Schwager/Schwägerin",
+    "CY": "Ehepartner/in",
+    "HJ": "Kind",
+    "HR": "Geschwister",
+    "NI": "Enkel/in",
+    "OT": "Andere",
+    "PM": "Elternteil",
+    "SB": "Neffe/Nichte",
+    "SG": "Schwiegervater/mutter",
+    "TI": "Onkel/Tante",
+    "TU": "Vormund",
+    "YN": "Schwiegersohn/tochter"
   },
   "common": {
     "of": "von ",

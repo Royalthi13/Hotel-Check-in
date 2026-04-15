@@ -91,23 +91,7 @@
       "Mujer": "Mulher",
       "No indicar": "Prefiro não dizer"
     },
-    "parentescos": {
-      "Abuelo/a": "Avô / Avó",
-      "Bisabuelo/a": "Bisavô / Bisavó",
-      "Bisnieto/a": "Bisneto/a",
-      "Cuñado/a": "Cunhado/a",
-      "Cónyuge/a": "Cônjuge",
-      "Hijo/a": "Filho/a",
-      "Hermano/a": "Irmão / Irmã",
-      "Nieto/a": "Neto/a",
-      "Padre o Madre": "Pai ou Mãe",
-      "Sobrino/a": "Sobrinho/a",
-      "Suegro/a": "Sogro/a",
-      "Tío/a": "Tio/a",
-      "Yerno o nuera": "Genro / Nora",
-      "Tutor/a": "Tutor legal",
-      "Otro": "Outro"
-    },
+
     "horas": {
       "No especificada": "Não especificada",
       "Después de medianoche": "Depois da meia-noite"
@@ -126,6 +110,23 @@
       "revision": "Revisão",
       "exito": "Concluído"
     }
+  },
+  "parentescos": {
+    "AB": "Avô / Avó",
+    "BA": "Bisavô / Bisavó",
+    "BN": "Bisneto/a",
+    "CD": "Cunhado/a",
+    "CY": "Cônjuge",
+    "HJ": "Filho/a",
+    "HR": "Irmão / Irmã",
+    "NI": "Neto/a",
+    "OT": "Outro",
+    "PM": "Pai ou Mãe",
+    "SB": "Sobrinho/a",
+    "SG": "Sogro/a",
+    "TI": "Tio/a",
+    "TU": "Tutor/a",
+    "YN": "Genro / Nora"
   },
   "common": {
     "of": "de ",

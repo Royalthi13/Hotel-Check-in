@@ -1,10 +1,11 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { Field, Button, Alert, ConfirmBlock, Icon } from "@/components/ui";
 import { ReservationCard } from "@/components/ui";
-import { HORAS_LLEGADA, INVERSE_RELATIONSHIP_MAPPING } from "@/constants";
+import { getRelationships } from "@/api/catalogs.service";
+import type { CheckinState, PartialGuestData, RelacionDB } from "@/types";
+import { HORAS_LLEGADA } from "@/constants";
 import { validatePersonal, validateContacto } from "@/hooks/useFormValidation";
-import type { CheckinState, PartialGuestData } from "@/types";
 import "@/App.css";
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -109,7 +110,7 @@ function isGuestValid(
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// REVISION
+// REVISION (Corregido con inversos de DB)
 // ═══════════════════════════════════════════════════════════════════════════
 
 interface RevisionProps {
@@ -131,6 +132,18 @@ export const ScreenRevision: React.FC<RevisionProps> = ({
 
   const isDataComplete = guests.every((g, idx) => isGuestValid(g, idx, t));
   const [isConfirmed, setIsConfirmed] = useState(false);
+
+  // --- MAGIA DE LA API: Cargamos los parentescos para sacar los inversos ---
+  const [listaRelaciones, setListaRelaciones] = useState<RelacionDB[]>([]);
+
+  useEffect(() => {
+    getRelationships()
+      .then(setListaRelaciones)
+      .catch((err) =>
+        console.error("Error cargando relaciones en revisión:", err),
+      );
+  }, []);
+  // --------------------------------------------------------------------------
 
   const fullName = (g: typeof main) =>
     [g.nombre, g.apellido, g.apellido2].filter(Boolean).join(" ");
@@ -184,6 +197,7 @@ export const ScreenRevision: React.FC<RevisionProps> = ({
                         ],
                       ];
 
+                    // --- SECCIÓN: QUÉ ES EL MENOR RESPECTO AL ADULTO ---
                     if (
                       g.esMenor &&
                       (g.relacionesConAdultos ?? []).length > 0
@@ -200,14 +214,27 @@ export const ScreenRevision: React.FC<RevisionProps> = ({
                           count: r.adultoIndex + 1,
                           defaultValue: `Relación con adulto ${r.adultoIndex + 1}`,
                         });
-                        const rawParentesco = (r.parentesco ?? "").trim();
+
+                        const rawParentesco = (r.parentesco ?? "").trim(); // Ej: "PM"
+
+                        const relacionDb = listaRelaciones.find(
+                          (dbRel) => dbRel.codrelation === rawParentesco,
+                        );
 
                         const inverseKey =
-                          INVERSE_RELATIONSHIP_MAPPING[rawParentesco] ||
-                          rawParentesco;
+                          relacionDb?.linked_relation || rawParentesco;
+
+                        const relacionInversaDb = listaRelaciones.find(
+                          (dbRel) => dbRel.codrelation === inverseKey,
+                        );
+                        const nombreReal = relacionInversaDb
+                          ? relacionInversaDb.name
+                          : inverseKey;
 
                         const value = inverseKey
-                          ? t(`constants.parentescos.${inverseKey}`, inverseKey)
+                          ? t(`parentescos.${inverseKey}`, {
+                              defaultValue: nombreReal,
+                            })
                           : "—";
 
                         return [label, value] as [string, string];
@@ -215,14 +242,17 @@ export const ScreenRevision: React.FC<RevisionProps> = ({
                       baseRows.push(...relacionesRows);
                     }
 
+                    // --- SECCIÓN: QUÉ ES EL ADULTO RESPECTO AL MENOR ---
                     if (!g.esMenor && menoresAcargo.length > 0) {
                       menoresAcargo.forEach((menor) => {
                         const relacion = menor.relacionesConAdultos?.find(
                           (r) => r.adultoIndex === idx,
                         );
+
                         const rawParentesco = (
                           relacion?.parentesco ?? ""
-                        ).trim();
+                        ).trim(); // Ej: "PM"
+
                         const nombreMenor =
                           [menor.nombre, menor.apellido]
                             .filter(Boolean)
@@ -233,11 +263,17 @@ export const ScreenRevision: React.FC<RevisionProps> = ({
                           defaultValue: `Responsable de (${nombreMenor})`,
                         });
 
+                        const relacionDb = listaRelaciones.find(
+                          (dbRel) => dbRel.codrelation === rawParentesco,
+                        );
+                        const nombreReal = relacionDb
+                          ? relacionDb.name
+                          : rawParentesco;
+
                         const value = rawParentesco
-                          ? t(
-                              `constants.parentescos.${rawParentesco}`,
-                              rawParentesco,
-                            )
+                          ? t(`parentescos.${rawParentesco}`, {
+                              defaultValue: nombreReal,
+                            })
                           : "—";
 
                         baseRows.push([label, value]);
@@ -247,6 +283,8 @@ export const ScreenRevision: React.FC<RevisionProps> = ({
                     return baseRows;
                   })()}
                 />
+
+                {/* ... Bloques de Documento y Contacto se quedan igual ... */}
                 <ConfirmBlock
                   title={
                     idx === 0

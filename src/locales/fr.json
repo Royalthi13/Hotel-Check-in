@@ -91,23 +91,7 @@
       "Mujer": "Femme",
       "No indicar": "Ne pas préciser"
     },
-    "parentescos": {
-      "Abuelo/a": "Grand-parent",
-      "Bisabuelo/a": "Arrière-grand-parent",
-      "Bisnieto/a": "Arrière-petit-enfant",
-      "Cuñado/a": "Beau-frère / Belle-sœur",
-      "Cónyuge/a": "Conjoint(e)",
-      "Hijo/a": "Enfant",
-      "Hermano/a": "Frère / Sœur",
-      "Nieto/a": "Petit-enfant",
-      "Padre o Madre": "Parent",
-      "Sobrino/a": "Neveu / Nièce",
-      "Suegro/a": "Beau-père / Belle-mère",
-      "Tío/a": "Oncle / Tante",
-      "Yerno o nuera": "Gendre / Belle-fille",
-      "Tutor/a": "Tuteur légal",
-      "Otro": "Autre"
-    },
+
     "horas": {
       "No especificada": "Non précisée",
       "Después de medianoche": "Après minuit"
@@ -126,6 +110,23 @@
       "revision": "Révision",
       "exito": "Terminé"
     }
+  },
+  "parentescos": {
+    "AB": "Grand-parent",
+    "BA": "Arrière-grand-parent",
+    "BN": "Arrière-petit-enfant",
+    "CD": "Beau-frère / Belle-sœur",
+    "CY": "Conjoint(e)",
+    "HJ": "Enfant",
+    "HR": "Frère / Sœur",
+    "NI": "Petit-enfant",
+    "OT": "Autre",
+    "PM": "Parent",
+    "SB": "Neveu / Nièce",
+    "SG": "Beau-père / Belle-mère",
+    "TI": "Oncle / Tante",
+    "TU": "Tuteur / Tutrice",
+    "YN": "Gendre / Belle-fille"
   },
   "common": {
     "of": "de ",

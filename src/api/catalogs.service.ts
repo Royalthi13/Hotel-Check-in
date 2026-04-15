@@ -1,16 +1,22 @@
 import { apiAuth } from "./axiosInstance";
+import type { RelacionDB } from "@/types"; // <-- Importamos tu tipo completo con linked_relation
 
-// CountriesInDB en el modelo Python solo tiene codpais y name.
-// iso2 NO existe como columna — quitarlo para no confundir.
-// Los mappings ISO2 ↔ codpais están hardcodeados en clients.service.ts.
-interface CountryResponse      { codpais: string; name: string; }
-interface DocumentTypeResponse { coddoc: string;  name: string; }
-interface RelationshipResponse { codrelation: string; name: string; }
+interface CountryResponse {
+  codpais: string;
+  name: string;
+}
+
+interface DocumentTypeResponse {
+  coddoc: string;
+  name: string;
+}
+
+// Ya no necesitamos RelationshipResponse porque usaremos RelacionDB
 
 const cache: {
-  countries?:     CountryResponse[];
+  countries?: CountryResponse[];
   documentTypes?: DocumentTypeResponse[];
-  relationships?: RelationshipResponse[];
+  relationships?: RelacionDB[]; // <-- Cambiado para usar el tipo bueno
 } = {};
 
 export async function getCountries(): Promise<CountryResponse[]> {
@@ -30,9 +36,10 @@ export async function getDocumentTypes(): Promise<DocumentTypeResponse[]> {
   return result;
 }
 
-export async function getRelationships(): Promise<RelationshipResponse[]> {
+// 🚀 Fusión completada: Caché + Tipo correcto en una sola función
+export async function getRelationships(): Promise<RelacionDB[]> {
   if (cache.relationships) return cache.relationships;
-  const { data } = await apiAuth.get<RelationshipResponse[]>("/relationships");
+  const { data } = await apiAuth.get<RelacionDB[]>("/relationships");
   const result = Array.isArray(data) ? data : [];
   if (result.length > 0) cache.relationships = result;
   return result;

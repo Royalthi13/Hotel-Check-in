@@ -91,23 +91,7 @@
       "Mujer": "Mujer",
       "No indicar": "No indicar"
     },
-    "parentescos": {
-      "Abuelo/a": "Abuelo/a",
-      "Bisabuelo/a": "Bisabuelo/a",
-      "Bisnieto/a": "Bisnieto/a",
-      "Cuñado/a": "Cuñado/a",
-      "Cónyuge/a": "Cónyuge/a",
-      "Hijo/a": "Hijo/a",
-      "Hermano/a": "Hermano/a",
-      "Nieto/a": "Nieto/a",
-      "Padre o Madre": "Padre o Madre",
-      "Sobrino/a": "Sobrino/a",
-      "Suegro/a": "Suegro/a",
-      "Tío/a": "Tío/a",
-      "Yerno o nuera": "Yerno o nuera",
-      "Tutor/a": "Tutor/a",
-      "Otro": "Otro"
-    },
+
     "horas": {
       "No especificada": "No especificada",
       "Después de medianoche": "Después de medianoche"
@@ -126,6 +110,23 @@
       "revision": "Revisión",
       "exito": "Completado"
     }
+  },
+  "parentescos": {
+    "AB": "Abuelo/a",
+    "BA": "Bisabuelo/a",
+    "BN": "Bisnieto/a",
+    "CD": "Cuñado/a",
+    "CY": "Cónyuge",
+    "HJ": "Hijo/a",
+    "HR": "Hermano/a",
+    "NI": "Nieto/a",
+    "OT": "Otro",
+    "PM": "Padre o Madre",
+    "SB": "Sobrino/a",
+    "SG": "Suegro/a",
+    "TI": "Tío/a",
+    "TU": "Tutor/a",
+    "YN": "Yerno o nuera"
   },
   "invalidLink": {
     "title": "Enlace no válido",

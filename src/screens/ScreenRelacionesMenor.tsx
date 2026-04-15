@@ -1,8 +1,8 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { Button, Alert } from "@/components/ui";
-import { PARENTESCOS_MENOR } from "@/constants";
-import type { PartialGuestData } from "@/types";
+import { getRelationships } from "@/api/catalogs.service";
+import type { PartialGuestData, RelacionDB } from "@/types";
 import {
   Box,
   Typography,
@@ -36,6 +36,22 @@ export const ScreenRelacionesMenor: React.FC<Props> = ({
 }) => {
   const { t } = useTranslation();
   const [touched, setTouched] = useState(false);
+
+  // --- MAGIA DE LA API: Guardamos aquí la lista de la base de datos ---
+  const [listaRelaciones, setListaRelaciones] = useState<RelacionDB[]>([]);
+
+  useEffect(() => {
+    const cargarRelaciones = async () => {
+      try {
+        const datos = await getRelationships();
+        setListaRelaciones(datos);
+      } catch (error) {
+        console.error("Error al cargar las relaciones de la BD:", error);
+      }
+    };
+    cargarRelaciones();
+  }, []);
+  // ----------------------------------------------------------------------
 
   const [expandedIds, setExpandedIds] = useState<number[]>(() => {
     const adultosValidosIds = adultos.map((a) => a.originalIndex);
@@ -196,7 +212,7 @@ export const ScreenRelacionesMenor: React.FC<Props> = ({
                       >
                         <Select
                           displayEmpty
-                          value={parentesco}
+                          value={parentesco || ""} // <-- El || "" es VITAL para que pille el placeholder
                           onChange={(e) =>
                             onRelacionChange(
                               adulto.originalIndex,
@@ -221,12 +237,26 @@ export const ScreenRelacionesMenor: React.FC<Props> = ({
                             },
                           }}
                         >
+                          {/* EL PLACEHOLDER (Solo se ve si no hay nada seleccionado) */}
                           <MenuItem value="" disabled>
-                            <em>{t("minors.select_relationship")}</em>
+                            <em style={{ color: "gray" }}>
+                              {t(
+                                "minors.select_relationship",
+                                "Seleccionar...",
+                              )}
+                            </em>
                           </MenuItem>
-                          {PARENTESCOS_MENOR.map((p) => (
-                            <MenuItem key={p} value={p}>
-                              {t(`constants.parentescos.${p}`, p)}
+
+                          {/* LAS OPCIONES (Se traducen automáticamente con i18n) */}
+                          {listaRelaciones.map((relacion) => (
+                            <MenuItem
+                              key={relacion.codrelation}
+                              value={relacion.codrelation}
+                            >
+                              {t(
+                                `parentescos.${relacion.codrelation}`,
+                                relacion.name,
+                              )}
                             </MenuItem>
                           ))}
                         </Select>

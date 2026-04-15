@@ -91,23 +91,7 @@
       "Mujer": "Female",
       "No indicar": "Prefer not to say"
     },
-    "parentescos": {
-      "Abuelo/a": "Grandparent",
-      "Bisabuelo/a": "Great-grandparent",
-      "Bisnieto/a": "Great-grandchild",
-      "Cuñado/a": "Brother/Sister-in-law",
-      "Cónyuge/a": "Spouse",
-      "Hijo/a": "Child",
-      "Hermano/a": "Sibling",
-      "Nieto/a": "Grandchild",
-      "Padre o Madre": "Parent",
-      "Sobrino/a": "Nephew/Niece",
-      "Suegro/a": "Father/Mother-in-law",
-      "Tío/a": "Uncle/Aunt",
-      "Yerno o nuera": "Son/Daughter-in-law",
-      "Tutor/a": "Legal Guardian",
-      "Otro": "Other"
-    },
+
     "horas": {
       "No especificada": "Not specified",
       "Después de medianoche": "After midnight"
@@ -126,6 +110,23 @@
       "revision": "Review",
       "exito": "Completed"
     }
+  },
+  "parentescos": {
+    "AB": "Grandparent",
+    "BA": "Great-grandparent",
+    "BN": "Great-grandchild",
+    "CD": "Brother/Sister-in-law",
+    "CY": "Spouse",
+    "HJ": "Child",
+    "HR": "Sibling",
+    "NI": "Grandchild",
+    "OT": "Other",
+    "PM": "Parent",
+    "SB": "Nephew/Niece",
+    "SG": "Father/Mother-in-law",
+    "TI": "Uncle/Aunt",
+    "TU": "Guardian",
+    "YN": "Son/Daughter-in-law"
   },
   "common": {
     "of": "of ",

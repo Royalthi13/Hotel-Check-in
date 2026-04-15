@@ -31,6 +31,12 @@ export interface RoomTypeResponse {
   name: RoomTypeName;
 }
 
+export interface RelacionDB {
+  codrelation: string;
+  name: string;
+  linked_relation: string;
+}
+
 // ─── Reserva ──────────────────────────────────────────────────────────────────
 export interface Reserva {
   confirmacion: string;
