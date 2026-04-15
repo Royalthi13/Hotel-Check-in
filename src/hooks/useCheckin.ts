@@ -6,6 +6,7 @@ import type {
   AppMode,
   Reserva,
   PartialGuestData,
+  GuestData, // <-- ¡Solucionado el error de TS2304!
   StepId,
   CheckinNav,
   NavDirection,
@@ -165,9 +166,6 @@ export function checkinReducer(
     }
 
     // ── FIX: carga de acompañantes desde la BD ─────────────────────────────
-    // Se llama cuando el usuario vuelve a la misma URL después de completar
-    // el pre-checkin. Coloca a los acompañantes en guests[1..N] y recalcula
-    // esMenor para cada uno a partir de su fechaNac real.
     case "SET_COMPANIONS_LOADED": {
       const mainGuest = state.guests[0] ?? {
         esMenor: false,
@@ -176,8 +174,6 @@ export function checkinReducer(
 
       const companionGuests = action.companions.map((c) => ({
         ...c,
-        // recalcular esMenor desde la fecha (toGuestData ya lo hace, pero
-        // lo forzamos aquí también por si llega sin calcular)
         esMenor: c.fechaNac
           ? dayjs().diff(dayjs(c.fechaNac), "years") < 18
           : (c.esMenor ?? false),
@@ -191,8 +187,6 @@ export function checkinReducer(
       return {
         ...state,
         guests: allGuests,
-        // Si la reserva dice que hay más personas que companions guardados,
-        // respetar el número mayor (puede que falten por guardar)
         numPersonas: Math.max(state.numPersonas, allGuests.length),
         numAdultos,
         numMenores,
@@ -353,12 +347,10 @@ export function useCheckin(tokenUrl?: string, stepUrl?: string) {
         if (result.knownGuest)
           dispatch({ type: "SET_KNOWN_GUEST", guest: result.knownGuest });
 
-        // 2. Reserva (numPersonas, habitación, fechas…)
+        // 2. Reserva
         dispatch({ type: "SET_RESERVA", reserva: result.reserva });
 
-        // 3. FIX: acompañantes ya guardados en BD → rellenan guests[1..N]
-        //    Esto hace que al volver a la URL todos los datos aparezcan
-        //    pre-rellenados en el wizard.
+        // 3. Acompañantes
         if (result.companions.length > 0) {
           dispatch({
             type: "SET_COMPANIONS_LOADED",
@@ -447,9 +439,6 @@ export function useCheckin(tokenUrl?: string, stepUrl?: string) {
     return () => window.removeEventListener("popstate", onPop);
   }, []);
 
-  // ── nextGuest ─────────────────────────────────────────────────────────────
-  // TODOS los huéspedes pasan por personal → contacto.
-  // Tras contacto del último → menores → extras.
   const nextGuest = useCallback(
     (currIdx: number, from: StepId) => {
       const { guests, numPersonas } = stateRef.current;
@@ -568,7 +557,7 @@ export function useCheckin(tokenUrl?: string, stepUrl?: string) {
       setHasMinorsFlag: (v) =>
         dispatch({ type: "SET_HAS_MINORS_FLAG", value: v }),
     }),
-    [goTo, goBack, dispatch, dotSteps, currentDotIndex, nextGuest],
+    // <-- FIX: Borrada la matriz de dependencias que estaba duplicada en la línea final
     [goTo, goBack, dispatch, dotSteps, currentDotIndex, nextGuest],
   );
 

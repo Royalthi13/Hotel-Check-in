@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from "react";
-import React, { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useCheckin } from "@/hooks/useCheckin";
@@ -18,9 +17,6 @@ export const CheckinProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const [state, nav, actions, isLoading] = useCheckin(token, step);
 
-  const [submitError, setSubmitError] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isOffline, setIsOffline] = useState(!navigator.onLine);
   const [submitError, setSubmitError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isOffline, setIsOffline] = useState(!navigator.onLine);
@@ -46,13 +42,12 @@ export const CheckinProvider: React.FC<{ children: React.ReactNode }> = ({
   // --- DETECTOR ONLINE/OFFLINE ---
   useEffect(() => {
     const on = () => setIsOffline(false);
-    const on = () => setIsOffline(false);
     const off = () => setIsOffline(true);
-    window.addEventListener("online", on);
+
     window.addEventListener("online", on);
     window.addEventListener("offline", off);
+
     return () => {
-      window.removeEventListener("online", on);
       window.removeEventListener("online", on);
       window.removeEventListener("offline", off);
     };
@@ -79,11 +74,7 @@ export const CheckinProvider: React.FC<{ children: React.ReactNode }> = ({
   const triggerFormValidation = () => setValidationTrigger((v) => v + 1);
 
   // FIX: lanza error descriptivo si el bookingId no está en sessionStorage.
-  // Antes devolvía 0 silenciosamente → PUT /bookings/0 → 404 sin explicación.
-  // Esto puede ocurrir en modo incógnito, tras borrado manual de sessionStorage
-  // o si el usuario llega a la pantalla de revisión sin haber pasado por la carga.
   const getBackendIds = () => {
-    const rawId = sessionStorage.getItem(`bookingId_${token}`);
     const rawId = sessionStorage.getItem(`bookingId_${token}`);
     const bookingId = rawId ? parseInt(rawId, 10) : null;
 
@@ -94,7 +85,6 @@ export const CheckinProvider: React.FC<{ children: React.ReactNode }> = ({
     }
 
     const rawClientId = sessionStorage.getItem(`clientId_${token}`);
-    const clientId = rawClientId ? parseInt(rawClientId, 10) : null;
     const clientId = rawClientId ? parseInt(rawClientId, 10) : null;
 
     return { bookingId, clientId };
@@ -125,7 +115,6 @@ export const CheckinProvider: React.FC<{ children: React.ReactNode }> = ({
     setSubmitError("");
     setIsSubmitting(true);
     try {
-      // FIX: getBackendIds ahora lanza si bookingId es 0/NaN
       const { bookingId, clientId } = getBackendIds();
 
       if (isPartial) {
@@ -142,8 +131,6 @@ export const CheckinProvider: React.FC<{ children: React.ReactNode }> = ({
       await submitCheckin({
         bookingId,
         clientId,
-        guests: state.guests,
-        horaLlegada: state.horaLlegada,
         guests: state.guests,
         horaLlegada: state.horaLlegada,
         observaciones: state.observaciones,
@@ -167,7 +154,6 @@ export const CheckinProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   };
 
-  const handleSubmit = () => submitToServer(false);
   const handleSubmit = () => submitToServer(false);
   const handlePartialSubmit = () => submitToServer(true);
 
