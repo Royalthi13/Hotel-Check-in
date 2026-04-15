@@ -21,6 +21,9 @@ export const CheckinProvider: React.FC<{ children: React.ReactNode }> = ({
   const [submitError, setSubmitError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isOffline, setIsOffline] = useState(!navigator.onLine);
+  const [submitError, setSubmitError] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isOffline, setIsOffline] = useState(!navigator.onLine);
   const [isPartialSuccess, setIsPartialSuccess] = useState(false);
   const [validationTrigger, setValidationTrigger] = useState(0);
 
@@ -43,10 +46,13 @@ export const CheckinProvider: React.FC<{ children: React.ReactNode }> = ({
   // --- DETECTOR ONLINE/OFFLINE ---
   useEffect(() => {
     const on = () => setIsOffline(false);
+    const on = () => setIsOffline(false);
     const off = () => setIsOffline(true);
+    window.addEventListener("online", on);
     window.addEventListener("online", on);
     window.addEventListener("offline", off);
     return () => {
+      window.removeEventListener("online", on);
       window.removeEventListener("online", on);
       window.removeEventListener("offline", off);
     };
@@ -78,6 +84,7 @@ export const CheckinProvider: React.FC<{ children: React.ReactNode }> = ({
   // o si el usuario llega a la pantalla de revisión sin haber pasado por la carga.
   const getBackendIds = () => {
     const rawId = sessionStorage.getItem(`bookingId_${token}`);
+    const rawId = sessionStorage.getItem(`bookingId_${token}`);
     const bookingId = rawId ? parseInt(rawId, 10) : null;
 
     if (!bookingId || isNaN(bookingId)) {
@@ -87,6 +94,7 @@ export const CheckinProvider: React.FC<{ children: React.ReactNode }> = ({
     }
 
     const rawClientId = sessionStorage.getItem(`clientId_${token}`);
+    const clientId = rawClientId ? parseInt(rawClientId, 10) : null;
     const clientId = rawClientId ? parseInt(rawClientId, 10) : null;
 
     return { bookingId, clientId };
@@ -136,6 +144,8 @@ export const CheckinProvider: React.FC<{ children: React.ReactNode }> = ({
         clientId,
         guests: state.guests,
         horaLlegada: state.horaLlegada,
+        guests: state.guests,
+        horaLlegada: state.horaLlegada,
         observaciones: state.observaciones,
       });
 
@@ -157,6 +167,7 @@ export const CheckinProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   };
 
+  const handleSubmit = () => submitToServer(false);
   const handleSubmit = () => submitToServer(false);
   const handlePartialSubmit = () => submitToServer(true);
 
