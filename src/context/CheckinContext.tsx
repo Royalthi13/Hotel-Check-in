@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useCheckin } from "@/hooks/useCheckin";
@@ -71,15 +72,25 @@ export const CheckinProvider: React.FC<{ children: React.ReactNode }> = ({
   const clearSubmitError = () => setSubmitError("");
   const triggerFormValidation = () => setValidationTrigger((v) => v + 1);
 
-  const getBackendIds = () => ({
-    bookingId: parseInt(
-      sessionStorage.getItem(`bookingId_${token}`) ?? "0",
-      10,
-    ),
-    clientId: sessionStorage.getItem(`clientId_${token}`)
-      ? parseInt(sessionStorage.getItem(`clientId_${token}`)!, 10)
-      : null,
-  });
+  // FIX: lanza error descriptivo si el bookingId no está en sessionStorage.
+  // Antes devolvía 0 silenciosamente → PUT /bookings/0 → 404 sin explicación.
+  // Esto puede ocurrir en modo incógnito, tras borrado manual de sessionStorage
+  // o si el usuario llega a la pantalla de revisión sin haber pasado por la carga.
+  const getBackendIds = () => {
+    const rawId = sessionStorage.getItem(`bookingId_${token}`);
+    const bookingId = rawId ? parseInt(rawId, 10) : null;
+
+    if (!bookingId || isNaN(bookingId)) {
+      throw new Error(
+        "No se pudo identificar la reserva. Por favor, recargue la página o acceda de nuevo mediante el enlace de su reserva.",
+      );
+    }
+
+    const rawClientId = sessionStorage.getItem(`clientId_${token}`);
+    const clientId = rawClientId ? parseInt(rawClientId, 10) : null;
+
+    return { bookingId, clientId };
+  };
 
   const SESSION_KEYS_TO_CLEAR = [
     `state_${token}`,
@@ -106,6 +117,7 @@ export const CheckinProvider: React.FC<{ children: React.ReactNode }> = ({
     setSubmitError("");
     setIsSubmitting(true);
     try {
+      // FIX: getBackendIds ahora lanza si bookingId es 0/NaN
       const { bookingId, clientId } = getBackendIds();
 
       if (isPartial) {

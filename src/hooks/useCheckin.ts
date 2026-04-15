@@ -47,6 +47,8 @@ type CheckinAction =
   | { type: "SET_LEGAL_PASSED"; value: boolean }
   | { type: "SET_HAS_MINORS_FLAG"; value: boolean }
   | { type: "RESTORE_FULL_STATE"; payload: CheckinState }
+  // FIX: acción nueva para cargar acompañantes recuperados de la BD
+  | { type: "SET_COMPANIONS_LOADED"; companions: GuestData[] }
   | { type: "RESET" };
 
 // ── Helpers de Persistencia (LAS QUE FALTABAN) ───────────────────────────────
@@ -133,6 +135,7 @@ export function checkinReducer(
         knownGuest: action.guest,
         guests: [{ ...action.guest, esMenor: false }],
       };
+
     case "SET_RESERVA_TABLET":
       return {
         ...state,
@@ -142,12 +145,14 @@ export function checkinReducer(
         numMenores: 0,
         guests: mergeGuests([], action.reserva.numHuespedes),
       };
+
     case "SET_RESERVA":
       return {
         ...state,
         reserva: action.reserva,
         numPersonas: action.reserva.numHuespedes,
       };
+
     case "SET_NUM_PERSONAS": {
       const newGuests = mergeGuests(state.guests ?? [], action.total);
       return {
@@ -158,6 +163,42 @@ export function checkinReducer(
         numMenores: newGuests.filter((g) => g.esMenor).length,
       };
     }
+
+    // ── FIX: carga de acompañantes desde la BD ─────────────────────────────
+    // Se llama cuando el usuario vuelve a la misma URL después de completar
+    // el pre-checkin. Coloca a los acompañantes en guests[1..N] y recalcula
+    // esMenor para cada uno a partir de su fechaNac real.
+    case "SET_COMPANIONS_LOADED": {
+      const mainGuest = state.guests[0] ?? {
+        esMenor: false,
+        relacionesConAdultos: [],
+      };
+
+      const companionGuests = action.companions.map((c) => ({
+        ...c,
+        // recalcular esMenor desde la fecha (toGuestData ya lo hace, pero
+        // lo forzamos aquí también por si llega sin calcular)
+        esMenor: c.fechaNac
+          ? dayjs().diff(dayjs(c.fechaNac), "years") < 18
+          : (c.esMenor ?? false),
+        relacionesConAdultos: c.relacionesConAdultos ?? [],
+      }));
+
+      const allGuests = [mainGuest, ...companionGuests];
+      const numMenores = allGuests.filter((g) => g.esMenor).length;
+      const numAdultos = allGuests.filter((g) => !g.esMenor).length;
+
+      return {
+        ...state,
+        guests: allGuests,
+        // Si la reserva dice que hay más personas que companions guardados,
+        // respetar el número mayor (puede que falten por guardar)
+        numPersonas: Math.max(state.numPersonas, allGuests.length),
+        numAdultos,
+        numMenores,
+      };
+    }
+
     case "UPDATE_GUEST": {
       const guests = [...state.guests];
       let finalValue = action.value;
@@ -172,6 +213,7 @@ export function checkinReducer(
       guests[action.index] = updated;
       return { ...state, guests };
     }
+
     case "UPDATE_RELACION": {
       const guests = [...state.guests];
       const menor = { ...guests[action.menorIndex] };
@@ -194,11 +236,13 @@ export function checkinReducer(
       guests[action.menorIndex] = menor;
       return { ...state, guests };
     }
+
     case "APPLY_SCAN": {
       const guests = [...state.guests];
       guests[action.guestIdx] = { ...guests[action.guestIdx], ...action.data };
       return { ...state, guests };
     }
+
     case "SET_HORA_LLEGADA":
       return { ...state, horaLlegada: action.value };
     case "SET_OBSERVACIONES":
@@ -305,10 +349,24 @@ export function useCheckin(tokenUrl?: string, stepUrl?: string) {
         const result = await loadCheckinData(token);
         if (cancelled) return;
 
+        // 1. Titular
         if (result.knownGuest)
           dispatch({ type: "SET_KNOWN_GUEST", guest: result.knownGuest });
+
+        // 2. Reserva (numPersonas, habitación, fechas…)
         dispatch({ type: "SET_RESERVA", reserva: result.reserva });
 
+        // 3. FIX: acompañantes ya guardados en BD → rellenan guests[1..N]
+        //    Esto hace que al volver a la URL todos los datos aparezcan
+        //    pre-rellenados en el wizard.
+        if (result.companions.length > 0) {
+          dispatch({
+            type: "SET_COMPANIONS_LOADED",
+            companions: result.companions,
+          });
+        }
+
+        // IDs para el submit
         sessionStorage.setItem(`bookingId_${token}`, String(result.bookingId));
         if (result.clientId)
           sessionStorage.setItem(`clientId_${token}`, String(result.clientId));
@@ -389,23 +447,28 @@ export function useCheckin(tokenUrl?: string, stepUrl?: string) {
     return () => window.removeEventListener("popstate", onPop);
   }, []);
 
+  // ── nextGuest ─────────────────────────────────────────────────────────────
+  // TODOS los huéspedes pasan por personal → contacto.
+  // Tras contacto del último → menores → extras.
   const nextGuest = useCallback(
     (currIdx: number, from: StepId) => {
       const { guests, numPersonas } = stateRef.current;
+
       if (from === "form_personal") {
-        if (currIdx === 0) return goTo("form_contacto", "forward", 0);
-        if (currIdx + 1 < numPersonas)
-          return goTo("form_personal", "forward", currIdx + 1);
+        return goTo("form_contacto", "forward", currIdx);
       }
-      if (from === "form_contacto" && numPersonas > 1)
-        return goTo("form_personal", "forward", 1);
-      if (
-        ["form_personal", "form_contacto", "form_relaciones"].includes(from)
-      ) {
-        const nextM =
-          from === "form_relaciones"
-            ? guests.findIndex((g, i) => i > currIdx && g.esMenor)
-            : guests.findIndex((g) => g.esMenor);
+
+      if (from === "form_contacto") {
+        if (currIdx + 1 < numPersonas) {
+          return goTo("form_personal", "forward", currIdx + 1);
+        }
+        const nextM = guests.findIndex((g) => g.esMenor);
+        if (nextM >= 0) return goTo("form_relaciones", "forward", nextM);
+        return goTo("form_extras", "forward", 0);
+      }
+
+      if (from === "form_relaciones") {
+        const nextM = guests.findIndex((g, i) => i > currIdx && g.esMenor);
         if (nextM >= 0) return goTo("form_relaciones", "forward", nextM);
         return goTo("form_extras", "forward", 0);
       }
@@ -505,6 +568,7 @@ export function useCheckin(tokenUrl?: string, stepUrl?: string) {
       setHasMinorsFlag: (v) =>
         dispatch({ type: "SET_HAS_MINORS_FLAG", value: v }),
     }),
+    [goTo, goBack, dispatch, dotSteps, currentDotIndex, nextGuest],
     [goTo, goBack, dispatch, dotSteps, currentDotIndex, nextGuest],
   );
 

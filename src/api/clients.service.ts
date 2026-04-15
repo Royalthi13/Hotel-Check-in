@@ -1,7 +1,9 @@
 import { apiAuth } from "./axiosInstance";
+import dayjs from "dayjs";
 import type { GuestData, PartialGuestData } from "@/types";
 
-// ISO2 → codpais (FK countries)
+// ── DICCIONARIOS DE MAPEO (Configuración del Backend) ─────────────────────────
+
 const ISO2_TO_CODPAIS: Record<string, string> = {
   ES: "ESP", GB: "GBR", FR: "FRA", DE: "DEU", IT: "ITA",
   PT: "PRT", US: "USA", CA: "CAN", MX: "MEX", AR: "ARG",
@@ -17,36 +19,62 @@ const ISO2_TO_CODPAIS: Record<string, string> = {
   ID: "IDN", MY: "MYS", PK: "PAK", BD: "BGD", IR: "IRN",
   IQ: "IRQ", NG: "NGA", KE: "KEN",
 };
+
 const CODPAIS_TO_ISO2: Record<string, string> = Object.fromEntries(
-  Object.entries(ISO2_TO_CODPAIS).map(([k, v]) => [v, k]),
+  Object.entries(ISO2_TO_CODPAIS).map(([k, v]) => [v, k])
 );
 
 const NAC_TO_CODPAIS: Record<string, string> = {
-  "Española": "ESP", "Inglesa": "GBR", "Francesa": "FRA",
-  "Alemana": "DEU", "Italiana": "ITA", "Portuguesa": "PRT",
-  "Estadounidense": "USA", "Argentina": "ARG", "Mexicana": "MEX",
-  "Otra": "ESP",
+  "Española": "ESP",
+  "Inglesa": "GBR",
+  "Francesa": "FRA",
+  "Alemana": "DEU",
+  "Italiana": "ITA",
+  "Portuguesa": "PRT",
+  "Estadounidense": "USA",
+  "Argentina": "ARG",
+  "Mexicana": "MEX",
 };
-const CODPAIS_TO_NAC: Record<string, string> = {
-  "ESP": "Española", "GBR": "Inglesa", "FRA": "Francesa",
-  "DEU": "Alemana",  "ITA": "Italiana","PRT": "Portuguesa",
-  "USA": "Estadounidense", "ARG": "Argentina", "MEX": "Mexicana",
-};
+
+const CODPAIS_TO_NAC: Record<string, string> = Object.fromEntries(
+  Object.entries(NAC_TO_CODPAIS).map(([k, v]) => [v, k])
+);
 
 const DOC_TO_COD: Record<string, string> = {
-  "DNI":       "NIF",
-  "NIF":       "NIF",
-  "NIE":       "NIE",
-  "CIF":       "CIF",
+  "DNI": "NIF",
+  "NIF": "NIF",
+  "NIE": "NIE",
+  "CIF": "CIF",
   "Pasaporte": "PAS",
-  "Otro":      "OTRO",
-};
-const COD_TO_DOC: Record<string, string> = {
-  "NIF": "DNI", "NIE": "NIE", "CIF": "CIF",
-  "PAS": "Pasaporte", "OTRO": "Otro",
+  "Otro": "OTRO",
 };
 
-interface ClientResponse {
+const COD_TO_DOC: Record<string, string> = {
+  "NIF": "DNI",
+  "NIE": "NIE",
+  "CIF": "CIF",
+  "PAS": "Pasaporte",
+  "OTRO": "Otro",
+};
+
+const PARENTESCO_TO_CODRELATION: Record<string, string> = {
+  "Hijo/a": "hijo",
+  "Sobrino/a": "sobrino",
+  "Tutor legal": "tutor",
+  "Tutor/a": "tutor",
+  "Otro": "otro",
+};
+
+const CODRELATION_TO_PARENTESCO: Record<string, string> = {
+  "hijo": "Hijo/a",
+  "sobrino": "Sobrino/a",
+  "tutor": "Tutor/a",
+  "otro": "Otro",
+};
+
+// ── INTERFACES ───────────────────────────────────────────────────────────────
+
+export interface ClientResponse {
   id: number;
   name: string;
   surname: string;
@@ -57,12 +85,12 @@ interface ClientResponse {
   cp: string | null;
   country: string;
   nationality: string | null;
-  vat: string | null;
+  vat: string | null;             // DNI / NIF real
   phone: string | null;
   email: string | null;
   observations: string | null;
   doc_type: string | null;
-  doc_support: string | null;
+  doc_support: string | null;      // Número de Soporte (ES CORREGIDO)
   birth: string | null;
   relationship: string | null;
   sex: string | null;
@@ -70,76 +98,88 @@ interface ClientResponse {
   pre_checkin_send: string | null;
 }
 
-// ── Payload hacia el backend ──────────────────────────────────────────────────
-// CORRECCIÓN: usamos Record<string, string | boolean> en vez de campos opcionales
-// para que JSON.stringify no incluya claves con valor undefined (causa 422 en
-// algunos backends FastAPI/Pydantic que rechazan campos desconocidos).
-interface ClientPayload {
-  name: string;
-  surname: string;
-  country: string;
-  [key: string]: string | boolean | undefined;
-}
+// ── FUNCIONES DE CONVERSIÓN ──────────────────────────────────────────────────
 
-function toGuestData(c: ClientResponse): GuestData {
+/**
+ * Convierte un cliente de la Base de Datos al formato GuestData del Frontend
+ */
+export function toGuestData(c: ClientResponse): GuestData {
+  const esMenor = c.birth
+    ? dayjs().diff(dayjs(c.birth), "years") < 18
+    : false;
+
+  const relacionesConAdultos =
+    c.relationship && CODRELATION_TO_PARENTESCO[c.relationship]
+      ? [{ adultoIndex: 0, parentesco: CODRELATION_TO_PARENTESCO[c.relationship] }]
+      : [];
+
   return {
-    nombre:       c.name     ?? "",
-    apellido:     c.surname  ?? "",
-    apellido2:    "",
-    sexo:         c.sex === "M" ? "Hombre" : c.sex === "F" ? "Mujer" : "No indicar",
-    fechaNac:     c.birth    ?? "",
-    nacionalidad: CODPAIS_TO_NAC[c.nationality ?? ""] ?? "Española",
-    email:        c.email    ?? "",
-    telefono:     c.phone    ?? "",
-    direccion:    c.address  ?? "",
-    ciudad:       c.city     ?? "",
-    provincia:    c.province ?? "",
-    cp:           c.cp       ?? "",
-    pais:         CODPAIS_TO_ISO2[c.country] ?? "ES",
-    tipoDoc:      COD_TO_DOC[c.doc_type ?? ""] ?? "DNI",
-    numDoc:       c.doc_support ?? "",
-    soporteDoc:   "",
-    vat:          c.vat      ?? "",
-    esMenor:      false,
-    relacionesConAdultos: [],
+    nombre: c.name ?? "",
+    apellido: c.surname ?? "",
+    apellido2: "", // La DB guarda surname concatenado
+    sexo: c.sex === "M" ? "Hombre" : c.sex === "F" ? "Mujer" : "No indicar",
+    fechaNac: c.birth ?? "",
+    nacionalidad: CODPAIS_TO_NAC[c.nationality ?? ""] ?? "Otra",
+    email: c.email ?? "",
+    telefono: c.phone ?? "",
+    direccion: c.address ?? "",
+    ciudad: c.city ?? "",
+    provincia: c.province ?? "",
+    cp: c.cp ?? "",
+    pais: CODPAIS_TO_ISO2[c.country] ?? "ES",
+    tipoDoc: COD_TO_DOC[c.doc_type ?? ""] ?? "DNI",
+    
+    // FIX: Mapeo correcto para que el formulario recupere el soporte
+    numDoc: c.vat ?? "",              // El DNI real viene de vat
+    soporteDoc: c.doc_support ?? "",  // El Soporte real viene de doc_support
+    
+    vat: c.vat ?? "",
+    esMenor,
+    relacionesConAdultos,
   };
 }
 
-// CORRECCIÓN PRINCIPAL: eliminamos las claves cuyo valor es undefined/vacío
-// antes de enviar, para que el backend no reciba campos nulos inesperados.
-export function toClientPayload(g: PartialGuestData): ClientPayload {
+/**
+ * Convierte los datos del Frontend al formato de envío (Payload) para el Backend
+ */
+export function toClientPayload(g: PartialGuestData): any {
   const codpais = ISO2_TO_CODPAIS[g.pais ?? "ES"] ?? "ESP";
-  const nacCod  = NAC_TO_CODPAIS[g.nacionalidad ?? ""] ?? codpais;
-  const docCod  = DOC_TO_COD[g.tipoDoc ?? ""] ?? undefined;
+  const nacCod = g.nacionalidad && g.nacionalidad !== "Otra"
+    ? (NAC_TO_CODPAIS[g.nacionalidad] ?? codpais)
+    : codpais;
 
-  const raw: Record<string, string | boolean | undefined> = {
-    name:        (g.nombre    ?? "").trim() || undefined,
-    surname:     (g.apellido  ?? "").trim() || undefined,
-    sex:         g.sexo === "Hombre" ? "M" : g.sexo === "Mujer" ? "F" : undefined,
-    birth:       g.fechaNac   || undefined,
-    nationality: nacCod       || undefined,
-    email:       (g.email     ?? "").trim() || undefined,
-    phone:       (g.telefono  ?? "").trim() || undefined,
-    address:     (g.direccion ?? "").trim() || undefined,
-    city:        (g.ciudad    ?? "").trim() || undefined,
-    province:    (g.provincia ?? "").trim() || undefined,
-    cp:          (g.cp        ?? "").trim() || undefined,
-    country:     codpais,
-    doc_type:    docCod,
-    doc_support: (g.numDoc    ?? "").trim() || undefined,
-    vat:         (g.vat       ?? "").trim() || undefined,
+  const docCod = DOC_TO_COD[g.tipoDoc ?? ""] ?? undefined;
+  const surnameCompleto = [g.apellido, g.apellido2].filter(Boolean).join(" ");
+
+  const parentescoRaw = g.relacionesConAdultos?.[0]?.parentesco ?? "";
+  const codrelation = parentescoRaw
+    ? (PARENTESCO_TO_CODRELATION[parentescoRaw] ?? "otro")
+    : undefined;
+
+  return {
+    name: (g.nombre ?? "").trim(),
+    surname: surnameCompleto.trim(),
+    sex: g.sexo === "Hombre" ? "M" : g.sexo === "Mujer" ? "F" : null,
+    birth: g.fechaNac || null,
+    nationality: nacCod,
+    email: (g.email ?? "").trim() || null,
+    phone: (g.telefono ?? "").trim() || null,
+    address: (g.direccion ?? "").trim() || null,
+    city: (g.ciudad ?? "").trim() || null,
+    province: (g.provincia ?? "").trim() || null,
+    cp: (g.cp ?? "").trim() || null,
+    country: codpais,
+    doc_type: docCod,
+    
+    // FIX: Guardamos cada dato en su columna correspondiente de la DB
+    vat: (g.numDoc ?? "").trim(),           // El DNI va a la columna vat
+    doc_support: (g.soporteDoc ?? "").trim(), // El Soporte va a la columna doc_support
+    
+    relationship: codrelation,
   };
-
-  // Eliminar claves undefined para que no lleguen al backend
-  const payload: ClientPayload = { name: raw.name as string, surname: raw.surname as string, country: codpais };
-  for (const [key, value] of Object.entries(raw)) {
-    if (value !== undefined) {
-      payload[key] = value;
-    }
-  }
-
-  return payload;
 }
+
+// ── SERVICIOS API ────────────────────────────────────────────────────────────
 
 export async function getClientById(clientId: number): Promise<GuestData> {
   const { data } = await apiAuth.get<ClientResponse>(`/clients/${clientId}`);
