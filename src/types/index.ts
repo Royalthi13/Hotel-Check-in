@@ -56,13 +56,14 @@ export interface RelacionConAdulto {
 
 // ─── Datos de un huésped ──────────────────────────────────────────────────────
 export interface GuestData {
+  id?: number;
   nombre: string;
   apellido: string;
   apellido2: string;
   sexo: string;
   fechaNac: string;
   nacionalidad: string;
-
+  parentescoParaAPI?: string;
   esMenor: boolean;
 
   vengoConMenores?: boolean;

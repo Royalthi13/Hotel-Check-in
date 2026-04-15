@@ -1,24 +1,29 @@
-import { getBookingById, updateBookingCheckin }                     from "./bookings.service";
-import { getClientById, createClient, updateClient }                from "./clients.service";
-import { getCompanionsByBooking, createCompanion, deleteCompanion } from "./companions.service";
-import type { GuestData, PartialGuestData, Reserva }                from "@/types";
+import { getBookingById, updateBookingCheckin } from "./bookings.service";
+import { getClientById, createClient, updateClient } from "./clients.service";
+import {
+  getCompanionsByBooking,
+  createCompanion,
+  deleteCompanion,
+} from "./companions.service";
+import type { GuestData, PartialGuestData, Reserva } from "@/types";
+import { getRelationships } from "./catalogs.service";
 
 export interface CheckinLoadResult {
-  reserva:            Reserva;
-  knownGuest:         GuestData | null;
-  clientId:           number | null;
-  bookingId:          number;
-  companions:         GuestData[];
+  reserva: Reserva;
+  knownGuest: GuestData | null;
+  clientId: number | null;
+  bookingId: number;
+  companions: GuestData[];
   // FIX: indica si el pre-checkin ya fue completado anteriormente.
   // Útil para mostrar pantalla de "ya registrado" o modo solo lectura.
   isAlreadyCheckedIn: boolean;
 }
 
 export interface CheckinSubmitPayload {
-  bookingId:     number;
-  clientId:      number | null;
-  guests:        PartialGuestData[];
-  horaLlegada:   string;
+  bookingId: number;
+  clientId: number | null;
+  guests: PartialGuestData[];
+  horaLlegada: string;
   observaciones: string;
 }
 
@@ -28,7 +33,9 @@ export interface CheckinSubmitPayload {
 //   2. Si hay client_id → GET /clients/{id}       → datos del titular (ALL fields)
 //   3. GET /companions/booking/{id}               → acompañantes previos
 //   4. Para cada acompañante → GET /clients/{id}  → datos del acompañante
-export async function loadCheckinData(token: string): Promise<CheckinLoadResult> {
+export async function loadCheckinData(
+  token: string,
+): Promise<CheckinLoadResult> {
   // Paso 1: booking
   // FIX: se extrae `raw` para poder releer pre_checking sin un GET adicional
   const { reserva, clientId, bookingId, raw } = await getBookingById(token);
@@ -56,7 +63,10 @@ export async function loadCheckinData(token: string): Promise<CheckinLoadResult>
         companionList.map((c) => getClientById(c.client_id)),
       );
       companions = results
-        .filter((r): r is PromiseFulfilledResult<GuestData> => r.status === "fulfilled")
+        .filter(
+          (r): r is PromiseFulfilledResult<GuestData> =>
+            r.status === "fulfilled",
+        )
         .map((r) => r.value);
     }
   } catch {
@@ -78,11 +88,48 @@ export async function loadCheckinData(token: string): Promise<CheckinLoadResult>
 // FIX race condition: se crean acompañantes nuevos PRIMERO y solo después se
 // borran los anteriores. El orden inverso (borrar → crear) dejaba los datos
 // en estado inconsistente si fallaba algo durante la creación.
-export async function submitCheckin(payload: CheckinSubmitPayload): Promise<void> {
+// ── Submit del pre-checkin ────────────────────────────────────────────────────
+export async function submitCheckin(
+  payload: CheckinSubmitPayload,
+): Promise<void> {
   const { bookingId, clientId, guests, horaLlegada, observaciones } = payload;
-  const [mainGuest, ...companionGuests] = guests;
 
-  // 1. Titular: actualizar si ya existía, crear si es nuevo
+  // 1. Obtenemos el catálogo de la DB para saber los inversos (ej: PM -> HJ)
+  const catalogo = await getRelationships();
+
+  // Le decimos a TS: "Es igual que antes, pero le sumo esta nueva variable"
+  type GuestForAPI = PartialGuestData & { parentescoParaAPI?: string };
+  const finalGuests: GuestForAPI[] = [...guests];
+
+  // 2. Buscamos si hay menores con relaciones
+  finalGuests.forEach((guest, index) => {
+    if (
+      guest.esMenor &&
+      guest.relacionesConAdultos &&
+      guest.relacionesConAdultos.length > 0
+    ) {
+      const rel = guest.relacionesConAdultos[0]; // Cogemos la primera relación
+      const adultoIndex = rel.adultoIndex;
+      const codigoSeleccionado = rel.parentesco; // Ej: "PM" (Padre)
+
+      // A) Al ADULTO le asignamos el código que eligió el usuario ("PM")
+      if (finalGuests[adultoIndex]) {
+        finalGuests[adultoIndex].parentescoParaAPI = codigoSeleccionado;
+      }
+
+      // B) Al MENOR le asignamos el código INVERSO ("HJ")
+      const relacionInfo = catalogo.find(
+        (r) => r.codrelation === codigoSeleccionado,
+      );
+      if (relacionInfo && relacionInfo.linked_relation) {
+        finalGuests[index].parentescoParaAPI = relacionInfo.linked_relation;
+      }
+    }
+  });
+
+  const [mainGuest, ...companionGuests] = finalGuests;
+
+  // 3. Titular: enviamos su ficha con su rol (ej: PM)
   let mainClientId = clientId;
   if (mainGuest) {
     if (mainClientId) {
@@ -92,16 +139,23 @@ export async function submitCheckin(payload: CheckinSubmitPayload): Promise<void
     }
   }
 
-  // 2. Crear acompañantes nuevos PRIMERO
+  // 4. Acompañantes: AQUÍ ESTÁ EL BLOQUE CORREGIDO (Sin duplicados)
   const newClientIds: number[] = [];
   for (const guest of companionGuests) {
-    // Ignorar entradas vacías (guest sin nombre ni documento)
     if (!guest.nombre?.trim() && !guest.numDoc?.trim()) continue;
-    const id = await createClient(guest);
-    newClientIds.push(id);
+
+    if (guest.id) {
+      // Si ya existe (porque lo cargamos de la BD antes o del intento anterior)
+      await updateClient(guest.id, guest);
+      newClientIds.push(guest.id);
+    } else {
+      // Si es una persona totalmente nueva
+      const id = await createClient(guest);
+      newClientIds.push(id);
+    }
   }
 
-  // 3. Borrar relaciones de acompañantes anteriores (NO el titular)
+  // 5. Borrar relaciones de acompañantes anteriores (NO el titular)
   //    Solo después de que todos los nuevos están creados correctamente.
   try {
     const existing = await getCompanionsByBooking(bookingId);
@@ -111,16 +165,14 @@ export async function submitCheckin(payload: CheckinSubmitPayload): Promise<void
     // Si falla la limpieza continuamos — duplicados son preferibles a perder datos
   }
 
-  // 4. Crear relaciones (companion links) en paralelo
+  // 6. Crear relaciones (companion links) en paralelo
   await Promise.all(
     newClientIds.map((id) =>
       createCompanion({ booking_id: bookingId, client_id: id }),
     ),
   );
 
-  // 5. Actualizar reserva: notes + hora llegada + pre_checking = true
-  //    No pasamos existingRaw aquí porque el booking puede haber cambiado
-  //    desde la carga inicial del wizard.
+  // 7. Actualizar reserva: notes + hora llegada + pre_checking = true
   await updateBookingCheckin(bookingId, { horaLlegada, observaciones });
 }
 

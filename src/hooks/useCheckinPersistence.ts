@@ -22,7 +22,7 @@ export function useCheckinPersistence(
         localStorage.removeItem(STORAGE_KEY);
       }
     }
-  }, []); // [] significa que solo corre al cargar la web
+  }, []);
 
   // 2. GUARDADO AUTOMÁTICO: Cada vez que cambie cualquier dato de un huésped
   useEffect(() => {
