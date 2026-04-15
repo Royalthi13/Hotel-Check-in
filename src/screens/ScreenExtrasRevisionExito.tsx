@@ -26,17 +26,19 @@ export const ScreenFormExtras: React.FC<FormExtrasProps> = ({
   onNext,
 }) => {
   const { t } = useTranslation();
-  const handleSubmit = (e: React.SyntheticEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    onNext();
-  };
+
   return (
     <>
       <div className="sec-hdr">
         <h2>{t("review.extras_title")}</h2>
         <p>{t("review.extras_sub")}</p>
       </div>
-      <form onSubmit={handleSubmit}>
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          onNext();
+        }}
+      >
         <div className="fields" style={{ marginTop: 12 }}>
           <div className="divlabel">{t("review.arrival")}</div>
           <Field label={t("review.est_arrival")}>
@@ -78,7 +80,12 @@ export const ScreenFormExtras: React.FC<FormExtrasProps> = ({
 };
 
 // ═══════════════════════════════════════════════════════════════════════════
-// Helper: valida un huésped completo
+// isGuestValid
+//
+// FIX: los menores NO necesitan email/teléfono propios.
+// El flujo de contacto (ScreenFormContacto) ya salta a menores con esMenor=true,
+// pero la validación de revisión les bloqueaba el botón de submit porque
+// validateContacto exigía email o teléfono para todos los índices.
 // ═══════════════════════════════════════════════════════════════════════════
 function isGuestValid(
   g: PartialGuestData,
@@ -88,11 +95,14 @@ function isGuestValid(
   const personalErrors = validatePersonal({ ...g, isTitular: idx === 0 }, t);
   if (Object.keys(personalErrors).length > 0) return false;
 
-  if (idx === 0) {
+  // FIX: menores no tienen contacto propio — solo se validan sus datos personales
+  // y que tengan al menos una relación de parentesco declarada.
+  if (!g.esMenor) {
     const contactErrors = validateContacto(g, t);
     if (Object.keys(contactErrors).length > 0) return false;
   }
 
+  // Menores: deben tener al menos una relación declarada con un adulto
   if (g.esMenor && (g.relacionesConAdultos ?? []).length === 0) return false;
 
   return true;
@@ -365,15 +375,8 @@ export const ScreenExito: React.FC<ExitoProps> = ({
         <div className="success-ring" style={{ borderColor: "var(--primary)" }}>
           <Icon name="checkC" size={42} color="var(--primary)" />
         </div>
-        <h1 className="success-title">
-          {t("success.partial_title", { defaultValue: "¡Progreso guardado!" })}
-        </h1>
-        <p className="success-sub">
-          {t("success.partial_sub", {
-            defaultValue:
-              "Los datos se han guardado correctamente. Comparta este enlace con el resto de acompañantes para que completen su registro de forma rápida y segura.",
-          })}
-        </p>
+        <h1 className="success-title">{t("success.partial_title")}</h1>
+        <p className="success-sub">{t("success.partial_sub")}</p>
         <div
           style={{
             marginTop: 24,
@@ -388,11 +391,7 @@ export const ScreenExito: React.FC<ExitoProps> = ({
             onClick={handleCopyLink}
             iconLeft={copied ? "check" : undefined}
           >
-            {copied
-              ? t("common.copied", { defaultValue: "¡Enlace copiado!" })
-              : t("common.copy_link", {
-                  defaultValue: "Copiar enlace para compartir",
-                })}
+            {copied ? t("common.copied") : t("common.copy_link")}
           </Button>
         </div>
       </div>

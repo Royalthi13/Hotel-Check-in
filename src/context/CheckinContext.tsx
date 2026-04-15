@@ -3,6 +3,8 @@ import { useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useCheckin } from "@/hooks/useCheckin";
 import { submitCheckin, savePartialCheckin } from "@/api/chekin.service";
+import { clearCatalogsCache } from "@/api/catalogs.service";
+import type { CheckinState, CheckinNav, CheckinActions } from "@/types";
 import { CheckinContext } from "./CheckinContextDef";
 import CryptoJS from "crypto-js";
 
@@ -51,35 +53,28 @@ export const CheckinProvider: React.FC<{ children: React.ReactNode }> = ({
     };
   }, []);
 
-  // ---  LÓGICA DE PERSISTENCIA (LOCALSTORAGE) ---
-  useEffect(() => {
-    if (state.guests && state.guests.length > 0) {
-      const backup = {
-        guests: state.guests,
-        timestamp: Date.now(),
-      };
-
-      const jsonString = JSON.stringify(backup);
-      const encryptedData = CryptoJS.AES.encrypt(jsonString, token).toString();
-
-      localStorage.setItem(PERSISTENCE_KEY, encryptedData);
-    }
-  }, [state.guests, PERSISTENCE_KEY, token]);
-
-  // --- LIMPIEZA Y AUXILIARES ---
-
   const clearSubmitError = () => setSubmitError("");
   const triggerFormValidation = () => setValidationTrigger((v) => v + 1);
 
-  const getBackendIds = () => ({
-    bookingId: parseInt(
-      sessionStorage.getItem(`bookingId_${token}`) ?? "0",
-      10,
-    ),
-    clientId: sessionStorage.getItem(`clientId_${token}`)
-      ? parseInt(sessionStorage.getItem(`clientId_${token}`)!, 10)
-      : null,
-  });
+  // FIX: lanza error descriptivo si el bookingId no está en sessionStorage.
+  // Antes devolvía 0 silenciosamente → PUT /bookings/0 → 404 sin explicación.
+  // Esto puede ocurrir en modo incógnito, tras borrado manual de sessionStorage
+  // o si el usuario llega a la pantalla de revisión sin haber pasado por la carga.
+  const getBackendIds = () => {
+    const rawId = sessionStorage.getItem(`bookingId_${token}`);
+    const bookingId = rawId ? parseInt(rawId, 10) : null;
+
+    if (!bookingId || isNaN(bookingId)) {
+      throw new Error(
+        "No se pudo identificar la reserva. Por favor, recargue la página o acceda de nuevo mediante el enlace de su reserva.",
+      );
+    }
+
+    const rawClientId = sessionStorage.getItem(`clientId_${token}`);
+    const clientId = rawClientId ? parseInt(rawClientId, 10) : null;
+
+    return { bookingId, clientId };
+  };
 
   const SESSION_KEYS_TO_CLEAR = [
     `state_${token}`,
@@ -106,6 +101,7 @@ export const CheckinProvider: React.FC<{ children: React.ReactNode }> = ({
     setSubmitError("");
     setIsSubmitting(true);
     try {
+      // FIX: getBackendIds ahora lanza si bookingId es 0/NaN
       const { bookingId, clientId } = getBackendIds();
 
       if (isPartial) {
@@ -129,15 +125,18 @@ export const CheckinProvider: React.FC<{ children: React.ReactNode }> = ({
 
       setIsPartialSuccess(false);
 
+      // Limpiar estado de sesión
       SESSION_KEYS_TO_CLEAR.forEach((key) => sessionStorage.removeItem(key));
-      localStorage.removeItem(PERSISTENCE_KEY);
+
+      // FIX: limpiar caché de catálogos para que el siguiente usuario
+      // (en una tablet de recepción) no reutilice datos de la sesión anterior.
+      clearCatalogsCache();
 
       actions.goTo("exito", "forward");
     } catch (err: unknown) {
       let msg = t("errorBoundary.title");
       if (err instanceof Error) msg = err.message;
       else if (typeof err === "string") msg = err;
-
       setSubmitError(msg);
       throw err;
     } finally {

@@ -1,11 +1,14 @@
 import { apiAuth } from "./axiosInstance";
 
-interface CountryResponse  { codpais: string; name: string; iso2: string | null; }
-interface DocumentTypeResponse { coddoc: string; name: string; }
+// CountriesInDB en el modelo Python solo tiene codpais y name.
+// iso2 NO existe como columna — quitarlo para no confundir.
+// Los mappings ISO2 ↔ codpais están hardcodeados en clients.service.ts.
+interface CountryResponse      { codpais: string; name: string; }
+interface DocumentTypeResponse { coddoc: string;  name: string; }
 interface RelationshipResponse { codrelation: string; name: string; }
 
 const cache: {
-  countries?: CountryResponse[];
+  countries?:     CountryResponse[];
   documentTypes?: DocumentTypeResponse[];
   relationships?: RelationshipResponse[];
 } = {};
@@ -13,8 +16,7 @@ const cache: {
 export async function getCountries(): Promise<CountryResponse[]> {
   if (cache.countries) return cache.countries;
   const { data } = await apiAuth.get<CountryResponse[]>("/countries");
-  // MEDIO: No cachear arrays vacíos — probablemente un error de red, no datos reales.
-  // Si cacheamos [] como válido, el usuario ve listas de países vacías durante toda la sesión.
+  // No cachear arrays vacíos — probable error de red, no datos reales.
   const result = Array.isArray(data) ? data : [];
   if (result.length > 0) cache.countries = result;
   return result;

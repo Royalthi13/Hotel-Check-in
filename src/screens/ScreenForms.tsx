@@ -66,7 +66,7 @@ const FieldError: React.FC<{ msg?: string }> = ({ msg }) =>
     </span>
   ) : null;
 
-// --- COMPONENTE 1: DATOS PERSONALES ---
+// ─── COMPONENTE 1: DATOS PERSONALES ─────────────────────────────────────────
 export const ScreenFormPersonal: React.FC = () => {
   const { state, nav, actions, isSubmitting, handlePartialSubmit } =
     useCheckinContext();
@@ -417,15 +417,15 @@ export const ScreenFormPersonal: React.FC = () => {
                 {t("common.save_partial")}
               </Button>
             )}
+            {/* CORRECCIÓN: siempre "Continuar" — el siguiente paso es siempre
+                form_contacto del mismo huésped, no el siguiente huésped */}
             <Button
               variant="primary"
               type="submit"
               iconRight="right"
               style={{ flex: 1, minWidth: "200px" }}
             >
-              {guestIndex < state.numPersonas - 1
-                ? t("common.next_guest")
-                : t("common.continue")}
+              {t("common.continue")}
             </Button>
           </div>
         </fieldset>
@@ -458,12 +458,14 @@ export const ScreenFormContacto: React.FC = () => {
   const handleUpdate = (key: keyof PartialGuestData, value: unknown) =>
     actions.updateGuest(guestIndex, key, value);
 
+  // CORRECCIÓN: lockedFields solo aplica al titular (guestIndex===0).
+  // Los acompañantes no tienen datos previos — sus campos no deben bloquearse.
   const lockedFields = useMemo(
     () => ({
-      email: !!state.knownGuest?.email,
-      telefono: !!state.knownGuest?.telefono,
+      email: guestIndex === 0 ? !!state.knownGuest?.email : false,
+      telefono: guestIndex === 0 ? !!state.knownGuest?.telefono : false,
     }),
-    [state.knownGuest],
+    [state.knownGuest, guestIndex],
   );
 
   const contactoValidator = useCallback(
@@ -573,6 +575,8 @@ export const ScreenFormContacto: React.FC = () => {
     return () =>
       window.removeEventListener("FORCE_VALIDATE", handleForceValidate);
   }, [data, validate]);
+
+  const isMainGuest = guestIndex === 0;
 
   const RenderList = (
     onSelect: (c: any) => void,
@@ -698,7 +702,19 @@ export const ScreenFormContacto: React.FC = () => {
         >
           {t("forms.contact_title")}
         </Typography>
-        <p>{t("forms.contact_subtitle")}</p>
+        {/* AÑADIDO: contador de huésped para que el usuario sepa de quién
+            está rellenando los datos de contacto */}
+        <Typography variant="body2" color="var(--text-low)">
+          {t("forms.guest_counter", {
+            current: guestIndex + 1,
+            total: state.numPersonas,
+          })}
+          {isMainGuest
+            ? ` · ${t("forms.main_guest_tag")}`
+            : data.esMenor
+              ? t("forms.minor_tag")
+              : t("forms.adult_tag")}
+        </Typography>
       </div>
 
       <form
@@ -859,20 +875,6 @@ export const ScreenFormContacto: React.FC = () => {
               error={!!errors.direccion}
               sx={inputSx}
             />
-            {data.direccion && (
-              <span
-                style={{
-                  fontSize: 10,
-                  color: "var(--ok)",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 3,
-                  marginTop: 3,
-                }}
-              >
-                {t("forms.autofill_from_doc")}
-              </span>
-            )}
 
             <Divider
               sx={{ my: 1, typography: "overline", color: "var(--text-low)" }}
@@ -1068,13 +1070,15 @@ export const ScreenFormContacto: React.FC = () => {
                 {t("common.save_partial")}
               </Button>
             )}
+            {/* Desde contacto: si quedan más huéspedes → "Siguiente persona",
+                si es el último → "Continuar" (hacia menores o extras) */}
             <Button
               variant="primary"
               type="submit"
               iconRight="right"
               style={{ flex: 1, minWidth: "200px" }}
             >
-              {nav.guestIndex < state.numPersonas - 1
+              {guestIndex < state.numPersonas - 1
                 ? t("common.next_guest")
                 : t("common.continue")}
             </Button>
