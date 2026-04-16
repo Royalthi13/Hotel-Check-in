@@ -51,19 +51,21 @@ export const ScreenRelacionesMenor: React.FC<Props> = ({
     cargarRelaciones();
   }, []);
 
-  // 2. 🛡️ FILTRO ULTRA-SEGURO (No permitimos que un adulto sea descendiente o cónyuge)
+  // 2. 🛡️ FILTRO ULTRA-SEGURO (A prueba de bombas)
   const relacionesFiltradas = useMemo(() => {
-    // Códigos comunes para Hijo/Nieto/Cónyuge
+    // Si la base de datos aún no ha cargado o falla, devolvemos lista vacía
+    if (!Array.isArray(listaRelaciones)) return [];
+
     const codigosBloqueados = ["HJ", "NI", "HI", "CN", "CY", "CO"];
 
     return listaRelaciones.filter((r) => {
+      // Si un parentesco viene roto de la base de datos, lo saltamos
+      if (!r || !r.codrelation) return false;
+
       const codigo = r.codrelation.toUpperCase();
-      const nombre = r.name.toLowerCase();
+      const nombre = (r.name || "").toLowerCase();
 
-      // Regla 1: No estar en la lista de códigos prohibidos
       const porCodigo = !codigosBloqueados.includes(codigo);
-
-      // Regla 2: Por seguridad extra, si el nombre contiene "conyuge", "hijo" o "nieto", fuera.
       const porNombre =
         !nombre.includes("conyuge") &&
         !nombre.includes("hijo") &&
@@ -203,7 +205,12 @@ export const ScreenRelacionesMenor: React.FC<Props> = ({
                       pt: 2,
                       borderTop: "1px solid rgba(250,134,92,0.2)",
                     }}
-                    onClick={(e) => e.stopPropagation()}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                    }}
+                    onMouseDown={(e) => e.stopPropagation()}
+                    onTouchStart={(e) => e.stopPropagation()}
                   >
                     <Box
                       sx={{
