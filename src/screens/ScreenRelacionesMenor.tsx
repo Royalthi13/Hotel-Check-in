@@ -7,7 +7,6 @@ import {
   Box,
   Typography,
   Paper,
-  Checkbox,
   FormControl,
   Select,
   MenuItem,
@@ -53,13 +52,11 @@ export const ScreenRelacionesMenor: React.FC<Props> = ({
 
   // 2. 🛡️ FILTRO ULTRA-SEGURO (A prueba de bombas)
   const relacionesFiltradas = useMemo(() => {
-    // Si la base de datos aún no ha cargado o falla, devolvemos lista vacía
     if (!Array.isArray(listaRelaciones)) return [];
 
     const codigosBloqueados = ["HJ", "NI", "HI", "CN", "CY", "CO"];
 
     return listaRelaciones.filter((r) => {
-      // Si un parentesco viene roto de la base de datos, lo saltamos
       if (!r || !r.codrelation) return false;
 
       const codigo = r.codrelation.toUpperCase();
@@ -75,36 +72,18 @@ export const ScreenRelacionesMenor: React.FC<Props> = ({
     });
   }, [listaRelaciones]);
 
-  // Gestión de selección de adultos
-  const [expandedIds, setExpandedIds] = useState<number[]>(() => {
-    const adultosValidosIds = adultos.map((a) => a.originalIndex);
-    const relacionesPrevias = (menor.relacionesConAdultos || [])
-      .filter((r) => adultosValidosIds.includes(r.adultoIndex))
-      .map((r) => r.adultoIndex);
-
-    if (relacionesPrevias.length > 0) return relacionesPrevias;
-    if (adultos.length === 1) return [adultos[0].originalIndex];
-    return [];
-  });
-
   const nombreMenor =
     [menor.nombre, menor.apellido].filter(Boolean).join(" ") ||
     t("minors.this_minor");
   const relacionesGuardadas = menor.relacionesConAdultos ?? [];
 
-  const toggleAdulto = (idx: number) => {
-    if (expandedIds.includes(idx)) {
-      setExpandedIds((prev) => prev.filter((id) => id !== idx));
-      onRelacionChange(idx, "");
-    } else {
-      setExpandedIds((prev) => [...prev, idx]);
-    }
-  };
-
+  // 3. Validación ultra estricta: TODOS los adultos deben tener parentesco
   const esValido =
-    expandedIds.length > 0 &&
-    expandedIds.every((id) => {
-      const r = relacionesGuardadas.find((rel) => rel.adultoIndex === id);
+    adultos.length > 0 &&
+    adultos.every((adulto) => {
+      const r = relacionesGuardadas.find(
+        (rel) => rel.adultoIndex === adulto.originalIndex,
+      );
       return r && r.parentesco !== "";
     });
 
@@ -140,15 +119,15 @@ export const ScreenRelacionesMenor: React.FC<Props> = ({
 
         <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
           {adultos.map((adulto) => {
-            const isSelected = expandedIds.includes(adulto.originalIndex);
-
-            // Si el parentesco guardado es uno de los prohibidos, lo limpiamos visualmente
+            // Buscamos si ya ha seleccionado algo para limpiarlo si es inválido
             let parentescoActual =
               relacionesGuardadas.find(
                 (r) => r.adultoIndex === adulto.originalIndex,
               )?.parentesco || "";
-            if (["HJ", "NI", "CN", "CY", "CO"].includes(parentescoActual))
+
+            if (["HJ", "NI", "CN", "CY", "CO"].includes(parentescoActual)) {
               parentescoActual = "";
+            }
 
             const nombreAdulto =
               [adulto.nombre, adulto.apellido].filter(Boolean).join(" ") ||
@@ -159,31 +138,20 @@ export const ScreenRelacionesMenor: React.FC<Props> = ({
             return (
               <Paper
                 key={adulto.originalIndex}
-                elevation={isSelected ? 3 : 0}
-                onClick={() => toggleAdulto(adulto.originalIndex)}
+                elevation={0}
                 sx={{
                   p: 2,
                   borderRadius: "16px",
                   border: "2px solid",
-                  borderColor: isSelected
+                  borderColor: parentescoActual
                     ? "var(--primary)"
-                    : "var(--border-lt)",
-                  bgcolor: isSelected ? "var(--primary-lt)" : "#fff",
-                  cursor: "pointer",
+                    : "var(--err)",
+                  bgcolor: parentescoActual ? "var(--primary-lt)" : "#fff",
                   transition: "all 0.2s ease",
-                  "&:hover": { borderColor: "var(--primary)" },
                 }}
               >
-                <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-                  <Checkbox
-                    checked={isSelected}
-                    sx={{
-                      p: 0,
-                      color: "var(--primary)",
-                      "&.Mui-checked": { color: "var(--primary)" },
-                    }}
-                  />
-                  <Box sx={{ flex: 1 }}>
+                <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                  <Box>
                     <Typography
                       variant="subtitle1"
                       sx={{ fontWeight: 600, color: "var(--text)" }}
@@ -196,96 +164,73 @@ export const ScreenRelacionesMenor: React.FC<Props> = ({
                         : t("forms.adult_tag")}
                     </Typography>
                   </Box>
-                </Box>
 
-                {isSelected && (
                   <Box
                     sx={{
-                      mt: 2,
-                      pt: 2,
-                      borderTop: "1px solid rgba(250,134,92,0.2)",
+                      display: "flex",
+                      alignItems: "center",
+                      flexWrap: "wrap",
+                      gap: 1,
+                      backgroundColor: "rgba(255,255,255,0.7)",
+                      p: 1.5,
+                      borderRadius: "12px",
                     }}
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                    }}
-                    onMouseDown={(e) => e.stopPropagation()}
-                    onTouchStart={(e) => e.stopPropagation()}
                   >
-                    <Box
-                      sx={{
-                        display: "flex",
-                        alignItems: "center",
-                        flexWrap: "wrap",
-                        gap: 1,
-                        backgroundColor: "rgba(255,255,255,0.7)",
-                        p: 2,
-                        borderRadius: "12px",
-                      }}
+                    <Typography sx={{ color: "var(--text)", fontSize: "14px" }}>
+                      {t("minors.declare_adult_1")}{" "}
+                      <strong>{nombreAdulto}</strong>{" "}
+                      {t("minors.declare_adult_2")}
+                    </Typography>
+
+                    <FormControl
+                      size="small"
+                      sx={{ minWidth: 160, flexGrow: 1 }}
                     >
-                      <Typography
-                        sx={{ color: "var(--text)", fontSize: "15px" }}
+                      <Select
+                        displayEmpty
+                        value={parentescoActual}
+                        onChange={(e) =>
+                          onRelacionChange(
+                            adulto.originalIndex,
+                            e.target.value as string,
+                          )
+                        }
+                        sx={{
+                          borderRadius: "8px",
+                          bgcolor: "#fff",
+                          fontWeight: 600,
+                          color: parentescoActual
+                            ? "var(--primary-d)"
+                            : "var(--text-mid)",
+                          "& .MuiOutlinedInput-notchedOutline": {
+                            borderColor: parentescoActual
+                              ? "var(--primary)"
+                              : "var(--err)",
+                            borderWidth: "1.5px",
+                          },
+                        }}
                       >
-                        {t("minors.declare_adult_1")}{" "}
-                        <strong>{nombreAdulto}</strong>{" "}
-                        {t("minors.declare_adult_2")}
-                      </Typography>
-
-                      <FormControl
-                        size="small"
-                        sx={{ minWidth: 160, flexGrow: 1 }}
-                      >
-                        <Select
-                          displayEmpty
-                          value={parentescoActual}
-                          onChange={(e) =>
-                            onRelacionChange(
-                              adulto.originalIndex,
-                              e.target.value as string,
-                            )
-                          }
-                          sx={{
-                            borderRadius: "8px",
-                            bgcolor: "#fff",
-                            fontWeight: 600,
-                            color: parentescoActual
-                              ? "var(--primary-d)"
-                              : "var(--text-mid)",
-                            "& .MuiOutlinedInput-notchedOutline": {
-                              borderColor: parentescoActual
-                                ? "var(--primary)"
-                                : "var(--border)",
-                              borderWidth: "1.5px",
-                            },
-                          }}
-                        >
-                          <MenuItem value="" disabled>
-                            <em>
-                              {t(
-                                "minors.select_relationship",
-                                "Seleccionar...",
-                              )}
-                            </em>
+                        <MenuItem value="" disabled>
+                          <em>
+                            {t("minors.select_relationship", "Seleccionar...")}
+                          </em>
+                        </MenuItem>
+                        {relacionesFiltradas.map((rel) => (
+                          <MenuItem
+                            key={rel.codrelation}
+                            value={rel.codrelation}
+                          >
+                            {t(`parentescos.${rel.codrelation}`, rel.name)}
                           </MenuItem>
-                          {relacionesFiltradas.map((rel) => (
-                            <MenuItem
-                              key={rel.codrelation}
-                              value={rel.codrelation}
-                            >
-                              {t(`parentescos.${rel.codrelation}`, rel.name)}
-                            </MenuItem>
-                          ))}
-                        </Select>
-                      </FormControl>
+                        ))}
+                      </Select>
+                    </FormControl>
 
-                      <Typography
-                        sx={{ color: "var(--text)", fontSize: "15px" }}
-                      >
-                        {t("common.of")} <strong>{nombreMenor}</strong>.
-                      </Typography>
-                    </Box>
+                    <Typography sx={{ color: "var(--text)", fontSize: "14px" }}>
+                      {t("common.of")} <strong>{nombreMenor}</strong>.
+                    </Typography>
                   </Box>
-                )}
+                </Box>
               </Paper>
             );
           })}
