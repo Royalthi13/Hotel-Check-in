@@ -9,7 +9,7 @@ interface ClientResponse {
   surname: string;
   address: string | null;
   city: string | null;
-  cod_city: string | null;
+  cod_city: string | null; // ID de la ciudad en BBDD
   province: string | null;
   cp: string | null;
   country: string;
@@ -24,6 +24,22 @@ interface ClientResponse {
   relationship: string | null;
   sex: string | null;
 }
+
+/**
+ * Mapa inverso para Nacionalidades.
+ * Si no quieres que esté aquí "hardcodeado", lo ideal es que lo importes
+ * de tu archivo de constantes o que el selector de la UI ya guarde el código (ESP)
+ * en lugar del texto (Española).
+ */
+const MAPA_NACIONALIDAD: Record<string, string> = {
+  Española: "ESP",
+  Alemana: "DEU",
+  Francesa: "FRA",
+  Italiana: "ITA",
+  Portuguesa: "PRT",
+  Inglesa: "GBR",
+  Estadounidense: "USA",
+};
 
 // ── DB → GuestData ─────────────────────────────────────────────────────────────
 export function toGuestData(c: ClientResponse): GuestData {
@@ -45,6 +61,7 @@ export function toGuestData(c: ClientResponse): GuestData {
     telefono: c.phone ?? "",
     direccion: c.address ?? "",
     ciudad: c.city ?? "",
+    codCity: c.cod_city ?? "", // Recuperamos el ID de la ciudad para el estado
     provincia: c.province ?? "",
     cp: c.cp ?? "",
     numDoc: c.vat ?? "",
@@ -58,18 +75,24 @@ export function toGuestData(c: ClientResponse): GuestData {
 }
 
 // ── GuestData → payload API ────────────────────────────────────────────────────
+// ── GuestData → payload API ────────────────────────────────────────────────────
 export function toClientPayload(g: PartialGuestData): Record<string, unknown> {
   const str = (v: string | undefined | null) => v?.trim() || null;
 
+  // Unimos apellido y apellido2, filtrando los que estén vacíos
   const surname = [str(g.apellido), str(g.apellido2)].filter(Boolean).join(" ");
+
+  // Convertimos el texto de nacionalidad al código ISO esperado (ESP, DEU...)
+  const codNacionalidad =
+    MAPA_NACIONALIDAD[g.nacionalidad || ""] || g.nacionalidad || "ESP";
 
   return {
     name: str(g.nombre) ?? "",
-    surname: surname || "",
+    surname: surname || "", // 🔥 AQUÍ es donde usamos la constante correctamente
     sex: g.sexo === "Hombre" ? "M" : g.sexo === "Mujer" ? "F" : null,
     birth: g.fechaNac || null,
 
-    nationality: g.nacionalidad || "ESP",
+    nationality: codNacionalidad,
     country: g.pais || "ESP",
     doc_type: g.tipoDoc || null,
 
@@ -77,14 +100,13 @@ export function toClientPayload(g: PartialGuestData): Record<string, unknown> {
     phone: str(g.telefono),
     address: str(g.direccion),
     city: str(g.ciudad),
+    cod_city: g.codCity || null,
     province: str(g.provincia),
     cp: str(g.cp),
     vat: str(g.numDoc),
     doc_support: str(g.soporteDoc),
-    relationship: g.parentescoParaAPI || null,
   };
 }
-
 // ── Servicios API ─────────────────────────────────────────────────────────────
 
 export async function getClientById(clientId: number): Promise<GuestData> {

@@ -35,8 +35,8 @@ export const MOCK_KNOWN_GUEST: GuestData = {
   ciudad: "",
   provincia: "",
   cp: "",
-  pais: "ES", // ← FIX: antes era "España", rompía el selector en modo dev
-  tipoDoc: "DNI",
+  pais: "ESP",
+  tipoDoc: "NIF",
   numDoc: "",
   vat: "",
   esMenor: false,

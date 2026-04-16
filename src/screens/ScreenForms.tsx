@@ -465,9 +465,7 @@ export const ScreenFormContacto: React.FC = () => {
     }),
   );
 
-  // --- 🪄 LA MAGIA DEL CP ---
-  // Este hook es el que inyecta codprovincia y codciudad.
-  // Le pasamos el handleUpdate para que cuando encuentre datos, actualice el estado global.
+  // --- CÓDIGO POSTAL ---
   const { buscarCP, isSearching } = useZipCode((key, val) =>
     handleUpdate(key, val),
   );
@@ -569,10 +567,15 @@ export const ScreenFormContacto: React.FC = () => {
     [data.telefono],
   );
 
-  // Búsqueda internacional (Zippopotam o similar)
+  // Búsqueda unificada de CP
   useDebounce(
     () => {
-      if (data.cp && !esEspana && data.cp.length >= 3 && data.pais) {
+      if (data.cp && data.pais) {
+        if (esEspana && data.cp.length < 5) {
+          if (data.cp.length === 2) buscarCP(data.cp, data.pais);
+          return;
+        }
+        if (!esEspana && data.cp.length < 3) return;
         buscarCP(data.cp, data.pais);
       }
     },
@@ -874,12 +877,6 @@ export const ScreenFormContacto: React.FC = () => {
                   const val = e.target.value.toUpperCase();
                   handleUpdate("cp", val);
                   clearError("cp");
-
-                  // 🔥 Si es España, en cuanto escribimos 2 dígitos, disparamos buscarCP.
-                  // Esto permite que el hook inyecte el ID de la provincia de tu base de datos.
-                  if (esEspana && val.length >= 2) {
-                    buscarCP(val, data.pais || "ESP");
-                  }
                 }}
                 onBlur={() => {
                   if (data.cp && data.pais) buscarCP(data.cp, data.pais);

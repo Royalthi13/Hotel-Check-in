@@ -77,6 +77,7 @@ export interface GuestData {
   telefono?: string;
   direccion?: string;
   ciudad?: string;
+  codCity?: string;
   provincia?: string;
   cp?: string;
   pais?: string;

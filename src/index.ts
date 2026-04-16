@@ -34,11 +34,7 @@ export {
   TIPOS_DOCUMENTO,
   HORAS_LLEGADA,
   SEXOS,
-  RELACIONES_MENOR,
   DOT_STEPS_BASE,
-  DOT_LABELS,
-  FLOW_STEPS_LINK,
-  MOCK_KNOWN_GUEST,
 } from "./constants";
 
 // Componentes UI
