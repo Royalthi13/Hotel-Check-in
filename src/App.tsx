@@ -198,29 +198,30 @@ function CheckinWizard() {
         <ScreenRelacionesMenor
           menor={currentGuest}
           adultos={adultosConIndice}onRelacionChange={(aIdx: number, p: string) => {
-            actions.updateRelacion(nav.guestIndex, aIdx, p);
-            // Si el menor es hijo del adulto → copiar dirección del adulto al menor
-            if (p === "hijo") {
-              const adult = state.guests[aIdx];
-              (["direccion", "ciudad", "provincia", "cp", "pais"] as const).forEach(
-                (field) => {
-                  if (adult[field]) actions.updateGuest(nav.guestIndex, field, adult[field]);
-                },
-              );
-            }
-          }}
-          onNext={() => {
-            const menor = state.guests[nav.guestIndex];
-            const hasHijoRelacion = menor.relacionesConAdultos?.some(
-              (r) => r.parentesco === "hijo",
-            );
-            if (hasHijoRelacion) {
-              actions.nextGuest(nav.guestIndex, "form_relaciones");
-            } else {
-              // Menor con relación no-parental → necesita introducir su propia dirección
-              actions.goTo("form_contacto", "forward", nav.guestIndex);
-            }
-          }}
+  actions.updateRelacion(nav.guestIndex, aIdx, p);
+
+  // Códigos reales del backend que implican convivencia
+  const CODIGOS_CONVIVENCIA = ["PM", "AB", "TU", "HR", "SB"];
+
+  if (CODIGOS_CONVIVENCIA.includes(p)) {
+    const adult = state.guests[aIdx];
+
+    if (adult?.direccion || adult?.ciudad || adult?.cp) {
+      (["direccion", "ciudad", "provincia", "cp", "pais"] as const).forEach(
+        (field) => {
+          if (adult[field]) {
+            actions.updateGuest(nav.guestIndex, field, adult[field]);
+          }
+        },
+      );
+    }
+  } else {
+    // NO convivencia → limpiar dirección heredada
+    (["direccion", "ciudad", "provincia", "cp"] as const).forEach(
+      (field) => actions.updateGuest(nav.guestIndex, field, ""),
+    );
+  }
+}}onNext={() => actions.nextGuest(nav.guestIndex, "form_relaciones")}
           hasNextMinor={
             state.guests.findIndex((g, i) => i > nav.guestIndex && g.esMenor) >=
             0

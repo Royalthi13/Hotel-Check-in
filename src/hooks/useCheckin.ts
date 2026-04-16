@@ -480,11 +480,19 @@ if (from === "form_contacto") {
         return goTo("form_extras", "forward", 0);
       }
 
-      if (from === "form_relaciones") {
-        const nextM = guests.findIndex((g, i) => i > currIdx && g.esMenor);
-        if (nextM >= 0) return goTo("form_relaciones", "forward", nextM);
-        return goTo("form_extras", "forward", 0);
-      }
+     if (from === "form_relaciones") {
+  const minor = stateRef.current.guests[currIdx];
+
+  const nextM = guests.findIndex((g, i) => i > currIdx && g.esMenor);
+  if (nextM >= 0) return goTo("form_relaciones", "forward", nextM);
+
+  // 🔥 CLAVE: si NO tiene dirección → ir a contacto
+  if (!minor?.ciudad && !minor?.cp) {
+    return goTo("form_contacto", "forward", currIdx);
+  }
+
+  return goTo("form_extras", "forward", 0);
+}
     },
     [goTo],
   );
