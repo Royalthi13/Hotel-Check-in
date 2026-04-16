@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { Button, Alert } from "@/components/ui";
 import { getRelationships } from "@/api/catalogs.service";
@@ -36,39 +36,59 @@ export const ScreenRelacionesMenor: React.FC<Props> = ({
 }) => {
   const { t } = useTranslation();
   const [touched, setTouched] = useState(false);
-
-  // --- MAGIA DE LA API: Guardamos aquí la lista de la base de datos ---
   const [listaRelaciones, setListaRelaciones] = useState<RelacionDB[]>([]);
 
+  // 1. Cargar relaciones desde la API
   useEffect(() => {
     const cargarRelaciones = async () => {
       try {
         const datos = await getRelationships();
         setListaRelaciones(datos);
       } catch (error) {
-        console.error("Error al cargar las relaciones de la BD:", error);
+        console.error("Error cargando relaciones:", error);
       }
     };
     cargarRelaciones();
   }, []);
-  // ----------------------------------------------------------------------
 
+  // 2. 🛡️ FILTRO ULTRA-SEGURO (No permitimos que un adulto sea descendiente o cónyuge)
+  const relacionesFiltradas = useMemo(() => {
+    // Códigos comunes para Hijo/Nieto/Cónyuge
+    const codigosBloqueados = ["HJ", "NI", "HI", "CN", "CY", "CO"];
+
+    return listaRelaciones.filter((r) => {
+      const codigo = r.codrelation.toUpperCase();
+      const nombre = r.name.toLowerCase();
+
+      // Regla 1: No estar en la lista de códigos prohibidos
+      const porCodigo = !codigosBloqueados.includes(codigo);
+
+      // Regla 2: Por seguridad extra, si el nombre contiene "conyuge", "hijo" o "nieto", fuera.
+      const porNombre =
+        !nombre.includes("conyuge") &&
+        !nombre.includes("hijo") &&
+        !nombre.includes("nieto");
+
+      return porCodigo && porNombre;
+    });
+  }, [listaRelaciones]);
+
+  // Gestión de selección de adultos
   const [expandedIds, setExpandedIds] = useState<number[]>(() => {
     const adultosValidosIds = adultos.map((a) => a.originalIndex);
-    const relacionesPreviasReales = (menor.relacionesConAdultos || [])
+    const relacionesPrevias = (menor.relacionesConAdultos || [])
       .filter((r) => adultosValidosIds.includes(r.adultoIndex))
       .map((r) => r.adultoIndex);
 
-    if (relacionesPreviasReales.length > 0) return relacionesPreviasReales;
+    if (relacionesPrevias.length > 0) return relacionesPrevias;
     if (adultos.length === 1) return [adultos[0].originalIndex];
     return [];
   });
 
-  const tieneNombre = menor.nombre || menor.apellido;
-  const nombreMenor = tieneNombre
-    ? [menor.nombre, menor.apellido].filter(Boolean).join(" ")
-    : t("minors.this_minor", "este/a menor");
-  const relaciones = menor.relacionesConAdultos ?? [];
+  const nombreMenor =
+    [menor.nombre, menor.apellido].filter(Boolean).join(" ") ||
+    t("minors.this_minor");
+  const relacionesGuardadas = menor.relacionesConAdultos ?? [];
 
   const toggleAdulto = (idx: number) => {
     if (expandedIds.includes(idx)) {
@@ -82,8 +102,8 @@ export const ScreenRelacionesMenor: React.FC<Props> = ({
   const esValido =
     expandedIds.length > 0 &&
     expandedIds.every((id) => {
-      const relacion = relaciones.find((r) => r.adultoIndex === id);
-      return relacion && relacion.parentesco !== "";
+      const r = relacionesGuardadas.find((rel) => rel.adultoIndex === id);
+      return r && r.parentesco !== "";
     });
 
   return (
@@ -98,39 +118,41 @@ export const ScreenRelacionesMenor: React.FC<Props> = ({
             color: "var(--text)",
           }}
         >
-          {t("minors.relationship_title", "Tutoría de Menores")}
+          {t("minors.relationship_title")}
         </Typography>
         <Typography
           variant="body1"
           color="text.secondary"
           sx={{ fontSize: "var(--fs-sm)" }}
         >
-          {t("minors.declare_relationship_1", "Declare la relación con ")}
-          <strong>{nombreMenor}</strong>
-          {t("minors.declare_relationship_2", " con cada adulto del grupo.")}
+          {t("minors.declare_relationship_1")} <strong>{nombreMenor}</strong>{" "}
+          {t("minors.declare_relationship_2")}
         </Typography>
       </Box>
 
       <Box sx={{ p: { xs: 2, sm: 3 }, flex: 1 }}>
         <Alert variant="warm" style={{ marginBottom: 20 }}>
-          <strong>{t("minors.legal_warning_title", "Aviso Legal: ")}</strong>
-          {t(
-            "minors.legal_warning_text",
-            "Todo menor debe estar vinculado a un adulto responsable de la reserva.",
-          )}
+          <strong>{t("minors.legal_warning_title")}</strong>{" "}
+          {t("minors.legal_warning_text")}
         </Alert>
 
         <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
           {adultos.map((adulto) => {
             const isSelected = expandedIds.includes(adulto.originalIndex);
-            const parentesco =
-              relaciones.find((r) => r.adultoIndex === adulto.originalIndex)
-                ?.parentesco || "";
+
+            // Si el parentesco guardado es uno de los prohibidos, lo limpiamos visualmente
+            let parentescoActual =
+              relacionesGuardadas.find(
+                (r) => r.adultoIndex === adulto.originalIndex,
+              )?.parentesco || "";
+            if (["HJ", "NI", "CN", "CY", "CO"].includes(parentescoActual))
+              parentescoActual = "";
+
             const nombreAdulto =
               [adulto.nombre, adulto.apellido].filter(Boolean).join(" ") ||
               (adulto.originalIndex === 0
-                ? t("common.main_guest", "Titular de la Reserva")
-                : t("forms.adult_tag", "Acompañante Adulto"));
+                ? t("common.main_guest")
+                : t("forms.adult_tag"));
 
             return (
               <Paper
@@ -162,18 +184,14 @@ export const ScreenRelacionesMenor: React.FC<Props> = ({
                   <Box sx={{ flex: 1 }}>
                     <Typography
                       variant="subtitle1"
-                      sx={{
-                        fontWeight: 600,
-                        lineHeight: 1.2,
-                        color: "var(--text)",
-                      }}
+                      sx={{ fontWeight: 600, color: "var(--text)" }}
                     >
                       {nombreAdulto}
                     </Typography>
                     <Typography variant="caption" color="text.secondary">
                       {adulto.originalIndex === 0
-                        ? t("common.main_guest", "Huésped Principal")
-                        : t("forms.adult_tag", "Adulto")}
+                        ? t("common.main_guest")
+                        : t("forms.adult_tag")}
                     </Typography>
                   </Box>
                 </Box>
@@ -201,9 +219,9 @@ export const ScreenRelacionesMenor: React.FC<Props> = ({
                       <Typography
                         sx={{ color: "var(--text)", fontSize: "15px" }}
                       >
-                        {t("minors.declare_adult_1", "Declaro que ")}
-                        <strong>{nombreAdulto}</strong>
-                        {t("minors.declare_adult_2", " actúa en calidad de")}
+                        {t("minors.declare_adult_1")}{" "}
+                        <strong>{nombreAdulto}</strong>{" "}
+                        {t("minors.declare_adult_2")}
                       </Typography>
 
                       <FormControl
@@ -212,60 +230,51 @@ export const ScreenRelacionesMenor: React.FC<Props> = ({
                       >
                         <Select
                           displayEmpty
-                          value={parentesco || ""} // <-- El || "" es VITAL para que pille el placeholder
+                          value={parentescoActual}
                           onChange={(e) =>
                             onRelacionChange(
                               adulto.originalIndex,
-                              e.target.value,
+                              e.target.value as string,
                             )
                           }
                           sx={{
                             borderRadius: "8px",
                             bgcolor: "#fff",
                             fontWeight: 600,
-                            color: parentesco
+                            color: parentescoActual
                               ? "var(--primary-d)"
                               : "var(--text-mid)",
                             "& .MuiOutlinedInput-notchedOutline": {
-                              borderColor: parentesco
+                              borderColor: parentescoActual
                                 ? "var(--primary)"
                                 : "var(--border)",
                               borderWidth: "1.5px",
                             },
-                            "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
-                              borderColor: "var(--primary)",
-                            },
                           }}
                         >
-                          {/* EL PLACEHOLDER (Solo se ve si no hay nada seleccionado) */}
                           <MenuItem value="" disabled>
-                            <em style={{ color: "gray" }}>
+                            <em>
                               {t(
                                 "minors.select_relationship",
                                 "Seleccionar...",
                               )}
                             </em>
                           </MenuItem>
-
-                          {/* LAS OPCIONES (Se traducen automáticamente con i18n) */}
-                          {listaRelaciones.map((relacion) => (
+                          {relacionesFiltradas.map((rel) => (
                             <MenuItem
-                              key={relacion.codrelation}
-                              value={relacion.codrelation}
+                              key={rel.codrelation}
+                              value={rel.codrelation}
                             >
-                              {t(
-                                `parentescos.${relacion.codrelation}`,
-                                relacion.name,
-                              )}
+                              {t(`parentescos.${rel.codrelation}`, rel.name)}
                             </MenuItem>
                           ))}
                         </Select>
                       </FormControl>
+
                       <Typography
                         sx={{ color: "var(--text)", fontSize: "15px" }}
                       >
-                        {t("common.of", "de ")}
-                        <strong>{nombreMenor}</strong>.
+                        {t("common.of")} <strong>{nombreMenor}</strong>.
                       </Typography>
                     </Box>
                   </Box>
@@ -293,7 +302,7 @@ export const ScreenRelacionesMenor: React.FC<Props> = ({
             disabled={isSubmitting}
             style={{ flex: 1, minWidth: "160px" }}
           >
-            {t("common.save_partial", "Guardar y Pausar")}
+            {t("common.save_partial")}
           </Button>
         )}
         <Button
@@ -306,7 +315,7 @@ export const ScreenRelacionesMenor: React.FC<Props> = ({
           iconRight="right"
           style={{ flex: 2, minWidth: "200px" }}
         >
-          {t("common.continue", "Continuar")}
+          {t("common.continue")}
         </Button>
       </Box>
     </Box>
