@@ -197,10 +197,18 @@ function CheckinWizard() {
       {currentStep === "form_relaciones" && (
         <ScreenRelacionesMenor
           menor={currentGuest}
-          adultos={adultosConIndice}
-          onRelacionChange={(aIdx: number, p: string) =>
-            actions.updateRelacion(nav.guestIndex, aIdx, p)
-          }
+          adultos={adultosConIndice}onRelacionChange={(aIdx: number, p: string) => {
+            actions.updateRelacion(nav.guestIndex, aIdx, p);
+            // Si el menor es hijo del adulto → copiar dirección del adulto al menor
+            if (p === "hijo") {
+              const adult = state.guests[aIdx];
+              (["direccion", "ciudad", "provincia", "cp", "pais"] as const).forEach(
+                (field) => {
+                  if (adult[field]) actions.updateGuest(nav.guestIndex, field, adult[field]);
+                },
+              );
+            }
+          }}
           onNext={() => actions.nextGuest(nav.guestIndex, "form_relaciones")}
           hasNextMinor={
             state.guests.findIndex((g, i) => i > nav.guestIndex && g.esMenor) >=

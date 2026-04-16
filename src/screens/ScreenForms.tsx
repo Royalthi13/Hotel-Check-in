@@ -29,9 +29,9 @@ import { usePlaces } from "@/hooks/usePlaces";
 import dayjs, { type Dayjs } from "dayjs";
 import "dayjs/locale/es";
 import { useDebounce } from "@/hooks/useDebounce";
-import { useCheckinContext } from "@/context/useCheckinContext";
-import { formatDocument, formatPhoneNumber } from "@/utils/formatters";
-
+import { useCheckinContext } from "@/context/useCheckinContext"
+;import { formatDocument, formatPhoneNumber } from "@/utils/formatters";
+import { getDocumentTypes } from "@/api/catalogs.service";
 const inputSx = {
   "& :not(.MuiInputAdornment-root) > .MuiInputBase-root": {
     borderRadius: "12px",
@@ -82,10 +82,27 @@ export const ScreenFormPersonal: React.FC = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   const [helpOpen, setHelpOpen] = useState(false);
-
-  const isMainGuest = guestIndex === 0;
+const isMainGuest = guestIndex === 0;
   const fechaNac = data.fechaNac ? dayjs(data.fechaNac) : null;
   const isDniOrNie = data.tipoDoc === "DNI" || data.tipoDoc === "NIE";
+
+  const [tiposDoc, setTiposDoc] = useState<Array<{ value: string; label: string }>>([]);
+
+  useEffect(() => {
+    getDocumentTypes()
+      .then((tipos) =>
+        setTiposDoc(
+          tipos.map((t) => ({
+            value: COD_TO_FRONTEND[t.coddoc] ?? t.coddoc,
+            label: t.name,
+          })),
+        ),
+      )
+      .catch(() =>
+        setTiposDoc(TIPOS_DOCUMENTO.map((d) => ({ value: d, label: d }))),
+      );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleUpdate = (key: keyof PartialGuestData, value: unknown) =>
     actions.updateGuest(guestIndex, key, value);
@@ -276,10 +293,14 @@ export const ScreenFormPersonal: React.FC = () => {
                   }}
                   error={!!errors.tipoDoc}
                   sx={inputSx}
-                >
-                  {TIPOS_DOCUMENTO.map((doc) => (
-                    <MenuItem key={doc} value={doc}>
-                      {t(`constants.documentos.${doc}`)}
+                >{(tiposDoc.length > 0
+                    ? tiposDoc
+                    : TIPOS_DOCUMENTO.map((d) => ({ value: d, label: d }))
+                  ).map((doc) => (
+                    <MenuItem key={doc.value} value={doc.value}>
+                      {t(`constants.documentos.${doc.value}`, {
+                        defaultValue: doc.label,
+                      })}
                     </MenuItem>
                   ))}
                 </TextField>
@@ -434,13 +455,18 @@ export const ScreenFormPersonal: React.FC = () => {
   );
 };
 // --- COMPONENTE 2: DATOS DE CONTACTO ---
-
 const menuPaperSx = {
   borderRadius: "15px",
   mt: 1,
   boxShadow: "0 10px 40px rgba(0,0,0,0.1)",
   overflow: "hidden",
 };
+
+// Mapeo coddoc del backend → clave interna del frontend (para i18n + validación)
+const COD_TO_FRONTEND: Record<string, string> = {
+  NIF: "DNI", NIE: "NIE", CIF: "CIF", PAS: "Pasaporte", OTRO: "Otro",
+};
+
 type PrefixItem = { code: string; dial: string; nameTranslated: string };
 export const ScreenFormContacto: React.FC = () => {
   const { state, nav, actions, isSubmitting, handlePartialSubmit } =
