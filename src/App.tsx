@@ -209,7 +209,18 @@ function CheckinWizard() {
               );
             }
           }}
-          onNext={() => actions.nextGuest(nav.guestIndex, "form_relaciones")}
+          onNext={() => {
+            const menor = state.guests[nav.guestIndex];
+            const hasHijoRelacion = menor.relacionesConAdultos?.some(
+              (r) => r.parentesco === "hijo",
+            );
+            if (hasHijoRelacion) {
+              actions.nextGuest(nav.guestIndex, "form_relaciones");
+            } else {
+              // Menor con relación no-parental → necesita introducir su propia dirección
+              actions.goTo("form_contacto", "forward", nav.guestIndex);
+            }
+          }}
           hasNextMinor={
             state.guests.findIndex((g, i) => i > nav.guestIndex && g.esMenor) >=
             0
