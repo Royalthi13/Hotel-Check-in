@@ -465,8 +465,13 @@ export function useCheckin(tokenUrl?: string, stepUrl?: string) {
       }
       return goTo("form_contacto", "forward", currIdx);
     }
-
-      if (from === "form_contacto") {
+if (from === "form_contacto") {
+        const isCurrentMinor = stateRef.current.guests[currIdx]?.esMenor;
+        if (isCurrentMinor) {
+          const nextM = guests.findIndex((g, i) => i > currIdx && g.esMenor);
+          if (nextM >= 0) return goTo("form_relaciones", "forward", nextM);
+          return goTo("form_extras", "forward", 0);
+        }
         if (currIdx + 1 < numPersonas) {
           return goTo("form_personal", "forward", currIdx + 1);
         }
