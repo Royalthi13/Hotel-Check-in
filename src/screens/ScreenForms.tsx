@@ -10,7 +10,7 @@ import {
   validatePersonal,
   validateContacto,
 } from "@/hooks/useFormValidation";
-import type { PartialGuestData } from "@/types";
+import type { PartialGuestData, GuestData } from "@/types";
 import { DatePicker } from "@mui/x-date-pickers";
 import {
   TextField,
@@ -86,7 +86,7 @@ const FieldError: React.FC<{ msg?: string }> = ({ msg }) =>
 export const ScreenFormPersonal: React.FC = () => {
   const { state, nav, actions, isSubmitting } = useCheckinContext();
   const guestIndex = nav.guestIndex;
-  const data = useMemo(
+  const data = useMemo<Partial<GuestData>>(
     () => state.guests[guestIndex] ?? {},
     [state.guests, guestIndex],
   );
@@ -458,11 +458,12 @@ export const ScreenFormContacto: React.FC = () => {
     [actions, guestIndex],
   );
 
-  const { errors, validate, clearError } = useFormValidation((d, tf) =>
-    validateContacto(d, tf, {
-      email: guestIndex === 0 ? !!state.knownGuest?.email : false,
-      telefono: guestIndex === 0 ? !!state.knownGuest?.telefono : false,
-    }),
+  const { errors, validate, clearError } = useFormValidation(
+    (d: PartialGuestData, tf) =>
+      validateContacto(d, tf, {
+        email: guestIndex === 0 ? !!state.knownGuest?.email : false,
+        telefono: guestIndex === 0 ? !!state.knownGuest?.telefono : false,
+      }),
   );
 
   // --- CÓDIGO POSTAL ---
@@ -516,6 +517,7 @@ export const ScreenFormContacto: React.FC = () => {
   const prefijoActual = useMemo(
     () =>
       prefijosTraducidos.find(
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         (p) => p.dial === ((data as any).prefijo || "+34"),
       ) || prefijosTraducidos.find((p) => p.code === "ES"),
     [prefijosTraducidos, data],
@@ -1018,6 +1020,7 @@ export const ScreenFormContacto: React.FC = () => {
       >
         {RenderList(
           (c) => {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             handleUpdate("prefijo" as any, c.dial);
             setPrefijoModalOpen(false);
             setPrefijoSearch("");
@@ -1057,6 +1060,7 @@ export const ScreenFormContacto: React.FC = () => {
       >
         {RenderList(
           (c) => {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             handleUpdate("prefijo" as any, c.dial);
             setAnchorElPrefijo(null);
             setPrefijoSearch("");

@@ -83,6 +83,7 @@ export const ScreenFormExtras: React.FC<FormExtrasProps> = ({
 // ═══════════════════════════════════════════════════════════════════════════
 // VALIDACIÓN
 // ═══════════════════════════════════════════════════════════════════════════
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function isGuestValid(g: PartialGuestData, idx: number, t: any): boolean {
   const personalErrors = validatePersonal({ ...g, isTitular: idx === 0 }, t);
   if (Object.keys(personalErrors).length > 0) return false;
