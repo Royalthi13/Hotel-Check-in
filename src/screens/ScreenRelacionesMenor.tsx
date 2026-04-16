@@ -145,7 +145,9 @@ export const ScreenRelacionesMenor: React.FC<Props> = ({
                   border: "2px solid",
                   borderColor: parentescoActual
                     ? "var(--primary)"
-                    : "var(--err)",
+                    : touched
+                      ? "var(--err)"
+                      : "var(--border)",
                   bgcolor: parentescoActual ? "var(--primary-lt)" : "#fff",
                   transition: "all 0.2s ease",
                 }}
@@ -238,6 +240,13 @@ export const ScreenRelacionesMenor: React.FC<Props> = ({
       </Box>
 
       <div className="spacer" />
+
+      {touched && !esValido && (
+        <Box sx={{ px: "var(--px)", mb: 2 }}>
+          <Alert variant="err">{t("validation.missing_relationships")}</Alert>
+        </Box>
+      )}
+
       <Box
         className="btn-row"
         sx={{

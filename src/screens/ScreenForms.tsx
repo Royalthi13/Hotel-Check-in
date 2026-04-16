@@ -283,7 +283,11 @@ export const ScreenFormPersonal: React.FC = () => {
                   label={t("forms.doc_type")}
                   required
                   fullWidth
-                  value={data.tipoDoc ?? ""}
+                  value={
+                    documentos.some((d) => d.coddoc === data.tipoDoc)
+                      ? data.tipoDoc
+                      : ""
+                  }
                   onChange={(e) => {
                     handleUpdate("tipoDoc", e.target.value);
                     clearError("tipoDoc");
@@ -461,7 +465,7 @@ export const ScreenFormContacto: React.FC = () => {
 
   // --- CÓDIGO POSTAL ---
   const { buscarCP, isSearching } = useZipCode((key, val) =>
-    handleUpdate(key, val),
+    handleUpdate(key as keyof PartialGuestData, val),
   );
   const { sugerenciasProvincias, sugerenciasMunicipios, cargarMunicipios } =
     usePlaces();
