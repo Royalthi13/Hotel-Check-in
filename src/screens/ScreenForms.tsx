@@ -291,18 +291,11 @@ export const ScreenFormPersonal: React.FC = () => {
                   error={!!errors.tipoDoc}
                   sx={inputSx}
                 >
-                  {documentos.map((doc) => {
-                    const translationKey = `constants.documentos.${doc.coddoc}`;
-                    const label =
-                      t(translationKey) !== translationKey
-                        ? t(translationKey)
-                        : doc.name;
-                    return (
-                      <MenuItem key={doc.coddoc} value={doc.coddoc}>
-                        {label}
-                      </MenuItem>
-                    );
-                  })}
+                  {documentos.map((doc) => (
+                    <MenuItem key={doc.coddoc} value={doc.coddoc}>
+                      {t(`constants.documentos.${doc.coddoc}`)}
+                    </MenuItem>
+                  ))}
                 </TextField>
                 <FieldError msg={errors.tipoDoc} />
               </div>
@@ -439,7 +432,7 @@ export const ScreenFormPersonal: React.FC = () => {
   );
 };
 
-// ─── COMPONENTE 2: DATOS DE CONTACTO (CON MAGIA DE CP RECUPERADA) ────────────
+// ─── COMPONENTE 2: DATOS DE CONTACTO ────────────
 export const ScreenFormContacto: React.FC = () => {
   const { state, nav, actions, isSubmitting, handlePartialSubmit } =
     useCheckinContext();

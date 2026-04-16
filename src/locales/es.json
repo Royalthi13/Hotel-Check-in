@@ -78,12 +78,11 @@
       "Otra": "Otra"
     },
     "documentos": {
-      "NIF": "DNI/NIF",
-      "CIF": "CIF",
-      "Pasaporte": "Pasaporte",
+      "NIF": "DNI / NIF",
       "NIE": "NIE",
-      "Carnet de conducir": "Carnet de conducir",
-      "Otro": "Otro"
+      "CIF": "CIF",
+      "PAS": "Pasaporte",
+      "OTRO": "Otro documento"
     },
     "sexos": {
       "Hombre": "Hombre",

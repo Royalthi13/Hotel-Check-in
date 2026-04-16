@@ -78,13 +78,11 @@
       "Otra": "Andere"
     },
     "documentos": {
-      "DNI": "Personalausweis",
-      "NIF": "NIF",
-      "CIF": "CIF",
-      "Pasaporte": "Reisepass",
+      "NIF": "Personalausweis / NIF",
       "NIE": "NIE",
-      "Carnet de conducir": "Führerschein",
-      "Otro": "Andere"
+      "CIF": "Steuernummer / CIF",
+      "PAS": "Reisepass",
+      "OTRO": "Anderes Dokument"
     },
     "sexos": {
       "Hombre": "Männlich",

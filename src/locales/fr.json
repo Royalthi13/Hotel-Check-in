@@ -1,5 +1,12 @@
 {
   "constants": {
+    "documentos": {
+      "NIF": "Carte d'identité / NIF",
+      "NIE": "NIE",
+      "CIF": "Numéro SIRET / CIF",
+      "PAS": "Passeport",
+      "OTRO": "Autre document"
+    },
     "paises": {
       "ES": "Espagne",
       "PT": "Portugal",
@@ -77,15 +84,7 @@
       "Mexicana": "Mexicaine",
       "Otra": "Autre"
     },
-    "documentos": {
-      "DNI": "Carte d'identité",
-      "NIF": "NIF",
-      "CIF": "CIF",
-      "Pasaporte": "Passeport",
-      "NIE": "NIE",
-      "Carnet de conducir": "Permis de conduire",
-      "Otro": "Autre"
-    },
+
     "sexos": {
       "Hombre": "Homme",
       "Mujer": "Femme",

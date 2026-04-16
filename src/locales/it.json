@@ -78,13 +78,11 @@
       "Otra": "Altra"
     },
     "documentos": {
-      "DNI": "Carta d'identità / DNI",
-      "NIF": "Codice Fiscale / NIF",
-      "CIF": "Partita IVA / CIF",
-      "Pasaporte": "Passaporto",
+      "NIF": "Carta d'identità / DNI",
       "NIE": "NIE",
-      "Carnet de conducir": "Patente di guida",
-      "Otro": "Altro"
+      "CIF": "Partita IVA / CIF",
+      "PAS": "Passaporto",
+      "OTRO": "Altro"
     },
     "sexos": {
       "Hombre": "Uomo",

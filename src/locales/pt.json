@@ -1,5 +1,12 @@
 {
   "constants": {
+    "documentos": {
+      "NIF": "Cartão de Cidadão / NIF",
+      "NIE": "NIE",
+      "CIF": "NIPC (Empresa)",
+      "PAS": "Passaporte",
+      "OTRO": "Outro documento"
+    },
     "paises": {
       "ES": "Espanha",
       "PT": "Portugal",
@@ -379,12 +386,7 @@
     "btn_reload": "Recarregar página",
     "footer": "Se o problema persistir, contacte a receção."
   },
-  "documentos": {
-    "NIF": "Cartão de Cidadão / NIF",
-    "NIE": "NIE",
-    "PAS": "Passaporte",
-    "OTRO": "Outro documento"
-  },
+
   "minors": {
     "this_minor": "este/a menor",
     "declare_adult_1": "Declaro que ",
