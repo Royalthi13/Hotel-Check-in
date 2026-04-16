@@ -98,7 +98,6 @@ function filterOcrGarbage(raw: string): string {
 
 // ─── Helpers genéricos ────────────────────────────────────────────────────────
 
-const cap = (s: string) => (s ? s[0].toUpperCase() + s.slice(1).toLowerCase() : '');
 
 function titleCase(s: string): string {
   if (!s) return '';
