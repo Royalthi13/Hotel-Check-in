@@ -2,113 +2,7 @@ import { apiAuth } from "./axiosInstance";
 import dayjs from "dayjs";
 import type { GuestData, PartialGuestData } from "@/types";
 
-// ── ISO2 ↔ codpais ────────────────────────────────────────────────────────────
-const ISO2_TO_CODPAIS: Record<string, string> = {
-  ES: "ESP",
-  GB: "GBR",
-  FR: "FRA",
-  DE: "DEU",
-  IT: "ITA",
-  PT: "PRT",
-  US: "USA",
-  CA: "CAN",
-  MX: "MEX",
-  AR: "ARG",
-  CO: "COL",
-  BR: "BRA",
-  CL: "CHL",
-  PE: "PER",
-  VE: "VEN",
-  UY: "URY",
-  EC: "ECU",
-  BO: "BOL",
-  PY: "PRY",
-  CR: "CRI",
-  PA: "PAN",
-  DO: "DOM",
-  CU: "CUB",
-  NL: "NLD",
-  BE: "BEL",
-  CH: "CHE",
-  AT: "AUT",
-  SE: "SWE",
-  NO: "NOR",
-  DK: "DNK",
-  FI: "FIN",
-  IE: "IRL",
-  GR: "GRC",
-  PL: "POL",
-  CZ: "CZE",
-  HU: "HUN",
-  RO: "ROU",
-  TR: "TUR",
-  RU: "RUS",
-  CN: "CHN",
-  JP: "JPN",
-  KR: "KOR",
-  IN: "IND",
-  AU: "AUS",
-  NZ: "NZL",
-  ZA: "ZAF",
-  EG: "EGY",
-  MA: "MAR",
-  SA: "SAU",
-  AE: "ARE",
-  IL: "ISR",
-  SG: "SGP",
-  TH: "THA",
-  PH: "PHL",
-  VN: "VNM",
-  ID: "IDN",
-  MY: "MYS",
-  PK: "PAK",
-  BD: "BGD",
-  IR: "IRN",
-  IQ: "IRQ",
-  NG: "NGA",
-  KE: "KEN",
-};
-
-const CODPAIS_TO_ISO2: Record<string, string> = Object.fromEntries(
-  Object.entries(ISO2_TO_CODPAIS).map(([k, v]) => [v, k]),
-);
-
-// ── Nacionalidad ↔ codpais ────────────────────────────────────────────────────
-const NAC_TO_CODPAIS: Record<string, string> = {
-  Española: "ESP",
-  Inglesa: "GBR",
-  Francesa: "FRA",
-  Alemana: "DEU",
-  Italiana: "ITA",
-  Portuguesa: "PRT",
-  Estadounidense: "USA",
-  Argentina: "ARG",
-  Mexicana: "MEX",
-};
-
-const CODPAIS_TO_NAC: Record<string, string> = Object.fromEntries(
-  Object.entries(NAC_TO_CODPAIS).map(([k, v]) => [v, k]),
-);
-
-// ── Tipo documento ────────────────────────────────────────────────────────────
-const DOC_TO_COD: Record<string, string> = {
-  DNI: "NIF",
-  NIF: "NIF",
-  NIE: "NIE",
-  CIF: "CIF",
-  Pasaporte: "PAS",
-  Otro: "OTRO",
-};
-
-const COD_TO_DOC: Record<string, string> = {
-  NIF: "DNI",
-  NIE: "NIE",
-  CIF: "CIF",
-  PAS: "Pasaporte",
-  OTRO: "Otro",
-};
-
-// ── Schema real ClientInDB (backend FastAPI) ──────────────────────────────────
+// ── Schema real ClientInDB ──────────────────────────────────
 interface ClientResponse {
   id: number;
   name: string;
@@ -118,17 +12,17 @@ interface ClientResponse {
   cod_city: string | null;
   province: string | null;
   cp: string | null;
-  country: string; // FK → countries.codpais
-  nationality: string | null; // FK → countries.codpais
-  vat: string | null; // NÚMERO DE DNI/PAS
+  country: string;
+  nationality: string | null;
+  vat: string | null;
   phone: string | null;
   email: string | null;
   observations: string | null;
-  doc_type: string | null; // FK → document_type.coddoc
-  doc_support: string | null; // SOPORTE
-  birth: string | null; // "YYYY-MM-DD"
-  relationship: string | null; // FK → relationship.codrelation
-  sex: string | null; // "M" | "F"
+  doc_type: string | null;
+  doc_support: string | null;
+  birth: string | null;
+  relationship: string | null;
+  sex: string | null;
 }
 
 // ── DB → GuestData ─────────────────────────────────────────────────────────────
@@ -142,19 +36,21 @@ export function toGuestData(c: ClientResponse): GuestData {
     apellido2: "",
     sexo: c.sex === "M" ? "Hombre" : c.sex === "F" ? "Mujer" : "No indicar",
     fechaNac: c.birth ?? "",
-    nacionalidad: CODPAIS_TO_NAC[c.nationality ?? ""] ?? "Otra",
+
+    nacionalidad: c.nationality ?? "ESP",
+    pais: c.country ?? "ESP",
+    tipoDoc: c.doc_type ?? "NIF",
+
     email: c.email ?? "",
     telefono: c.phone ?? "",
     direccion: c.address ?? "",
     ciudad: c.city ?? "",
     provincia: c.province ?? "",
     cp: c.cp ?? "",
-    pais: CODPAIS_TO_ISO2[c.country] ?? "ES",
-    tipoDoc: COD_TO_DOC[c.doc_type ?? ""] ?? "DNI",
     numDoc: c.vat ?? "",
     soporteDoc: c.doc_support ?? "",
     esMenor,
-    // Ahora guardamos el código directamente (ej: "PM", "HJ")
+
     relacionesConAdultos: c.relationship
       ? [{ adultoIndex: 0, parentesco: c.relationship }]
       : [],
@@ -163,40 +59,29 @@ export function toGuestData(c: ClientResponse): GuestData {
 
 // ── GuestData → payload API ────────────────────────────────────────────────────
 export function toClientPayload(g: PartialGuestData): Record<string, unknown> {
-  const codpais = ISO2_TO_CODPAIS[g.pais ?? "ES"] ?? "ESP";
-
-  const nacCod =
-    g.nacionalidad && g.nacionalidad !== "Otra"
-      ? (NAC_TO_CODPAIS[g.nacionalidad] ?? codpais)
-      : codpais;
-
-  const docCod = DOC_TO_COD[g.tipoDoc ?? ""] ?? undefined;
-
-  const surname = [(g.apellido ?? "").trim(), (g.apellido2 ?? "").trim()]
-    .filter(Boolean)
-    .join(" ");
-
-  const codrelation = g.parentescoParaAPI || null;
-
   const str = (v: string | undefined | null) => v?.trim() || null;
+
+  const surname = [str(g.apellido), str(g.apellido2)].filter(Boolean).join(" ");
 
   return {
     name: str(g.nombre) ?? "",
     surname: surname || "",
     sex: g.sexo === "Hombre" ? "M" : g.sexo === "Mujer" ? "F" : null,
     birth: g.fechaNac || null,
-    nationality: nacCod,
-    country: codpais,
+
+    nationality: g.nacionalidad || "ESP",
+    country: g.pais || "ESP",
+    doc_type: g.tipoDoc || null,
+
     email: str(g.email),
     phone: str(g.telefono),
     address: str(g.direccion),
     city: str(g.ciudad),
     province: str(g.provincia),
     cp: str(g.cp),
-    doc_type: docCod ?? null,
     vat: str(g.numDoc),
     doc_support: str(g.soporteDoc),
-    relationship: codrelation, // Enviamos el código (ej: "OT") directamente
+    relationship: g.parentescoParaAPI || null,
   };
 }
 

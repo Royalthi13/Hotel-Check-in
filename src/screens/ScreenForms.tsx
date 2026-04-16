@@ -70,13 +70,14 @@ const FieldError: React.FC<{ msg?: string }> = ({ msg }) =>
 
 // ─── COMPONENTE 1: DATOS PERSONALES ─────────────────────────────────────────
 export const ScreenFormPersonal: React.FC = () => {
-  const { state, nav, actions, isSubmitting, handlePartialSubmit } =
-    useCheckinContext();
+  const { state, nav, actions, isSubmitting } = useCheckinContext();
   const guestIndex = nav.guestIndex;
+
   const data = useMemo(
     () => state.guests[guestIndex] ?? {},
     [state.guests, guestIndex],
   );
+
   const { t } = useTranslation();
   const { errors, validate, clearError } = useFormValidation(validatePersonal);
   const [duplicateError, setDuplicateError] = useState("");
@@ -85,18 +86,19 @@ export const ScreenFormPersonal: React.FC = () => {
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   const [helpOpen, setHelpOpen] = useState(false);
 
-  // --- NUEVA LLAMADA A LA API ---
+  // --- CARGA DE DOCUMENTOS DESDE API ---
   const [documentos, setDocumentos] = useState<DocumentTypeResponse[]>([]);
 
   useEffect(() => {
     getDocumentTypes()
-      .then((data) => setDocumentos(data))
-      .catch(console.error);
+      .then((res) => setDocumentos(res))
+      .catch((err) => console.error("Error API:", err));
   }, []);
-  // ------------------------------
 
   const isMainGuest = guestIndex === 0;
   const fechaNac = data.fechaNac ? dayjs(data.fechaNac) : null;
+
+  // Lógica para el campo soporte (NIF es el nuevo código para DNI)
   const isDniOrNie = data.tipoDoc === "NIF" || data.tipoDoc === "NIE";
 
   const handleUpdate = (key: keyof PartialGuestData, value: unknown) =>
@@ -105,6 +107,7 @@ export const ScreenFormPersonal: React.FC = () => {
   const handleSubmit = (e: React.SyntheticEvent<HTMLFormElement>) => {
     e.preventDefault();
     setDuplicateError("");
+
     if (!validate({ ...data, isTitular: isMainGuest })) return;
 
     const currentDoc = data.numDoc?.trim().toUpperCase();
@@ -149,6 +152,7 @@ export const ScreenFormPersonal: React.FC = () => {
               : t("forms.adult_tag")}
         </Typography>
       </div>
+
       <form onSubmit={handleSubmit} noValidate>
         <fieldset
           disabled={isSubmitting}
@@ -158,6 +162,7 @@ export const ScreenFormPersonal: React.FC = () => {
             style={{ padding: "0 var(--px)" }}
             sx={{ mt: 2, display: "flex", flexDirection: "column", gap: 2.5 }}
           >
+            {/* NOMBRE Y APELLIDOS */}
             <Box
               sx={{
                 display: "grid",
@@ -206,6 +211,7 @@ export const ScreenFormPersonal: React.FC = () => {
               </div>
             </Box>
 
+            {/* GÉNERO Y FECHA */}
             <Box
               sx={{
                 display: "grid",
@@ -240,7 +246,7 @@ export const ScreenFormPersonal: React.FC = () => {
                   label={t("forms.birthdate")}
                   value={fechaNac}
                   disableFuture
-                  onChange={(v: any) => {
+                  onChange={(v: dayjs.Dayjs | null) => {
                     handleUpdate(
                       "fechaNac",
                       v?.isValid() ? v.format("YYYY-MM-DD") : "",
@@ -265,6 +271,7 @@ export const ScreenFormPersonal: React.FC = () => {
               {t("forms.doc_title")}
             </Divider>
 
+            {/* DOCUMENTOS */}
             <Box
               sx={{
                 display: "grid",
@@ -297,6 +304,7 @@ export const ScreenFormPersonal: React.FC = () => {
                 </TextField>
                 <FieldError msg={errors.tipoDoc} />
               </div>
+
               <div>
                 <TextField
                   label={t("forms.doc_number")}
@@ -316,10 +324,11 @@ export const ScreenFormPersonal: React.FC = () => {
                 <FieldError msg={errors.numDoc} />
               </div>
 
+              {/* SOPORTE DOC: OBLIGATORIO SI ES NIF O NIE */}
               {isDniOrNie && (
                 <div>
                   <TextField
-                    required
+                    required={isDniOrNie}
                     label={t("forms.doc_support")}
                     fullWidth
                     value={data.soporteDoc ?? ""}
@@ -357,48 +366,6 @@ export const ScreenFormPersonal: React.FC = () => {
                     }}
                   />
                   <FieldError msg={errors.soporteDoc} />
-
-                  <Dialog
-                    open={helpOpen}
-                    onClose={() => setHelpOpen(false)}
-                    PaperProps={{
-                      sx: { borderRadius: "16px", p: 2, maxWidth: 320 },
-                    }}
-                  >
-                    <Box
-                      sx={{
-                        display: "flex",
-                        justifyContent: "space-between",
-                        alignItems: "center",
-                        mb: 1,
-                      }}
-                    >
-                      <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
-                        {t("forms.doc_support")}
-                      </Typography>
-                      <Box
-                        onClick={() => setHelpOpen(false)}
-                        sx={{
-                          cursor: "pointer",
-                          opacity: 0.5,
-                          transform: "rotate(45deg)",
-                          display: "flex",
-                        }}
-                      >
-                        <Icon name="plus" size={20} />
-                      </Box>
-                    </Box>
-                    <Typography variant="body2" color="text.secondary">
-                      {t("forms.doc_support_hint")}
-                    </Typography>
-                    <Button
-                      variant="primary"
-                      onClick={() => setHelpOpen(false)}
-                      style={{ marginTop: "16px", width: "100%" }}
-                    >
-                      {t("common.continue")}
-                    </Button>
-                  </Dialog>
                 </div>
               )}
             </Box>
@@ -420,17 +387,6 @@ export const ScreenFormPersonal: React.FC = () => {
               justifyContent: "flex-end",
             }}
           >
-            {!isMainGuest && guestIndex < state.numPersonas - 1 && (
-              <Button
-                variant="secondary"
-                onClick={() => handlePartialSubmit()}
-                style={{ flex: 1, minWidth: "200px" }}
-              >
-                {t("common.save_partial")}
-              </Button>
-            )}
-            {/* CORRECCIÓN: siempre "Continuar" — el siguiente paso es siempre
-                form_contacto del mismo huésped, no el siguiente huésped */}
             <Button
               variant="primary"
               type="submit"
@@ -442,10 +398,51 @@ export const ScreenFormPersonal: React.FC = () => {
           </div>
         </fieldset>
       </form>
+
+      <Dialog
+        open={helpOpen}
+        onClose={() => setHelpOpen(false)}
+        PaperProps={{ sx: { borderRadius: "16px", p: 2, maxWidth: 320 } }}
+      >
+        <Box
+          sx={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            mb: 1,
+          }}
+        >
+          <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
+            {t("forms.doc_support")}
+          </Typography>
+          <Box
+            onClick={() => setHelpOpen(false)}
+            sx={{
+              cursor: "pointer",
+              opacity: 0.5,
+              transform: "rotate(45deg)",
+              display: "flex",
+            }}
+          >
+            <Icon name="plus" size={20} />
+          </Box>
+        </Box>
+        <Typography variant="body2" color="text.secondary">
+          {t("forms.doc_support_hint")}
+        </Typography>
+        <Button
+          variant="primary"
+          onClick={() => setHelpOpen(false)}
+          style={{ marginTop: "16px", width: "100%" }}
+        >
+          {t("common.continue")}
+        </Button>
+      </Dialog>
     </>
   );
 };
-// --- COMPONENTE 2: DATOS DE CONTACTO ---
+
+// --- COMPONENTE 2: DATOS DE CONTACTO ─────────────────────────────────────────
 
 const menuPaperSx = {
   borderRadius: "15px",
@@ -454,24 +451,30 @@ const menuPaperSx = {
   overflow: "hidden",
 };
 
+interface ListDataItem {
+  code: string;
+  dial?: string;
+  nameTranslated: string;
+}
+
 export const ScreenFormContacto: React.FC = () => {
   const { state, nav, actions, isSubmitting, handlePartialSubmit } =
     useCheckinContext();
   const guestIndex = nav.guestIndex;
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   const data = useMemo(
     () => state.guests[guestIndex] ?? {},
     [state.guests, guestIndex],
   );
-
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   const { t, i18n } = useTranslation();
 
-  const handleUpdate = (key: keyof PartialGuestData, value: unknown) =>
-    actions.updateGuest(guestIndex, key, value);
+  const handleUpdate = useCallback(
+    (key: keyof PartialGuestData, value: unknown) =>
+      actions.updateGuest(guestIndex, key, value),
+    [actions, guestIndex],
+  );
 
-  // CORRECCIÓN: lockedFields solo aplica al titular (guestIndex===0).
-  // Los acompañantes no tienen datos previos — sus campos no deben bloquearse.
   const lockedFields = useMemo(
     () => ({
       email: guestIndex === 0 ? !!state.knownGuest?.email : false,
@@ -481,19 +484,19 @@ export const ScreenFormContacto: React.FC = () => {
   );
 
   const contactoValidator = useCallback(
-    (d: PartialGuestData, tf: any) => validateContacto(d, tf, lockedFields),
+    (d: PartialGuestData, tf: typeof t) =>
+      validateContacto(d, tf, lockedFields),
     [lockedFields],
   );
-  const { errors, validate, clearError } = useFormValidation(contactoValidator);
 
+  const { errors, validate, clearError } = useFormValidation(contactoValidator);
   const { buscarCP, isSearching } = useZipCode((key, val) =>
     handleUpdate(key, val),
   );
-
   const { sugerenciasProvincias, sugerenciasMunicipios, cargarMunicipios } =
     usePlaces();
 
-  const esEspana = data.pais === "ES";
+  const esEspana = data.pais === "ES" || data.pais === "ESP";
 
   const [anchorElPrefijo, setAnchorElPrefijo] = useState<null | HTMLElement>(
     null,
@@ -509,7 +512,7 @@ export const ScreenFormContacto: React.FC = () => {
     const displayNames = new Intl.DisplayNames([lang], { type: "region" });
     return PREFIJOS_TELEFONICOS.map((c) => {
       let name = t(`constants.paises.${c.code}`);
-      if (name === `constants.paises.${c.code}`) {
+      if (name.includes("constants.paises")) {
         try {
           name = displayNames.of(c.code) || c.code;
         } catch {
@@ -520,10 +523,11 @@ export const ScreenFormContacto: React.FC = () => {
     }).sort((a, b) => a.nameTranslated.localeCompare(b.nameTranslated, lang));
   }, [t, i18n.language]);
 
-  const prefijoActual =
-    prefijosTraducidos.find(
-      (p) => p.dial === ((data as any).prefijo || "+34"),
-    ) || prefijosTraducidos.find((p) => p.code === "ES");
+  const prefijoActual = prefijosTraducidos.find(
+    (p) =>
+      p.dial ===
+      ((data as PartialGuestData & { prefijo?: string }).prefijo || "+34"),
+  );
 
   const paisActual =
     prefijosTraducidos.find((p) => p.code === (data.pais || "ES")) ||
@@ -550,51 +554,40 @@ export const ScreenFormContacto: React.FC = () => {
   );
 
   useEffect(() => {
-    if (!data.pais) handleUpdate("pais", "ES");
+    if (!data.pais) handleUpdate("pais", "ESP");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  // --- SECCIÓN DE HOOKS (DEBOUNCES) ---
 
   useDebounce(
     () => {
       if (data.email?.includes("@")) validate(data);
     },
     500,
-    [data.email],
+    [data.email, validate],
   );
-
   useDebounce(
     () => {
       if ((data.telefono?.length ?? 0) >= 7) validate(data);
     },
     500,
-    [data.telefono],
+    [data.telefono, validate],
   );
-
   useDebounce(
     () => {
-      if (data.cp && data.cp.trim().length >= 3 && data.pais) {
+      if (data.cp && data.cp.trim().length >= 3 && data.pais)
         buscarCP(data.cp, data.pais);
-      }
     },
     1200,
-    [data.cp, data.pais],
+    [data.cp, data.pais, buscarCP],
   );
-
-  useEffect(() => {
-    const handleForceValidate = () => validate(data);
-    window.addEventListener("FORCE_VALIDATE", handleForceValidate);
-    return () =>
-      window.removeEventListener("FORCE_VALIDATE", handleForceValidate);
-  }, [data, validate]);
 
   const isMainGuest = guestIndex === 0;
 
   const RenderList = (
-    onSelect: (c: any) => void,
+    onSelect: (item: ListDataItem) => void,
     searchVal: string,
     setSearchVal: (v: string) => void,
-    filtered: any[],
+    filtered: ListDataItem[],
     placeholderText: string,
     showDial: boolean,
   ) => (
@@ -638,26 +631,13 @@ export const ScreenFormContacto: React.FC = () => {
           }}
         />
       </Box>
-      <Box
-        sx={{
-          overflowY: "auto",
-          overflowX: "hidden",
-          maxHeight: isMobile ? "60vh" : 400,
-          p: 1,
-        }}
-      >
+      <Box sx={{ overflowY: "auto", maxHeight: isMobile ? "60vh" : 400, p: 1 }}>
         {filtered.length > 0 ? (
           filtered.map((c) => (
             <MenuItem
               key={c.code}
               onClick={() => onSelect(c)}
-              sx={{
-                gap: 2,
-                borderRadius: "10px",
-                py: 1.5,
-                mb: 0.5,
-                maxWidth: "100%",
-              }}
+              sx={{ gap: 2, borderRadius: "10px", py: 1.5, mb: 0.5 }}
             >
               <img
                 width="22"
@@ -714,8 +694,6 @@ export const ScreenFormContacto: React.FC = () => {
         >
           {t("forms.contact_title")}
         </Typography>
-        {/* AÑADIDO: contador de huésped para que el usuario sepa de quién
-            está rellenando los datos de contacto */}
         <Typography variant="body2" color="var(--text-low)">
           {t("forms.guest_counter", {
             current: guestIndex + 1,
@@ -751,129 +729,89 @@ export const ScreenFormContacto: React.FC = () => {
                 gap: 2,
               }}
             >
-              <div>
-                <TextField
-                  label={t("forms.email")}
-                  fullWidth
-                  value={data.email ?? ""}
-                  onChange={
-                    lockedFields.email
-                      ? undefined
-                      : (e) => {
-                          handleUpdate("email", e.target.value);
-                          clearError("email");
+              <TextField
+                label={t("forms.email")}
+                fullWidth
+                value={data.email ?? ""}
+                error={!!errors.email}
+                disabled={lockedFields.email}
+                onChange={(e) => {
+                  handleUpdate("email", e.target.value);
+                  clearError("email");
+                }}
+                sx={inputSx}
+              />
+              <TextField
+                label={t("forms.phone")}
+                fullWidth
+                type="tel"
+                value={data.telefono ?? ""}
+                error={!!errors.telefono}
+                disabled={lockedFields.telefono}
+                onChange={(e) => {
+                  handleUpdate(
+                    "telefono",
+                    formatPhoneNumber(e.target.value.replace(/\D/g, "")),
+                  );
+                  clearError("telefono");
+                }}
+                sx={inputSx}
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start" sx={{ mr: 1 }}>
+                      <Box
+                        onClick={(e) =>
+                          lockedFields.telefono
+                            ? null
+                            : isMobile
+                              ? setPrefijoModalOpen(true)
+                              : setAnchorElPrefijo(e.currentTarget)
                         }
-                  }
-                  error={!!errors.email}
-                  disabled={lockedFields.email}
-                  required={
-                    !lockedFields.email && !lockedFields.telefono
-                      ? !data.telefono?.trim()
-                      : !lockedFields.email
-                  }
-                  sx={inputSx}
-                />
-                <FieldError msg={errors.email} />
-              </div>
-
-              <div>
-                <TextField
-                  label={t("forms.phone")}
-                  fullWidth
-                  type="tel"
-                  value={data.telefono ?? ""}
-                  onChange={
-                    lockedFields.telefono
-                      ? undefined
-                      : (e) => {
-                          handleUpdate(
-                            "telefono",
-                            formatPhoneNumber(
-                              e.target.value.replace(/\D/g, ""),
-                            ),
-                          );
-                          clearError("telefono");
-                        }
-                  }
-                  error={!!errors.telefono}
-                  disabled={lockedFields.telefono}
-                  required={
-                    !lockedFields.email && !lockedFields.telefono
-                      ? !data.email?.trim()
-                      : !lockedFields.email
-                  }
-                  sx={inputSx}
-                  InputProps={{
-                    startAdornment: (
-                      <InputAdornment position="start" sx={{ mr: 1 }}>
-                        <Box
-                          onClick={(e) =>
-                            lockedFields.telefono
-                              ? null
-                              : isMobile
-                                ? setPrefijoModalOpen(true)
-                                : setAnchorElPrefijo(e.currentTarget)
-                          }
-                          sx={{
-                            display: "flex",
-                            alignItems: "center",
-                            gap: 0.5,
-                            cursor: lockedFields.telefono
-                              ? "default"
-                              : "pointer",
-                            px: 1,
-                            py: 0.5,
-                            borderRadius: "8px",
-                            "&:hover": {
-                              bgcolor: lockedFields.telefono
-                                ? "transparent"
-                                : "rgba(0,0,0,0.04)",
-                            },
+                        sx={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 0.5,
+                          cursor: lockedFields.telefono ? "default" : "pointer",
+                          px: 1,
+                          py: 0.5,
+                          borderRadius: "8px",
+                        }}
+                      >
+                        <img
+                          width="20"
+                          src={`https://flagcdn.com/w20/${prefijoActual?.code.toLowerCase()}.png`}
+                          alt=""
+                          style={{
+                            borderRadius: "2px",
+                            opacity: lockedFields.telefono ? 0.5 : 1,
                           }}
+                        />
+                        <Typography
+                          sx={{ fontSize: "0.9rem", fontWeight: 700 }}
                         >
-                          <img
-                            width="20"
-                            src={`https://flagcdn.com/w20/${prefijoActual?.code.toLowerCase()}.png`}
-                            alt=""
+                          {prefijoActual?.dial}
+                        </Typography>
+                        {!lockedFields.telefono && (
+                          <div
                             style={{
-                              borderRadius: "2px",
-                              opacity: lockedFields.telefono ? 0.5 : 1,
-                            }}
-                          />
-                          <Typography
-                            sx={{
-                              fontSize: "0.9rem",
-                              fontWeight: 700,
-                              color: lockedFields.telefono
-                                ? "text.disabled"
-                                : "text.primary",
+                              transform: "rotate(90deg)",
+                              display: "flex",
+                              opacity: 0.5,
+                              marginLeft: 2,
                             }}
                           >
-                            {prefijoActual?.dial}
-                          </Typography>
-                          {!lockedFields.telefono && (
-                            <div
-                              style={{
-                                transform: "rotate(90deg)",
-                                display: "flex",
-                                opacity: 0.5,
-                                marginLeft: 2,
-                              }}
-                            >
-                              <Icon name="right" size={12} />
-                            </div>
-                          )}
-                        </Box>
-                        <Divider
-                          sx={{ height: 24, ml: 1 }}
-                          orientation="vertical"
-                        />
-                      </InputAdornment>
-                    ),
-                  }}
-                />
-                <FieldError msg={errors.telefono} />
-              </div>
+                            <Icon name="right" size={12} />
+                          </div>
+                        )}
+                      </Box>
+                      <Divider
+                        sx={{ height: 24, ml: 1 }}
+                        orientation="vertical"
+                      />
+                    </InputAdornment>
+                  ),
+                }}
+              />
             </Box>
 
             <TextField
@@ -901,88 +839,72 @@ export const ScreenFormContacto: React.FC = () => {
                 gap: 2,
               }}
             >
-              <div>
-                <TextField
-                  label={t("forms.country")}
-                  required
-                  fullWidth
-                  value={paisActual?.nameTranslated}
-                  onClick={(e) =>
-                    isMobile
-                      ? setPaisModalOpen(true)
-                      : setAnchorElPais(e.currentTarget)
-                  }
-                  sx={{
-                    ...inputSx,
+              <TextField
+                label={t("forms.country")}
+                required
+                fullWidth
+                value={paisActual?.nameTranslated}
+                onClick={(e) =>
+                  isMobile
+                    ? setPaisModalOpen(true)
+                    : setAnchorElPais(e.currentTarget)
+                }
+                sx={{
+                  ...inputSx,
+                  cursor: "pointer",
+                  "& .MuiInputBase-input": {
                     cursor: "pointer",
-                    "& .MuiInputBase-input": {
-                      cursor: "pointer",
-                      caretColor: "transparent",
-                    },
-                  }}
-                  InputProps={{
-                    readOnly: true,
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <img
-                          width="20"
-                          src={`https://flagcdn.com/w20/${paisActual?.code.toLowerCase()}.png`}
-                          alt=""
-                          style={{ borderRadius: "2px" }}
-                        />
-                      </InputAdornment>
-                    ),
-                    endAdornment: (
-                      <InputAdornment position="end">
-                        <div
-                          style={{
-                            transform: "rotate(90deg)",
-                            display: "flex",
-                            opacity: 0.5,
-                          }}
-                        >
-                          <Icon name="right" size={14} />
-                        </div>
-                      </InputAdornment>
-                    ),
-                  }}
-                />
-                <FieldError msg={errors.pais} />
-              </div>
-              <div>
-                <TextField
-                  label={t("forms.zipcode")}
-                  fullWidth
-                  value={data.cp ?? ""}
-                  onChange={(e) => {
-                    handleUpdate("cp", e.target.value.toUpperCase());
-                    clearError("cp");
-                  }}
-                  onBlur={() => {
-                    if (data.cp && data.pais) {
-                      buscarCP(data.cp, data.pais);
-                    }
-                  }}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      e.preventDefault();
-                      if (data.cp && data.pais) {
-                        buscarCP(data.cp, data.pais);
-                      }
-                    }
-                  }}
-                  error={!!errors.cp}
-                  sx={inputSx}
-                  InputProps={{
-                    endAdornment: isSearching ? (
-                      <InputAdornment position="end">
-                        <CircularProgress size={20} thickness={5} />
-                      </InputAdornment>
-                    ) : null,
-                  }}
-                />
-                <FieldError msg={errors.cp} />
-              </div>
+                    caretColor: "transparent",
+                  },
+                }}
+                InputProps={{
+                  readOnly: true,
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <img
+                        width="20"
+                        src={`https://flagcdn.com/w20/${paisActual?.code.toLowerCase()}.png`}
+                        alt=""
+                        style={{ borderRadius: "2px" }}
+                      />
+                    </InputAdornment>
+                  ),
+                  endAdornment: (
+                    <InputAdornment position="end">
+                      <div
+                        style={{
+                          transform: "rotate(90deg)",
+                          display: "flex",
+                          opacity: 0.5,
+                        }}
+                      >
+                        <Icon name="right" size={14} />
+                      </div>
+                    </InputAdornment>
+                  ),
+                }}
+              />
+              <TextField
+                label={t("forms.zipcode")}
+                fullWidth
+                value={data.cp ?? ""}
+                error={!!errors.cp}
+                sx={inputSx}
+                onChange={(e) => {
+                  handleUpdate("cp", e.target.value.toUpperCase());
+                  clearError("cp");
+                }}
+                onBlur={() => {
+                  if (data.cp && data.pais) buscarCP(data.cp, data.pais);
+                }}
+                InputProps={{
+                  endAdornment: isSearching ? (
+                    <InputAdornment position="end">
+                      <CircularProgress size={20} thickness={5} />
+                    </InputAdornment>
+                  ) : null,
+                }}
+              />
             </Box>
 
             <Box
@@ -1082,8 +1004,6 @@ export const ScreenFormContacto: React.FC = () => {
                 {t("common.save_partial")}
               </Button>
             )}
-            {/* Desde contacto: si quedan más huéspedes → "Siguiente persona",
-                si es el último → "Continuar" (hacia menores o extras) */}
             <Button
               variant="primary"
               type="submit"
@@ -1098,7 +1018,7 @@ export const ScreenFormContacto: React.FC = () => {
         </fieldset>
       </form>
 
-      {/* MODALES Y MENÚS */}
+      {/* MODALES Y MENÚS - LLAMADAS CORREGIDAS */}
       <Dialog
         open={prefijoModalOpen}
         onClose={() => setPrefijoModalOpen(false)}
@@ -1108,7 +1028,7 @@ export const ScreenFormContacto: React.FC = () => {
       >
         {RenderList(
           (c) => {
-            handleUpdate("prefijo" as any, c.dial);
+            handleUpdate("prefijo" as keyof PartialGuestData, c.dial);
             setPrefijoModalOpen(false);
             setPrefijoSearch("");
           },
@@ -1149,7 +1069,7 @@ export const ScreenFormContacto: React.FC = () => {
       >
         {RenderList(
           (c) => {
-            handleUpdate("prefijo" as any, c.dial);
+            handleUpdate("prefijo" as keyof PartialGuestData, c.dial);
             setAnchorElPrefijo(null);
             setPrefijoSearch("");
           },

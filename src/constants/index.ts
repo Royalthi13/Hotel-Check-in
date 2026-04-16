@@ -21,7 +21,6 @@ export const COLORS = {
   errBg: "#fdf2f2",
 } as const;
 
-// FIX: pais usa código ISO2 "ES", no el string "España".
 // Todos los selectores de país en el frontend usan códigos ISO2.
 export const MOCK_KNOWN_GUEST: GuestData = {
   nombre: "",
