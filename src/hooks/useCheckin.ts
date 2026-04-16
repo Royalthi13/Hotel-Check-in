@@ -455,9 +455,7 @@ export function useCheckin(tokenUrl?: string, stepUrl?: string) {
 
      if (from === "form_personal") {
       const guest = stateRef.current.guests[currIdx];
-      // Menores no necesitan datos de contacto propios — saltamos form_contacto
       if (guest?.esMenor) {
-        const { guests, numPersonas } = stateRef.current;
         if (currIdx + 1 < numPersonas) {
           return goTo("form_personal", "forward", currIdx + 1);
         }

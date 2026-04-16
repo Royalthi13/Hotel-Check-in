@@ -32,6 +32,7 @@ import { useDebounce } from "@/hooks/useDebounce";
 import { useCheckinContext } from "@/context/useCheckinContext"
 ;import { formatDocument, formatPhoneNumber } from "@/utils/formatters";
 import { getDocumentTypes } from "@/api/catalogs.service";
+import type { TFunction } from "i18next";
 const inputSx = {
   "& :not(.MuiInputAdornment-root) > .MuiInputBase-root": {
     borderRadius: "12px",
@@ -39,6 +40,10 @@ const inputSx = {
   },
   "& .MuiOutlinedInput-notchedOutline": { borderColor: "var(--border)" },
 };
+const COD_TO_FRONTEND: Record<string, string> = {
+  NIF: "DNI", NIE: "NIE", CIF: "CIF", PAS: "Pasaporte", OTRO: "Otro",
+};
+
 
 const modalPaperSx = {
   borderRadius: "16px",
@@ -80,13 +85,28 @@ export const ScreenFormPersonal: React.FC = () => {
   const [duplicateError, setDuplicateError] = useState("");
 
   const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
-  const [helpOpen, setHelpOpen] = useState(false);
-const isMainGuest = guestIndex === 0;
+  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));const [helpOpen, setHelpOpen] = useState(false);
+  const [tiposDoc, setTiposDoc] = useState<Array<{ value: string; label: string }>>([]);
+
+  const isMainGuest = guestIndex === 0;
+
+  useEffect(() => {
+    getDocumentTypes()
+      .then((tipos) =>
+        setTiposDoc(
+          tipos.map((tipo) => ({
+            value: COD_TO_FRONTEND[tipo.coddoc] ?? tipo.coddoc,
+            label: tipo.name,
+          })),
+        ),
+      )
+      .catch(() => { /* fallback al array hardcodeado */ });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const fechaNac = data.fechaNac ? dayjs(data.fechaNac) : null;
   const isDniOrNie = data.tipoDoc === "DNI" || data.tipoDoc === "NIE";
 
-  const [tiposDoc, setTiposDoc] = useState<Array<{ value: string; label: string }>>([]);
+ 
 
   useEffect(() => {
     getDocumentTypes()
@@ -462,10 +482,7 @@ const menuPaperSx = {
   overflow: "hidden",
 };
 
-// Mapeo coddoc del backend → clave interna del frontend (para i18n + validación)
-const COD_TO_FRONTEND: Record<string, string> = {
-  NIF: "DNI", NIE: "NIE", CIF: "CIF", PAS: "Pasaporte", OTRO: "Otro",
-};
+
 
 type PrefixItem = { code: string; dial: string; nameTranslated: string };
 export const ScreenFormContacto: React.FC = () => {
@@ -495,7 +512,8 @@ export const ScreenFormContacto: React.FC = () => {
   );
 
   const contactoValidator = useCallback(
-    (d: PartialGuestData, tf: any) => validateContacto(d, tf, lockedFields),
+    (d: PartialGuestData, tf: TFunction) =>
+      validateContacto(d, tf, d.esMenor ? { email: true, telefono: true } : lockedFields),
     [lockedFields],
   );
   const { errors, validate, clearError } = useFormValidation(contactoValidator);
@@ -534,10 +552,9 @@ export const ScreenFormContacto: React.FC = () => {
     }).sort((a, b) => a.nameTranslated.localeCompare(b.nameTranslated, lang));
   }, [t, i18n.language]);
 
-  const prefijoActual =
-    prefijosTraducidos.find(
-      (p) => p.dial === ((data as any).prefijo || "+34"),
-    ) || prefijosTraducidos.find((p) => p.code === "ES");
+  const prefijoActual =prefijosTraducidos.find(
+      (p) => p.dial === (data.prefijo || "+34"),
+    )|| prefijosTraducidos.find((p) => p.code === "ES");
 
   const paisActual =
     prefijosTraducidos.find((p) => p.code === (data.pais || "ES")) ||

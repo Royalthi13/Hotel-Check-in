@@ -5,15 +5,6 @@ import { useCheckin } from "@/hooks/useCheckin";
 import { submitCheckin, savePartialCheckin } from "@/api/chekin.service";
 import { CheckinContext } from "./CheckinContextDef";
 import CryptoJS from "crypto-js";
-
-export const CheckinProvider: React.FC<{ children: React.ReactNode }> = ({
-  children,
-}) => {
-  const { t } = useTranslation();
-  const { token: urlToken, step } = useParams();
-  const token = urlToken ?? "new";
-// Genera o recupera una clave de cifrado de sesión aleatoria.
-// Usar el token (booking_id) como clave es trivialmente débil.
 const getSessionEncKey = (): string => {
   const SKEY = 'lumina_enc_key';
   let key = sessionStorage.getItem(SKEY);
@@ -23,8 +14,14 @@ const getSessionEncKey = (): string => {
   }
   return key;
 };
-  const PERSISTENCE_KEY = `h_ckin_data_${token}`;
 
+export const CheckinProvider: React.FC<{ children: React.ReactNode }> = ({
+  children,
+}) => {
+  const { t } = useTranslation();
+  const { token: urlToken, step } = useParams();
+  const token = urlToken ?? "new";
+  const PERSISTENCE_KEY = `h_ckin_data_${token}`;
   const [state, nav, actions, isLoading] = useCheckin(token, step);
 
   const [submitError, setSubmitError] = useState("");

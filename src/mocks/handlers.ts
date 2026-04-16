@@ -320,14 +320,12 @@ export const handlers = [
       { coddoc: "OTRO", name: "Otro" },
     ]),
   ),
-
-  // relationship: valores reales = hijo, sobrino, tutor, otro
-  http.get("/relationships", () =>
+http.get("/relationships", () =>
     HttpResponse.json([
-      { codrelation: "hijo",    name: "Hijo/a" },
-      { codrelation: "sobrino", name: "Sobrino/a" },
-      { codrelation: "tutor",   name: "Tutor legal" },
-      { codrelation: "otro",    name: "Otro" },
+      { codrelation: "hijo",    name: "Hijo/a",   linked_relation: "PM"  },
+      { codrelation: "sobrino", name: "Sobrino/a", linked_relation: "TI" },
+      { codrelation: "tutor",   name: "Tutor/a",   linked_relation: "TU" },
+      { codrelation: "otro",    name: "Otro",       linked_relation: null },
     ]),
   ),
 ];

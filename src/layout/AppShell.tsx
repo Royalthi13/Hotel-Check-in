@@ -17,9 +17,10 @@ import {
 } from "framer-motion";
 import { LanguageSelector } from "../components/LanguageSelector";
 import "@/App.css";
-import { validatePersonal, validateContacto } from "../hooks/useFormValidation";
 import "./FluidProgression.css";
 import "./AppShell.css";
+import { validatePersonal, validateContacto } from "../hooks/useFormValidation";
+import type { TFunction } from "i18next";
 
 const SIDE_STEPS: { id: StepId }[] = [
   { id: "inicio" },
@@ -45,8 +46,7 @@ function getActiveSideStep(step: StepId): StepId {
 function currentStepIsInvalid(
   step: StepId,
   guests: PartialGuestData[],
-  guestIndex: number,
-  t: any,
+  guestIndex: number,  t: TFunction,
 ): boolean {
   const g = guests[guestIndex] ?? {};
   const logicalStep = getActiveSideStep(step);
@@ -64,7 +64,7 @@ function currentStepIsInvalid(
     );
   }
   if (logicalStep === "form_contacto") {
-    return Object.keys(validateContacto(g, t)).length > 0;
+  return Object.keys(validateContacto(g, t, { email: false, telefono: false })).length > 0;
   }
   return false;
 }
@@ -125,8 +125,7 @@ export const AppShell: React.FC<AppShellProps> = ({
       ? activeIdx
       : 0,
   );
-
-  // 🔄 SINCRONIZADOR: Escucha los cambios de checkboxes locales
+// 🔄 SINCRONIZADOR: Escucha los cambios de checkboxes locales
   const [, forceRender] = useState(0);
   useEffect(() => {
     const handler = () => forceRender((n) => n + 1);
@@ -134,21 +133,23 @@ export const AppShell: React.FC<AppShellProps> = ({
     return () => window.removeEventListener("LOCAL_STATE_CHANGED", handler);
   }, []);
 
-  useEffect(() => {
-    const canUpdate =
-      nav.dotIndex > maxDotReached &&
-      nav.step !== "exito" &&
-      (nav.step !== "revision" || nav.allowedSteps?.has("form_extras"));
-    if (canUpdate) setMaxDotReached(nav.dotIndex);
-  }, [nav.dotIndex, maxDotReached, nav.step, nav.allowedSteps]);
+  // 🛡️ RECOMENDACIÓN DE REACT: Actualizar estado derivado durante el renderizado
+  // Esto elimina el error del linter de "cascading renders"
+  if (
+    nav.dotIndex > maxDotReached &&
+    nav.step !== "exito" &&
+    (nav.step !== "revision" || nav.allowedSteps?.has("form_extras"))
+  ) {
+    setMaxDotReached(nav.dotIndex);
+  }
 
-  useEffect(() => {
-    const canUpdate =
-      activeIdx > maxSideIdxReached &&
-      nav.step !== "exito" &&
-      (nav.step !== "revision" || nav.allowedSteps?.has("form_extras"));
-    if (canUpdate) setMaxSideIdxReached(activeIdx);
-  }, [activeIdx, maxSideIdxReached, nav.step, nav.allowedSteps]);
+  if (
+    activeIdx > maxSideIdxReached &&
+    nav.step !== "exito" &&
+    (nav.step !== "revision" || nav.allowedSteps?.has("form_extras"))
+  ) {
+    setMaxSideIdxReached(activeIdx);
+  }
 
   const { safeWidth, stepWidth, targetX } = useMemo(() => {
     const sw = Math.max(0, trackWidth - 6);
@@ -401,8 +402,8 @@ export const AppShell: React.FC<AppShellProps> = ({
                           return;
                         }
 
-                        if (isClickable) {
-                          const dIdx = nav.dotSteps.indexOf(s.id);
+                     if (isClickable) {
+                          const dIdx = (nav.dotSteps || []).indexOf(s.id);
                           if (dIdx !== -1) actions.goToDotIndex(dIdx);
                           else
                             actions.goTo(
