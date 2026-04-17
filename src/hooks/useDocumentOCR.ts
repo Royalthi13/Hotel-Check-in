@@ -89,35 +89,35 @@ async function loadExifCorrectedBlob(file: File): Promise<Blob> {
 function filterOcrGarbage(raw: string): string {
   if (!raw) return "";
 
-  // 1. EL HACHAZO ORTOGRÁFICO (El definitivo)
   const textoLimpio = raw.replace(
     /([A-ZÁÉÍÓÚÑa-záéíóúñ])?([KLXZ<]{3,}.*$)/i,
     (_match, prevChar, garbage) => {
       if (!prevChar) return "";
 
-      const isVowel = /[AEIOUÁÉÍÓÚaeiouáéíóú]/i.test(prevChar);
-
-      if (garbage.toUpperCase().startsWith("L") && isVowel) {
-        return prevChar + "L";
+      // Si la basura empieza por L...
+      if (garbage.toUpperCase().startsWith("L")) {
+        // Solo salvamos la 'L' si la letra anterior es E, I o U.
+        // Salva a: Manuel, Daniel, Miguel, Raúl, Isabel.
+        // Protege a: Laura, María, Mateo, Antonio (no les pone la L extra).
+        if (/[EIUÉÍÚeiuéíú]/i.test(prevChar)) {
+          return prevChar + "L";
+        }
       }
 
+      // Para A, O, consonantes, y basuras con K, Z, X... cortamos a ras.
       return prevChar;
     },
   );
 
-  // 2. Limpieza de palabras sueltas
   return textoLimpio
     .split(/\s+/)
     .filter((word) => {
       if (!word || word.length < 2) return false;
       const vowels = (word.match(/[AEIOUaeiouÁÉÍÓÚáéíóú]/g) || []).length;
       const vowelRatio = vowels / word.length;
-
       if (vowelRatio < 0.15 && word.length > 2) return false;
-
       const uniqueChars = new Set(word.toUpperCase()).size;
       if (uniqueChars <= 2 && word.length >= 5) return false;
-
       return true;
     })
     .map((w) => (w ? w[0].toUpperCase() + w.slice(1).toLowerCase() : ""))
@@ -166,7 +166,6 @@ function parseDate(yymmdd: string | null | undefined): string {
   if (fullYear > currentYear) {
     fullYear = 1900 + yy;
   }
-
   return `${fullYear}-${mm}-${dd}`;
 }
 
@@ -182,8 +181,6 @@ function scoreResult(p: ParseResult): number {
   const rel = p.details.filter((d) => d.field !== null);
   return rel.length === 0 ? 0 : rel.filter((d) => d.valid).length / rel.length;
 }
-
-// ─── Líneas candidatas MRZ ────────────────────────────────────────────────────
 
 function fitLine(line: string, len: number) {
   return line.length >= len ? line.slice(0, len) : line.padEnd(len, "<");
@@ -319,16 +316,10 @@ function mrzToGuest(parsed: ParseResult): Partial<PartialGuestData> {
       out.numDoc = passNum;
     }
   }
-
   return out;
 }
 
 // ─── DOMICILIO: parsear el texto del reverso del DNI ─────────────────────────
-
-// ─── DOMICILIO: parsear el texto del reverso del DNI ─────────────────────────
-
-// ─── DOMICILIO: parsear el texto del reverso del DNI ─────────────────────────
-
 function parseDniBackAddress(text: string): Partial<PartialGuestData> {
   const out: Partial<PartialGuestData> = {};
   if (!text) return out;
@@ -339,7 +330,7 @@ function parseDniBackAddress(text: string): Partial<PartialGuestData> {
     .map((l) => l.trim())
     .filter((l) => l.length > 0);
 
-  // 2. Buscamos DOMICILIO
+  // 2. Buscamos DOMICILIO (Punto de ancla seguro)
   const domIdx = validLines.findIndex((l) =>
     /domicili[oa]?|adre[çc]a|helbidea|enderezo/i.test(l),
   );
@@ -347,7 +338,7 @@ function parseDniBackAddress(text: string): Partial<PartialGuestData> {
 
   const contentLines = validLines.slice(domIdx + 1);
 
-  // 3. Intentar cazar el CP (por si hay suerte)
+  // 3. Intentar cazar el CP
   for (const line of contentLines) {
     const cpMatch = line.match(/\b(\d{5})\b/);
     if (cpMatch) {
@@ -356,14 +347,14 @@ function parseDniBackAddress(text: string): Partial<PartialGuestData> {
     }
   }
 
-  // 4. Limpiar líneas de basura (como "<<<")
+  // 4. Limpiar líneas de basura y códigos
   const textLines = contentLines.filter((l) => {
     if (/[<]{2,}/.test(l)) return false;
     if (l.replace(/[^a-zA-Z0-9]/g, "").length < 1) return false;
     return true;
   });
 
-  // 5. DIRECCIÓN: Cogemos las primeras líneas
+  // 5. DIRECCIÓN: Cogemos las primeras líneas útiles
   const addressParts = [];
   for (let i = 0; i < Math.min(3, textLines.length); i++) {
     const l = textLines[i];
@@ -376,9 +367,8 @@ function parseDniBackAddress(text: string): Partial<PartialGuestData> {
     out.direccion = titleCase(addressParts.join(" ").replace(/\s{2,}/g, " "));
   }
 
-  // 6. CIUDAD Y PROVINCIA (CON FILTRO ANTI-BASURA)
+  // 6. CIUDAD Y PROVINCIA (Filtro Anti-Azuqueca oe ie)
   const cleanLocation = (raw: string) => {
-    // Lista de preposiciones/artículos válidos en España
     const validPreps = new Set([
       "de",
       "del",
@@ -394,13 +384,11 @@ function parseDniBackAddress(text: string): Partial<PartialGuestData> {
       "d",
       "s",
     ]);
-
     return raw
       .split(/\s+/)
       .filter((word) => {
         const w = word.toLowerCase().replace(/[^a-zñáéíóúü]/g, "");
         if (!w) return false;
-        // Si la palabra tiene 1 o 2 letras, SOLO sobrevive si está en la lista válida
         if (w.length <= 2 && !validPreps.has(w)) return false;
         return true;
       })
@@ -426,7 +414,6 @@ function parseDniBackAddress(text: string): Partial<PartialGuestData> {
 }
 
 // ─── Preprocesado image-js ────────────────────────────────────────────────────
-
 interface PrepVariant {
   dataURL: string;
   psm: PSM;
@@ -456,7 +443,6 @@ async function buildMrzVariants(exifBlob: Blob): Promise<{
 
   const mrzW = Math.max(MRZ_TARGET_W, Math.round(width * 2.8));
   const fullW = Math.max(1600, width);
-
   const variants: PrepVariant[] = [];
 
   const zones = [
@@ -517,7 +503,6 @@ function buildAddressVariant(
   try {
     const addrH = Math.floor(height * 0.45);
     const addrW = Math.max(1400, Math.round(width * 1.8));
-
     const crop = grey.crop({
       origin: { row: 0, column: 0 },
       width,
@@ -532,7 +517,6 @@ function buildAddressVariant(
 }
 
 // ─── Singleton Tesseract ──────────────────────────────────────────────────────
-
 type TWorker = Awaited<ReturnType<typeof createWorker>>;
 let _worker: TWorker | null = null;
 let _ready = false;
@@ -593,11 +577,8 @@ async function runTextOCR(worker: TWorker, dataURL: string): Promise<string> {
 }
 
 // ─── Hook principal ───────────────────────────────────────────────────────────
-
-// ─── Hook principal ───────────────────────────────────────────────────────────
-
 export function useDocumentOCR() {
-  const { t } = useTranslation(); // <--- INYECTAMOS I18N AQUÍ
+  const { t } = useTranslation();
   const [isProcessing, setIsProcessing] = useState(false);
   const [progress, setProgress] = useState<OCRProgress>({ fase: "", pct: 0 });
   const cancelRef = useRef(false);
@@ -619,10 +600,7 @@ export function useDocumentOCR() {
           exifBlob = await loadExifCorrectedBlob(file);
         } catch (err) {
           console.error("[OCR] EXIF:", err);
-          return {
-            ok: false,
-            error: t("ocr.err_format"),
-          };
+          return { ok: false, error: t("ocr.err_format") };
         }
 
         let mrzVariants: PrepVariant[];
@@ -637,10 +615,7 @@ export function useDocumentOCR() {
           height = built.height;
         } catch (err) {
           console.error("[OCR] buildVariants:", err);
-          return {
-            ok: false,
-            error: t("ocr.err_size"),
-          };
+          return { ok: false, error: t("ocr.err_size") };
         }
 
         if (cancelRef.current || _terminating) return { ok: false };
@@ -659,7 +634,6 @@ export function useDocumentOCR() {
           if (cancelRef.current || _terminating) break;
 
           const pct = 25 + Math.round((i / total) * 50);
-
           let faseMsg = "";
           if (i === 0) {
             faseMsg = t("ocr.reading_mrz");
@@ -693,10 +667,7 @@ export function useDocumentOCR() {
         if (cancelRef.current || _terminating) return { ok: false };
 
         if (!best) {
-          return {
-            ok: false,
-            error: t("ocr.err_not_found"),
-          };
+          return { ok: false, error: t("ocr.err_not_found") };
         }
 
         if (best.score < MIN_SCORE) {
@@ -710,7 +681,6 @@ export function useDocumentOCR() {
 
         setFase(t("ocr.reading_address"), 78);
         const mrzData = mrzToGuest(best.result);
-
         let addressData: Partial<PartialGuestData> = {};
 
         if (
@@ -722,11 +692,14 @@ export function useDocumentOCR() {
             const addrDataURL = buildAddressVariant(grey, width, height);
             if (addrDataURL) {
               const addrText = await runTextOCR(worker, addrDataURL);
+
               console.log("=========================================");
               console.log("👀 TEXTO BRUTO QUE LEE EL ESCÁNER:");
               console.log(addrText);
               console.log("=========================================");
+
               addressData = parseDniBackAddress(addrText);
+
               console.log("🧩 LO QUE EL ESCÁNER HA INTENTADO EXTRAER:");
               console.log(addressData);
               console.log("=========================================");
@@ -758,7 +731,7 @@ export function useDocumentOCR() {
         setIsProcessing(false);
       }
     },
-    [setFase, t], // <-- IMPORTANTE: t debe estar en las dependencias
+    [setFase, t],
   );
 
   const terminate = useCallback(async () => {
