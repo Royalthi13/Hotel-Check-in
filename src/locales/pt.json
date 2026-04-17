@@ -1,5 +1,12 @@
 {
   "constants": {
+    "documentos": {
+      "NIF": "Cartão de Cidadão / NIF",
+      "NIE": "NIE",
+      "CIF": "NIPC (Empresa)",
+      "PAS": "Passaporte",
+      "OTRO": "Outro documento"
+    },
     "paises": {
       "ES": "Espanha",
       "PT": "Portugal",
@@ -76,15 +83,6 @@
       "Argentina": "Argentina",
       "Mexicana": "Mexicana",
       "Otra": "Outra"
-    },
-    "documentos": {
-      "DNI": "RG/DNI",
-      "NIF": "NIF",
-      "CIF": "CIF",
-      "Pasaporte": "Passaporte",
-      "NIE": "NIE",
-      "Carnet de conducir": "Carta de condução",
-      "Otro": "Outro"
     },
     "sexos": {
       "Hombre": "Homem",
@@ -257,54 +255,32 @@
     "card_manual_sub_known": "Verifique os dados que temos guardados."
   },
   "forms": {
-    "adult_tag": " - Adulto",
-    "invalid_date_title": "Data incorreta!",
-    "adult_must_be_18": "Um adulto deve ter pelo menos 18 anos.",
-    "minor_must_be_under_18": "Um menor não pode ter 18 anos ou mais.",
-    "minor_data": "Dados do menor",
-    "main_guest_tag": " · Titular da reserva",
-    "minor_tag": " · Menor",
-    "main_guest_not_minor": "O titular não pode ser menor.",
-    "enter_correct_date": "Por favor, introduza a data correta.",
-    "second_surname": "Segundo apelido",
-    "contact_subtitle": "Dados para confirmação do registo",
-    "address_habitual": "Morada habitual",
-    "location": "Localização",
-    "field_from_reservation": "Este campo é preenchido a partir da reserva e não pode ser modificado",
-    "main_guest_paren": " (Titular)",
-    "vat": "NIF / VAT",
-    "photo": "Foto",
-    "address": "Morada",
     "personal_title": "Dados pessoais",
+    "minor_data": "Dados do menor",
     "guest_counter": "Hóspede {{current}} de {{total}}",
     "name": "Nome",
     "surname": "Apelido",
+    "second_surname": "Segundo apelido",
     "gender": "Sexo",
     "birthdate": "Data de nascimento *",
-    "not_adult_error": "Ação não permitida. O titular tem de ser adulto.",
-    "minor_links_title": "Vínculos do menor com o grupo",
-    "adult_links_title": "Relação com menores no grupo",
-    "rel_minor_to_guest": "Introduza o parentesco do menor com o Hóspede {{numero}}",
-    "rel_guest_to_minor": "Parentesco do Hóspede {{numero}} com o menor",
-    "nationality": "Nacionalidade",
-    "contact_title": "Contacto",
-    "country": "País",
-    "zipcode": "Código Postal",
-    "province": "Província",
-    "city": "Cidade",
     "doc_title": "Documento",
-    "doc_subtitle": "Identificação do hóspede {{current}} de {{total}}",
     "doc_type": "Tipo de documento",
-    "doc_number": "Número",
+    "doc_number": "Número do documento",
     "doc_support": "Número de suporte",
     "doc_support_hint": "Código alfanumérico no canto superior direito (DNI) ou no verso (NIE).",
-    "upload_photo": "Fazer upload da foto do verso do documento",
-    "photo_uploaded": "Documento carregado",
-    "next_guest": "Próximo hóspede",
-    "full_name": "Nome completo",
-    "birthdate_clean": "Data de nascimento",
-    "email": "Email",
-    "phone": "Telefone"
+    "email": "E-mail",
+    "phone": "Telemóvel",
+    "address": "Morada",
+    "location": "Localização",
+    "country": "País",
+    "zipcode": "Código Postal",
+    "province": "Distrito / Província",
+    "city": "Localidade / Cidade"
+  },
+  "sexos": {
+    "Hombre": "Homem",
+    "Mujer": "Mulher",
+    "No indicar": "Não indicar"
   },
   "scan": {
     "title": "Digitalizar documento",
@@ -410,6 +386,7 @@
     "btn_reload": "Recarregar página",
     "footer": "Se o problema persistir, contacte a receção."
   },
+
   "minors": {
     "this_minor": "este/a menor",
     "declare_adult_1": "Declaro que ",

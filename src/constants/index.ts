@@ -21,7 +21,6 @@ export const COLORS = {
   errBg: "#fdf2f2",
 } as const;
 
-// FIX: pais usa código ISO2 "ES", no el string "España".
 // Todos los selectores de país en el frontend usan códigos ISO2.
 export const MOCK_KNOWN_GUEST: GuestData = {
   nombre: "",
@@ -36,8 +35,8 @@ export const MOCK_KNOWN_GUEST: GuestData = {
   ciudad: "",
   provincia: "",
   cp: "",
-  pais: "ES", // ← FIX: antes era "España", rompía el selector en modo dev
-  tipoDoc: "DNI",
+  pais: "ESP",
+  tipoDoc: "NIF",
   numDoc: "",
   vat: "",
   esMenor: false,

@@ -1,83 +1,58 @@
-import { useState, useCallback } from "react";
-import type { PartialGuestData } from "@/types";
-import { INE_A_PROVINCIA } from "./usePlaces";
+import { useState } from "react";
 
-type OnChangeFn = (key: keyof PartialGuestData, value: unknown) => void;
-
-const PAIS_A_ISO2: Record<string, string> = {
-  GB: "gb",
-  FR: "fr",
-  DE: "de",
-  IT: "it",
-  NL: "nl",
-  BE: "be",
-  PT: "pt",
-  IE: "ie",
-  US: "us",
-  CH: "ch",
-  SE: "se",
-  NO: "no",
-  DK: "dk",
-  AT: "at",
-  PL: "pl",
-  FI: "fi",
-  MX: "mx",
-  AR: "ar",
-  CO: "co",
-  CA: "ca",
-  AU: "au",
-  NZ: "nz",
-  BR: "br",
-  CL: "cl",
-};
-
-interface ZippopotamPlace {
-  "place name": string;
-  state: string;
-}
-
-interface ZippopotamResponse {
-  places: ZippopotamPlace[];
-}
-
-export function useZipCode(onChange: OnChangeFn) {
+export const useZipCode = (onUpdate: (key: string, value: string) => void) => {
   const [isSearching, setIsSearching] = useState(false);
 
-  const buscarCP = useCallback(
-    async (cp: string, pais: string) => {
-      if (!cp.trim() || !pais) return;
-      setIsSearching(true);
+  const buscarCP = async (cp: string, paisISO: string = "ES") => {
+    if (!cp) return;
 
-      try {
-        if (pais === "ES") {
-          const provCode = cp.substring(0, 2);
-          if (INE_A_PROVINCIA[provCode]) {
-            onChange("provincia", INE_A_PROVINCIA[provCode]);
-          }
-        } else {
-          const iso2 = PAIS_A_ISO2[pais];
-          if (!iso2) return;
+    setIsSearching(true);
+    try {
+      // Normalizamos el código de país a 2 letras (ES, FR, PT...)
+      const iso2 = paisISO.substring(0, 2).toUpperCase();
 
-          const res = await fetch(
-            `https://api.zippopotam.us/${iso2}/${cp.trim()}`,
-          );
-          if (!res.ok) return;
+      if (iso2 === "ES") {
+        // --- CASO ESPAÑA: Backend Propio ---
+        // El codcity de tu backend es el CP con un 0 delante (ej: "28003" -> "028003")
+        // Usamos padStart(6, '0') para asegurar que tenga 6 dígitos empezando por 0
+        const codCityBackend = cp.padStart(6, "0");
 
-          const data: ZippopotamResponse = await res.json();
-          const place = data?.places?.[0];
+        const response = await fetch(`/api/cities/${codCityBackend}`);
 
-          if (place) {
-            if (place["place name"]) onChange("ciudad", place["place name"]);
-            if (place.state) onChange("provincia", place.state);
+        if (!response.ok) throw new Error("Ciudad no encontrada en backend");
+
+        const data = await response.json();
+
+        // Si tu backend devuelve { nombre: "Madrid", ... }
+        if (data && data.nombre) {
+          onUpdate("ciudad", data.nombre);
+
+          // Nota: Si el backend no devuelve provincia, puedes intentar sacarla
+          // de los 2 primeros dígitos del CP (28 = Madrid, 08 = Barcelona, etc.)
+          // Pero por ahora solo rellenamos lo que el backend confirma.
+        }
+      } else {
+        // --- RESTO DEL MUNDO: Zippopotam ---
+        const codigoPaisLcase = iso2.toLowerCase();
+        const response = await fetch(
+          `https://api.zippopotam.us/${codigoPaisLcase}/${cp}`,
+        );
+
+        if (response.ok) {
+          const data = await response.json();
+          if (data.places && data.places.length > 0) {
+            const lugar = data.places[0];
+            onUpdate("ciudad", lugar["place name"]);
+            onUpdate("provincia", lugar["state"]);
           }
         }
-      } catch {
-      } finally {
-        setIsSearching(false);
       }
-    },
-    [onChange],
-  );
+    } catch (error) {
+      console.warn("Error en búsqueda de CP:", error);
+    } finally {
+      setIsSearching(false);
+    }
+  };
 
   return { buscarCP, isSearching };
-}
+};

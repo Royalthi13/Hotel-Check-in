@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { Button, Alert } from "@/components/ui";
 import { getRelationships } from "@/api/catalogs.service";
@@ -7,7 +7,6 @@ import {
   Box,
   Typography,
   Paper,
-  Checkbox,
   FormControl,
   Select,
   MenuItem,
@@ -36,54 +35,56 @@ export const ScreenRelacionesMenor: React.FC<Props> = ({
 }) => {
   const { t } = useTranslation();
   const [touched, setTouched] = useState(false);
-
-  // --- MAGIA DE LA API: Guardamos aquí la lista de la base de datos ---
   const [listaRelaciones, setListaRelaciones] = useState<RelacionDB[]>([]);
 
+  // 1. Cargar relaciones desde la API
   useEffect(() => {
     const cargarRelaciones = async () => {
       try {
         const datos = await getRelationships();
         setListaRelaciones(datos);
       } catch (error) {
-        console.error("Error al cargar las relaciones de la BD:", error);
+        console.error("Error cargando relaciones:", error);
       }
     };
     cargarRelaciones();
   }, []);
-  // ----------------------------------------------------------------------
 
-  const [expandedIds, setExpandedIds] = useState<number[]>(() => {
-    const adultosValidosIds = adultos.map((a) => a.originalIndex);
-    const relacionesPreviasReales = (menor.relacionesConAdultos || [])
-      .filter((r) => adultosValidosIds.includes(r.adultoIndex))
-      .map((r) => r.adultoIndex);
+  // 2. 🛡️ FILTRO ULTRA-SEGURO (A prueba de bombas)
+  const relacionesFiltradas = useMemo(() => {
+    if (!Array.isArray(listaRelaciones)) return [];
 
-    if (relacionesPreviasReales.length > 0) return relacionesPreviasReales;
-    if (adultos.length === 1) return [adultos[0].originalIndex];
-    return [];
-  });
+    const codigosBloqueados = ["HJ", "NI", "HI", "CN", "CY", "CO"];
 
-  const tieneNombre = menor.nombre || menor.apellido;
-  const nombreMenor = tieneNombre
-    ? [menor.nombre, menor.apellido].filter(Boolean).join(" ")
-    : t("minors.this_minor", "este/a menor");
-  const relaciones = menor.relacionesConAdultos ?? [];
+    return listaRelaciones.filter((r) => {
+      if (!r || !r.codrelation) return false;
 
-  const toggleAdulto = (idx: number) => {
-    if (expandedIds.includes(idx)) {
-      setExpandedIds((prev) => prev.filter((id) => id !== idx));
-      onRelacionChange(idx, "");
-    } else {
-      setExpandedIds((prev) => [...prev, idx]);
-    }
-  };
+      const codigo = r.codrelation.toUpperCase();
+      const nombre = (r.name || "").toLowerCase();
 
+      const porCodigo = !codigosBloqueados.includes(codigo);
+      const porNombre =
+        !nombre.includes("conyuge") &&
+        !nombre.includes("hijo") &&
+        !nombre.includes("nieto");
+
+      return porCodigo && porNombre;
+    });
+  }, [listaRelaciones]);
+
+  const nombreMenor =
+    [menor.nombre, menor.apellido].filter(Boolean).join(" ") ||
+    t("minors.this_minor");
+  const relacionesGuardadas = menor.relacionesConAdultos ?? [];
+
+  // 3. Validación ultra estricta: TODOS los adultos deben tener parentesco
   const esValido =
-    expandedIds.length > 0 &&
-    expandedIds.every((id) => {
-      const relacion = relaciones.find((r) => r.adultoIndex === id);
-      return relacion && relacion.parentesco !== "";
+    adultos.length > 0 &&
+    adultos.every((adulto) => {
+      const r = relacionesGuardadas.find(
+        (rel) => rel.adultoIndex === adulto.originalIndex,
+      );
+      return r && r.parentesco !== "";
     });
 
   return (
@@ -98,178 +99,140 @@ export const ScreenRelacionesMenor: React.FC<Props> = ({
             color: "var(--text)",
           }}
         >
-          {t("minors.relationship_title", "Tutoría de Menores")}
+          {t("minors.relationship_title")}
         </Typography>
         <Typography
           variant="body1"
           color="text.secondary"
           sx={{ fontSize: "var(--fs-sm)" }}
         >
-          {t("minors.declare_relationship_1", "Declare la relación con ")}
-          <strong>{nombreMenor}</strong>
-          {t("minors.declare_relationship_2", " con cada adulto del grupo.")}
+          {t("minors.declare_relationship_1")} <strong>{nombreMenor}</strong>{" "}
+          {t("minors.declare_relationship_2")}
         </Typography>
       </Box>
 
       <Box sx={{ p: { xs: 2, sm: 3 }, flex: 1 }}>
         <Alert variant="warm" style={{ marginBottom: 20 }}>
-          <strong>{t("minors.legal_warning_title", "Aviso Legal: ")}</strong>
-          {t(
-            "minors.legal_warning_text",
-            "Todo menor debe estar vinculado a un adulto responsable de la reserva.",
-          )}
+          <strong>{t("minors.legal_warning_title")}</strong>{" "}
+          {t("minors.legal_warning_text")}
         </Alert>
 
         <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
           {adultos.map((adulto) => {
-            const isSelected = expandedIds.includes(adulto.originalIndex);
-            const parentesco =
-              relaciones.find((r) => r.adultoIndex === adulto.originalIndex)
-                ?.parentesco || "";
+            // Buscamos si ya ha seleccionado algo para limpiarlo si es inválido
+            let parentescoActual =
+              relacionesGuardadas.find(
+                (r) => r.adultoIndex === adulto.originalIndex,
+              )?.parentesco || "";
+
+            if (["HJ", "NI", "CN", "CY", "CO"].includes(parentescoActual)) {
+              parentescoActual = "";
+            }
+
             const nombreAdulto =
               [adulto.nombre, adulto.apellido].filter(Boolean).join(" ") ||
               (adulto.originalIndex === 0
-                ? t("common.main_guest", "Titular de la Reserva")
-                : t("forms.adult_tag", "Acompañante Adulto"));
+                ? t("common.main_guest")
+                : t("forms.adult_tag"));
 
             return (
               <Paper
                 key={adulto.originalIndex}
-                elevation={isSelected ? 3 : 0}
-                onClick={() => toggleAdulto(adulto.originalIndex)}
+                elevation={0}
                 sx={{
                   p: 2,
                   borderRadius: "16px",
                   border: "2px solid",
-                  borderColor: isSelected
+                  borderColor: parentescoActual
                     ? "var(--primary)"
-                    : "var(--border-lt)",
-                  bgcolor: isSelected ? "var(--primary-lt)" : "#fff",
-                  cursor: "pointer",
+                    : touched
+                      ? "var(--err)"
+                      : "var(--border)",
+                  bgcolor: parentescoActual ? "var(--primary-lt)" : "#fff",
                   transition: "all 0.2s ease",
-                  "&:hover": { borderColor: "var(--primary)" },
                 }}
               >
-                <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-                  <Checkbox
-                    checked={isSelected}
-                    sx={{
-                      p: 0,
-                      color: "var(--primary)",
-                      "&.Mui-checked": { color: "var(--primary)" },
-                    }}
-                  />
-                  <Box sx={{ flex: 1 }}>
+                <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                  <Box>
                     <Typography
                       variant="subtitle1"
-                      sx={{
-                        fontWeight: 600,
-                        lineHeight: 1.2,
-                        color: "var(--text)",
-                      }}
+                      sx={{ fontWeight: 600, color: "var(--text)" }}
                     >
                       {nombreAdulto}
                     </Typography>
                     <Typography variant="caption" color="text.secondary">
                       {adulto.originalIndex === 0
-                        ? t("common.main_guest", "Huésped Principal")
-                        : t("forms.adult_tag", "Adulto")}
+                        ? t("common.main_guest")
+                        : t("forms.adult_tag")}
+                    </Typography>
+                  </Box>
+
+                  <Box
+                    sx={{
+                      display: "flex",
+                      alignItems: "center",
+                      flexWrap: "wrap",
+                      gap: 1,
+                      backgroundColor: "rgba(255,255,255,0.7)",
+                      p: 1.5,
+                      borderRadius: "12px",
+                    }}
+                  >
+                    <Typography sx={{ color: "var(--text)", fontSize: "14px" }}>
+                      {t("minors.declare_adult_1")}{" "}
+                      <strong>{nombreAdulto}</strong>{" "}
+                      {t("minors.declare_adult_2")}
+                    </Typography>
+
+                    <FormControl
+                      size="small"
+                      sx={{ minWidth: 160, flexGrow: 1 }}
+                    >
+                      <Select
+                        displayEmpty
+                        value={parentescoActual}
+                        onChange={(e) =>
+                          onRelacionChange(
+                            adulto.originalIndex,
+                            e.target.value as string,
+                          )
+                        }
+                        sx={{
+                          borderRadius: "8px",
+                          bgcolor: "#fff",
+                          fontWeight: 600,
+                          color: parentescoActual
+                            ? "var(--primary-d)"
+                            : "var(--text-mid)",
+                          "& .MuiOutlinedInput-notchedOutline": {
+                            borderColor: parentescoActual
+                              ? "var(--primary)"
+                              : "var(--err)",
+                            borderWidth: "1.5px",
+                          },
+                        }}
+                      >
+                        <MenuItem value="" disabled>
+                          <em>
+                            {t("minors.select_relationship", "Seleccionar...")}
+                          </em>
+                        </MenuItem>
+                        {relacionesFiltradas.map((rel) => (
+                          <MenuItem
+                            key={rel.codrelation}
+                            value={rel.codrelation}
+                          >
+                            {t(`parentescos.${rel.codrelation}`, rel.name)}
+                          </MenuItem>
+                        ))}
+                      </Select>
+                    </FormControl>
+
+                    <Typography sx={{ color: "var(--text)", fontSize: "14px" }}>
+                      {t("common.of")} <strong>{nombreMenor}</strong>.
                     </Typography>
                   </Box>
                 </Box>
-
-                {isSelected && (
-                  <Box
-                    sx={{
-                      mt: 2,
-                      pt: 2,
-                      borderTop: "1px solid rgba(250,134,92,0.2)",
-                    }}
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    <Box
-                      sx={{
-                        display: "flex",
-                        alignItems: "center",
-                        flexWrap: "wrap",
-                        gap: 1,
-                        backgroundColor: "rgba(255,255,255,0.7)",
-                        p: 2,
-                        borderRadius: "12px",
-                      }}
-                    >
-                      <Typography
-                        sx={{ color: "var(--text)", fontSize: "15px" }}
-                      >
-                        {t("minors.declare_adult_1", "Declaro que ")}
-                        <strong>{nombreAdulto}</strong>
-                        {t("minors.declare_adult_2", " actúa en calidad de")}
-                      </Typography>
-
-                      <FormControl
-                        size="small"
-                        sx={{ minWidth: 160, flexGrow: 1 }}
-                      >
-                        <Select
-                          displayEmpty
-                          value={parentesco || ""} // <-- El || "" es VITAL para que pille el placeholder
-                          onChange={(e) =>
-                            onRelacionChange(
-                              adulto.originalIndex,
-                              e.target.value,
-                            )
-                          }
-                          sx={{
-                            borderRadius: "8px",
-                            bgcolor: "#fff",
-                            fontWeight: 600,
-                            color: parentesco
-                              ? "var(--primary-d)"
-                              : "var(--text-mid)",
-                            "& .MuiOutlinedInput-notchedOutline": {
-                              borderColor: parentesco
-                                ? "var(--primary)"
-                                : "var(--border)",
-                              borderWidth: "1.5px",
-                            },
-                            "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
-                              borderColor: "var(--primary)",
-                            },
-                          }}
-                        >
-                          {/* EL PLACEHOLDER (Solo se ve si no hay nada seleccionado) */}
-                          <MenuItem value="" disabled>
-                            <em style={{ color: "gray" }}>
-                              {t(
-                                "minors.select_relationship",
-                                "Seleccionar...",
-                              )}
-                            </em>
-                          </MenuItem>
-
-                          {/* LAS OPCIONES (Se traducen automáticamente con i18n) */}
-                          {listaRelaciones.map((relacion) => (
-                            <MenuItem
-                              key={relacion.codrelation}
-                              value={relacion.codrelation}
-                            >
-                              {t(
-                                `parentescos.${relacion.codrelation}`,
-                                relacion.name,
-                              )}
-                            </MenuItem>
-                          ))}
-                        </Select>
-                      </FormControl>
-                      <Typography
-                        sx={{ color: "var(--text)", fontSize: "15px" }}
-                      >
-                        {t("common.of", "de ")}
-                        <strong>{nombreMenor}</strong>.
-                      </Typography>
-                    </Box>
-                  </Box>
-                )}
               </Paper>
             );
           })}
@@ -277,6 +240,13 @@ export const ScreenRelacionesMenor: React.FC<Props> = ({
       </Box>
 
       <div className="spacer" />
+
+      {touched && !esValido && (
+        <Box sx={{ px: "var(--px)", mb: 2 }}>
+          <Alert variant="err">{t("validation.missing_relationships")}</Alert>
+        </Box>
+      )}
+
       <Box
         className="btn-row"
         sx={{
@@ -293,7 +263,7 @@ export const ScreenRelacionesMenor: React.FC<Props> = ({
             disabled={isSubmitting}
             style={{ flex: 1, minWidth: "160px" }}
           >
-            {t("common.save_partial", "Guardar y Pausar")}
+            {t("common.save_partial")}
           </Button>
         )}
         <Button
@@ -306,7 +276,7 @@ export const ScreenRelacionesMenor: React.FC<Props> = ({
           iconRight="right"
           style={{ flex: 2, minWidth: "200px" }}
         >
-          {t("common.continue", "Continuar")}
+          {t("common.continue")}
         </Button>
       </Box>
     </Box>

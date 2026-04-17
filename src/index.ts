@@ -35,9 +35,6 @@ export {
   HORAS_LLEGADA,
 SEXOS,
   DOT_STEPS_BASE,
-  DOT_LABELS,
-  FLOW_STEPS_LINK,
-  MOCK_KNOWN_GUEST,
 } from "./constants";
 
 // Componentes UI

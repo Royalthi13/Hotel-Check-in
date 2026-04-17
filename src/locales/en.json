@@ -78,13 +78,11 @@
       "Otra": "Other"
     },
     "documentos": {
-      "DNI": "ID Card",
-      "NIF": "NIF",
-      "CIF": "CIF",
-      "Pasaporte": "Passport",
+      "NIF": "ID Card / NIF",
       "NIE": "NIE",
-      "Carnet de conducir": "Driver's license",
-      "Otro": "Other"
+      "CIF": "Company Tax ID (CIF)",
+      "PAS": "Passport",
+      "OTRO": "Other"
     },
     "sexos": {
       "Hombre": "Male",
