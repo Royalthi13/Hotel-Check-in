@@ -327,69 +327,63 @@ function mrzToGuest(parsed: ParseResult): Partial<PartialGuestData> {
 
 function parseDniBackAddress(text: string): Partial<PartialGuestData> {
   const out: Partial<PartialGuestData> = {};
-  if (!text || text.length < 5) return out;
+  if (!text) return out;
 
   const lines = text
     .split("\n")
-    .map((l) => l.trim())
-    .filter((l) => l.length > 1);
+    .map((l) => l.replace(/[|]/g, "I").trim())
+    .filter((l) => l.length > 2);
 
   if (lines.length === 0) return out;
 
-  const domRe =
-    /domicili[oa]?|adre[çc]a|helbidea|enderezo|direcci[oó]n|adre[cç]/i;
-  let startIdx = lines.findIndex((l) => domRe.test(l));
-  if (startIdx >= 0) {
-    startIdx++;
-  } else {
-    startIdx = 0;
-  }
+  let cpIndex = -1;
+  let cpMatch = null;
 
-  while (startIdx < lines.length && lines[startIdx].length < 4) startIdx++;
-
-  if (startIdx >= lines.length) return out;
-
-  const streetLine = lines[startIdx];
-  if (streetLine && !/^\d{5}/.test(streetLine)) {
-    const cleanStreet = streetLine
-      .replace(/[|]{1,}/g, "")
-      .replace(/\s{2,}/g, " ")
-      .trim();
-    if (cleanStreet.length >= 4) {
-      out.direccion = titleCase(cleanStreet);
-      startIdx++;
+  for (let i = 0; i < lines.length; i++) {
+    const match = lines[i].match(/\b(\d{5})\b\s*(.*)/);
+    if (match) {
+      cpIndex = i;
+      cpMatch = match;
+      break;
     }
   }
 
-  for (let i = startIdx; i < Math.min(startIdx + 4, lines.length); i++) {
-    const line = lines[i];
+  if (cpIndex === -1) return out;
 
-    // eslint-disable-next-line no-useless-escape
-    const cpMatch = line.match(/(\d{5})\s+([A-ZÁÉÍÓÚÑa-záéíóúñ\/\-'·\s]+)/i);
-    if (!cpMatch) continue;
+  out.cp = cpMatch![1];
+  const restOfLine = cpMatch![2].trim();
 
-    out.cp = cpMatch[1];
-    const cityPart = cpMatch[2].trim();
+  const splitRe = /^(.+?)\s{2,}([A-ZÁÉÍÓÚÑa-záéíóúñ\s]+)$/;
+  const splitMatch = restOfLine.match(splitRe);
 
-    const splitRe = /^(.+?)\s{2,}([A-ZÁÉÍÓÚÑ][A-ZÁÉÍÓÚÑa-záéíóúñ\s]+)\s*$/;
-    const splitMatch = cityPart.match(splitRe);
-
-    if (splitMatch) {
-      out.ciudad = titleCase(splitMatch[1].trim());
-      out.provincia = titleCase(splitMatch[2].trim());
-    } else {
-      out.ciudad = titleCase(cityPart.trim());
-      const next = lines[i + 1];
-      if (
-        next &&
-        next.length >= 3 &&
-        !/^\d{5}/.test(next) &&
-        !domRe.test(next)
-      ) {
-        out.provincia = titleCase(next.trim());
+  if (splitMatch) {
+    out.ciudad = titleCase(splitMatch[1].trim());
+    out.provincia = titleCase(splitMatch[2].trim());
+  } else {
+    out.ciudad = titleCase(restOfLine);
+    if (cpIndex + 1 < lines.length) {
+      const nextLine = lines[cpIndex + 1];
+      if (!/</.test(nextLine) && nextLine.length > 3) {
+        out.provincia = titleCase(nextLine);
       }
     }
-    break;
+  }
+
+  const domRe = /domicili[oa]?|adre[çc]a|helbidea|enderezo/i;
+  const streetParts = [];
+
+  for (let i = cpIndex - 1; i >= 0; i--) {
+    const line = lines[i];
+
+    if (domRe.test(line) || /LUGAR/i.test(line)) break;
+
+    streetParts.unshift(line);
+
+    if (cpIndex - i >= 2) break;
+  }
+
+  if (streetParts.length > 0) {
+    out.direccion = titleCase(streetParts.join(", "));
   }
 
   return out;
