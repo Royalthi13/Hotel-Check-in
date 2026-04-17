@@ -402,6 +402,23 @@
     "li_2": "Votre chambre nécessite une vérification.",
     "li_3": "L'inscription a déjà été effectuée."
   },
+  "ocr": {
+    "prep_image": "Préparation de l'image…",
+    "fix_orientation": "Correction de l'orientation…",
+    "analyzing": "Analyse de l'image…",
+    "init_engine": "Démarrage du moteur de lecture…",
+    "loading_model": "Chargement du modèle…",
+    "reading_mrz": "Lecture de la zone MRZ…",
+    "refining_mrz": "Affinement de la lecture MRZ ({{current}}/{{total}})…",
+    "full_analysis": "Analyse complète de l'image…",
+    "reading_address": "Lecture de l'adresse…",
+    "success": "Lecture terminée !",
+    "err_format": "Impossible de traiter l'image. Veuillez utiliser JPG ou PNG.",
+    "err_size": "Impossible de traiter l'image. Veuillez utiliser JPG ou PNG (max. 25 Mo).",
+    "err_not_found": "Zone MRZ non détectée. Pour la carte d'identité, photographiez le VERSO (la bande inférieure). Pour le passeport, la page avec la photo. Évitez les reflets et assurez-vous que le document est bien visible.",
+    "err_quality": "La qualité de l'image est trop faible pour lire le document. Veuillez réessayer avec un meilleur éclairage.",
+    "err_unexpected": "Erreur inattendue. Veuillez réessayer."
+  },
   "errorBoundary": {
     "title": "Quelque chose s'est mal passé",
     "subtitle": "Une erreur inattendue s'est produite. Vos données ne sont pas perdues.",

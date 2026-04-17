@@ -1,5 +1,6 @@
 import { useState, useRef, useCallback } from "react";
 import { createWorker, PSM } from "tesseract.js";
+import { useTranslation } from "react-i18next";
 import {
   decode as ijsDecode,
   encodeDataURL as ijsEncodeDataURL,
@@ -158,7 +159,15 @@ function parseDate(yymmdd: string | null | undefined): string {
   const mm = yymmdd.slice(2, 4);
   const dd = yymmdd.slice(4, 6);
   if (+mm < 1 || +mm > 12 || +dd < 1 || +dd > 31) return "";
-  return `${yy <= 30 ? 2000 + yy : 1900 + yy}-${mm}-${dd}`;
+
+  const currentYear = new Date().getFullYear();
+  let fullYear = 2000 + yy;
+
+  if (fullYear > currentYear) {
+    fullYear = 1900 + yy;
+  }
+
+  return `${fullYear}-${mm}-${dd}`;
 }
 
 function parseSex(s: string | null | undefined): string {
@@ -555,7 +564,10 @@ async function runTextOCR(worker: TWorker, dataURL: string): Promise<string> {
 
 // ─── Hook principal ───────────────────────────────────────────────────────────
 
+// ─── Hook principal ───────────────────────────────────────────────────────────
+
 export function useDocumentOCR() {
+  const { t } = useTranslation(); // <--- INYECTAMOS I18N AQUÍ
   const [isProcessing, setIsProcessing] = useState(false);
   const [progress, setProgress] = useState<OCRProgress>({ fase: "", pct: 0 });
   const cancelRef = useRef(false);
@@ -568,18 +580,18 @@ export function useDocumentOCR() {
     async (file: File): Promise<OCRResult> => {
       cancelRef.current = false;
       setIsProcessing(true);
-      setFase("Preparando imagen…", 3);
+      setFase(t("ocr.prep_image"), 3);
 
       try {
         let exifBlob: Blob;
         try {
-          setFase("Corrigiendo orientación…", 8);
+          setFase(t("ocr.fix_orientation"), 8);
           exifBlob = await loadExifCorrectedBlob(file);
         } catch (err) {
           console.error("[OCR] EXIF:", err);
           return {
             ok: false,
-            error: "No se pudo procesar la imagen. Use JPG o PNG.",
+            error: t("ocr.err_format"),
           };
         }
 
@@ -587,7 +599,7 @@ export function useDocumentOCR() {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         let grey: any, width: number, height: number;
         try {
-          setFase("Analizando imagen…", 13);
+          setFase(t("ocr.analyzing"), 13);
           const built = await buildMrzVariants(exifBlob);
           mrzVariants = built.variants;
           grey = built.grey;
@@ -597,15 +609,15 @@ export function useDocumentOCR() {
           console.error("[OCR] buildVariants:", err);
           return {
             ok: false,
-            error: "No se pudo procesar la imagen. Use JPG o PNG (máx. 25 MB).",
+            error: t("ocr.err_size"),
           };
         }
 
         if (cancelRef.current || _terminating) return { ok: false };
 
-        setFase("Iniciando motor de lectura…", 20);
+        setFase(t("ocr.init_engine"), 20);
         const worker = await getWorker((pct) =>
-          setFase("Cargando modelo…", pct),
+          setFase(t("ocr.loading_model"), pct),
         );
 
         if (cancelRef.current || _terminating) return { ok: false };
@@ -617,13 +629,20 @@ export function useDocumentOCR() {
           if (cancelRef.current || _terminating) break;
 
           const pct = 25 + Math.round((i / total) * 50);
-          const fase =
-            i === 0
-              ? "Leyendo zona MRZ…"
-              : i < total - 1
-                ? `Refinando lectura MRZ (${i + 1}/${total - 1})…`
-                : "Análisis completo de imagen…";
-          setFase(fase, pct);
+
+          let faseMsg = "";
+          if (i === 0) {
+            faseMsg = t("ocr.reading_mrz");
+          } else if (i < total - 1) {
+            faseMsg = t("ocr.refining_mrz", {
+              current: i + 1,
+              total: total - 1,
+            });
+          } else {
+            faseMsg = t("ocr.full_analysis");
+          }
+
+          setFase(faseMsg, pct);
 
           try {
             const text = await runMrzOCR(
@@ -646,11 +665,7 @@ export function useDocumentOCR() {
         if (!best) {
           return {
             ok: false,
-            error:
-              "No se detectó la zona MRZ. " +
-              "Para el DNI fotografíe el REVERSO (las 3 líneas de código en la franja inferior). " +
-              "Para el pasaporte, la página con la foto. " +
-              "Sin reflejos y con el documento completamente visible.",
+            error: t("ocr.err_not_found"),
           };
         }
 
@@ -659,12 +674,11 @@ export function useDocumentOCR() {
             ok: false,
             formato: best.result.format,
             confianza: best.score,
-            error:
-              "Imagen con poca calidad para leer el documento. Intente con mejor iluminación.",
+            error: t("ocr.err_quality"),
           };
         }
 
-        setFase("Leyendo domicilio…", 78);
+        setFase(t("ocr.reading_address"), 78);
         const mrzData = mrzToGuest(best.result);
 
         let addressData: Partial<PartialGuestData> = {};
@@ -687,7 +701,7 @@ export function useDocumentOCR() {
 
         if (cancelRef.current || _terminating) return { ok: false };
 
-        setFase("¡Lectura completada!", 100);
+        setFase(t("ocr.success"), 100);
 
         const mergedData: Partial<PartialGuestData> = {
           ...addressData,
@@ -702,12 +716,12 @@ export function useDocumentOCR() {
         };
       } catch (err) {
         console.error("[useDocumentOCR]", err);
-        return { ok: false, error: "Error inesperado. Inténtelo de nuevo." };
+        return { ok: false, error: t("ocr.err_unexpected") };
       } finally {
         setIsProcessing(false);
       }
     },
-    [setFase],
+    [setFase, t], // <-- IMPORTANTE: t debe estar en las dependencias
   );
 
   const terminate = useCallback(async () => {

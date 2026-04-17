@@ -403,6 +403,23 @@
     "li_2": "Your room requires special verification.",
     "li_3": "Registration was already completed."
   },
+  "ocr": {
+    "prep_image": "Preparing image…",
+    "fix_orientation": "Fixing orientation…",
+    "analyzing": "Analyzing image…",
+    "init_engine": "Starting reading engine…",
+    "loading_model": "Loading model…",
+    "reading_mrz": "Reading MRZ zone…",
+    "refining_mrz": "Refining MRZ reading ({{current}}/{{total}})…",
+    "full_analysis": "Full image analysis…",
+    "reading_address": "Reading address…",
+    "success": "Reading completed!",
+    "err_format": "Could not process the image. Please use JPG or PNG.",
+    "err_size": "Could not process the image. Please use JPG or PNG (max. 25 MB).",
+    "err_not_found": "MRZ zone not detected. For ID cards, photograph the BACK (bottom strip). For passports, the photo page. Ensure no glare and full visibility.",
+    "err_quality": "Image quality is too low to read the document. Please try again with better lighting.",
+    "err_unexpected": "Unexpected error. Please try again."
+  },
   "errorBoundary": {
     "title": "Something went wrong",
     "subtitle": "An unexpected error occurred. Your data is not lost — you can try to continue or reload the page.",

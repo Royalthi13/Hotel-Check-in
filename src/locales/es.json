@@ -405,6 +405,23 @@
     "li_2": "Su habitación requiere una verificación especial.",
     "li_3": "El registro ya ha sido completado previamente."
   },
+  "ocr": {
+    "prep_image": "Preparando imagen…",
+    "fix_orientation": "Corrigiendo orientación…",
+    "analyzing": "Analizando imagen…",
+    "init_engine": "Iniciando motor de lectura…",
+    "loading_model": "Cargando modelo…",
+    "reading_mrz": "Leyendo zona MRZ…",
+    "refining_mrz": "Refinando lectura MRZ ({{current}}/{{total}})…",
+    "full_analysis": "Análisis completo de imagen…",
+    "reading_address": "Leyendo domicilio…",
+    "success": "¡Lectura completada!",
+    "err_format": "No se pudo procesar la imagen. Use JPG o PNG.",
+    "err_size": "No se pudo procesar la imagen. Use JPG o PNG (máx. 25 MB).",
+    "err_not_found": "No se detectó la zona MRZ. Para el DNI fotografíe el REVERSO (la franja inferior). Para el pasaporte, la página de la foto. Sin reflejos y con el documento visible.",
+    "err_quality": "Imagen con poca calidad para leer el documento. Intente con mejor iluminación.",
+    "err_unexpected": "Error inesperado. Inténtelo de nuevo."
+  },
   "errorBoundary": {
     "title": "Algo ha salido mal",
     "subtitle": "Se ha producido un error inesperado. Sus datos no se han perdido — puede intentar continuar o recargar la página.",
