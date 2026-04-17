@@ -686,7 +686,14 @@ export function useDocumentOCR() {
             const addrDataURL = buildAddressVariant(grey, width, height);
             if (addrDataURL) {
               const addrText = await runTextOCR(worker, addrDataURL);
+              console.log("=========================================");
+              console.log("👀 TEXTO BRUTO QUE LEE EL ESCÁNER:");
+              console.log(addrText);
+              console.log("=========================================");
               addressData = parseDniBackAddress(addrText);
+              console.log("🧩 LO QUE EL ESCÁNER HA INTENTADO EXTRAER:");
+              console.log(addressData);
+              console.log("=========================================");
             }
           } catch (err) {
             console.warn("[OCR] address extraction:", err);
