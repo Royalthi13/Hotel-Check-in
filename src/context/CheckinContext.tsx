@@ -12,7 +12,7 @@ export const CheckinProvider: React.FC<{ children: React.ReactNode }> = ({
   const { token: urlToken, step } = useParams();
   const token = urlToken ?? "new";
   const PERSISTENCE_KEY = `h_ckin_data_${token}`;
-  const [state, nav, actions, isLoading] = useCheckin(token, step);
+ const [state, nav, actions, isLoading, setModoFlujo] = useCheckin(token, step);
 
   const [submitError, setSubmitError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -95,8 +95,8 @@ export const CheckinProvider: React.FC<{ children: React.ReactNode }> = ({
     `clientId_${token}`,
   ];
 
-  const handleChooseMethod = (method: "scan" | "manual") => {
-    sessionStorage.setItem(`modoFlujo_${token}`, method);
+ const handleChooseMethod = (method: "scan" | "manual") => {
+    setModoFlujo(method);
     actions.setNumPersonas(state.reserva?.numHuespedes ?? 1);
     actions.goTo(
       method === "scan" ? "escanear" : "form_personal",
@@ -111,12 +111,12 @@ export const CheckinProvider: React.FC<{ children: React.ReactNode }> = ({
     try {
       const { bookingId, clientId } = getBackendIds();
 
-      if (isPartial) {
-        const newClientId = await savePartialCheckin(
+      if (isPartial) {const newClientId = await savePartialCheckin(
           bookingId,
           clientId,
           state.guests[0],
-        );sessionStorage.setItem(`clientId_${token}`, String(newClientId));
+        );
+        sessionStorage.setItem(`clientId_${token}`, String(newClientId));
         setIsPartialSuccess(true);
         actions.goTo("exito", "forward");
         return;

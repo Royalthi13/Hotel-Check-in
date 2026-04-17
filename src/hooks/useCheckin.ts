@@ -89,6 +89,10 @@ function getInitialState(token: string, mode: AppMode): CheckinState {
 
   return buildEmptyState(mode);
 }
+// Valores por defecto de un huésped nuevo (pais="ES" por ser mercado principal)
+function emptyGuest(): PartialGuestData {
+  return { esMenor: false, relacionesConAdultos: [], pais: "ES" };
+}
 
 export function buildEmptyState(appMode: AppMode): CheckinState {
   return {
@@ -98,7 +102,7 @@ export function buildEmptyState(appMode: AppMode): CheckinState {
     numAdultos: 1,
     numMenores: 0,
     numPersonas: 1,
-    guests: [{ esMenor: false, relacionesConAdultos: [] }],
+    guests: [emptyGuest()],
     horaLlegada: "",
     observaciones: "",
     rgpdAcepted: false,
@@ -111,12 +115,8 @@ function mergeGuests(
   prev: PartialGuestData[],
   total: number,
 ): PartialGuestData[] {
-  return Array.from(
-    { length: total },
-    (_, i) => prev[i] ?? { esMenor: false, relacionesConAdultos: [] },
-  );
+  return Array.from({ length: total }, (_, i) => prev[i] ?? emptyGuest());
 }
-
 // ── Reducer ───────────────────────────────────────────────────────────────────
 export function checkinReducer(
   state: CheckinState,
@@ -250,7 +250,6 @@ export function checkinReducer(
       return state;
   }
 }
-
 // ── Hook Principal ────────────────────────────────────────────────────────────
 export function useCheckin(tokenUrl?: string, stepUrl?: string) {
   const navigate = useNavigate();
@@ -268,6 +267,14 @@ export function useCheckin(tokenUrl?: string, stepUrl?: string) {
     const stored = getSession<StepId[] | null>(`allowedSteps_${token}`, null);
     return new Set(stored ?? ["inicio", "tablet_buscar"]);
   });
+  // modoFlujo reactivo: se lee una vez del storage y luego se actualiza aquí
+  const [modoFlujo, setModoFlujo] = useState<"scan" | "manual" | null>(() => {
+    const stored = sessionStorage.getItem(`modoFlujo_${token}`);
+    return stored === "scan" || stored === "manual" ? stored : null;
+  });
+  useEffect(() => {
+    if (modoFlujo) sessionStorage.setItem(`modoFlujo_${token}`, modoFlujo);
+  }, [modoFlujo, token]);
 
   const [isLoading, setIsLoading] = useState(token !== "new");
   const [navDirection, setNavDirection] = useState<NavDirection>("forward");
@@ -333,8 +340,8 @@ export function useCheckin(tokenUrl?: string, stepUrl?: string) {
             localStorage.removeItem(`h_ckin_data_${token}`);
             navigateRef.current("/invalid", { replace: true });
             return;
-          }
-        }const result = await loadCheckinData(token);
+          }}
+        const result = await loadCheckinData(token);
         if (cancelled) return;
 
         // IDs siempre necesarios
@@ -387,9 +394,17 @@ export function useCheckin(tokenUrl?: string, stepUrl?: string) {
     };
   }, []);
 
-  const actualStep =
-    (stepUrl as StepId) ??
-    (initialMode === "tablet" ? "tablet_buscar" : "inicio");
+ // Whitelist de StepIds válidos (evita que /checkin/XXX/basura rompa el wizard)
+  const VALID_STEPS: ReadonlyArray<StepId> = [
+    "tablet_buscar", "inicio", "bienvenida", "confirmar_datos", "escanear",
+    "form_personal", "form_contacto", "form_documento", "form_relaciones",
+    "num_personas", "form_extras", "revision", "exito",
+  ];
+  const requestedStep = stepUrl as StepId | undefined;
+  const actualStep: StepId =
+    requestedStep && VALID_STEPS.includes(requestedStep)
+      ? requestedStep
+      : (initialMode === "tablet" ? "tablet_buscar" : "inicio");
   const activeGuestIndex = (() => {
     for (let i = appHistory.length - 1; i >= 0; i--) {
       if (appHistory[i].step === actualStep) return appHistory[i].guestIndex;
@@ -489,11 +504,10 @@ export function useCheckin(tokenUrl?: string, stepUrl?: string) {
     [goTo],
   );
 
-  const dotSteps = useMemo(() => {
+ const dotSteps = useMemo(() => {
     const base = state.appMode === "link" ? FLOW_STEPS_LINK : DOT_STEPS_BASE;
-    const flujo = sessionStorage.getItem(`modoFlujo_${token}`);
-    return flujo === "manual" ? base.filter((s) => s !== "escanear") : base;
-  }, [state.appMode, token]);
+    return modoFlujo === "manual" ? base.filter((s) => s !== "escanear") : base;
+  }, [state.appMode, modoFlujo]);
 
   const canGoBack =
     appHistory.length > 0 &&
@@ -585,5 +599,5 @@ export function useCheckin(tokenUrl?: string, stepUrl?: string) {
     [goTo, goBack, dispatch, dotSteps, currentDotIndex, nextGuest],
   );
 
-  return [state, nav, actions, isLoading] as const;
+ return [state, nav, actions, isLoading, setModoFlujo] as const;
 }

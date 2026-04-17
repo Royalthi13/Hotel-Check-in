@@ -2,9 +2,8 @@ import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import { Button, Icon, Alert } from "@/components/ui";
 import { useZipCode } from "@/hooks/useZipCode";
-import { SEXOS, PREFIJOS_TELEFONICOS } from "@/constants";
-import { getDocumentTypes, DocumentTypeResponse } from "@/api/catalogs.service";
-
+import { TIPOS_DOCUMENTO, SEXOS, PREFIJOS_TELEFONICOS } from "@/constants";
+import { getDocumentTypes } from "@/api/catalogs.service";
 import {
   useFormValidation,
   validatePersonal,
@@ -31,9 +30,8 @@ import { usePlaces } from "@/hooks/usePlaces";
 import dayjs, { type Dayjs } from "dayjs";
 import "dayjs/locale/es";
 import { useDebounce } from "@/hooks/useDebounce";
-import { useCheckinContext } from "@/context/useCheckinContext"
-;import { formatDocument, formatPhoneNumber } from "@/utils/formatters";
-import { getDocumentTypes } from "@/api/catalogs.service";
+import { useCheckinContext } from "@/context/useCheckinContext";
+import { formatDocument, formatPhoneNumber } from "@/utils/formatters";
 import type { TFunction } from "i18next";
 const inputSx = {
   "& :not(.MuiInputAdornment-root) > .MuiInputBase-root": {
@@ -62,11 +60,7 @@ const menuPaperSx = {
   overflow: "hidden",
 };
 
-interface ListDataItem {
-  code: string;
-  dial?: string;
-  nameTranslated: string;
-}
+
 
 const FieldError: React.FC<{ msg?: string }> = ({ msg }) =>
   msg ? (
@@ -85,7 +79,6 @@ const FieldError: React.FC<{ msg?: string }> = ({ msg }) =>
       <Icon name="warn" size={11} /> {msg}
     </span>
   ) : null;
-
 // ─── COMPONENTE 1: DATOS PERSONALES ─────────────────────────────────────────
 export const ScreenFormPersonal: React.FC = () => {
   const { state, nav, actions, isSubmitting } = useCheckinContext();
@@ -100,15 +93,8 @@ export const ScreenFormPersonal: React.FC = () => {
   const [helpOpen, setHelpOpen] = useState(false);
 
   const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));const [helpOpen, setHelpOpen] = useState(false);
-  const [tiposDoc, setTiposDoc] = useState<Array<{ value: string; label: string }>>([]);
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
-
-  const [documentos, setDocumentos] = useState<DocumentTypeResponse[]>([]);
-
-  useEffect(() => {
-    getDocumentTypes().then(setDocumentos).catch(console.error);
-  }, []);
+  const [tiposDoc, setTiposDoc] = useState<Array<{ value: string; label: string }>>([]);
 
   const isMainGuest = guestIndex === 0;
 
@@ -122,33 +108,16 @@ export const ScreenFormPersonal: React.FC = () => {
           })),
         ),
       )
-      .catch(() => { /* fallback al array hardcodeado */ });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-  const fechaNac = data.fechaNac ? dayjs(data.fechaNac) : null;
-  const isDniOrNie = data.tipoDoc === "DNI" || data.tipoDoc === "NIE";
-
- 
-
-  useEffect(() => {
-    getDocumentTypes()
-      .then((tipos) =>
-        setTiposDoc(
-          tipos.map((t) => ({
-            value: COD_TO_FRONTEND[t.coddoc] ?? t.coddoc,
-            label: t.name,
-          })),
-        ),
-      )
       .catch(() =>
         setTiposDoc(TIPOS_DOCUMENTO.map((d) => ({ value: d, label: d }))),
       );
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const fechaNac = data.fechaNac ? dayjs(data.fechaNac) : null;
+  const isDniOrNie = data.tipoDoc === "DNI" || data.tipoDoc === "NIE";
 
   const handleUpdate = (key: keyof PartialGuestData, value: unknown) =>
     actions.updateGuest(guestIndex, key, value);
-
   const handleSubmit = (e: React.SyntheticEvent<HTMLFormElement>) => {
     e.preventDefault();
     setDuplicateError("");
@@ -321,8 +290,8 @@ export const ScreenFormPersonal: React.FC = () => {
                   label={t("forms.doc_type")}
                   required
                   fullWidth
-                  value={
-                    documentos.some((d) => d.coddoc === data.tipoDoc)
+                 value={
+                    tiposDoc.some((d) => d.value === data.tipoDoc)
                       ? data.tipoDoc
                       : ""
                   }
@@ -475,18 +444,8 @@ export const ScreenFormPersonal: React.FC = () => {
         </Button>
       </Dialog>
     </>
-  );
-};
+  );};
 // --- COMPONENTE 2: DATOS DE CONTACTO ---
-const menuPaperSx = {
-  borderRadius: "15px",
-  mt: 1,
-  boxShadow: "0 10px 40px rgba(0,0,0,0.1)",
-  overflow: "hidden",
-};
-
-
-
 type PrefixItem = { code: string; dial: string; nameTranslated: string };
 export const ScreenFormContacto: React.FC = () => {
   const { state, nav, actions, isSubmitting, handlePartialSubmit } =
@@ -499,9 +458,11 @@ export const ScreenFormContacto: React.FC = () => {
     [state.guests, guestIndex],
   );
   const { t, i18n } = useTranslation();
-
-  const handleUpdate = (key: keyof PartialGuestData, value: unknown) =>
-    actions.updateGuest(guestIndex, key, value);
+const handleUpdate = useCallback(
+    (key: keyof PartialGuestData, value: unknown) =>
+      actions.updateGuest(guestIndex, key, value),
+    [actions, guestIndex],
+  );
 
   // CORRECCIÓN: lockedFields solo aplica al titular (guestIndex===0).
   // Los acompañantes no tienen datos previos — sus campos no deben bloquearse.
@@ -601,10 +562,8 @@ export const ScreenFormContacto: React.FC = () => {
       ),
     [prefijosTraducidos, paisSearch],
   );
-
-  useEffect(() => {
-    if (!data.pais) handleUpdate("pais", "ESP");
-  }, [data.pais, handleUpdate]);
+// (data.pais se inicializa a "ES" en el reducer al crear el guest,
+  //  por eso ya no hacen falta este useEffect ni fallbacks aquí.)
 
   // --- 🔥 DEBOUNCES PARA VALIDACIÓN Y BÚSQUEDA ---
   useDebounce(
@@ -643,11 +602,7 @@ export const ScreenFormContacto: React.FC = () => {
     return () =>
       window.removeEventListener("FORCE_VALIDATE", handleForceValidate);
   }, [data, validate]);
-
-  const isMainGuest = guestIndex === 0;
-
-
-  const RenderList = (
+const RenderList = (
     onSelect: (c: PrefixItem) => void,
     searchVal: string,
     setSearchVal: (v: string) => void,

@@ -24,21 +24,43 @@ interface ClientResponse {
   relationship: string | null;
   sex: string | null;
 }
+// ── ISO2 ↔ codpais ────────────────────────────────────────────────────────────
+const ISO2_TO_CODPAIS: Record<string, string> = {
+  ES: "ESP", GB: "GBR", FR: "FRA", DE: "DEU", IT: "ITA",
+  PT: "PRT", US: "USA", CA: "CAN", MX: "MEX", AR: "ARG",
+  CO: "COL", BR: "BRA", CL: "CHL", PE: "PER", VE: "VEN",
+  UY: "URY", EC: "ECU", BO: "BOL", PY: "PRY", CR: "CRI",
+  PA: "PAN", DO: "DOM", CU: "CUB", NL: "NLD", BE: "BEL",
+  CH: "CHE", AT: "AUT", SE: "SWE", NO: "NOR", DK: "DNK",
+  FI: "FIN", IE: "IRL", GR: "GRC", PL: "POL", CZ: "CZE",
+  HU: "HUN", RO: "ROU", TR: "TUR", RU: "RUS", CN: "CHN",
+  JP: "JPN", KR: "KOR", IN: "IND", AU: "AUS", NZ: "NZL",
+  ZA: "ZAF", EG: "EGY", MA: "MAR", SA: "SAU", AE: "ARE",
+  IL: "ISR", SG: "SGP", TH: "THA", PH: "PHL", VN: "VNM",
+  ID: "IDN", MY: "MYS", PK: "PAK", BD: "BGD", IR: "IRN",
+  IQ: "IRQ", NG: "NGA", KE: "KEN",
+};
 
-/**
- * Mapa inverso para Nacionalidades.
- * Si no quieres que esté aquí "hardcodeado", lo ideal es que lo importes
- * de tu archivo de constantes o que el selector de la UI ya guarde el código (ESP)
- * en lugar del texto (Española).
- */
-const MAPA_NACIONALIDAD: Record<string, string> = {
-  Española: "ESP",
-  Alemana: "DEU",
-  Francesa: "FRA",
-  Italiana: "ITA",
-  Portuguesa: "PRT",
-  Inglesa: "GBR",
-  Estadounidense: "USA",
+const NAC_TO_CODPAIS: Record<string, string> = {
+  "Española": "ESP", "Inglesa": "GBR", "Francesa": "FRA",
+  "Alemana": "DEU", "Italiana": "ITA", "Portuguesa": "PRT",
+  "Estadounidense": "USA", "Argentina": "ARG", "Mexicana": "MEX",
+};
+
+// Tipo documento — BD acepta: CIF, NIE, NIF, OTRO, PAS
+const DOC_TO_COD: Record<string, string> = {
+  "DNI": "NIF", "NIF": "NIF", "NIE": "NIE",
+  "CIF": "CIF", "Pasaporte": "PAS", "Otro": "OTRO",
+};
+
+// Parentesco → relationship
+const PARENTESCO_TO_CODRELATION: Record<string, string> = {
+  "Hijo/a": "hijo", "Sobrino/a": "sobrino", "Tutor legal": "tutor",
+  "Tutor/a": "tutor", "Abuelo/a": "otro", "Bisabuelo/a": "otro",
+  "Bisnieto/a": "otro", "Cuñado/a": "otro", "Cónyuge/a": "otro",
+  "Hermano/a": "otro", "Nieto/a": "otro", "Padre o Madre": "otro",
+  "Suegro/a": "otro", "Tío/a": "otro", "Yerno o nuera": "otro",
+  "Otro": "otro",
 };
 
 // ── DB → GuestData ─────────────────────────────────────────────────────────────
@@ -72,21 +94,35 @@ export function toGuestData(c: ClientResponse): GuestData {
       ? [{ adultoIndex: 0, parentesco: c.relationship }]
       : [],
   };
-}
-// ── GuestData → payload API ────────────────────────────────────────────────────
+}// ── GuestData → payload API ────────────────────────────────────────────────────
 export function toClientPayload(g: PartialGuestData): Record<string, unknown> {
   const str = (v: string | undefined | null) => v?.trim() || null;
-
-  // Los menores NO tienen dirección ni contacto propios — se envían como null
-  // al backend. La dirección real la comparte el adulto responsable vía el
-  // campo relationship. clients.address/city/province/cp/email/phone = null.
   const esMenor = !!g.esMenor;
 
+  // Los menores NO tienen dirección ni contacto propios — se envían como null.
+  // La dirección real la comparte el adulto responsable vía relationship.
+
+  const codpais = ISO2_TO_CODPAIS[g.pais ?? "ES"] ?? "ESP";
+  const nacCod =
+    g.nacionalidad && g.nacionalidad !== "Otra"
+      ? (NAC_TO_CODPAIS[g.nacionalidad] ?? codpais)
+      : codpais;
+  const docCod = DOC_TO_COD[g.tipoDoc ?? ""] ?? undefined;
+
+  const apellido1 = (g.apellido  ?? "").trim();
+  const apellido2 = (g.apellido2 ?? "").trim();
+  const surname   = [apellido1, apellido2].filter(Boolean).join(" ");
+
+  const parentescoRaw = g.relacionesConAdultos?.[0]?.parentesco ?? "";
+  const codrelation   = parentescoRaw
+    ? (PARENTESCO_TO_CODRELATION[parentescoRaw] ?? "otro")
+    : undefined;
+
   return {
-    name:        str(g.nombre)    ?? "",   // required
-    surname:     surname          || "",   // required
+    name:        str(g.nombre) ?? "",
+    surname:     surname       || "",
     sex:         g.sexo === "Hombre" ? "M" : g.sexo === "Mujer" ? "F" : null,
-    birth:       g.fechaNac       || null,
+    birth:       g.fechaNac    || null,
     nationality: nacCod,
     country:     codpais,
 
@@ -102,11 +138,10 @@ export function toClientPayload(g: PartialGuestData): Record<string, unknown> {
     province:    esMenor ? null : str(g.provincia),
     cp:          esMenor ? null : str(g.cp),
 
-    doc_type:    docCod           ?? null,
-
-    // vat = número del documento · doc_support = código físico del carné
+    doc_type:    docCod ?? null,
     vat:         str(g.numDoc),
     doc_support: str(g.soporteDoc),
+    relationship: codrelation ?? null,
   };
 }
 // ── Servicios API ─────────────────────────────────────────────────────────────

@@ -1,10 +1,6 @@
 import React from "react";
 import { useTranslation } from "react-i18next";
 import type { Reserva } from "../../types";
-import "@/components/ui/buttons.css";
-import "@/components/ui/forms.css";
-import "@/components/ui/alerts.css";
-import "@/components/ui/misc.css";
 import dayjs from "dayjs";
 import "dayjs/locale/es";
 import "dayjs/locale/pt";

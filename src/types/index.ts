@@ -81,9 +81,10 @@ export interface GuestData {
   cp?: string;
   pais?: string;
 
-  // Documento
+ // Documento
   tipoDoc: string;
-  numDoc: string;soporteDoc?: string;
+  numDoc: string;
+  soporteDoc?: string;
   vat?: string;
   prefijo?: string;
   docFile?: File | null;
@@ -119,8 +120,8 @@ export interface CheckinNav {
   dotSteps: StepId[];
   dotIndex: number;
   canGoBack: boolean;
-  allowedSteps: Set<StepId>;
- isNavigating: boolean;
+ allowedSteps: Set<StepId>;
+  isNavigating: boolean;
   maxAllowedDotIndex: number;
 }
 

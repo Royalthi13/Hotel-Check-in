@@ -16,12 +16,11 @@ import {
   animate,
 } from "framer-motion";
 import { LanguageSelector } from "../components/LanguageSelector";
-import "@/App.css";
 import "./FluidProgression.css";
 import "./AppShell.css";
 import { validatePersonal, validateContacto } from "../hooks/useFormValidation";
+import { useCheckinContext } from "../context/useCheckinContext";
 import type { TFunction } from "i18next";
-
 const SIDE_STEPS: { id: StepId }[] = [
   { id: "inicio" },
   { id: "bienvenida" },
@@ -46,15 +45,16 @@ function getActiveSideStep(step: StepId): StepId {
 function currentStepIsInvalid(
   step: StepId,
   guests: PartialGuestData[],
-  guestIndex: number,  t: TFunction,
+  guestIndex: number,
+  acceptedLegal: boolean,
+  hayMenores: boolean,
+  t: TFunction,
 ): boolean {
   const g = guests[guestIndex] ?? {};
   const logicalStep = getActiveSideStep(step);
 
   if (logicalStep === "inicio") {
-    const accepted = sessionStorage.getItem("lumina_acceptedLegal") === "true";
-    const hayMenores = sessionStorage.getItem("lumina_hayMenores");
-    return !accepted || !hayMenores;
+    return !acceptedLegal || !hayMenores;
   }
 
   if (logicalStep === "form_personal") {
@@ -64,11 +64,12 @@ function currentStepIsInvalid(
     );
   }
   if (logicalStep === "form_contacto") {
-  return Object.keys(validateContacto(g, t, { email: false, telefono: false })).length > 0;
+    // Los menores no tienen contacto propio
+    if (g.esMenor) return false;
+    return Object.keys(validateContacto(g, t, { email: false, telefono: false })).length > 0;
   }
   return false;
 }
-
 const variants = {
   enter: (direction: string) => ({
     x: direction === "forward" ? 80 : -80,
@@ -104,7 +105,8 @@ export const AppShell: React.FC<AppShellProps> = ({
   guests = [],
   guestIndex = 0,
 }) => {
-  const { t } = useTranslation();
+ const { t } = useTranslation();
+  const { legalPassed, hasMinorsFlag } = useCheckinContext();
   const trackRef = useRef<HTMLDivElement>(null);
   const progressX = useMotionValue(0);
   const [trackWidth, setTrackWidth] = useState(0);
@@ -114,43 +116,23 @@ export const AppShell: React.FC<AppShellProps> = ({
   const activeStep = getActiveSideStep(nav.step);
   const activeIdx = SIDE_STEPS.findIndex((s) => s.id === activeStep);
 
-  const [maxDotReached, setMaxDotReached] = useState(() =>
-    nav.dotIndex >= 0 && nav.step !== "revision" && nav.step !== "exito"
-      ? nav.dotIndex
-      : 0,
-  );
-
-  const [maxSideIdxReached, setMaxSideIdxReached] = useState(() =>
-    activeIdx >= 0 && nav.step !== "revision" && nav.step !== "exito"
-      ? activeIdx
-      : 0,
-  );
-// 🔄 SINCRONIZADOR: Escucha los cambios de checkboxes locales
-  const [, forceRender] = useState(0);
-  useEffect(() => {
-    const handler = () => forceRender((n) => n + 1);
-    window.addEventListener("LOCAL_STATE_CHANGED", handler);
-    return () => window.removeEventListener("LOCAL_STATE_CHANGED", handler);
-  }, []);
-
-  // 🛡️ RECOMENDACIÓN DE REACT: Actualizar estado derivado durante el renderizado
-  // Esto elimina el error del linter de "cascading renders"
-  if (
-    nav.dotIndex > maxDotReached &&
+  // Progreso máximo alcanzado: state que sólo crece (nunca decrece).
+  // La condición de guarda se chequea en el setter del useEffect, que es
+  // válido porque sólo actualizamos cuando el nuevo valor es estrictamente mayor.
+  const [maxDotReached, setMaxDotReached] = useState(0);
+  const [maxSideIdxReached, setMaxSideIdxReached] = useState(0);
+const canAdvance =
     nav.step !== "exito" &&
-    (nav.step !== "revision" || nav.allowedSteps?.has("form_extras"))
-  ) {
-    setMaxDotReached(nav.dotIndex);
-  }
+    (nav.step !== "revision" || nav.allowedSteps?.has("form_extras"));
 
-  if (
-    activeIdx > maxSideIdxReached &&
-    nav.step !== "exito" &&
-    (nav.step !== "revision" || nav.allowedSteps?.has("form_extras"))
-  ) {
-    setMaxSideIdxReached(activeIdx);
+  if (canAdvance) {
+    if (nav.dotIndex > maxDotReached) {
+      setMaxDotReached(nav.dotIndex);
+    }
+    if (activeIdx > maxSideIdxReached) {
+      setMaxSideIdxReached(activeIdx);
+    }
   }
-
   const { safeWidth, stepWidth, targetX } = useMemo(() => {
     const sw = Math.max(0, trackWidth - 6);
     const stw = dotSteps.length > 1 ? sw / (dotSteps.length - 1) : 0;
@@ -201,12 +183,13 @@ export const AppShell: React.FC<AppShellProps> = ({
     return index <= activeIdx;
   };
 
-  const stepInvalid =
+ const stepInvalid =
     activeStep !== "revision" &&
     activeStep !== "exito" &&
     !!onGoToRevision &&
-    currentStepIsInvalid(nav.step, guests, guestIndex, t);
-
+    currentStepIsInvalid(
+      nav.step, guests, guestIndex, legalPassed, hasMinorsFlag, t,
+    );
   const summaryDisabled =
     !onGoToRevision || activeStep === "revision" || activeStep === "exito";
 
