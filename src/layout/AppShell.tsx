@@ -115,18 +115,33 @@ export const AppShell: React.FC<AppShellProps> = ({
 
   const activeStep = getActiveSideStep(nav.step);
   const activeIdx = SIDE_STEPS.findIndex((s) => s.id === activeStep);
-// Progreso máximo alcanzado: state que sólo crece (nunca decrece).
-  const [maxDotReached, setMaxDotReached] = useState(0);
-  const [maxSideIdxReached, setMaxSideIdxReached] = useState(0);
+  // Progreso máximo alcanzado: derivado de nav.allowedSteps (state del hook).
+  // Como allowedSteps guarda todos los pasos por los que ya ha pasado el usuario,
+  // el pico se calcula recorriéndolos y quedándonos con el índice más alto.
+  // Sin state local, sin useEffect, sin refs — solo derivación pura.
+  const canAdvance =
+    nav.step !== "exito" &&
+    (nav.step !== "revision" || nav.allowedSteps?.has("form_extras"));
 
-  useEffect(() => {
-    const canAdvance =
-      nav.step !== "exito" &&
-      (nav.step !== "revision" || nav.allowedSteps?.has("form_extras"));
-    if (!canAdvance) return;
-    setMaxDotReached((prev) => (nav.dotIndex > prev ? nav.dotIndex : prev));
-    setMaxSideIdxReached((prev) => (activeIdx > prev ? activeIdx : prev));
-  }, [nav.dotIndex, activeIdx, nav.step, nav.allowedSteps]);
+  const maxDotReached = useMemo(() => {
+    if (!canAdvance || !nav.allowedSteps) return nav.dotIndex;
+    let max = nav.dotIndex;
+    for (const s of nav.allowedSteps) {
+      const idx = dotSteps.indexOf(s);
+      if (idx > max) max = idx;
+    }
+    return max;
+  }, [canAdvance, nav.dotIndex, nav.allowedSteps, dotSteps]);
+
+  const maxSideIdxReached = useMemo(() => {
+    if (!canAdvance || !nav.allowedSteps) return activeIdx;
+    let max = activeIdx;
+    for (const s of nav.allowedSteps) {
+      const idx = SIDE_STEPS.findIndex((step) => step.id === s);
+      if (idx > max) max = idx;
+    }
+    return max;
+  }, [canAdvance, activeIdx, nav.allowedSteps]);
   const { safeWidth, stepWidth, targetX } = useMemo(() => {
     const sw = Math.max(0, trackWidth - 6);
     const stw = dotSteps.length > 1 ? sw / (dotSteps.length - 1) : 0;

@@ -52,19 +52,9 @@ const DOC_TO_COD: Record<string, string> = {
   "DNI": "NIF", "NIF": "NIF", "NIE": "NIE",
   "CIF": "CIF", "Pasaporte": "PAS", "Otro": "OTRO",
 };
-
-// Parentesco → relationship
-const PARENTESCO_TO_CODRELATION: Record<string, string> = {
-  "Hijo/a": "hijo", "Sobrino/a": "sobrino", "Tutor legal": "tutor",
-  "Tutor/a": "tutor", "Abuelo/a": "otro", "Bisabuelo/a": "otro",
-  "Bisnieto/a": "otro", "Cuñado/a": "otro", "Cónyuge/a": "otro",
-  "Hermano/a": "otro", "Nieto/a": "otro", "Padre o Madre": "otro",
-  "Suegro/a": "otro", "Tío/a": "otro", "Yerno o nuera": "otro",
-  "Otro": "otro",
-};
 // ── Mapeos inversos DB → Frontend ─────────────────────────────────────────────
 // Los 3 mapeos principales (ISO2, NAC, DOC) ya están arriba — construimos los
-// inversos a partir de ellos para que un solo cambio en DOC_TO_COD actualice ambos.
+// inversos a partir de ellos para que un solo cambio actualice ambos sentidos.
 const CODPAIS_TO_ISO2: Record<string, string> = Object.fromEntries(
   Object.entries(ISO2_TO_CODPAIS).map(([iso2, codpais]) => [codpais, iso2]),
 );
@@ -74,12 +64,10 @@ const CODPAIS_TO_NAC: Record<string, string> = Object.fromEntries(
 const COD_TO_DOC: Record<string, string> = {
   NIF: "DNI", NIE: "NIE", CIF: "CIF", PAS: "Pasaporte", OTRO: "Otro",
 };
-const CODRELATION_TO_PARENTESCO: Record<string, string> = {
-  hijo:    "Hijo/a",
-  sobrino: "Sobrino/a",
-  tutor:   "Tutor/a",
-  otro:    "Otro",
-};
+// Nota: el parentesco NO se mapea — la API devuelve y acepta el mismo
+// `codrelation` (ej: "HJ", "TU", "PM", "OT") que el frontend guarda en el
+// state. ScreenRelacionesMenor.tsx lo rellena del dropdown de la API,
+// y ScreenRevision.tsx lo traduce vía t('parentescos.${codrelation}').
 
 // ── DB → GuestData ─────────────────────────────────────────────────────────────
 export function toGuestData(c: ClientResponse): GuestData {
@@ -112,13 +100,10 @@ export function toGuestData(c: ClientResponse): GuestData {
     numDoc:     c.vat         ?? "",
     soporteDoc: c.doc_support ?? "",
     esMenor,
-
-    // codrelation ("hijo") → label ("Hijo/a") para que se muestre bien en Revisión
+// La API devuelve codrelation (ej: "HJ", "TU") — lo guardamos tal cual.
+    // La UI y la traducción trabajan con los mismos códigos.
     relacionesConAdultos: c.relationship
-      ? [{
-          adultoIndex: 0,
-          parentesco: CODRELATION_TO_PARENTESCO[c.relationship] ?? "Otro",
-        }]
+      ? [{ adultoIndex: 0, parentesco: c.relationship }]
       : [],
   };
 }// ── GuestData → payload API ────────────────────────────────────────────────────
@@ -139,11 +124,14 @@ export function toClientPayload(g: PartialGuestData): Record<string, unknown> {
   const apellido1 = (g.apellido  ?? "").trim();
   const apellido2 = (g.apellido2 ?? "").trim();
   const surname   = [apellido1, apellido2].filter(Boolean).join(" ");
-
-  const parentescoRaw = g.relacionesConAdultos?.[0]?.parentesco ?? "";
-  const codrelation   = parentescoRaw
-    ? (PARENTESCO_TO_CODRELATION[parentescoRaw] ?? "otro")
-    : undefined;
+// El parentesco ya viene como codrelation de la API (ej: "HJ", "TU", "OT").
+  // Si checkin.service.ts sobrescribió con `parentescoParaAPI` (relación invertida
+  // para el adulto, ej: "PM"), ése tiene prioridad.
+  const withApiField = g as PartialGuestData & { parentescoParaAPI?: string };
+  const codrelation =
+    withApiField.parentescoParaAPI
+    ?? g.relacionesConAdultos?.[0]?.parentesco
+    ?? undefined;
 
   return {
     name:        str(g.nombre) ?? "",

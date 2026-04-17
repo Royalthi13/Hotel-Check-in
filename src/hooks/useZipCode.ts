@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { getCityByCode } from "@/api/cities.service";
 
 async function fetchWithTimeout(url: string, timeoutMs = 3000): Promise<Response> {
   const controller = new AbortController();
@@ -16,21 +17,30 @@ export const useZipCode = (onUpdate: (key: string, value: string) => void) => {
   const buscarCP = async (cp: string, paisISO: string = "ES") => {
     if (!cp) return;
     setIsSearching(true);
+
     try {
       const iso2 = paisISO.substring(0, 2).toUpperCase();
 
       if (iso2 === "ES") {
-        // España: backend propio — codcity = CP con padStart(6, '0')
-        const codCityBackend = cp.padStart(6, "0");
-        const response = await fetchWithTimeout(`/api/cities/${codCityBackend}`);
-        if (!response.ok) throw new Error("Ciudad no encontrada en backend");
-        const data = await response.json();
-        if (data && data.nombre) onUpdate("ciudad", data.nombre);
+        // GET /cities/{code} (requiere auth, se maneja en apiAuth de axios).
+        // Probamos primero con el CP tal cual y luego con padStart(6, "0")
+        // por si el codcity en BD está con ceros a la izquierda.
+        const candidates = [cp.trim(), cp.trim().padStart(6, "0")];
+        for (const code of candidates) {
+          try {
+            const city = await getCityByCode(code);
+            if (city?.name) {
+              onUpdate("ciudad", city.name);
+              onUpdate("codCity", city.codcity);
+              return;
+            }
+          } catch { /* 404 → probamos siguiente candidato */ }
+        }
       } else {
-        // Resto del mundo: Zippopotam
+        // Zippopotam (API pública)
         const codigoPaisLcase = iso2.toLowerCase();
         const response = await fetchWithTimeout(
-          `https://api.zippopotam.us/${codigoPaisLcase}/${cp}`,
+          `https://api.zippopotam.us/${codigoPaisLcase}/${cp.trim()}`,
         );
         if (response.ok) {
           const data = await response.json();
