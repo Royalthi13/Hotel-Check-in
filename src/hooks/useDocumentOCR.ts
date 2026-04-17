@@ -325,65 +325,101 @@ function mrzToGuest(parsed: ParseResult): Partial<PartialGuestData> {
 
 // ─── DOMICILIO: parsear el texto del reverso del DNI ─────────────────────────
 
+// ─── DOMICILIO: parsear el texto del reverso del DNI ─────────────────────────
+
+// ─── DOMICILIO: parsear el texto del reverso del DNI ─────────────────────────
+
 function parseDniBackAddress(text: string): Partial<PartialGuestData> {
   const out: Partial<PartialGuestData> = {};
   if (!text) return out;
 
-  const lines = text
+  // 1. Dividimos en líneas y filtramos vacías
+  const validLines = text
     .split("\n")
-    .map((l) => l.replace(/[|]/g, "I").trim())
-    .filter((l) => l.length > 2);
+    .map((l) => l.trim())
+    .filter((l) => l.length > 0);
 
-  if (lines.length === 0) return out;
+  // 2. Buscamos DOMICILIO
+  const domIdx = validLines.findIndex((l) =>
+    /domicili[oa]?|adre[çc]a|helbidea|enderezo/i.test(l),
+  );
+  if (domIdx === -1) return out;
 
-  let cpIndex = -1;
-  let cpMatch = null;
+  const contentLines = validLines.slice(domIdx + 1);
 
-  for (let i = 0; i < lines.length; i++) {
-    const match = lines[i].match(/\b(\d{5})\b\s*(.*)/);
-    if (match) {
-      cpIndex = i;
-      cpMatch = match;
+  // 3. Intentar cazar el CP (por si hay suerte)
+  for (const line of contentLines) {
+    const cpMatch = line.match(/\b(\d{5})\b/);
+    if (cpMatch) {
+      out.cp = cpMatch[1];
       break;
     }
   }
 
-  if (cpIndex === -1) return out;
+  // 4. Limpiar líneas de basura (como "<<<")
+  const textLines = contentLines.filter((l) => {
+    if (/[<]{2,}/.test(l)) return false;
+    if (l.replace(/[^a-zA-Z0-9]/g, "").length < 1) return false;
+    return true;
+  });
 
-  out.cp = cpMatch![1];
-  const restOfLine = cpMatch![2].trim();
-
-  const splitRe = /^(.+?)\s{2,}([A-ZÁÉÍÓÚÑa-záéíóúñ\s]+)$/;
-  const splitMatch = restOfLine.match(splitRe);
-
-  if (splitMatch) {
-    out.ciudad = titleCase(splitMatch[1].trim());
-    out.provincia = titleCase(splitMatch[2].trim());
-  } else {
-    out.ciudad = titleCase(restOfLine);
-    if (cpIndex + 1 < lines.length) {
-      const nextLine = lines[cpIndex + 1];
-      if (!/</.test(nextLine) && nextLine.length > 3) {
-        out.provincia = titleCase(nextLine);
-      }
-    }
+  // 5. DIRECCIÓN: Cogemos las primeras líneas
+  const addressParts = [];
+  for (let i = 0; i < Math.min(3, textLines.length); i++) {
+    const l = textLines[i];
+    if (/\b\d{5}\b/.test(l)) break;
+    const cleanLine = l.replace(/[|]/g, "I").replace(/\]/g, "1");
+    addressParts.push(cleanLine);
   }
 
-  const domRe = /domicili[oa]?|adre[çc]a|helbidea|enderezo/i;
-  const streetParts = [];
-
-  for (let i = cpIndex - 1; i >= 0; i--) {
-    const line = lines[i];
-
-    if (domRe.test(line) || /LUGAR/i.test(line)) break;
-
-    streetParts.unshift(line);
-
-    if (cpIndex - i >= 2) break;
+  if (addressParts.length > 0) {
+    out.direccion = titleCase(addressParts.join(" ").replace(/\s{2,}/g, " "));
   }
 
-  if (streetParts.length > 0) {
-    out.direccion = titleCase(streetParts.join(", "));
+  // 6. CIUDAD Y PROVINCIA (CON FILTRO ANTI-BASURA)
+  const cleanLocation = (raw: string) => {
+    // Lista de preposiciones/artículos válidos en España
+    const validPreps = new Set([
+      "de",
+      "del",
+      "el",
+      "la",
+      "las",
+      "los",
+      "y",
+      "en",
+      "a",
+      "al",
+      "l",
+      "d",
+      "s",
+    ]);
+
+    return raw
+      .split(/\s+/)
+      .filter((word) => {
+        const w = word.toLowerCase().replace(/[^a-zñáéíóúü]/g, "");
+        if (!w) return false;
+        // Si la palabra tiene 1 o 2 letras, SOLO sobrevive si está en la lista válida
+        if (w.length <= 2 && !validPreps.has(w)) return false;
+        return true;
+      })
+      .join(" ");
+  };
+
+  const remainingLines = textLines
+    .slice(addressParts.length)
+    .filter((l) => l.replace(/[^a-zA-Z]/g, "").length >= 4);
+
+  if (remainingLines.length >= 2) {
+    out.provincia = titleCase(
+      cleanLocation(remainingLines[remainingLines.length - 1]),
+    );
+    out.ciudad = titleCase(
+      cleanLocation(remainingLines[remainingLines.length - 2]),
+    );
+  } else if (remainingLines.length === 1) {
+    out.ciudad = titleCase(cleanLocation(remainingLines[0]));
   }
 
   return out;
