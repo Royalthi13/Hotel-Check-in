@@ -62,6 +62,24 @@ const PARENTESCO_TO_CODRELATION: Record<string, string> = {
   "Suegro/a": "otro", "Tío/a": "otro", "Yerno o nuera": "otro",
   "Otro": "otro",
 };
+// ── Mapeos inversos DB → Frontend ─────────────────────────────────────────────
+// Los 3 mapeos principales (ISO2, NAC, DOC) ya están arriba — construimos los
+// inversos a partir de ellos para que un solo cambio en DOC_TO_COD actualice ambos.
+const CODPAIS_TO_ISO2: Record<string, string> = Object.fromEntries(
+  Object.entries(ISO2_TO_CODPAIS).map(([iso2, codpais]) => [codpais, iso2]),
+);
+const CODPAIS_TO_NAC: Record<string, string> = Object.fromEntries(
+  Object.entries(NAC_TO_CODPAIS).map(([nac, codpais]) => [codpais, nac]),
+);
+const COD_TO_DOC: Record<string, string> = {
+  NIF: "DNI", NIE: "NIE", CIF: "CIF", PAS: "Pasaporte", OTRO: "Otro",
+};
+const CODRELATION_TO_PARENTESCO: Record<string, string> = {
+  hijo:    "Hijo/a",
+  sobrino: "Sobrino/a",
+  tutor:   "Tutor/a",
+  otro:    "Otro",
+};
 
 // ── DB → GuestData ─────────────────────────────────────────────────────────────
 export function toGuestData(c: ClientResponse): GuestData {
@@ -69,29 +87,38 @@ export function toGuestData(c: ClientResponse): GuestData {
 
   return {
     id: c.id,
-    nombre: c.name ?? "",
-    apellido: c.surname ?? "",
-    apellido2: "",
-    sexo: c.sex === "M" ? "Hombre" : c.sex === "F" ? "Mujer" : "No indicar",
-    fechaNac: c.birth ?? "",
+    nombre:    c.name    ?? "",
+    apellido:  c.surname ?? "",
+    apellido2: "",  // BD concatena surname — no se puede separar
+    sexo:      c.sex === "M" ? "Hombre" : c.sex === "F" ? "Mujer" : "No indicar",
+    fechaNac:  c.birth   ?? "",
 
-    nacionalidad: c.nationality ?? "ESP",
-    pais: c.country ?? "ESP",
-    tipoDoc: c.doc_type ?? "NIF",
+    // codpais ("ESP") → ISO2 ("ES") para el selector del frontend
+    pais:         CODPAIS_TO_ISO2[c.country ?? ""] ?? "ES",
+    // codpais → label de nacionalidad ("ESP" → "Española"), fallback "Otra"
+    nacionalidad: CODPAIS_TO_NAC[c.nationality ?? ""] ?? "Otra",
+    // "NIF" → "DNI", "PAS" → "Pasaporte", etc.
+    tipoDoc:      COD_TO_DOC[c.doc_type ?? ""] ?? "DNI",
 
-    email: c.email ?? "",
-    telefono: c.phone ?? "",
-    direccion: c.address ?? "",
-    ciudad: c.city ?? "",
-    codCity: c.cod_city ?? "", // Recuperamos el ID de la ciudad para el estado
+    email:     c.email    ?? "",
+    telefono:  c.phone    ?? "",
+    direccion: c.address  ?? "",
+    ciudad:    c.city     ?? "",
+    codCity:   c.cod_city ?? "",
     provincia: c.province ?? "",
-    cp: c.cp ?? "",
-    numDoc: c.vat ?? "",
+    cp:        c.cp       ?? "",
+
+    // vat (columna BD) → numDoc (número del documento)
+    numDoc:     c.vat         ?? "",
     soporteDoc: c.doc_support ?? "",
     esMenor,
 
+    // codrelation ("hijo") → label ("Hijo/a") para que se muestre bien en Revisión
     relacionesConAdultos: c.relationship
-      ? [{ adultoIndex: 0, parentesco: c.relationship }]
+      ? [{
+          adultoIndex: 0,
+          parentesco: CODRELATION_TO_PARENTESCO[c.relationship] ?? "Otro",
+        }]
       : [],
   };
 }// ── GuestData → payload API ────────────────────────────────────────────────────

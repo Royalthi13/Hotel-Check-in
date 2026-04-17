@@ -110,8 +110,8 @@ export const CheckinProvider: React.FC<{ children: React.ReactNode }> = ({
     setIsSubmitting(true);
     try {
       const { bookingId, clientId } = getBackendIds();
-
-      if (isPartial) {const newClientId = await savePartialCheckin(
+if (isPartial) {
+        const newClientId = await savePartialCheckin(
           bookingId,
           clientId,
           state.guests[0],
@@ -129,11 +129,12 @@ export const CheckinProvider: React.FC<{ children: React.ReactNode }> = ({
         horaLlegada: state.horaLlegada,
         observaciones: state.observaciones,
       });
+setIsPartialSuccess(false);
 
-      setIsPartialSuccess(false);
-SESSION_KEYS_TO_CLEAR.forEach((key) => sessionStorage.removeItem(key));
+      SESSION_KEYS_TO_CLEAR.forEach((key) => sessionStorage.removeItem(key));
       sessionStorage.removeItem(PERSISTENCE_KEY);
       localStorage.removeItem(PERSISTENCE_KEY); // limpiar datos antiguos cifrados si los hubiera
+
       actions.goTo("exito", "forward");
     } catch (err: unknown) {
       let msg = t("errorBoundary.title");

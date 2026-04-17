@@ -335,14 +335,15 @@ export function useCheckin(tokenUrl?: string, stepUrl?: string) {
         if (!yaAutenticado) {
           try {
             await loginMagicLink(token);
-          } catch  {
+          } catch {
             if (cancelled) return;
             localStorage.removeItem(`h_ckin_data_${token}`);
             navigateRef.current("/invalid", { replace: true });
             return;
-          }}
+          }
+        }
         const result = await loadCheckinData(token);
-        if (cancelled) return;
+            if (cancelled) return;
 
         // IDs siempre necesarios
         sessionStorage.setItem(`bookingId_${token}`, String(result.bookingId));

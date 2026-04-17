@@ -115,24 +115,18 @@ export const AppShell: React.FC<AppShellProps> = ({
 
   const activeStep = getActiveSideStep(nav.step);
   const activeIdx = SIDE_STEPS.findIndex((s) => s.id === activeStep);
-
-  // Progreso máximo alcanzado: state que sólo crece (nunca decrece).
-  // La condición de guarda se chequea en el setter del useEffect, que es
-  // válido porque sólo actualizamos cuando el nuevo valor es estrictamente mayor.
+// Progreso máximo alcanzado: state que sólo crece (nunca decrece).
   const [maxDotReached, setMaxDotReached] = useState(0);
   const [maxSideIdxReached, setMaxSideIdxReached] = useState(0);
-const canAdvance =
-    nav.step !== "exito" &&
-    (nav.step !== "revision" || nav.allowedSteps?.has("form_extras"));
 
-  if (canAdvance) {
-    if (nav.dotIndex > maxDotReached) {
-      setMaxDotReached(nav.dotIndex);
-    }
-    if (activeIdx > maxSideIdxReached) {
-      setMaxSideIdxReached(activeIdx);
-    }
-  }
+  useEffect(() => {
+    const canAdvance =
+      nav.step !== "exito" &&
+      (nav.step !== "revision" || nav.allowedSteps?.has("form_extras"));
+    if (!canAdvance) return;
+    setMaxDotReached((prev) => (nav.dotIndex > prev ? nav.dotIndex : prev));
+    setMaxSideIdxReached((prev) => (activeIdx > prev ? activeIdx : prev));
+  }, [nav.dotIndex, activeIdx, nav.step, nav.allowedSteps]);
   const { safeWidth, stepWidth, targetX } = useMemo(() => {
     const sw = Math.max(0, trackWidth - 6);
     const stw = dotSteps.length > 1 ? sw / (dotSteps.length - 1) : 0;
