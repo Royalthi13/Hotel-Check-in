@@ -1,20 +1,3 @@
-// src/hooks/useDocumentOCR.ts
-//
-// FIXES en esta versión:
-//   1. filterOcrGarbage(): los fillers MRZ (<<<<<) se leen como K, L, etc.
-//      Se filtran "palabras" sin vocales o con alta repetición de un carácter.
-//      "AdrianKLLLLKL" → "Adrian".
-//
-//   2. Auto-set pais='ES' para DNI español (natCode === 'ESP').
-//
-//   3. Extracción de domicilio del REVERSO del DNI (misma foto que el MRZ).
-//      El domicilio está en el TOP 45% del reverso, encima de la MRZ.
-//      Se hace un segundo pase OCR sin whitelist después de leer la MRZ.
-//      Campos que se rellenan: direccion, cp, ciudad, provincia, pais.
-//
-//   4. EXIF rotation via canvas (ya presente, se mantiene).
-//   5. Nombres: f.lastName/f.firstName de la librería mrz como fuente primaria.
-
 import { useState, useRef, useCallback } from "react";
 import { createWorker, PSM } from "tesseract.js";
 import {
@@ -102,30 +85,22 @@ async function loadExifCorrectedBlob(file: File): Promise<Blob> {
 }
 
 // ─── FIX: filtrar basura OCR de los nombres ───────────────────────────────────
-// Los fillers MRZ "<<<<<" se transcriben por Tesseract como K, L, 1, etc.
-// Tras el nombre real, aparecen "palabras" sin vocales o con alta repetición.
-// Regla: una palabra es nombre válido si tiene ≥15% vocales o longitud ≤ 3.
-// ─── FIX: filtrar basura OCR de los nombres ───────────────────────────────────
 function filterOcrGarbage(raw: string): string {
   if (!raw) return "";
 
   // 1. EL HACHAZO ORTOGRÁFICO (El definitivo)
-  // Atrapamos la letra justa antes de la basura (prevChar) y la basura en sí (garbage)
-  let textoLimpio = raw.replace(
+  const textoLimpio = raw.replace(
     /([A-ZÁÉÍÓÚÑa-záéíóúñ])?([KLXZ<]{3,}.*$)/i,
-    (match, prevChar, garbage) => {
-      if (!prevChar) return ""; // Si todo era basura desde el principio, fuera.
+    (_match, prevChar, garbage) => {
+      if (!prevChar) return "";
 
-      // Comprobamos si la letra anterior es una vocal
       const isVowel = /[AEIOUÁÉÍÓÚaeiouáéíóú]/i.test(prevChar);
 
-      // Si la basura empieza por L y la letra anterior es vocal (ej: AxE + LLLL)
       if (garbage.toUpperCase().startsWith("L") && isVowel) {
-        return prevChar + "L"; // Salvamos la vocal y UNA 'L'
+        return prevChar + "L";
       }
 
-      // Si la letra anterior es consonante (ej: AdriaN + LLLL) o empieza por K, Z, X...
-      return prevChar; // Nos quedamos solo con la letra anterior y matamos toda la basura
+      return prevChar;
     },
   );
 
@@ -137,10 +112,8 @@ function filterOcrGarbage(raw: string): string {
       const vowels = (word.match(/[AEIOUaeiouÁÉÍÓÚáéíóú]/g) || []).length;
       const vowelRatio = vowels / word.length;
 
-      // Sin vocales en palabras de más de 2 chars → basura
       if (vowelRatio < 0.15 && word.length > 2) return false;
 
-      // Alta repetición de caracteres → basura
       const uniqueChars = new Set(word.toUpperCase()).size;
       if (uniqueChars <= 2 && word.length >= 5) return false;
 
@@ -154,12 +127,8 @@ function filterOcrGarbage(raw: string): string {
 
 // ─── Helpers genéricos ────────────────────────────────────────────────────────
 
-const cap = (s: string) =>
-  s ? s[0].toUpperCase() + s.slice(1).toLowerCase() : "";
-
 function titleCase(s: string): string {
   if (!s) return "";
-  // Preposiciones que van en minúscula en español
   const preps = new Set([
     "de",
     "del",
@@ -280,16 +249,10 @@ function findBestMRZ(lines: string[]): MRZCandidate | null {
 }
 
 // ─── Mapear MRZ → formulario ──────────────────────────────────────────────────
-// FIX: usa f.lastName/f.firstName como fuente primaria y les aplica filterOcrGarbage.
-// FIX: auto-set pais='ES' para DNI español.
-function mrzToGuest(
-  parsed: ParseResult,
-  _inputLines: string[],
-): Partial<PartialGuestData> {
+function mrzToGuest(parsed: ParseResult): Partial<PartialGuestData> {
   const f = parsed.fields as Record<string, string | null>;
   const out: Partial<PartialGuestData> = {};
 
-  // ── Nombres: fuente primaria = campos de la librería (autocorrect aplicado) ──
   const libLast = (f.lastName ?? "").trim();
   const libFirst = (f.firstName ?? "").trim();
 
@@ -305,7 +268,6 @@ function mrzToGuest(
     if (nombre) out.nombre = nombre;
   }
 
-  // ── Fecha, sexo, nacionalidad ─────────────────────────────────────────────
   const fecha = parseDate(f.birthDate);
   if (fecha) out.fechaNac = fecha;
   out.sexo = parseSex(f.sex);
@@ -315,10 +277,8 @@ function mrzToGuest(
     .replace(/<+/g, "");
   out.nacionalidad = NAT[natCode] ?? "Otra";
 
-  // FIX: Auto-set país a España para DNI español
   if (natCode === "ESP") out.pais = "ES";
 
-  // ── Tipo y número de documento ────────────────────────────────────────────
   if (parsed.format === "TD1") {
     const soporte = (f.documentNumber ?? "").replace(/<+$/g, "").trim();
     const optional = (f.optional1 ?? "").slice(0, 9).replace(/<+$/g, "").trim();
@@ -355,12 +315,6 @@ function mrzToGuest(
 }
 
 // ─── DOMICILIO: parsear el texto del reverso del DNI ─────────────────────────
-// El reverso del DNI español tiene encima del MRZ:
-//   DOMICILIO / ADREÇA / HELBIDEA / ENDEREZO   (cabecera multiidioma)
-//   CALLE EJEMPLO, 1, 3º B
-//   28001 MADRID                       MADRID
-//
-// También acepta el formato más antiguo (una sola línea de encabezado).
 
 function parseDniBackAddress(text: string): Partial<PartialGuestData> {
   const out: Partial<PartialGuestData> = {};
@@ -373,31 +327,24 @@ function parseDniBackAddress(text: string): Partial<PartialGuestData> {
 
   if (lines.length === 0) return out;
 
-  // Buscar la línea cabecera del domicilio
   const domRe =
     /domicili[oa]?|adre[çc]a|helbidea|enderezo|direcci[oó]n|adre[cç]/i;
   let startIdx = lines.findIndex((l) => domRe.test(l));
   if (startIdx >= 0) {
-    // Saltar la cabecera (puede ser "DOMICILIO / ADREÇA / ...")
     startIdx++;
   } else {
-    // Si no hay cabecera, buscar directamente un CP al inicio de línea
     startIdx = 0;
   }
 
-  // Saltar líneas cortas o vacías después de la cabecera
   while (startIdx < lines.length && lines[startIdx].length < 4) startIdx++;
 
   if (startIdx >= lines.length) return out;
 
-  // Primera línea significativa = dirección de calle
   const streetLine = lines[startIdx];
-  // Verificar que no empieza con 5 dígitos (sería el CP, no la calle)
   if (streetLine && !/^\d{5}/.test(streetLine)) {
-    // Limpiar artefactos OCR de la dirección
     const cleanStreet = streetLine
-      .replace(/[|]{1,}/g, "") // barras verticales OCR
-      .replace(/\s{2,}/g, " ") // espacios múltiples
+      .replace(/[|]{1,}/g, "")
+      .replace(/\s{2,}/g, " ")
       .trim();
     if (cleanStreet.length >= 4) {
       out.direccion = titleCase(cleanStreet);
@@ -405,19 +352,16 @@ function parseDniBackAddress(text: string): Partial<PartialGuestData> {
     }
   }
 
-  // Siguientes líneas: buscar "12345 CIUDAD [PROVINCIA]"
   for (let i = startIdx; i < Math.min(startIdx + 4, lines.length); i++) {
     const line = lines[i];
 
-    // Pattern: 5 dígitos seguidos de nombre de ciudad
+    // eslint-disable-next-line no-useless-escape
     const cpMatch = line.match(/(\d{5})\s+([A-ZÁÉÍÓÚÑa-záéíóúñ\/\-'·\s]+)/i);
     if (!cpMatch) continue;
 
     out.cp = cpMatch[1];
     const cityPart = cpMatch[2].trim();
 
-    // En el DNI actual, la provincia va a la DERECHA de la ciudad, separada por ≥2 espacios
-    // Ejemplo: "28001 MADRID                    MADRID"
     const splitRe = /^(.+?)\s{2,}([A-ZÁÉÍÓÚÑ][A-ZÁÉÍÓÚÑa-záéíóúñ\s]+)\s*$/;
     const splitMatch = cityPart.match(splitRe);
 
@@ -426,7 +370,6 @@ function parseDniBackAddress(text: string): Partial<PartialGuestData> {
       out.provincia = titleCase(splitMatch[2].trim());
     } else {
       out.ciudad = titleCase(cityPart.trim());
-      // Buscar provincia en siguiente línea
       const next = lines[i + 1];
       if (
         next &&
@@ -444,7 +387,6 @@ function parseDniBackAddress(text: string): Partial<PartialGuestData> {
 }
 
 // ─── Preprocesado image-js ────────────────────────────────────────────────────
-// SOLO APIs seguras de image-js 1.x: grey(), level(), resize(), crop().
 
 interface PrepVariant {
   dataURL: string;
@@ -454,14 +396,17 @@ interface PrepVariant {
 
 async function buildMrzVariants(exifBlob: Blob): Promise<{
   variants: PrepVariant[];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   grey: any;
   width: number;
   height: number;
 }> {
   const ab = await exifBlob.arrayBuffer();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const orig = ijsDecode(new Uint8Array(ab)) as any;
 
   let { width, height } = orig;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let grey: any = orig.grey ? orig.grey() : orig;
 
   if (width > MAX_INPUT_W) {
@@ -509,7 +454,6 @@ async function buildMrzVariants(exifBlob: Blob): Promise<{
     }
   }
 
-  // Fallback: imagen completa
   try {
     variants.push({
       dataURL: ijsEncodeDataURL(
@@ -525,16 +469,14 @@ async function buildMrzVariants(exifBlob: Blob): Promise<{
   return { variants, grey, width, height };
 }
 
-// Variante para la zona del domicilio (top 45% del reverso)
 function buildAddressVariant(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   grey: any,
   width: number,
   height: number,
 ): string | null {
   try {
-    // Top 45%: donde está el domicilio en el reverso del DNI
     const addrH = Math.floor(height * 0.45);
-    // Usamos un ancho moderado — el domicilio no necesita tanto upscale como MRZ
     const addrW = Math.max(1400, Math.round(width * 1.8));
 
     const crop = grey.crop({
@@ -542,7 +484,6 @@ function buildAddressVariant(
       width,
       height: addrH,
     });
-    // Level estándar — el domicilio suele estar en zona clara del DNI
     return ijsEncodeDataURL(
       crop.level({ inputMin: 20, inputMax: 230 }).resize({ width: addrW }),
     );
@@ -576,12 +517,12 @@ async function getWorker(onLoad?: (pct: number) => void): Promise<TWorker> {
   return _loading;
 }
 
-// OCR configurado para MRZ (whitelist estricta)
 async function runMrzOCR(
   worker: TWorker,
   dataURL: string,
   psm: PSM,
 ): Promise<string> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   await (worker as any).setParameters({
     tessedit_char_whitelist: WHITELIST,
     tessedit_pageseg_mode: String(psm),
@@ -596,11 +537,10 @@ async function runMrzOCR(
   return data.text;
 }
 
-// OCR configurado para texto libre (domicilio, texto del DNI)
-// Sin whitelist para poder leer letras acentuadas y caracteres especiales
 async function runTextOCR(worker: TWorker, dataURL: string): Promise<string> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   await (worker as any).setParameters({
-    tessedit_char_whitelist: "", // sin restricción
+    tessedit_char_whitelist: "",
     tessedit_pageseg_mode: String(PSM.AUTO),
     load_system_dawg: "0",
     load_freq_dawg: "0",
@@ -631,7 +571,6 @@ export function useDocumentOCR() {
       setFase("Preparando imagen…", 3);
 
       try {
-        // 1. EXIF correction
         let exifBlob: Blob;
         try {
           setFase("Corrigiendo orientación…", 8);
@@ -644,8 +583,8 @@ export function useDocumentOCR() {
           };
         }
 
-        // 2. Preprocesar variantes MRZ
         let mrzVariants: PrepVariant[];
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         let grey: any, width: number, height: number;
         try {
           setFase("Analizando imagen…", 13);
@@ -664,7 +603,6 @@ export function useDocumentOCR() {
 
         if (cancelRef.current || _terminating) return { ok: false };
 
-        // 3. Cargar Tesseract
         setFase("Iniciando motor de lectura…", 20);
         const worker = await getWorker((pct) =>
           setFase("Cargando modelo…", pct),
@@ -672,7 +610,6 @@ export function useDocumentOCR() {
 
         if (cancelRef.current || _terminating) return { ok: false };
 
-        // 4. OCR MRZ — secuencial con salida temprana
         let best: MRZCandidate | null = null;
         const total = mrzVariants.length;
 
@@ -706,7 +643,6 @@ export function useDocumentOCR() {
 
         if (cancelRef.current || _terminating) return { ok: false };
 
-        // 5. Evaluar MRZ
         if (!best) {
           return {
             ok: false,
@@ -728,12 +664,9 @@ export function useDocumentOCR() {
           };
         }
 
-        // 6. Mapear datos MRZ al formulario
         setFase("Leyendo domicilio…", 78);
-        const mrzData = mrzToGuest(best.result, best.inputLines);
+        const mrzData = mrzToGuest(best.result);
 
-        // 7. Extracción de domicilio (SOLO para TD1 = DNI reverso)
-        //    El domicilio está en el TOP 45% de la misma imagen.
         let addressData: Partial<PartialGuestData> = {};
 
         if (
@@ -748,7 +681,6 @@ export function useDocumentOCR() {
               addressData = parseDniBackAddress(addrText);
             }
           } catch (err) {
-            // El domicilio es opcional — si falla, continuar sin él
             console.warn("[OCR] address extraction:", err);
           }
         }
@@ -757,11 +689,9 @@ export function useDocumentOCR() {
 
         setFase("¡Lectura completada!", 100);
 
-        // Merge: MRZ tiene prioridad sobre address para los datos del documento.
-        // Address añade campos de contacto que MRZ no tiene.
         const mergedData: Partial<PartialGuestData> = {
-          ...addressData, // direccion, cp, ciudad, provincia (si se leyeron)
-          ...mrzData, // nombre, apellido, fechaNac, tipoDoc, numDoc, pais, etc.
+          ...addressData,
+          ...mrzData,
         };
 
         return {
