@@ -2,18 +2,8 @@ import React, { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useCheckin } from "@/hooks/useCheckin";
-import { submitCheckin, savePartialCheckin } from "@/api/chekin.service";
+import { submitCheckin, savePartialCheckin } from "@/api/checkin.service";
 import { CheckinContext } from "./CheckinContextDef";
-import CryptoJS from "crypto-js";
-const getSessionEncKey = (): string => {
-  const SKEY = 'lumina_enc_key';
-  let key = sessionStorage.getItem(SKEY);
-  if (!key) {
-    key = crypto.randomUUID();
-    sessionStorage.setItem(SKEY, key);
-  }
-  return key;
-};
 
 export const CheckinProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
@@ -60,20 +50,18 @@ export const CheckinProvider: React.FC<{ children: React.ReactNode }> = ({
     };
   }, []);
 
-  // ---  LÓGICA DE PERSISTENCIA (LOCALSTORAGE) ---
+ // --- PERSISTENCIA DE HUÉSPEDES (sessionStorage, se vacía al cerrar pestaña) ---
+  // Sin cifrado: los datos ya viven en sessionStorage y el cifrado con clave
+  // almacenada junto a los datos no aporta seguridad real.
   useEffect(() => {
     if (state.guests && state.guests.length > 0) {
       const backup = {
-        guests: state.guests,
+        guests: state.guests.map((g) => ({ ...g, docFile: null })),
         timestamp: Date.now(),
       };
-
-      const jsonString = JSON.stringify(backup);
-     const encryptedData = CryptoJS.AES.encrypt(jsonString, getSessionEncKey()).toString();
-      localStorage.setItem(PERSISTENCE_KEY, encryptedData);
+      sessionStorage.setItem(PERSISTENCE_KEY, JSON.stringify(backup));
     }
-  }, [state.guests, PERSISTENCE_KEY, token]);
-
+  }, [state.guests, PERSISTENCE_KEY]);
   // --- LIMPIEZA Y AUXILIARES ---
 
   const clearSubmitError = () => setSubmitError("");
@@ -143,10 +131,9 @@ export const CheckinProvider: React.FC<{ children: React.ReactNode }> = ({
       });
 
       setIsPartialSuccess(false);
-
-      SESSION_KEYS_TO_CLEAR.forEach((key) => sessionStorage.removeItem(key));
-      localStorage.removeItem(PERSISTENCE_KEY);
-
+SESSION_KEYS_TO_CLEAR.forEach((key) => sessionStorage.removeItem(key));
+      sessionStorage.removeItem(PERSISTENCE_KEY);
+      localStorage.removeItem(PERSISTENCE_KEY); // limpiar datos antiguos cifrados si los hubiera
       actions.goTo("exito", "forward");
     } catch (err: unknown) {
       let msg = t("errorBoundary.title");

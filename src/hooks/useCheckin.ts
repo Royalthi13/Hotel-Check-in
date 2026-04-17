@@ -13,9 +13,9 @@ import type {
   CheckinActions,
 } from "@/types";
 import { FLOW_STEPS_LINK, DOT_STEPS_BASE } from "@/constants";
-import { loadCheckinData } from "@/api/chekin.service";
+import { loadCheckinData } from "@/api/checkin.service";
 import { loginMagicLink } from "@/api/auth.service";
-import CryptoJS from "crypto-js";
+
 
 // ── Tipos Internos (Necesarios para que el Hook funcione) ───────────────────
 interface HistoryEntry {
@@ -61,35 +61,30 @@ function getSession<T>(key: string, fallback: T): T {
     return fallback;
   }
 }
-
 function getInitialState(token: string, mode: AppMode): CheckinState {
-  const localKey = `h_ckin_data_${token}`;
+  const persistenceKey = `h_ckin_data_${token}`;
   const sessionKey = `state_${token}`;
 
+  // Limpieza defensiva: eliminar restos antiguos cifrados en localStorage.
+  try { localStorage.removeItem(persistenceKey); } catch { /* noop */ }
+  try { sessionStorage.removeItem('lumina_enc_key'); } catch { /* noop */ }
+
   try {
-    const local = localStorage.getItem(localKey);
-    if (local) {
-     const encKey = sessionStorage.getItem('lumina_enc_key') ?? token;
-      const bytes = CryptoJS.AES.decrypt(local, encKey);
-      const decryptedString = bytes.toString(CryptoJS.enc.Utf8);
-
-      if (!decryptedString) throw new Error("Fallo de descifrado");
-
-      const { guests, timestamp } = JSON.parse(decryptedString);
-
-      if (Date.now() - timestamp < 30 * 60 * 1000) {
-        const state = buildEmptyState(mode);
-        return { ...state, guests };
-      } else {
-        localStorage.removeItem(localKey);
+    // Backup de guests con TTL 30 min
+    const raw = sessionStorage.getItem(persistenceKey);
+    if (raw) {
+      const { guests, timestamp } = JSON.parse(raw);
+      if (Date.now() - timestamp < 30 * 60 * 1000 && Array.isArray(guests)) {
+        return { ...buildEmptyState(mode), guests };
       }
+      sessionStorage.removeItem(persistenceKey);
     }
 
+    // Estado completo de la sesión actual
     const session = sessionStorage.getItem(sessionKey);
     if (session) return JSON.parse(session);
   } catch (e) {
-    console.error("Firma inválida o datos caducados", e);
-    localStorage.removeItem(localKey);
+    if (import.meta.env.DEV) console.warn("[useCheckin] getInitialState:", e);
   }
 
   return buildEmptyState(mode);
@@ -448,36 +443,41 @@ export function useCheckin(tokenUrl?: string, stepUrl?: string) {
     window.addEventListener("popstate", onPop);
     return () => window.removeEventListener("popstate", onPop);
   }, []);
-
+// Flujo:
+  //   Adulto: form_personal → form_contacto → siguiente huésped
+  //   Menor:  form_personal → siguiente huésped (sin contacto)
+  //           Cuando TODOS los personales están hechos → form_relaciones para
+  //           cada menor (sólo declaración de parentesco, sin dirección).
+  //   Tras relaciones → form_extras
   const nextGuest = useCallback(
     (currIdx: number, from: StepId) => {
       const { guests, numPersonas } = stateRef.current;
 
-     if (from === "form_personal") {
-      const guest = stateRef.current.guests[currIdx];
-      if (guest?.esMenor) {
-        if (currIdx + 1 < numPersonas) {
-          return goTo("form_personal", "forward", currIdx + 1);
-        }
+      const goToFirstMinorOrExtras = () => {
         const nextM = guests.findIndex((g) => g.esMenor);
         if (nextM >= 0) return goTo("form_relaciones", "forward", nextM);
         return goTo("form_extras", "forward", 0);
+      };
+
+      if (from === "form_personal") {
+        const guest = guests[currIdx];
+        // Menor: nunca va a contacto. Pasa al siguiente huésped (o fase menores).
+        if (guest?.esMenor) {
+          if (currIdx + 1 < numPersonas) {
+            return goTo("form_personal", "forward", currIdx + 1);
+          }
+          return goToFirstMinorOrExtras();
+        }
+        // Adulto: va a su propio contacto.
+        return goTo("form_contacto", "forward", currIdx);
       }
-      return goTo("form_contacto", "forward", currIdx);
-    }
-if (from === "form_contacto") {
-        const isCurrentMinor = stateRef.current.guests[currIdx]?.esMenor;
-        if (isCurrentMinor) {
-          const nextM = guests.findIndex((g, i) => i > currIdx && g.esMenor);
-          if (nextM >= 0) return goTo("form_relaciones", "forward", nextM);
-          return goTo("form_extras", "forward", 0);
-        }
+
+      if (from === "form_contacto") {
+        // Sólo adultos llegan aquí.
         if (currIdx + 1 < numPersonas) {
           return goTo("form_personal", "forward", currIdx + 1);
         }
-        const nextM = guests.findIndex((g) => g.esMenor);
-        if (nextM >= 0) return goTo("form_relaciones", "forward", nextM);
-        return goTo("form_extras", "forward", 0);
+        return goToFirstMinorOrExtras();
       }
 
       if (from === "form_relaciones") {

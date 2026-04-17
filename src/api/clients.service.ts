@@ -150,7 +150,6 @@ export function toGuestData(c: ClientResponse): GuestData {
     relacionesConAdultos,
   };
 }
-
 // ── GuestData → payload API ────────────────────────────────────────────────────
 export function toClientPayload(g: PartialGuestData): Record<string, unknown> {
   const codpais = ISO2_TO_CODPAIS[g.pais ?? "ES"] ?? "ESP";
@@ -176,6 +175,11 @@ export function toClientPayload(g: PartialGuestData): Record<string, unknown> {
 
   const str = (v: string | undefined | null) => v?.trim() || null;
 
+  // Los menores NO tienen dirección ni contacto propios — se envían como null
+  // al backend. La dirección real la comparte el adulto responsable vía el
+  // campo relationship. clients.address/city/province/cp/email/phone = null.
+  const esMenor = !!g.esMenor;
+
   return {
     name:        str(g.nombre)    ?? "",   // required
     surname:     surname          || "",   // required
@@ -183,18 +187,22 @@ export function toClientPayload(g: PartialGuestData): Record<string, unknown> {
     birth:       g.fechaNac       || null,
     nationality: nacCod,
     country:     codpais,
-    email:       str(g.email),phone:       g.telefono?.trim()
-                   ? `${g.prefijo ?? '+34'} ${g.telefono.trim()}`.trim()
-                   : null,
-    address:     str(g.direccion),
-    city:        str(g.ciudad),
-    province:    str(g.provincia),
-    cp:          str(g.cp),
+
+    email:       esMenor ? null : str(g.email),
+    phone:       esMenor
+      ? null
+      : (g.telefono?.trim()
+          ? `${g.prefijo ?? '+34'} ${g.telefono.trim()}`.trim()
+          : null),
+
+    address:     esMenor ? null : str(g.direccion),
+    city:        esMenor ? null : str(g.ciudad),
+    province:    esMenor ? null : str(g.provincia),
+    cp:          esMenor ? null : str(g.cp),
+
     doc_type:    docCod           ?? null,
 
-    // MAPEO CORRECTO (inverso de toGuestData):
-    // numDoc (DNI/NIE/PAS) → columna vat
-    // soporteDoc            → columna doc_support
+    // vat = número del documento · doc_support = código físico del carné
     vat:         str(g.numDoc),
     doc_support: str(g.soporteDoc),
 

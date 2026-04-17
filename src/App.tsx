@@ -1,4 +1,11 @@
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { useEffect } from "react";
+import {
+  BrowserRouter,
+  Routes,
+  Route,
+  Navigate,
+  useNavigate,
+} from "react-router-dom";
 import "./App.css";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { useCheckinContext } from "@/context/useCheckinContext";
@@ -6,7 +13,6 @@ import { AppShell } from "@/layout/AppShell";
 import { LoadingSpinner, Alert, Icon } from "@/components/ui";
 import { useTranslation } from "react-i18next";
 import { CheckinProvider } from "@/context/CheckinContext";
-// --- PANTALLAS ---
 import { ScreenTabletBuscar } from "@/screens/ScreenTabletBuscar";
 import { ScreenBienvenida } from "@/screens/ScreenBienvenida";
 import { ScreenCheckinInicio } from "@/screens/ScreenCheckinInicio";
@@ -197,29 +203,14 @@ function CheckinWizard() {
       {currentStep === "form_relaciones" && (
         <ScreenRelacionesMenor
           menor={currentGuest}
-          adultos={adultosConIndice}onRelacionChange={(aIdx: number, p: string) => {
+        adultos={adultosConIndice}
+          onRelacionChange={(aIdx: number, p: string) => {
             actions.updateRelacion(nav.guestIndex, aIdx, p);
-            // Si el menor es hijo del adulto → copiar dirección del adulto al menor
-            if (p === "hijo") {
-              const adult = state.guests[aIdx];
-              (["direccion", "ciudad", "provincia", "cp", "pais"] as const).forEach(
-                (field) => {
-                  if (adult[field]) actions.updateGuest(nav.guestIndex, field, adult[field]);
-                },
-              );
-            }
           }}
           onNext={() => {
-            const menor = state.guests[nav.guestIndex];
-            const hasHijoRelacion = menor.relacionesConAdultos?.some(
-              (r) => r.parentesco === "hijo",
-            );
-            if (hasHijoRelacion) {
-              actions.nextGuest(nav.guestIndex, "form_relaciones");
-            } else {
-              // Menor con relación no-parental → necesita introducir su propia dirección
-              actions.goTo("form_contacto", "forward", nav.guestIndex);
-            }
+            // El menor NUNCA tiene dirección propia: comparte con el adulto responsable.
+            // Avanzamos al siguiente paso del flujo desde relaciones.
+            actions.nextGuest(nav.guestIndex, "form_relaciones");
           }}
           hasNextMinor={
             state.guests.findIndex((g, i) => i > nav.guestIndex && g.esMenor) >=
@@ -267,12 +258,23 @@ function CheckinWizard() {
     </AppShell>
   );
 }
+// ── Listener global de expiración de auth ─────────────────────────────────────
+function AuthExpiredWatcher() {
+  const navigate = useNavigate();
+  useEffect(() => {
+    const handler = () => navigate("/invalid", { replace: true });
+    window.addEventListener("AUTH_EXPIRED", handler);
+    return () => window.removeEventListener("AUTH_EXPIRED", handler);
+  }, [navigate]);
+  return null;
+}
 
 // ── Rutas de la Aplicación ───────────────────────────────────────────────────
 //
 export default function App() {
   return (
     <BrowserRouter>
+      <AuthExpiredWatcher />
       <Routes>
         {/* 1. Si alguien entra a la raíz (/), el sistema asume que es personal del hotel.
                Redirigimos a /checkin/new. El Hook detectará el "new" y mostrará la búsqueda. */}

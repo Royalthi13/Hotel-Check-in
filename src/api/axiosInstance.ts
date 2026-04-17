@@ -40,13 +40,14 @@ const onResponseError = (error: AxiosError) => {
 };
 
 api.interceptors.response.use((r) => r, onResponseError);
-
 apiAuth.interceptors.response.use(
   (r) => r,
   (err: AxiosError) => {
     if (err.response?.status === 401) {
       clearToken();
-      window.location.href = "/invalid";
+      // Disparamos un evento para que App.tsx navegue con React Router
+      // en lugar de forzar recarga total.
+      window.dispatchEvent(new CustomEvent("AUTH_EXPIRED"));
       return Promise.reject(
         new Error("Sesión expirada. Acceda de nuevo mediante su enlace de reserva."),
       );
@@ -54,7 +55,6 @@ apiAuth.interceptors.response.use(
     return onResponseError(err);
   },
 );
-
 // ── Token helpers ─────────────────────────────────────────────────────────────
 
 export const saveToken = (token: string, persistent = false): void => {
