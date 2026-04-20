@@ -401,6 +401,23 @@
     "li_2": "Ihr Zimmer erfordert eine besondere Überprüfung.",
     "li_3": "Die Registrierung wurde bereits abgeschlossen."
   },
+  "ocr": {
+    "prep_image": "Bild wird vorbereitet…",
+    "fix_orientation": "Ausrichtung wird korrigiert…",
+    "analyzing": "Bild wird analysiert…",
+    "init_engine": "Lesemodul wird gestartet…",
+    "loading_model": "Modell wird geladen…",
+    "reading_mrz": "MRZ-Zone wird gelesen…",
+    "refining_mrz": "MRZ-Lesung wird verfeinert ({{current}}/{{total}})…",
+    "full_analysis": "Vollständige Bildanalyse…",
+    "reading_address": "Adresse wird gelesen…",
+    "success": "Lesevorgang abgeschlossen!",
+    "err_format": "Das Bild konnte nicht verarbeitet werden. Bitte verwenden Sie JPG oder PNG.",
+    "err_size": "Das Bild konnte nicht verarbeitet werden. Bitte verwenden Sie JPG oder PNG (max. 25 MB).",
+    "err_not_found": "MRZ-Zone nicht erkannt. Bei Personalausweisen fotografieren Sie die RÜCKSEITE (den unteren Streifen). Bei Reisepässen die Seite mit dem Foto. Vermeiden Sie Blendungen und achten Sie auf vollständige Sichtbarkeit.",
+    "err_quality": "Die Bildqualität ist zu schlecht, um das Dokument zu lesen. Bitte versuchen Sie es mit besserer Beleuchtung erneut.",
+    "err_unexpected": "Unerwarteter Fehler. Bitte versuchen Sie es erneut."
+  },
   "errorBoundary": {
     "title": "Etwas ist schiefgelaufen",
     "subtitle": "Ein unerwarteter Fehler ist aufgetreten. Ihre Daten sind nicht verloren.",

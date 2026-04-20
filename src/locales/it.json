@@ -401,6 +401,23 @@
     "li_2": "La tua camera richiede una verifica.",
     "li_3": "La registrazione è già stata completata."
   },
+  "ocr": {
+    "prep_image": "Preparazione dell'immagine…",
+    "fix_orientation": "Correzione dell'orientamento…",
+    "analyzing": "Analisi dell'immagine…",
+    "init_engine": "Avvio del motore di lettura…",
+    "loading_model": "Caricamento del modello…",
+    "reading_mrz": "Lettura della zona MRZ…",
+    "refining_mrz": "Perfezionamento della lettura MRZ ({{current}}/{{total}})…",
+    "full_analysis": "Analisi completa dell'immagine…",
+    "reading_address": "Lettura dell'indirizzo…",
+    "success": "Lettura completata!",
+    "err_format": "Impossibile elaborare l'immagine. Usa JPG o PNG.",
+    "err_size": "Impossibile elaborare l'immagine. Usa JPG o PNG (max 25 MB).",
+    "err_not_found": "Zona MRZ non rilevata. Per la carta d'identità, fotografa il RETRO (la striscia inferiore). Per il passaporto, la pagina con la foto. Evita i riflessi e assicurati che il documento sia ben visibile.",
+    "err_quality": "La qualità dell'immagine è troppo bassa per leggere il documento. Riprova con una migliore illuminazione.",
+    "err_unexpected": "Errore imprevisto. Riprova."
+  },
   "errorBoundary": {
     "title": "Qualcosa è andato storto",
     "subtitle": "Si è verificato un errore imprevisto. I tuoi dati non sono andati persi.",

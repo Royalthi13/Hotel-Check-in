@@ -379,6 +379,23 @@
     "li_2": "O seu quarto necessita de verificação.",
     "li_3": "O registo já foi concluído."
   },
+  "ocr": {
+    "prep_image": "Preparando a imagem…",
+    "fix_orientation": "Corrigindo a orientação…",
+    "analyzing": "Analisando a imagem…",
+    "init_engine": "Iniciando o motor de leitura…",
+    "loading_model": "Carregando o modelo…",
+    "reading_mrz": "Lendo a zona MRZ…",
+    "refining_mrz": "Refinando a leitura MRZ ({{current}}/{{total}})…",
+    "full_analysis": "Análise completa da imagem…",
+    "reading_address": "Lendo o endereço…",
+    "success": "Leitura concluída!",
+    "err_format": "Não foi possível processar a imagem. Por favor, use JPG ou PNG.",
+    "err_size": "Não foi possível processar a imagem. Por favor, use JPG ou PNG (máx. 25 MB).",
+    "err_not_found": "Zona MRZ não detectada. Para o documento de identidade, fotografe o VERSO (faixa inferior). Para o passaporte, a página com a foto. Evite reflexos e garanta que o documento esteja totalmente visível.",
+    "err_quality": "A qualidade da imagem é muito baixa para ler o documento. Tente novamente com uma iluminação melhor.",
+    "err_unexpected": "Erro inesperado. Por favor, tente novamente."
+  },
   "errorBoundary": {
     "title": "Algo correu mal",
     "subtitle": "Ocorreu um erro inesperado. Os seus dados não foram perdidos.",
