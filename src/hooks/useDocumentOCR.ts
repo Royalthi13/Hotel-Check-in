@@ -89,35 +89,62 @@ async function loadExifCorrectedBlob(file: File): Promise<Blob> {
 function filterOcrGarbage(raw: string): string {
   if (!raw) return "";
 
-  const textoLimpio = raw.replace(
-    /([A-ZÁÉÍÓÚÑa-záéíóúñ])?([KLXZ<]{3,}.*$)/i,
-    (_match, prevChar, garbage) => {
-      if (!prevChar) return "";
+  // Convertimos residuos de '<' en espacios
+  let textoLimpio = raw.replace(/<+/g, " ");
 
-      // Si la basura empieza por L...
-      if (garbage.toUpperCase().startsWith("L")) {
-        // Solo salvamos la 'L' si la letra anterior es E, I o U.
-        // Salva a: Manuel, Daniel, Miguel, Raúl, Isabel.
-        // Protege a: Laura, María, Mateo, Antonio (no les pone la L extra).
-        if (/[EIUÉÍÚeiuéíú]/i.test(prevChar)) {
-          return prevChar + "L";
-        }
-      }
+  textoLimpio = textoLimpio
+    .split(/\s+/)
+    .map((word) => {
+      // 1. Eliminar palabras que son pura basura aislada (ej: si lee solo "KXZ")
+      if (/^[KXZL]+$/i.test(word)) return "";
 
-      // Para A, O, consonantes, y basuras con K, Z, X... cortamos a ras.
-      return prevChar;
-    },
-  );
+      //  Limpiamos el final de la palabra (K, X, Z, L)
+      // Buscamos la última letra válida seguida de cualquier basura final.
+      word = word.replace(
+        /([A-ZÁÉÍÓÚÑa-záéíóúñ])([KXZL]+)$/i,
+        (match, prevChar, garbage) => {
+          const g = garbage.toUpperCase();
+
+          // CASO 1: "LL" -> Lo respetamos por apellidos como Güell
+          if (g === "LL") return prevChar + "LL";
+
+          // CASO 2: "Z" o "ZZ" -> Salvamos los apellidos españoles (Muñoz, Saiz, Paz)
+          if (g === "Z" || g === "ZZ") return prevChar + "Z";
+
+          // CASO 3: "X" -> La salvamos solo si va tras una vocal (Alex, Felix)
+          if (g === "X" && /[AEIOUaeiouÁÉÍÓÚáéíóú]/i.test(prevChar))
+            return prevChar + "X";
+
+          // CASO 4: regla  para la "L"
+          if (g.startsWith("L")) {
+            // Solo salvamos la L si va detrás de E, I, U, É, Í, Ú
+            if (/[EIUÉÍÚeiuéíú]/i.test(prevChar)) {
+              return prevChar + "L"; // Mantiene: Miguel, Daniel, Raúl, Isabel
+            }
+            return prevChar; // Corta la basura: LauraL -> Laura, AntonioL -> Antonio
+          }
+
+          // CASO 5: Basura pura (K, KL, KX, ZK...) -> Guillotina
+          return prevChar;
+        },
+      );
+
+      return word;
+    })
+    .join(" ");
 
   return textoLimpio
     .split(/\s+/)
     .filter((word) => {
       if (!word || word.length < 2) return false;
+
       const vowels = (word.match(/[AEIOUaeiouÁÉÍÓÚáéíóú]/g) || []).length;
       const vowelRatio = vowels / word.length;
       if (vowelRatio < 0.15 && word.length > 2) return false;
+
       const uniqueChars = new Set(word.toUpperCase()).size;
       if (uniqueChars <= 2 && word.length >= 5) return false;
+
       return true;
     })
     .map((w) => (w ? w[0].toUpperCase() + w.slice(1).toLowerCase() : ""))
@@ -187,14 +214,18 @@ function fitLine(line: string, len: number) {
 }
 
 function cleanLine(raw: string) {
-  return raw
-    .toUpperCase()
-    .trim()
+  let cleaned = raw.toUpperCase().trim();
+
+  cleaned = cleaned.replace(/<K/g, "<<").replace(/K</g, "<<");
+
+  cleaned = cleaned.replace(/<Z</g, "<<<").replace(/<Z</g, "<<<");
+  cleaned = cleaned.replace(/<Z$/g, "<<");
+
+  return cleaned
     .split("")
     .map((c) => (WHITELIST.includes(c) ? c : "<"))
     .join("");
 }
-
 function extractCandidates(text: string) {
   return text
     .split("\n")
@@ -259,9 +290,28 @@ function mrzToGuest(parsed: ParseResult): Partial<PartialGuestData> {
   const f = parsed.fields as Record<string, string | null>;
   const out: Partial<PartialGuestData> = {};
 
-  const libLast = (f.lastName ?? "").trim();
-  const libFirst = (f.firstName ?? "").trim();
+  let libLast = (f.lastName ?? "").trim();
+  let libFirst = (f.firstName ?? "").trim();
 
+  // Detectamos si es español para aplicar lógica de 2 apellidos
+  const isSpanish =
+    f.issuingState?.includes("ESP") || f.nationality?.includes("ESP");
+
+  const lastWords = libLast.split(/\s+/).filter(Boolean);
+  const firstWords = libFirst.split(/\s+/).filter(Boolean);
+
+  // 🏆 SALVAVIDAS 1: El OCR se comió el "<<" (ej: GARCIA GOMEZ MARTIN)
+  if (lastWords.length >= 3 && firstWords.length === 0) {
+    libLast = `${lastWords[0]} ${lastWords[1]}`;
+    libFirst = lastWords.slice(2).join(" ");
+  }
+  // 🏆 SALVAVIDAS 2: El OCR puso el "<<" demasiado pronto
+  else if (isSpanish && lastWords.length === 1 && firstWords.length >= 2) {
+    libLast = `${lastWords[0]} ${firstWords[0]}`;
+    libFirst = firstWords.slice(1).join(" ");
+  }
+
+  // Filtrado final de nombres
   if (libLast) {
     const parts = libLast.split(/\s+/).filter(Boolean);
     const apellido = filterOcrGarbage(parts[0] ?? "");
@@ -269,6 +319,7 @@ function mrzToGuest(parsed: ParseResult): Partial<PartialGuestData> {
     if (apellido) out.apellido = apellido;
     if (apellido2) out.apellido2 = apellido2;
   }
+
   if (libFirst) {
     const nombre = filterOcrGarbage(libFirst);
     if (nombre) out.nombre = nombre;
@@ -276,6 +327,7 @@ function mrzToGuest(parsed: ParseResult): Partial<PartialGuestData> {
 
   const fecha = parseDate(f.birthDate);
   if (fecha) out.fechaNac = fecha;
+
   out.sexo = parseSex(f.sex);
 
   const natCode = (f.nationality ?? f.issuingState ?? "")
@@ -324,90 +376,131 @@ function parseDniBackAddress(text: string): Partial<PartialGuestData> {
   const out: Partial<PartialGuestData> = {};
   if (!text) return out;
 
-  // 1. Dividimos en líneas y filtramos vacías
+  // 1. Limpiamos líneas vacías y cortamos la basura de códigos MRZ (<<<<)
   const validLines = text
     .split("\n")
     .map((l) => l.trim())
-    .filter((l) => l.length > 0);
+    .filter((l) => l.length > 3 && !/[<]{3,}/.test(l));
 
-  // 2. Buscamos DOMICILIO (Punto de ancla seguro)
-  const domIdx = validLines.findIndex((l) =>
-    /domicili[oa]?|adre[çc]a|helbidea|enderezo/i.test(l),
-  );
-  if (domIdx === -1) return out;
+  // 2. 🏆 EL ANCLA: Buscar el Código Postal (5 dígitos)
+  // Somos flexibles por si lee letras en vez de números (O por 0, l por 1)
+  let cpIdx = -1;
+  let cpRaw = "";
 
-  const contentLines = validLines.slice(domIdx + 1);
+  for (let i = 0; i < validLines.length; i++) {
+    const match = validLines[i].match(
+      /(?:\b|[^A-Z0-9])([0-5OQ][0-9OIl]{4})(?:\b|[^A-Z0-9])/i,
+    );
+    if (match) {
+      let possibleCp = match[1]
+        .toUpperCase()
+        .replace(/[OQ]/g, "0")
+        .replace(/[Il]/g, "1");
+      if (/^[0-5][0-9]{4}$/.test(possibleCp)) {
+        out.cp = possibleCp;
+        cpIdx = i;
+        cpRaw = match[1];
+        break;
+      }
+    }
+  }
 
-  // 3. Intentar cazar el CP
-  for (const line of contentLines) {
-    const cpMatch = line.match(/\b(\d{5})\b/);
-    if (cpMatch) {
-      out.cp = cpMatch[1];
+  // Si no encontramos el Código Postal, no podemos fiarnos de nada, abortamos.
+  if (cpIdx === -1) return out;
+
+  // 3. 🏆 DIRECCIÓN: Es lo que está justo antes del Código Postal
+  const addressParts = [];
+
+  // Miramos hasta 2 líneas por encima del Código Postal
+  let startIdx = Math.max(0, cpIdx - 2);
+  for (let i = cpIdx; i >= 0; i--) {
+    // Si vemos la palabra domicilio, sabemos que ahí empieza
+    if (/dom[i1l|!]+c[i1l|!]+/i.test(validLines[i])) {
+      startIdx = i + 1;
       break;
     }
   }
 
-  // 4. Limpiar líneas de basura y códigos
-  const textLines = contentLines.filter((l) => {
-    if (/[<]{2,}/.test(l)) return false;
-    if (l.replace(/[^a-zA-Z0-9]/g, "").length < 1) return false;
-    return true;
-  });
+  for (let i = startIdx; i <= cpIdx; i++) {
+    let line = validLines[i];
 
-  // 5. DIRECCIÓN: Cogemos las primeras líneas útiles
-  const addressParts = [];
-  for (let i = 0; i < Math.min(3, textLines.length); i++) {
-    const l = textLines[i];
-    if (/\b\d{5}\b/.test(l)) break;
-    const cleanLine = l.replace(/[|]/g, "I").replace(/\]/g, "1");
-    addressParts.push(cleanLine);
+    // Si estamos en la línea del CP, nos quedamos solo con la parte izquierda
+    if (i === cpIdx) {
+      const splitPos = line.indexOf(cpRaw);
+      if (splitPos > 0) {
+        line = line.substring(0, splitPos);
+      } else {
+        continue;
+      }
+    }
+
+    // 🛡️ ESCUDO ANTI-SÍMBOLOS RAROS:
+    // Solo permitimos letras, números, espacios, º, ª, guiones, comas y barras.
+    let clean = line
+      .replace(/[^a-zA-Z0-9ÑñÁÉÍÓÚáéíóúüÜºª/ \-.,]/g, " ")
+      .replace(/\s{2,}/g, " ")
+      .trim();
+
+    if (clean.length > 3 && !/LUGAR DE|NACIMIENTO/i.test(clean)) {
+      addressParts.push(clean);
+    }
   }
 
   if (addressParts.length > 0) {
-    out.direccion = titleCase(addressParts.join(" ").replace(/\s{2,}/g, " "));
+    out.direccion = titleCase(addressParts.join(" "));
   }
 
-  // 6. CIUDAD Y PROVINCIA (Filtro Anti-Azuqueca oe ie)
-  const cleanLocation = (raw: string) => {
-    const validPreps = new Set([
+  // 4. CIUDAD Y PROVINCIA: Es lo que está justo a la derecha o debajo del CP
+  const cpLine = validLines[cpIdx];
+  const afterCp = cpLine.substring(cpLine.indexOf(cpRaw) + cpRaw.length).trim();
+
+  const cities = [];
+  if (afterCp.replace(/[^a-zA-Z]/g, "").length > 2) cities.push(afterCp);
+
+  if (cpIdx + 1 < validLines.length) {
+    const nextLine = validLines[cpIdx + 1]
+      .replace(/[^a-zA-Z0-9ÑñÁÉÍÓÚáéíóúüÜ \-]/g, " ")
+      .trim();
+    if (nextLine.length > 2 && !/PROVINCIA|MUNICIPIO/i.test(nextLine)) {
+      cities.push(nextLine);
+    }
+  }
+
+  // Función inteligente que perdona a los "De la", "Del", "San"...
+  const cleanLoc = (raw: string) => {
+    let clean = raw.replace(/[^a-zA-ZñÑáéíóúÁÉÍÓÚüÜ\s-]/g, " ").trim();
+    const validShortWords = [
       "de",
-      "del",
-      "el",
       "la",
+      "el",
+      "en",
+      "y",
+      "del",
       "las",
       "los",
-      "y",
-      "en",
-      "a",
-      "al",
-      "l",
-      "d",
-      "s",
-    ]);
-    return raw
+      "san",
+      "sta",
+      "son",
+      "ses",
+    ];
+
+    clean = clean
       .split(/\s+/)
       .filter((word) => {
-        const w = word.toLowerCase().replace(/[^a-zñáéíóúü]/g, "");
-        if (!w) return false;
-        if (w.length <= 2 && !validPreps.has(w)) return false;
-        return true;
+        const w = word.toLowerCase();
+        return w.length > 2 || validShortWords.includes(w);
       })
       .join(" ");
+
+    return titleCase(clean);
   };
 
-  const remainingLines = textLines
-    .slice(addressParts.length)
-    .filter((l) => l.replace(/[^a-zA-Z]/g, "").length >= 4);
-
-  if (remainingLines.length >= 2) {
-    out.provincia = titleCase(
-      cleanLocation(remainingLines[remainingLines.length - 1]),
-    );
-    out.ciudad = titleCase(
-      cleanLocation(remainingLines[remainingLines.length - 2]),
-    );
-  } else if (remainingLines.length === 1) {
-    out.ciudad = titleCase(cleanLocation(remainingLines[0]));
+  if (cities.length >= 2) {
+    out.ciudad = cleanLoc(cities[0]);
+    out.provincia = cleanLoc(cities[1]);
+  } else if (cities.length === 1) {
+    out.ciudad = cleanLoc(cities[0]);
+    out.provincia = out.ciudad;
   }
 
   return out;
