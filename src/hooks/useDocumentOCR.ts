@@ -129,22 +129,30 @@ function filterOcrGarbage(raw: string): string {
     .join(" ");
 
   // 4. Filtro final de calidad y formato (Title Case)
+  // ... (todo el código anterior de la función se queda igual)
+
+  // 🏆 PARTE A SUSTITUIR: El mapeo final para soportar guiones
   return textoLimpio
     .split(/\s+/)
     .filter((word) => {
       if (!word || word.length < 2) {
-        // Permitimos palabras de 1 o 2 letras si son conectores (de, y, la, el)
         const w = word.toLowerCase();
         const conectores = ["y", "e", "de", "la", "el"];
         return conectores.includes(w);
       }
-
       const vowels = (word.match(/[AEIOUaeiouÁÉÍÓÚáéíóú]/g) || []).length;
-      if (vowels === 0 && word.length > 2) return false; // Si no tiene vocales y es larga, es basura
-
+      if (vowels === 0 && word.length > 2) return false;
       return true;
     })
-    .map((w) => (w ? w[0].toUpperCase() + w.slice(1).toLowerCase() : ""))
+    .map((w) => {
+      if (!w) return "";
+      return w
+        .split("-")
+        .map((part) =>
+          part ? part[0].toUpperCase() + part.slice(1).toLowerCase() : "",
+        )
+        .join("-");
+    })
     .filter(Boolean)
     .join(" ")
     .trim();
@@ -166,14 +174,19 @@ function titleCase(s: string): string {
     "a",
     "al",
   ]);
+
   return s
     .toLowerCase()
     .split(/\s+/)
-    .map((w, i) =>
-      (!w ? "" : i === 0 || !preps.has(w))
-        ? w.charAt(0).toUpperCase() + w.slice(1)
-        : w,
-    )
+    .map((w, i) => {
+      if (!w) return "";
+      if (i > 0 && preps.has(w)) return w;
+
+      return w
+        .split("-")
+        .map((part) => (part ? part[0].toUpperCase() + part.slice(1) : ""))
+        .join("-");
+    })
     .join(" ");
 }
 
