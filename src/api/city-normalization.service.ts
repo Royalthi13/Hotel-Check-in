@@ -1,4 +1,4 @@
-import { searchCitiesByName, CityResult } from "./cities.service";
+import { searchCitiesByName } from "./cities.service";
 
 export interface NormalizedCity {
   name: string;
