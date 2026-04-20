@@ -89,42 +89,37 @@ async function loadExifCorrectedBlob(file: File): Promise<Blob> {
 function filterOcrGarbage(raw: string): string {
   if (!raw) return "";
 
-  // Convertimos residuos de '<' en espacios
-  let textoLimpio = raw.replace(/<+/g, " ");
+  // Convertimos todos los galones '<' y las 'K' que estén rodeadas de galones en espacios.
+  // Esto evita que "GARCIA<DEL" se convierta en "GARCIAKDEL".
+  let textoLimpio = raw
+    .toUpperCase()
+    .replace(/<K/g, " ")
+    .replace(/K</g, " ")
+    .replace(/<+/g, " ")
+    .trim();
 
   textoLimpio = textoLimpio
     .split(/\s+/)
     .map((word) => {
-      // 1. Eliminar palabras que son pura basura aislada (ej: si lee solo "KXZ")
+      if (!word) return "";
+
+      // 2. Eliminar basuras aisladas (ej: "KXZ")
       if (/^[KXZL]+$/i.test(word)) return "";
 
-      //  Limpiamos el final de la palabra (K, X, Z, L)
-      // Buscamos la última letra válida seguida de cualquier basura final.
+      // Si la palabra termina en una K o X sospechosa, la limpiamos,
+      // pero mantenemos la estructura de la palabra.
       word = word.replace(
-        /([A-ZÁÉÍÓÚÑa-záéíóúñ])([KXZL]+)$/i,
-        (match, prevChar, garbage) => {
+        /([A-ZÁÉÍÓÚÑ])([KXZL]+)$/i,
+        (_match, prevChar, garbage) => {
           const g = garbage.toUpperCase();
-
-          // CASO 1: "LL" -> Lo respetamos por apellidos como Güell
           if (g === "LL") return prevChar + "LL";
-
-          // CASO 2: "Z" o "ZZ" -> Salvamos los apellidos españoles (Muñoz, Saiz, Paz)
           if (g === "Z" || g === "ZZ") return prevChar + "Z";
+          if (g === "X" && /[AEIOU]/i.test(prevChar)) return prevChar + "X";
 
-          // CASO 3: "X" -> La salvamos solo si va tras una vocal (Alex, Felix)
-          if (g === "X" && /[AEIOUaeiouÁÉÍÓÚáéíóú]/i.test(prevChar))
-            return prevChar + "X";
-
-          // CASO 4: regla  para la "L"
-          if (g.startsWith("L")) {
-            // Solo salvamos la L si va detrás de E, I, U, É, Í, Ú
-            if (/[EIUÉÍÚeiuéíú]/i.test(prevChar)) {
-              return prevChar + "L"; // Mantiene: Miguel, Daniel, Raúl, Isabel
-            }
-            return prevChar; // Corta la basura: LauraL -> Laura, AntonioL -> Antonio
+          // Si la letra anterior es E, I, U, salvamos la L (Miguel, Del)
+          if (g.startsWith("L") && /[EIUÉÍÚ]/i.test(prevChar)) {
+            return prevChar + "L";
           }
-
-          // CASO 5: Basura pura (K, KL, KX, ZK...) -> Guillotina
           return prevChar;
         },
       );
@@ -133,17 +128,19 @@ function filterOcrGarbage(raw: string): string {
     })
     .join(" ");
 
+  // 4. Filtro final de calidad y formato (Title Case)
   return textoLimpio
     .split(/\s+/)
     .filter((word) => {
-      if (!word || word.length < 2) return false;
+      if (!word || word.length < 2) {
+        // Permitimos palabras de 1 o 2 letras si son conectores (de, y, la, el)
+        const w = word.toLowerCase();
+        const conectores = ["y", "e", "de", "la", "el"];
+        return conectores.includes(w);
+      }
 
       const vowels = (word.match(/[AEIOUaeiouÁÉÍÓÚáéíóú]/g) || []).length;
-      const vowelRatio = vowels / word.length;
-      if (vowelRatio < 0.15 && word.length > 2) return false;
-
-      const uniqueChars = new Set(word.toUpperCase()).size;
-      if (uniqueChars <= 2 && word.length >= 5) return false;
+      if (vowels === 0 && word.length > 2) return false; // Si no tiene vocales y es larga, es basura
 
       return true;
     })
@@ -214,10 +211,14 @@ function fitLine(line: string, len: number) {
 }
 
 function cleanLine(raw: string) {
-  let cleaned = raw.toUpperCase().trim();
+  // 1. Mayúsculas y quitamos espacios que inventa el HD
+  let cleaned = raw.toUpperCase().replace(/\s+/g, "");
 
+  // 2. 🏆 ANTIDOTO GARCIAKDEL: Si hay una K entre dos letras, es un separador <
+  cleaned = cleaned.replace(/([A-Z])K([A-Z])/g, "$1<<$2");
+
+  // 3. Limpieza de basura estándar
   cleaned = cleaned.replace(/<K/g, "<<").replace(/K</g, "<<");
-
   cleaned = cleaned.replace(/<Z</g, "<<<").replace(/<Z</g, "<<<");
   cleaned = cleaned.replace(/<Z$/g, "<<");
 
@@ -226,6 +227,7 @@ function cleanLine(raw: string) {
     .map((c) => (WHITELIST.includes(c) ? c : "<"))
     .join("");
 }
+
 function extractCandidates(text: string) {
   return text
     .split("\n")
@@ -290,53 +292,61 @@ function mrzToGuest(parsed: ParseResult): Partial<PartialGuestData> {
   const f = parsed.fields as Record<string, string | null>;
   const out: Partial<PartialGuestData> = {};
 
-  let libLast = (f.lastName ?? "").trim();
-  let libFirst = (f.firstName ?? "").trim();
-
-  // Detectamos si es español para aplicar lógica de 2 apellidos
+  const rawLast = (f.lastName ?? "").trim();
+  const rawFirst = (f.firstName ?? "").trim();
   const isSpanish =
     f.issuingState?.includes("ESP") || f.nationality?.includes("ESP");
 
-  const lastWords = libLast.split(/\s+/).filter(Boolean);
-  const firstWords = libFirst.split(/\s+/).filter(Boolean);
+  // 🏆 ESTRATEGIA MAESTRA: Unificamos todas las palabras detectadas.
+  // Así nos da igual si el OCR puso el separador "<<" antes o después de "Del" o "Valle".
+  const allWords = `${rawLast} ${rawFirst}`.split(/\s+/).filter(Boolean);
+  if (allWords.length === 0) return out;
 
-  // 🏆 SALVAVIDAS 1: El OCR se comió el "<<" (ej: GARCIA GOMEZ MARTIN)
-  if (lastWords.length >= 3 && firstWords.length === 0) {
-    libLast = `${lastWords[0]} ${lastWords[1]}`;
-    libFirst = lastWords.slice(2).join(" ");
-  }
-  // 🏆 SALVAVIDAS 2: El OCR puso el "<<" demasiado pronto
-  else if (isSpanish && lastWords.length === 1 && firstWords.length >= 2) {
-    libLast = `${lastWords[0]} ${firstWords[0]}`;
-    libFirst = firstWords.slice(1).join(" ");
+  let ap1 = "";
+  let ap2 = "";
+  let nom = "";
+
+  // Partículas que suelen formar parte de apellidos compuestos
+  const particles = ["DE", "DEL", "LA", "LAS", "LOS"];
+
+  if (isSpanish) {
+    // Para España buscamos el patrón: APELLIDO 1 + APELLIDO 2 + NOMBRE(S)
+    ap1 = allWords[0];
+
+    // ¿El segundo apellido empieza por partícula? (Ej: GARCIA DEL VALLE MARIA)
+    if (allWords.length >= 4 && particles.includes(allWords[1].toUpperCase())) {
+      // Caso compuesto: Tomamos las dos siguientes palabras para el 2º apellido
+      ap2 = `${allWords[1]} ${allWords[2]}`;
+      nom = allWords.slice(3).join(" ");
+    } else if (allWords.length >= 3) {
+      ap2 = allWords[1];
+      nom = allWords.slice(2).join(" ");
+    } else {
+      nom = allWords.slice(1).join(" ");
+    }
+  } else {
+    // Para extranjeros: El primero es el Apellido y todo lo demás el Nombre
+    ap1 = allWords[0];
+    nom = allWords.slice(1).join(" ");
   }
 
-  // Filtrado final de nombres
-  if (libLast) {
-    const parts = libLast.split(/\s+/).filter(Boolean);
-    const apellido = filterOcrGarbage(parts[0] ?? "");
-    const apellido2 = filterOcrGarbage(parts.slice(1).join(" "));
-    if (apellido) out.apellido = apellido;
-    if (apellido2) out.apellido2 = apellido2;
-  }
+  // 2. Limpiamos la basura (K, KL, etc.) y aplicamos el formato
+  out.apellido = filterOcrGarbage(ap1);
+  out.apellido2 = filterOcrGarbage(ap2);
+  out.nombre = filterOcrGarbage(nom);
 
-  if (libFirst) {
-    const nombre = filterOcrGarbage(libFirst);
-    if (nombre) out.nombre = nombre;
-  }
-
+  // 3. Procesamos el resto de campos
   const fecha = parseDate(f.birthDate);
   if (fecha) out.fechaNac = fecha;
-
   out.sexo = parseSex(f.sex);
 
   const natCode = (f.nationality ?? f.issuingState ?? "")
     .toUpperCase()
     .replace(/<+/g, "");
   out.nacionalidad = NAT[natCode] ?? "Otra";
-
   if (natCode === "ESP") out.pais = "ES";
 
+  // Lógica de identificación de documento (DNI/NIE/Pasaporte)
   if (parsed.format === "TD1") {
     const soporte = (f.documentNumber ?? "").replace(/<+$/g, "").trim();
     const optional = (f.optional1 ?? "").slice(0, 9).replace(/<+$/g, "").trim();
@@ -368,6 +378,7 @@ function mrzToGuest(parsed: ParseResult): Partial<PartialGuestData> {
       out.numDoc = passNum;
     }
   }
+
   return out;
 }
 
@@ -539,6 +550,7 @@ async function buildMrzVariants(exifBlob: Blob): Promise<{
   const variants: PrepVariant[] = [];
 
   const zones = [
+    { label: "b50", yFrac: 0.5 },
     { label: "b30", yFrac: 0.7 },
     { label: "b38", yFrac: 0.62 },
     { label: "b24", yFrac: 0.76 },
