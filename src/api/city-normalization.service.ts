@@ -1,13 +1,5 @@
 import { searchCitiesByName } from "./cities.service";
 
-export interface NormalizedCity {
-  name: string;
-  codcity: string;
-  cp: string;
-  provincia: string; // ¡Añadimos la provincia para el formulario!
-}
-
-// 🗺️ Diccionario oficial del INE: Los 2 primeros dígitos del código postal mandan
 const PROVINCIAS_MAP: Record<string, string> = {
   "01": "ÁLAVA",
   "02": "ALBACETE",
@@ -63,36 +55,45 @@ const PROVINCIAS_MAP: Record<string, string> = {
   "52": "MELILLA",
 };
 
-export async function normalizeOcrCity(
-  ocrText: string,
-): Promise<NormalizedCity | null> {
+// Algoritmo de similitud para evitar "Castellón"
+function calculateSimilarity(s1: string, s2: string): number {
+  const a = s1.toUpperCase();
+  const b = s2.toUpperCase();
+  let matches = 0;
+  for (let i = 0; i < a.length; i++) {
+    if (b.includes(a[i])) matches++;
+  }
+  return matches / Math.max(a.length, b.length);
+}
+
+export async function normalizeOcrCity(ocrText: string) {
   if (!ocrText || ocrText.length < 3) return null;
 
-  let results = await searchCitiesByName(ocrText);
+  const query = ocrText.toUpperCase().trim();
+  let results = await searchCitiesByName(query);
 
-  // 🏆 BUCLE IMPLACABLE: Si el OCR leyó "TORREJON DE ARDOZ MADRID SOS",
-  // 1º quita "SOS" -> falla.
-  // 2º quita "MADRID" -> ¡Acierta y pilla "TORREJON DE ARDOZ"!
-  let parts = ocrText.split(" ");
+  let parts = query.split(" ");
   while (results.length === 0 && parts.length > 1) {
-    parts.pop(); // Borra la última palabra
-    const cityOnly = parts.join(" ");
-    results = await searchCitiesByName(cityOnly);
+    parts.pop();
+    results = await searchCitiesByName(parts.join(" "));
   }
 
   if (results.length > 0) {
-    const bestMatch = results[0]; // Cogemos el primer resultado de la API
+    // 🏆 BUSCADOR POR PARECIDO:
+    // Comparamos lo que leyó el OCR con los nombres de la API.
+    // "CUENDRA" se parecerá más a "AZUQUECA" que a un pueblo de Castellón.
+    const bestMatch = results.sort((a, b) => {
+      const simA = calculateSimilarity(parts.join(" "), a.name);
+      const simB = calculateSimilarity(parts.join(" "), b.name);
+      return simB - simA;
+    })[0];
 
-    // Sacamos los 2 primeros dígitos para saber la provincia
-    const provinceCode = bestMatch.codcity.substring(0, 2);
-
+    const provCode = bestMatch.codcity.substring(0, 2);
     return {
       name: bestMatch.name.toUpperCase(),
-      codcity: bestMatch.codcity,
-      cp: bestMatch.codcity, // ¡LO QUE TÚ QUERÍAS! El codcity directo como Código Postal
-      provincia: PROVINCIAS_MAP[provinceCode] || "",
+      cp: bestMatch.codcity,
+      provincia: PROVINCIAS_MAP[provCode] || "",
     };
   }
-
   return null;
 }

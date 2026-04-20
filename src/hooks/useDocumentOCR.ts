@@ -56,7 +56,7 @@ const NAT: Record<string, string> = {
   VEN: "Otra",
 };
 
-// ─── EXIF correction via canvas ───────────────────────────────────────────────
+// ─── Corrección EXIF ──────────────────────────────────────────────────────────
 
 async function loadExifCorrectedBlob(file: File): Promise<Blob> {
   return new Promise((resolve, reject) => {
@@ -65,28 +65,42 @@ async function loadExifCorrectedBlob(file: File): Promise<Blob> {
     img.onload = () => {
       try {
         const canvas = document.createElement("canvas");
-        canvas.width = img.naturalWidth;
-        canvas.height = img.naturalHeight;
-        canvas.getContext("2d")!.drawImage(img, 0, 0);
+        const ctx = canvas.getContext("2d")!;
+
+        let width = img.naturalWidth;
+        let height = img.naturalHeight;
+        let startX = 0;
+        let startY = 0;
+
+        const aspectRatio = width / height;
+        if (aspectRatio > 1.6) {
+          const newWidth = height * 1.5;
+          startX = (width - newWidth) / 2;
+          width = newWidth;
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+
+        ctx.drawImage(img, startX, startY, width, height, 0, 0, width, height);
+
         URL.revokeObjectURL(url);
         canvas.toBlob(
           (b) => (b ? resolve(b) : reject(new Error("toBlob"))),
           "image/png",
+          0.95,
         );
       } catch (e) {
         URL.revokeObjectURL(url);
         reject(e);
       }
     };
-    img.onerror = () => {
-      URL.revokeObjectURL(url);
-      reject(new Error("load failed"));
-    };
     img.src = url;
   });
 }
 
-// SUSTITUYE TU filterOcrGarbage ENTERA POR ESTA:
+// ─── Limpieza de Strings (Universal) ──────────────────────────────────────────
+
 function filterOcrGarbage(raw: string): string {
   if (!raw) return "";
 
@@ -136,7 +150,6 @@ function filterOcrGarbage(raw: string): string {
     .trim();
 }
 
-// SUSTITUYE TU titleCase ENTERA POR ESTA:
 function titleCase(s: string): string {
   if (!s) return "";
   const preps = new Set([
@@ -174,10 +187,7 @@ function parseDate(yymmdd: string | null | undefined): string {
 
   const currentYear = new Date().getFullYear();
   let fullYear = 2000 + yy;
-
-  if (fullYear > currentYear) {
-    fullYear = 1900 + yy;
-  }
+  if (fullYear > currentYear) fullYear = 1900 + yy;
   return `${fullYear}-${mm}-${dd}`;
 }
 
@@ -187,7 +197,7 @@ function parseSex(s: string | null | undefined): string {
   return "No indicar";
 }
 
-// ─── Scoring MRZ ─────────────────────────────────────────────────────────────
+// ─── Lógica MRZ ───────────────────────────────────────────────────────────────
 
 function scoreResult(p: ParseResult): number {
   const rel = p.details.filter((d) => d.field !== null);
@@ -199,13 +209,8 @@ function fitLine(line: string, len: number) {
 }
 
 function cleanLine(raw: string) {
-  // 1. Mayúsculas y quitamos espacios que inventa el HD
   let cleaned = raw.toUpperCase().replace(/\s+/g, "");
-
-  // 2. Si hay una K entre dos letras, es un separador <
   cleaned = cleaned.replace(/([A-Z])K([A-Z])/g, "$1<<$2");
-
-  // 3. Limpieza de basura estándar
   cleaned = cleaned.replace(/<K/g, "<<").replace(/K</g, "<<");
   cleaned = cleaned.replace(/<Z</g, "<<<").replace(/<Z</g, "<<<");
   cleaned = cleaned.replace(/<Z$/g, "<<");
@@ -225,8 +230,6 @@ function extractCandidates(text: string) {
     );
 }
 
-// ─── Mejor combinación de líneas ─────────────────────────────────────────────
-
 interface MRZCandidate {
   result: ParseResult;
   score: number;
@@ -241,7 +244,7 @@ function findBestMRZ(lines: string[]): MRZCandidate | null {
       const score = scoreResult(result);
       if (!best || score > best.score) best = { result, score, inputLines: ls };
     } catch {
-      /*  */
+      /* ignorar */
     }
   };
 
@@ -275,7 +278,6 @@ function findBestMRZ(lines: string[]): MRZCandidate | null {
   return best;
 }
 
-// ─── Mapear MRZ → formulario ──────────────────────────────────────────────────
 function mrzToGuest(parsed: ParseResult): Partial<PartialGuestData> {
   const f = parsed.fields as Record<string, string | null>;
   const out: Partial<PartialGuestData> = {};
@@ -285,25 +287,17 @@ function mrzToGuest(parsed: ParseResult): Partial<PartialGuestData> {
   const isSpanish =
     f.issuingState?.includes("ESP") || f.nationality?.includes("ESP");
 
-  // Unificamos todas las palabras detectadas.
-  // Así nos da igual si el OCR puso el separador "<<" antes o después de "Del" o "Valle".
   const allWords = `${rawLast} ${rawFirst}`.split(/\s+/).filter(Boolean);
   if (allWords.length === 0) return out;
 
-  let ap1 = "";
-  let ap2 = "";
-  let nom = "";
-
-  // Partículas que suelen formar parte de apellidos compuestos
+  let ap1 = "",
+    ap2 = "",
+    nom = "";
   const particles = ["DE", "DEL", "LA", "LAS", "LOS"];
 
   if (isSpanish) {
-    // Para España buscamos el patrón: APELLIDO 1 + APELLIDO 2 + NOMBRE(S)
     ap1 = allWords[0];
-
-    // ¿El segundo apellido empieza por partícula? (Ej: GARCIA DEL VALLE MARIA)
     if (allWords.length >= 4 && particles.includes(allWords[1].toUpperCase())) {
-      // Caso compuesto: Tomamos las dos siguientes palabras para el 2º apellido
       ap2 = `${allWords[1]} ${allWords[2]}`;
       nom = allWords.slice(3).join(" ");
     } else if (allWords.length >= 3) {
@@ -313,17 +307,14 @@ function mrzToGuest(parsed: ParseResult): Partial<PartialGuestData> {
       nom = allWords.slice(1).join(" ");
     }
   } else {
-    // Para extranjeros: El primero es el Apellido y todo lo demás el Nombre
     ap1 = allWords[0];
     nom = allWords.slice(1).join(" ");
   }
 
-  // 2. Limpiamos la basura (K, KL, etc.) y aplicamos el formato
   out.apellido = filterOcrGarbage(ap1);
   out.apellido2 = filterOcrGarbage(ap2);
   out.nombre = filterOcrGarbage(nom);
 
-  // 3. Procesamos el resto de campos
   const fecha = parseDate(f.birthDate);
   if (fecha) out.fechaNac = fecha;
   out.sexo = parseSex(f.sex);
@@ -334,26 +325,18 @@ function mrzToGuest(parsed: ParseResult): Partial<PartialGuestData> {
   out.nacionalidad = NAT[natCode] ?? "Otra";
   if (natCode === "ESP") out.pais = "ES";
 
-  // Lógica de identificación de documento (DNI/NIE/Pasaporte)
   if (parsed.format === "TD1") {
     const soporte = (f.documentNumber ?? "").replace(/<+$/g, "").trim();
     const optional = (f.optional1 ?? "").slice(0, 9).replace(/<+$/g, "").trim();
     const isDNI = (s: string) => /^\d{8}[A-Z]$/.test(s);
     const isNIE = (s: string) => /^[XYZ]\d{7}[A-Z]$/.test(s);
 
-    if (isDNI(optional)) {
-      out.tipoDoc = "DNI";
+    if (isDNI(optional) || isNIE(optional)) {
+      out.tipoDoc = isDNI(optional) ? "DNI" : "NIE";
       out.numDoc = optional;
       if (soporte.length >= 8) out.soporteDoc = soporte;
-    } else if (isNIE(optional)) {
-      out.tipoDoc = "NIE";
-      out.numDoc = optional;
-      if (soporte.length >= 8) out.soporteDoc = soporte;
-    } else if (isDNI(soporte)) {
-      out.tipoDoc = "DNI";
-      out.numDoc = soporte;
-    } else if (isNIE(soporte)) {
-      out.tipoDoc = "NIE";
+    } else if (isDNI(soporte) || isNIE(soporte)) {
+      out.tipoDoc = isDNI(soporte) ? "DNI" : "NIE";
       out.numDoc = soporte;
     } else {
       out.tipoDoc = natCode === "ESP" ? "DNI" : "Otro";
@@ -370,99 +353,115 @@ function mrzToGuest(parsed: ParseResult): Partial<PartialGuestData> {
   return out;
 }
 
-// ─── DOMICILIO: parsear el texto del reverso del DNI ─────────────────────────
+// ─── Extracción Domicilio DNI Reverso ─────────────────────────────────────────
+
 function parseDniBackAddress(text: string): Partial<PartialGuestData> {
   const out: Partial<PartialGuestData> = {};
-  if (!text) return out;
 
-  // 1. Limpieza total y unificación
-  let cleanText = text
-    .replace(/[^a-zA-Z0-9ÑñÁÉÍÓÚáéíóúüÜºª/ \-.,]/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
+  console.group("🔍 DEPURACIÓN OCR - DOMICILIO V4");
+  console.log("1️⃣ TEXTO BRUTO ORIGINAL:\n", text);
 
-  // 2. 🛡️ CORTAFUEGOS
-  cleanText = cleanText
-    .split(/LUGAR|NACIMIENTO|PROVINCIA|MUNICIPIO|EQUIPO/i)[0]
-    .trim();
-
-  // 3. 🏠 BORRAR "DOMICILIO"
-  const domMatch = cleanText.match(/DOM[A-Z0-9|!¡]{3,8}O/i);
-  let addressBlock = cleanText;
-  if (domMatch && domMatch.index !== undefined) {
-    addressBlock = cleanText
-      .substring(domMatch.index + domMatch[0].length)
-      .trim();
+  if (!text) {
+    console.groupEnd();
+    return out;
   }
 
-  // 4. ⚓ EL PIVOTE: Buscar el bloque de "Número y Piso"
+  // 1. Quitar las flechas MRZ del final para que no molesten
+  let noMrz = text.split(/<{2,}/)[0];
+
+  // 2. Encontrar "DOMICILIO" y tirar la parte de arriba (padres, lugar nacimiento)
+  const domMatch = noMrz.match(/DOM[A-Z0-9|!¡lI]{3,8}O/i);
+  let mainBlock = noMrz;
+  if (domMatch) {
+    mainBlock = noMrz.substring(domMatch.index! + domMatch[0].length);
+  }
+
+  // 3. 🧹 LA GOMA DE BORRAR (El arreglo clave)
+  // Borramos las palabras impresas del plástico del DNI, pero NO cortamos el texto.
+  let cleanBlock = mainBlock
+    .replace(
+      /\b(LUGAR DE DOMICILIO|LUGAR|PROVINCIA|PROV|MUNICIPIO|EQUIPO|VALIDEZ|FECHA)\b/gi,
+      " ",
+    ) // Borrar etiquetas
+    .replace(/\b[0-9A-Z]{8,12}\b/g, " ") // Borrar números largos (como el ID del Equipo)
+    .replace(/[^a-zA-Z0-9ÑñÁÉÍÓÚáéíóúüÜºª/ \-.,]/g, " ") // Borrar símbolos raros
+    .replace(/\s+/g, " ") // Aplastar saltos de línea y espacios dobles
+    .trim();
+
+  console.log("2️⃣ DATOS LIMPIOS SIN ETIQUETAS:", cleanBlock);
+
+  // 4. ⚓ EL PIVOTE: Buscar el número (57, S7, etc.)
   const pivotRegex =
-    /(\d+\s*(?:[ºª°]|BIS|BAJO|S\/N|IZQ|DER|[0-9][A-Z]|[A-Z]\b)?)/i;
-  const matchPivot = addressBlock.match(pivotRegex);
+    /(\b[0-9SBOZlI]{1,4}\s*(?:[ºª°]|BIS|BAJO|S\/N|IZQ|DER|[0-9][A-Z]|[A-Z]\b)?)/i;
+  const matchPivot = cleanBlock.match(pivotRegex);
 
-  // 5. 🧠 FILTRO HEURÍSTICO (Anti-basura OCR)
-  const cleanLocality = (raw: string) => {
-    let c = raw.replace(/[^a-zA-ZñÑáéíóúÁÉÍÓÚüÜ\s-]/g, " ").trim();
-    const validShort = new Set([
-      "de",
-      "la",
-      "el",
-      "en",
-      "y",
-      "del",
-      "las",
-      "los",
-      "san",
-      "sta",
-      "son",
-      "ses",
-      "val",
-    ]);
+  if (matchPivot) {
+    const splitPoint = matchPivot.index! + matchPivot[0].length;
+    let rawStreet = cleanBlock.substring(0, matchPivot.index).trim();
+    let rawNumber = matchPivot[0].trim();
 
-    return c
-      .split(/\s+/)
-      .filter((word) => {
-        const low = word.toLowerCase();
-        if (validShort.has(low)) return true;
+    // TRADUCCIÓN OCR: S -> 5
+    const translateMap: Record<string, string> = {
+      S: "5",
+      B: "8",
+      O: "0",
+      Z: "2",
+      l: "1",
+      I: "1",
+    };
+    let cleanNumber = rawNumber.replace(
+      /[SBOZlI]/g,
+      (m) => translateMap[m] || m,
+    );
 
-        // 🎯 FRANCOTIRADOR: Matamos el holograma "sos"
-        if (low === "sos" || low === "sas") return false;
+    out.direccion = titleCase(`${rawStreet} ${cleanNumber}`.trim());
 
-        const hasVowels = /[aeiouáéíóúü]/i.test(word);
-        const isRepeated = /(.)\1{2,}/i.test(word);
-        const tooManyConsonants = /[^aeiouáéíóúü]{4,}/i.test(word);
+    // Lo que queda a la derecha del número es Azuqueca y Guadalajara
+    let rawCityProv = cleanBlock.substring(splitPoint).trim();
 
-        return (
-          word.length > 2 && hasVowels && !isRepeated && !tooManyConsonants
-        );
-      })
-      .join(" ");
-  };
-
-  if (matchPivot && matchPivot.index !== undefined) {
-    const splitPoint = matchPivot.index + matchPivot[0].length;
-    out.direccion = titleCase(addressBlock.substring(0, splitPoint).trim());
-
-    const rawLocality = addressBlock.substring(splitPoint).trim();
-
-    // Extraemos el CP si el OCR tuvo la suerte de leerlo
-    let localityWithoutCp = rawLocality;
-    const cpMatch = rawLocality.match(/(\d{5})/);
+    // Sacamos CP si lo hay
+    const cpMatch = rawCityProv.match(/(\d{5})/);
     if (cpMatch) {
       out.cp = cpMatch[1];
-      localityWithoutCp = rawLocality.replace(cpMatch[1], "").trim();
+      rawCityProv = rawCityProv.replace(cpMatch[1], "").trim();
     }
 
-    // 🚀 ENVIAMOS A LA API: Todo limpio y en MAYÚSCULAS
-    // Aquí NO rellenamos la provincia. Tu API se encargará de eso.
-    out.ciudad = cleanLocality(localityWithoutCp).toUpperCase();
+    // Limpiamos la ciudad de palabras sueltas cortas
+    out.ciudad = rawCityProv
+      .split(/\s+/)
+      .filter((w) => {
+        const low = w.toLowerCase();
+        if (
+          [
+            "de",
+            "la",
+            "el",
+            "en",
+            "y",
+            "del",
+            "las",
+            "los",
+            "san",
+            "sta",
+            "val",
+          ].includes(low)
+        )
+          return true;
+        if (low === "sos" || low === "sas") return false; // El maldito holograma
+        return w.length > 2;
+      })
+      .join(" ")
+      .toUpperCase();
   } else {
-    out.direccion = titleCase(addressBlock);
+    out.direccion = titleCase(cleanBlock);
   }
 
+  console.log("3️⃣ RESULTADO FINAL:", out);
+  console.groupEnd();
   return out;
 }
-// ─── Preprocesado image-js ────────────────────────────────────────────────────
+// ─── Procesado image-js ───────────────────────────────────────────────────────
+
 interface PrepVariant {
   dataURL: string;
   psm: PSM;
@@ -471,7 +470,6 @@ interface PrepVariant {
 
 async function buildMrzVariants(exifBlob: Blob): Promise<{
   variants: PrepVariant[];
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   grey: any;
   width: number;
   height: number;
@@ -509,7 +507,7 @@ async function buildMrzVariants(exifBlob: Blob): Promise<{
   for (const z of zones) {
     const y = Math.floor(height * z.yFrac);
     const h = height - y;
-    const crop = grey.crop({ origin: { row: y, column: 0 }, width, height: h });
+    const crop = grey.crop({ x: 0, y: y, width, height: h }); // Fix: x/y insted of origin
 
     for (const lv of levels) {
       if (lv.label === "dark" && z.label !== "b24") continue;
@@ -524,7 +522,7 @@ async function buildMrzVariants(exifBlob: Blob): Promise<{
           label: `${z.label}-${lv.label}`,
         });
       } catch {
-        /* ok */
+        /* */
       }
     }
   }
@@ -543,44 +541,58 @@ async function buildMrzVariants(exifBlob: Blob): Promise<{
 
   return { variants, grey, width, height };
 }
-function buildAddressVariant(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  grey: any,
-  width: number,
-  height: number,
-): string | null {
-  try {
-    console.log("🛠️ 1. Preparando el recorte de la dirección...");
 
-    // Ampliamos el radar al 60% de la tarjeta
-    const addrH = Math.floor(height * 0.6);
-    const addrW = Math.max(1600, Math.round(width * 2));
-    const crop = grey.crop({
-      origin: { row: 0, column: 0 },
-      width,
-      height: addrH,
-    });
+// ─── Procesado Nativo de Imagen (Binarización Extrema) ─────────────────────────
 
-    // 🏆 EL FIX: Contraste extremo seguro en lugar de la Máscara.
-    // Oscurece los grises y quema los blancos para eliminar el fondo.
-    const processed = crop.level({ inputMin: 60, inputMax: 140 });
+async function buildAddressVariantNative(fileOrBlob: Blob): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement("canvas");
+      // Ampliamos x2 para máxima resolución
+      canvas.width = img.width * 2;
+      canvas.height = img.height * 2;
+      const ctx = canvas.getContext("2d", { willReadFrequently: true })!;
 
-    const finalUrl = ijsEncodeDataURL(processed.resize({ width: addrW }));
-    console.log(
-      "✅ 2. Imagen de dirección procesada con éxito. Enviando a Tesseract...",
-    );
+      // Dibujamos la imagen ampliada
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
 
-    return finalUrl;
-  } catch (error) {
-    // Si algo falla, ahora nos lo gritará en rojo en la consola
-    console.error(
-      "❌ ERROR FATAL al preparar la imagen de la dirección:",
-      error,
-    );
-    return null;
-  }
+      // 🧠 BINARIZACIÓN PÍXEL A PÍXEL
+      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const data = imageData.data;
+
+      for (let i = 0; i < data.length; i += 4) {
+        // Calculamos la luminosidad real del píxel
+        const r = data[i];
+        const g = data[i + 1];
+        const b = data[i + 2];
+        const brightness = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+
+        // Si el píxel es oscurito (tinta de las letras), lo hacemos NEGRO PURO
+        // Si es claro (naranja del DNI, brillos, holograma), lo hacemos BLANCO PURO
+        // (El valor 130 es el punto de corte mágico para DNIs)
+        if (brightness < 130) {
+          data[i] = 0; // R
+          data[i + 1] = 0; // G
+          data[i + 2] = 0; // B
+        } else {
+          data[i] = 255; // R
+          data[i + 1] = 255; // G
+          data[i + 2] = 255; // B
+        }
+      }
+
+      // Aplicamos los píxeles destruidos al canvas
+      ctx.putImageData(imageData, 0, 0);
+
+      resolve(canvas.toDataURL("image/jpeg", 0.95));
+    };
+    img.onerror = reject;
+    img.src = URL.createObjectURL(fileOrBlob);
+  });
 }
-// ─── Singleton Tesseract ──────────────────────────────────────────────────────
+// ─── Tesseract Worker ─────────────────────────────────────────────────────────
+
 type TWorker = Awaited<ReturnType<typeof createWorker>>;
 let _worker: TWorker | null = null;
 let _ready = false;
@@ -627,20 +639,28 @@ async function runMrzOCR(
 async function runTextOCR(worker: TWorker, dataURL: string): Promise<string> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   await (worker as any).setParameters({
-    tessedit_char_whitelist: "",
-    tessedit_pageseg_mode: String(PSM.SPARSE_TEXT),
+    // 🔥 SOLO LETRAS Y NÚMEROS. Ni barras, ni puntos, ni comas.
+    // Si hay un punto en "C.", lo ignorará y leerá "C BUENDIA", que es perfecto.
+    tessedit_char_whitelist: "ABCDEFGHIJKLMNOPQRSTUVWXYZÁÉÍÓÚÑ0123456789 \n",
+
+    tessedit_pageseg_mode: "11",
+
+    // Apagamos diccionarios para que no alucine
     load_system_dawg: "0",
     load_freq_dawg: "0",
+    load_punc_dawg: "0",
     load_number_dawg: "0",
-    tessedit_do_invert: "0",
-    hocr_font_info: "0",
-    textord_tabfind_find_tables: "0",
+    load_unambig_dawg: "0",
+    load_bigram_dawg: "0",
+    load_word_dawg: "0",
   });
+
   const { data } = await worker.recognize(dataURL);
   return data.text;
 }
 
-// ─── Hook principal ───────────────────────────────────────────────────────────
+// ─── Hook exportado ───────────────────────────────────────────────────────────
+
 export function useDocumentOCR() {
   const { t } = useTranslation();
   const [isProcessing, setIsProcessing] = useState(false);
@@ -663,7 +683,6 @@ export function useDocumentOCR() {
           setFase(t("ocr.fix_orientation"), 8);
           exifBlob = await loadExifCorrectedBlob(file);
         } catch (err) {
-          console.error("[OCR] EXIF:", err);
           return { ok: false, error: t("ocr.err_format") };
         }
 
@@ -678,7 +697,6 @@ export function useDocumentOCR() {
           width = built.width;
           height = built.height;
         } catch (err) {
-          console.error("[OCR] buildVariants:", err);
           return { ok: false, error: t("ocr.err_size") };
         }
 
@@ -696,19 +714,16 @@ export function useDocumentOCR() {
 
         for (let i = 0; i < total; i++) {
           if (cancelRef.current || _terminating) break;
-
           const pct = 25 + Math.round((i / total) * 50);
+
           let faseMsg = "";
-          if (i === 0) {
-            faseMsg = t("ocr.reading_mrz");
-          } else if (i < total - 1) {
+          if (i === 0) faseMsg = t("ocr.reading_mrz");
+          else if (i < total - 1)
             faseMsg = t("ocr.refining_mrz", {
               current: i + 1,
               total: total - 1,
             });
-          } else {
-            faseMsg = t("ocr.full_analysis");
-          }
+          else faseMsg = t("ocr.full_analysis");
 
           setFase(faseMsg, pct);
 
@@ -722,7 +737,7 @@ export function useDocumentOCR() {
             const cand = findBestMRZ(cands);
             if (cand && (!best || cand.score > best.score)) best = cand;
           } catch (err) {
-            console.warn(`[OCR] MRZ variante "${mrzVariants[i].label}":`, err);
+            /* */
           }
 
           if (best && best.score >= GOOD_SCORE) break;
@@ -730,9 +745,7 @@ export function useDocumentOCR() {
 
         if (cancelRef.current || _terminating) return { ok: false };
 
-        if (!best) {
-          return { ok: false, error: t("ocr.err_not_found") };
-        }
+        if (!best) return { ok: false, error: t("ocr.err_not_found") };
 
         if (best.score < MIN_SCORE) {
           return {
@@ -749,8 +762,18 @@ export function useDocumentOCR() {
 
         if (best.result.format !== "TD3") {
           try {
-            const addrDataURL = buildAddressVariant(grey, width, height);
+            // Usamos nuestra nueva función indestructible pasándole la foto original recortada
+            const addrDataURL = await buildAddressVariantNative(file);
+
             if (addrDataURL) {
+              // 📸 ¡EL CHIVATO VISUAL DEFINITIVO!
+              console.log("📸 IMAGEN QUE VE TESSERACT:");
+              console.log(
+                "%c HAZ CLIC AQUÍ PARA VER LA FOTO EN BLANCO Y NEGRO",
+                `font-weight:bold; font-size:14px; color:blue;`,
+              );
+              console.log(addrDataURL); // Copia este texto larguísimo en la barra de tu navegador para ver la foto
+
               const addrText = await runTextOCR(worker, addrDataURL);
               addressData = parseDniBackAddress(addrText);
 
@@ -760,31 +783,20 @@ export function useDocumentOCR() {
                   addressData.ciudad = validated.name;
                   addressData.cp = validated.cp;
                   addressData.provincia = validated.provincia;
-                } else {
-                  console.warn(
-                    "La API no encontró la ciudad en BBDD:",
-                    addressData.ciudad,
-                  );
                 }
               }
             }
           } catch (err) {
-            console.warn("[OCR] API city validation error:", err);
+            console.warn("[OCR] Error procesando el domicilio:", err);
           }
         }
-
         if (cancelRef.current || _terminating) return { ok: false };
 
         setFase(t("ocr.success"), 100);
 
-        const mergedData: Partial<PartialGuestData> = {
-          ...addressData,
-          ...mrzData,
-        };
-
         return {
           ok: true,
-          data: mergedData,
+          data: { ...addressData, ...mrzData },
           formato: best.result.format,
           confianza: best.score,
         };
@@ -805,14 +817,14 @@ export function useDocumentOCR() {
       try {
         await _loading;
       } catch {
-        /*  */
+        /* */
       }
     }
     if (_worker) {
       try {
         await _worker.terminate();
       } catch {
-        /*  */
+        /* */
       }
       _worker = null;
       _ready = false;
