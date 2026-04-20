@@ -8,6 +8,7 @@ import {
 import { parse as mrzParse } from "mrz";
 import type { ParseResult } from "mrz";
 import type { PartialGuestData } from "@/types";
+import { normalizeOcrCity } from "@/api/city-normalization.service";
 
 // ─── Tipos públicos ───────────────────────────────────────────────────────────
 
@@ -85,12 +86,10 @@ async function loadExifCorrectedBlob(file: File): Promise<Blob> {
   });
 }
 
-// ─── FIX: filtrar basura OCR de los nombres ───────────────────────────────────
+// SUSTITUYE TU filterOcrGarbage ENTERA POR ESTA:
 function filterOcrGarbage(raw: string): string {
   if (!raw) return "";
 
-  // Convertimos todos los galones '<' y las 'K' que estén rodeadas de galones en espacios.
-  // Esto evita que "GARCIA<DEL" se convierta en "GARCIAKDEL".
   let textoLimpio = raw
     .toUpperCase()
     .replace(/<K/g, " ")
@@ -101,65 +100,43 @@ function filterOcrGarbage(raw: string): string {
   textoLimpio = textoLimpio
     .split(/\s+/)
     .map((word) => {
-      if (!word) return "";
-
-      // 2. Eliminar basuras aisladas (ej: "KXZ")
-      if (/^[KXZL]+$/i.test(word)) return "";
-
-      // Si la palabra termina en una K o X sospechosa, la limpiamos,
-      // pero mantenemos la estructura de la palabra.
-      word = word.replace(
+      if (!word || /^[KXZL]+$/i.test(word)) return "";
+      return word.replace(
         /([A-ZÁÉÍÓÚÑ])([KXZL]+)$/i,
         (_match, prevChar, garbage) => {
           const g = garbage.toUpperCase();
           if (g === "LL") return prevChar + "LL";
           if (g === "Z" || g === "ZZ") return prevChar + "Z";
           if (g === "X" && /[AEIOU]/i.test(prevChar)) return prevChar + "X";
-
-          // Si la letra anterior es E, I, U, salvamos la L (Miguel, Del)
-          if (g.startsWith("L") && /[EIUÉÍÚ]/i.test(prevChar)) {
+          if (g.startsWith("L") && /[EIUÉÍÚ]/i.test(prevChar))
             return prevChar + "L";
-          }
           return prevChar;
         },
       );
-
-      return word;
     })
     .join(" ");
 
-  // 4. Filtro final de calidad y formato (Title Case)
-  // ... (todo el código anterior de la función se queda igual)
-
-  // 🏆 PARTE A SUSTITUIR: El mapeo final para soportar guiones
   return textoLimpio
     .split(/\s+/)
     .filter((word) => {
-      if (!word || word.length < 2) {
-        const w = word.toLowerCase();
-        const conectores = ["y", "e", "de", "la", "el"];
-        return conectores.includes(w);
-      }
-      const vowels = (word.match(/[AEIOUaeiouÁÉÍÓÚáéíóú]/g) || []).length;
-      if (vowels === 0 && word.length > 2) return false;
-      return true;
+      if (!word || word.length < 2)
+        return ["y", "e", "de", "la", "el"].includes(word.toLowerCase());
+      return (
+        (word.match(/[AEIOUaeiouÁÉÍÓÚáéíóú]/g) || []).length > 0 ||
+        word.length <= 2
+      );
     })
-    .map((w) => {
-      if (!w) return "";
-      return w
+    .map((w) =>
+      w
         .split("-")
-        .map((part) =>
-          part ? part[0].toUpperCase() + part.slice(1).toLowerCase() : "",
-        )
-        .join("-");
-    })
-    .filter(Boolean)
+        .map((p) => (p ? p[0].toUpperCase() + p.slice(1).toLowerCase() : ""))
+        .join("-"),
+    )
     .join(" ")
     .trim();
 }
 
-// ─── Helpers genéricos ────────────────────────────────────────────────────────
-
+// SUSTITUYE TU titleCase ENTERA POR ESTA:
 function titleCase(s: string): string {
   if (!s) return "";
   const preps = new Set([
@@ -174,17 +151,15 @@ function titleCase(s: string): string {
     "a",
     "al",
   ]);
-
   return s
     .toLowerCase()
     .split(/\s+/)
     .map((w, i) => {
       if (!w) return "";
       if (i > 0 && preps.has(w)) return w;
-
       return w
         .split("-")
-        .map((part) => (part ? part[0].toUpperCase() + part.slice(1) : ""))
+        .map((p) => (p ? p[0].toUpperCase() + p.slice(1) : ""))
         .join("-");
     })
     .join(" ");
@@ -227,7 +202,7 @@ function cleanLine(raw: string) {
   // 1. Mayúsculas y quitamos espacios que inventa el HD
   let cleaned = raw.toUpperCase().replace(/\s+/g, "");
 
-  // 2. 🏆 ANTIDOTO GARCIAKDEL: Si hay una K entre dos letras, es un separador <
+  // 2. Si hay una K entre dos letras, es un separador <
   cleaned = cleaned.replace(/([A-Z])K([A-Z])/g, "$1<<$2");
 
   // 3. Limpieza de basura estándar
@@ -266,7 +241,7 @@ function findBestMRZ(lines: string[]): MRZCandidate | null {
       const score = scoreResult(result);
       if (!best || score > best.score) best = { result, score, inputLines: ls };
     } catch {
-      /* noop */
+      /*  */
     }
   };
 
@@ -310,7 +285,7 @@ function mrzToGuest(parsed: ParseResult): Partial<PartialGuestData> {
   const isSpanish =
     f.issuingState?.includes("ESP") || f.nationality?.includes("ESP");
 
-  // 🏆 ESTRATEGIA MAESTRA: Unificamos todas las palabras detectadas.
+  // Unificamos todas las palabras detectadas.
   // Así nos da igual si el OCR puso el separador "<<" antes o después de "Del" o "Valle".
   const allWords = `${rawLast} ${rawFirst}`.split(/\s+/).filter(Boolean);
   if (allWords.length === 0) return out;
@@ -400,100 +375,35 @@ function parseDniBackAddress(text: string): Partial<PartialGuestData> {
   const out: Partial<PartialGuestData> = {};
   if (!text) return out;
 
-  // 1. Limpiamos líneas vacías y cortamos la basura de códigos MRZ (<<<<)
-  const validLines = text
-    .split("\n")
-    .map((l) => l.trim())
-    .filter((l) => l.length > 3 && !/[<]{3,}/.test(l));
+  // 1. Limpieza total y unificación
+  let cleanText = text
+    .replace(/[^a-zA-Z0-9ÑñÁÉÍÓÚáéíóúüÜºª/ \-.,]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
 
-  // 2. 🏆 EL ANCLA: Buscar el Código Postal (5 dígitos)
-  // Somos flexibles por si lee letras en vez de números (O por 0, l por 1)
-  let cpIdx = -1;
-  let cpRaw = "";
+  // 2. 🛡️ CORTAFUEGOS
+  cleanText = cleanText
+    .split(/LUGAR|NACIMIENTO|PROVINCIA|MUNICIPIO|EQUIPO/i)[0]
+    .trim();
 
-  for (let i = 0; i < validLines.length; i++) {
-    const match = validLines[i].match(
-      /(?:\b|[^A-Z0-9])([0-5OQ][0-9OIl]{4})(?:\b|[^A-Z0-9])/i,
-    );
-    if (match) {
-      let possibleCp = match[1]
-        .toUpperCase()
-        .replace(/[OQ]/g, "0")
-        .replace(/[Il]/g, "1");
-      if (/^[0-5][0-9]{4}$/.test(possibleCp)) {
-        out.cp = possibleCp;
-        cpIdx = i;
-        cpRaw = match[1];
-        break;
-      }
-    }
-  }
-
-  // Si no encontramos el Código Postal, no podemos fiarnos de nada, abortamos.
-  if (cpIdx === -1) return out;
-
-  // 3. 🏆 DIRECCIÓN: Es lo que está justo antes del Código Postal
-  const addressParts = [];
-
-  // Miramos hasta 2 líneas por encima del Código Postal
-  let startIdx = Math.max(0, cpIdx - 2);
-  for (let i = cpIdx; i >= 0; i--) {
-    // Si vemos la palabra domicilio, sabemos que ahí empieza
-    if (/dom[i1l|!]+c[i1l|!]+/i.test(validLines[i])) {
-      startIdx = i + 1;
-      break;
-    }
-  }
-
-  for (let i = startIdx; i <= cpIdx; i++) {
-    let line = validLines[i];
-
-    // Si estamos en la línea del CP, nos quedamos solo con la parte izquierda
-    if (i === cpIdx) {
-      const splitPos = line.indexOf(cpRaw);
-      if (splitPos > 0) {
-        line = line.substring(0, splitPos);
-      } else {
-        continue;
-      }
-    }
-
-    // 🛡️ ESCUDO ANTI-SÍMBOLOS RAROS:
-    // Solo permitimos letras, números, espacios, º, ª, guiones, comas y barras.
-    let clean = line
-      .replace(/[^a-zA-Z0-9ÑñÁÉÍÓÚáéíóúüÜºª/ \-.,]/g, " ")
-      .replace(/\s{2,}/g, " ")
+  // 3. 🏠 BORRAR "DOMICILIO"
+  const domMatch = cleanText.match(/DOM[A-Z0-9|!¡]{3,8}O/i);
+  let addressBlock = cleanText;
+  if (domMatch && domMatch.index !== undefined) {
+    addressBlock = cleanText
+      .substring(domMatch.index + domMatch[0].length)
       .trim();
-
-    if (clean.length > 3 && !/LUGAR DE|NACIMIENTO/i.test(clean)) {
-      addressParts.push(clean);
-    }
   }
 
-  if (addressParts.length > 0) {
-    out.direccion = titleCase(addressParts.join(" "));
-  }
+  // 4. ⚓ EL PIVOTE: Buscar el bloque de "Número y Piso"
+  const pivotRegex =
+    /(\d+\s*(?:[ºª°]|BIS|BAJO|S\/N|IZQ|DER|[0-9][A-Z]|[A-Z]\b)?)/i;
+  const matchPivot = addressBlock.match(pivotRegex);
 
-  // 4. CIUDAD Y PROVINCIA: Es lo que está justo a la derecha o debajo del CP
-  const cpLine = validLines[cpIdx];
-  const afterCp = cpLine.substring(cpLine.indexOf(cpRaw) + cpRaw.length).trim();
-
-  const cities = [];
-  if (afterCp.replace(/[^a-zA-Z]/g, "").length > 2) cities.push(afterCp);
-
-  if (cpIdx + 1 < validLines.length) {
-    const nextLine = validLines[cpIdx + 1]
-      .replace(/[^a-zA-Z0-9ÑñÁÉÍÓÚáéíóúüÜ \-]/g, " ")
-      .trim();
-    if (nextLine.length > 2 && !/PROVINCIA|MUNICIPIO/i.test(nextLine)) {
-      cities.push(nextLine);
-    }
-  }
-
-  // Función inteligente que perdona a los "De la", "Del", "San"...
-  const cleanLoc = (raw: string) => {
-    let clean = raw.replace(/[^a-zA-ZñÑáéíóúÁÉÍÓÚüÜ\s-]/g, " ").trim();
-    const validShortWords = [
+  // 5. 🧠 FILTRO HEURÍSTICO (Anti-basura OCR)
+  const cleanLocality = (raw: string) => {
+    let c = raw.replace(/[^a-zA-ZñÑáéíóúÁÉÍÓÚüÜ\s-]/g, " ").trim();
+    const validShort = new Set([
       "de",
       "la",
       "el",
@@ -506,30 +416,52 @@ function parseDniBackAddress(text: string): Partial<PartialGuestData> {
       "sta",
       "son",
       "ses",
-    ];
+      "val",
+    ]);
 
-    clean = clean
+    return c
       .split(/\s+/)
       .filter((word) => {
-        const w = word.toLowerCase();
-        return w.length > 2 || validShortWords.includes(w);
+        const low = word.toLowerCase();
+        if (validShort.has(low)) return true;
+
+        // 🎯 FRANCOTIRADOR: Matamos el holograma "sos"
+        if (low === "sos" || low === "sas") return false;
+
+        const hasVowels = /[aeiouáéíóúü]/i.test(word);
+        const isRepeated = /(.)\1{2,}/i.test(word);
+        const tooManyConsonants = /[^aeiouáéíóúü]{4,}/i.test(word);
+
+        return (
+          word.length > 2 && hasVowels && !isRepeated && !tooManyConsonants
+        );
       })
       .join(" ");
-
-    return titleCase(clean);
   };
 
-  if (cities.length >= 2) {
-    out.ciudad = cleanLoc(cities[0]);
-    out.provincia = cleanLoc(cities[1]);
-  } else if (cities.length === 1) {
-    out.ciudad = cleanLoc(cities[0]);
-    out.provincia = out.ciudad;
+  if (matchPivot && matchPivot.index !== undefined) {
+    const splitPoint = matchPivot.index + matchPivot[0].length;
+    out.direccion = titleCase(addressBlock.substring(0, splitPoint).trim());
+
+    const rawLocality = addressBlock.substring(splitPoint).trim();
+
+    // Extraemos el CP si el OCR tuvo la suerte de leerlo
+    let localityWithoutCp = rawLocality;
+    const cpMatch = rawLocality.match(/(\d{5})/);
+    if (cpMatch) {
+      out.cp = cpMatch[1];
+      localityWithoutCp = rawLocality.replace(cpMatch[1], "").trim();
+    }
+
+    // 🚀 ENVIAMOS A LA API: Todo limpio y en MAYÚSCULAS
+    // Aquí NO rellenamos la provincia. Tu API se encargará de eso.
+    out.ciudad = cleanLocality(localityWithoutCp).toUpperCase();
+  } else {
+    out.direccion = titleCase(addressBlock);
   }
 
   return out;
 }
-
 // ─── Preprocesado image-js ────────────────────────────────────────────────────
 interface PrepVariant {
   dataURL: string;
@@ -606,12 +538,11 @@ async function buildMrzVariants(exifBlob: Blob): Promise<{
       label: "full",
     });
   } catch {
-    /* ok */
+    /* */
   }
 
   return { variants, grey, width, height };
 }
-
 function buildAddressVariant(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   grey: any,
@@ -619,21 +550,36 @@ function buildAddressVariant(
   height: number,
 ): string | null {
   try {
-    const addrH = Math.floor(height * 0.45);
-    const addrW = Math.max(1400, Math.round(width * 1.8));
+    console.log("🛠️ 1. Preparando el recorte de la dirección...");
+
+    // Ampliamos el radar al 60% de la tarjeta
+    const addrH = Math.floor(height * 0.6);
+    const addrW = Math.max(1600, Math.round(width * 2));
     const crop = grey.crop({
       origin: { row: 0, column: 0 },
       width,
       height: addrH,
     });
-    return ijsEncodeDataURL(
-      crop.level({ inputMin: 20, inputMax: 230 }).resize({ width: addrW }),
+
+    // 🏆 EL FIX: Contraste extremo seguro en lugar de la Máscara.
+    // Oscurece los grises y quema los blancos para eliminar el fondo.
+    const processed = crop.level({ inputMin: 60, inputMax: 140 });
+
+    const finalUrl = ijsEncodeDataURL(processed.resize({ width: addrW }));
+    console.log(
+      "✅ 2. Imagen de dirección procesada con éxito. Enviando a Tesseract...",
     );
-  } catch {
+
+    return finalUrl;
+  } catch (error) {
+    // Si algo falla, ahora nos lo gritará en rojo en la consola
+    console.error(
+      "❌ ERROR FATAL al preparar la imagen de la dirección:",
+      error,
+    );
     return null;
   }
 }
-
 // ─── Singleton Tesseract ──────────────────────────────────────────────────────
 type TWorker = Awaited<ReturnType<typeof createWorker>>;
 let _worker: TWorker | null = null;
@@ -645,7 +591,7 @@ async function getWorker(onLoad?: (pct: number) => void): Promise<TWorker> {
   if (_ready && _worker) return _worker;
   if (_loading) return _loading;
   _terminating = false;
-  _loading = createWorker("eng", 1, {
+  _loading = createWorker(["eng", "spa"], 1, {
     logger: (m: { status: string; progress: number }) => {
       if (onLoad && m.status === "loading language traineddata")
         onLoad(Math.round(12 + m.progress * 14));
@@ -682,7 +628,7 @@ async function runTextOCR(worker: TWorker, dataURL: string): Promise<string> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   await (worker as any).setParameters({
     tessedit_char_whitelist: "",
-    tessedit_pageseg_mode: String(PSM.AUTO),
+    tessedit_pageseg_mode: String(PSM.SPARSE_TEXT),
     load_system_dawg: "0",
     load_freq_dawg: "0",
     load_number_dawg: "0",
@@ -801,29 +747,29 @@ export function useDocumentOCR() {
         const mrzData = mrzToGuest(best.result);
         let addressData: Partial<PartialGuestData> = {};
 
-        if (
-          best.result.format === "TD1" &&
-          !cancelRef.current &&
-          !_terminating
-        ) {
+        if (best.result.format !== "TD3") {
           try {
             const addrDataURL = buildAddressVariant(grey, width, height);
             if (addrDataURL) {
               const addrText = await runTextOCR(worker, addrDataURL);
-
-              console.log("=========================================");
-              console.log("👀 TEXTO BRUTO QUE LEE EL ESCÁNER:");
-              console.log(addrText);
-              console.log("=========================================");
-
               addressData = parseDniBackAddress(addrText);
 
-              console.log("🧩 LO QUE EL ESCÁNER HA INTENTADO EXTRAER:");
-              console.log(addressData);
-              console.log("=========================================");
+              if (addressData.ciudad) {
+                const validated = await normalizeOcrCity(addressData.ciudad);
+                if (validated) {
+                  addressData.ciudad = validated.name;
+                  addressData.cp = validated.cp;
+                  addressData.provincia = validated.provincia;
+                } else {
+                  console.warn(
+                    "La API no encontró la ciudad en BBDD:",
+                    addressData.ciudad,
+                  );
+                }
+              }
             }
           } catch (err) {
-            console.warn("[OCR] address extraction:", err);
+            console.warn("[OCR] API city validation error:", err);
           }
         }
 
@@ -859,14 +805,14 @@ export function useDocumentOCR() {
       try {
         await _loading;
       } catch {
-        /* ok */
+        /*  */
       }
     }
     if (_worker) {
       try {
         await _worker.terminate();
       } catch {
-        /* ok */
+        /*  */
       }
       _worker = null;
       _ready = false;
