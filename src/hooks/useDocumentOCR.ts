@@ -353,54 +353,69 @@ function mrzToGuest(parsed: ParseResult): Partial<PartialGuestData> {
   return out;
 }
 
-// ─── Extracción Domicilio DNI Reverso ─────────────────────────────────────────
-
+// ─── Extracción Lógica del Domicilio (Parser Francotirador) ───────────────────
 function parseDniBackAddress(text: string): Partial<PartialGuestData> {
   const out: Partial<PartialGuestData> = {};
 
-  console.group("🔍 DEPURACIÓN OCR - DOMICILIO V4");
-  console.log("1️⃣ TEXTO BRUTO ORIGINAL:\n", text);
+  console.log("=== 1. OCR RAW (Lo que lee) ===", text);
+  if (!text) return out;
 
-  if (!text) {
-    console.groupEnd();
-    return out;
+  // 1. LIMPIEZA INICIAL EXTREMA
+  // Pasamos todo a mayúsculas y cambiamos barras, guiones bajos y tuberías por espacios
+  let clean = text
+    .toUpperCase()
+    .replace(/[/\\_|]/g, " ")
+    .replace(/[^A-Z0-9ÑÁÉÍÓÚÜºª., \-]/g, " ");
+
+  // 2. EL FRANCOTIRADOR (Cortar la basura de arriba)
+  // Busca exactamente dónde empieza la calle (C., C, CALLE, AV., PZ.)
+  // Al encontrarlo, borra TODO lo que haya a su izquierda (padres, XT, DG, TTT, etc.)
+  const streetStartRegex =
+    /(?:^|\s)(C\.|C\s|C\/|CALLE|AV\.|AV\s|AVENIDA|PZ\.|PZ\s|PLAZA)\s/i;
+  const matchStart = clean.match(streetStartRegex);
+
+  if (matchStart && matchStart.index !== undefined) {
+    clean = clean.substring(matchStart.index).trim();
   }
 
-  // 1. Quitar las flechas MRZ del final para que no molesten
-  let noMrz = text.split(/<{2,}/)[0];
+  // 3. LA GOMA DE BORRAR DEFINITIVA (Mata-Hologramas)
+  clean = clean
+    .split(/\s+/)
+    .filter((w) => {
+      // A. Salvar las letras de la calle
+      if (/^[CSNY]$/.test(w)) return true;
+      // B. Matar letras y números sueltos (mata "I", "1", "7", "E")
+      if (w.length === 1 && !/^[Y]$/.test(w)) return false;
+      // C. Matar cadenas de números largos (mata "1107", "777777")
+      if (/^\d{3,}$/.test(w)) return false;
+      // D. Matar palabras repetitivas o sin vocales (mata "TTT", "TTF", "XT")
+      if (/^([A-Z])\1+$/.test(w)) return false;
+      if (/^[A-Z]+$/.test(w) && !/[AEIOU]/.test(w) && w !== "C.") return false;
+      return true;
+    })
+    .join(" ");
 
-  // 2. Encontrar "DOMICILIO" y tirar la parte de arriba (padres, lugar nacimiento)
-  const domMatch = noMrz.match(/DOM[A-Z0-9|!¡lI]{3,8}O/i);
-  let mainBlock = noMrz;
-  if (domMatch) {
-    mainBlock = noMrz.substring(domMatch.index! + domMatch[0].length);
+  console.log("=== 2. TEXTO SIN RUIDO ===", clean);
+
+  // 4. EL PIVOTE INTELIGENTE (Separar Calle de Ciudad)
+  // Busca el PRIMER token que sea un número (ej: 57, S7, B8, S/N) dentro de las primeras palabras
+  const words = clean.split(/\s+/);
+  let pivotIndex = -1;
+  const pivotRegex = /^(\d{1,3}[A-Zºª]?|S\/N|S\d|B\d|Z\d|l\d|I\d)$/i;
+
+  for (let i = 1; i < Math.min(words.length, 6); i++) {
+    if (pivotRegex.test(words[i])) {
+      pivotIndex = i;
+      break;
+    }
   }
 
-  // 3. 🧹 LA GOMA DE BORRAR (El arreglo clave)
-  // Borramos las palabras impresas del plástico del DNI, pero NO cortamos el texto.
-  let cleanBlock = mainBlock
-    .replace(
-      /\b(LUGAR DE DOMICILIO|LUGAR|PROVINCIA|PROV|MUNICIPIO|EQUIPO|VALIDEZ|FECHA)\b/gi,
-      " ",
-    ) // Borrar etiquetas
-    .replace(/\b[0-9A-Z]{8,12}\b/g, " ") // Borrar números largos (como el ID del Equipo)
-    .replace(/[^a-zA-Z0-9ÑñÁÉÍÓÚáéíóúüÜºª/ \-.,]/g, " ") // Borrar símbolos raros
-    .replace(/\s+/g, " ") // Aplastar saltos de línea y espacios dobles
-    .trim();
+  // 5. ASIGNACIÓN FINAL
+  if (pivotIndex !== -1) {
+    let rawStreet = words.slice(0, pivotIndex).join(" ");
+    let rawNumber = words[pivotIndex];
 
-  console.log("2️⃣ DATOS LIMPIOS SIN ETIQUETAS:", cleanBlock);
-
-  // 4. ⚓ EL PIVOTE: Buscar el número (57, S7, etc.)
-  const pivotRegex =
-    /(\b[0-9SBOZlI]{1,4}\s*(?:[ºª°]|BIS|BAJO|S\/N|IZQ|DER|[0-9][A-Z]|[A-Z]\b)?)/i;
-  const matchPivot = cleanBlock.match(pivotRegex);
-
-  if (matchPivot) {
-    const splitPoint = matchPivot.index! + matchPivot[0].length;
-    let rawStreet = cleanBlock.substring(0, matchPivot.index).trim();
-    let rawNumber = matchPivot[0].trim();
-
-    // TRADUCCIÓN OCR: S -> 5
+    // Traducir cosas como S7 a 57
     const translateMap: Record<string, string> = {
       S: "5",
       B: "8",
@@ -414,53 +429,25 @@ function parseDniBackAddress(text: string): Partial<PartialGuestData> {
       (m) => translateMap[m] || m,
     );
 
-    out.direccion = titleCase(`${rawStreet} ${cleanNumber}`.trim());
+    out.direccion = titleCase(`${rawStreet} ${cleanNumber}`);
 
-    // Lo que queda a la derecha del número es Azuqueca y Guadalajara
-    let rawCityProv = cleanBlock.substring(splitPoint).trim();
-
-    // Sacamos CP si lo hay
-    const cpMatch = rawCityProv.match(/(\d{5})/);
-    if (cpMatch) {
-      out.cp = cpMatch[1];
-      rawCityProv = rawCityProv.replace(cpMatch[1], "").trim();
-    }
-
-    // Limpiamos la ciudad de palabras sueltas cortas
-    out.ciudad = rawCityProv
-      .split(/\s+/)
-      .filter((w) => {
-        const low = w.toLowerCase();
-        if (
-          [
-            "de",
-            "la",
-            "el",
-            "en",
-            "y",
-            "del",
-            "las",
-            "los",
-            "san",
-            "sta",
-            "val",
-          ].includes(low)
-        )
-          return true;
-        if (low === "sos" || low === "sas") return false; // El maldito holograma
-        return w.length > 2;
-      })
-      .join(" ")
-      .toUpperCase();
+    // La ciudad es todo lo que hay a la derecha del número...
+    // Pero le quitamos cualquier número suelto residual que haya sobrevivido (ej: el "17" y el "74")
+    let rawCity = words
+      .slice(pivotIndex + 1)
+      .filter((w) => !/\d/.test(w))
+      .join(" ");
+    out.ciudad = rawCity;
   } else {
-    out.direccion = titleCase(cleanBlock);
+    out.direccion = titleCase(clean);
   }
 
-  console.log("3️⃣ RESULTADO FINAL:", out);
-  console.groupEnd();
+  console.log("📍 Dirección final aislada:", out.direccion);
+  console.log("🏙️ Ciudad final aislada:", out.ciudad);
+
   return out;
 }
-// ─── Procesado image-js ───────────────────────────────────────────────────────
+// ─── Procesado image-js (Para el MRZ) ─────────────────────────────────────────
 
 interface PrepVariant {
   dataURL: string;
@@ -507,7 +494,7 @@ async function buildMrzVariants(exifBlob: Blob): Promise<{
   for (const z of zones) {
     const y = Math.floor(height * z.yFrac);
     const h = height - y;
-    const crop = grey.crop({ x: 0, y: y, width, height: h }); // Fix: x/y insted of origin
+    const crop = grey.crop({ x: 0, y: y, width, height: h });
 
     for (const lv of levels) {
       if (lv.label === "dark" && z.label !== "b24") continue;
@@ -542,55 +529,48 @@ async function buildMrzVariants(exifBlob: Blob): Promise<{
   return { variants, grey, width, height };
 }
 
-// ─── Procesado Nativo de Imagen (Binarización Extrema) ─────────────────────────
+// ─── Procesado Nativo de Imagen (Recorte del Bloque Domicilio) ────────────────
 
 async function buildAddressVariantNative(fileOrBlob: Blob): Promise<string> {
   return new Promise((resolve, reject) => {
     const img = new Image();
     img.onload = () => {
       const canvas = document.createElement("canvas");
-      // Ampliamos x2 para máxima resolución
-      canvas.width = img.width * 2;
-      canvas.height = img.height * 2;
-      const ctx = canvas.getContext("2d", { willReadFrequently: true })!;
+      // Multiplicamos por 2.5 la resolución para que Tesseract lea letras grandes
+      const scale = 2.5;
+      canvas.width = img.width * scale;
 
-      // Dibujamos la imagen ampliada
-      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      // ✂️ CORTE FÍSICO: Descartamos el 40% inferior para que no vea el MRZ jamás
+      const cropHeight = img.height * 0.6;
+      canvas.height = cropHeight * scale;
 
-      // 🧠 BINARIZACIÓN PÍXEL A PÍXEL
-      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-      const data = imageData.data;
+      const ctx = canvas.getContext("2d")!;
+      // Filtro natural para potenciar la tinta sin quemar el fondo
+      ctx.filter = "grayscale(100%) contrast(130%) brightness(110%)";
 
-      for (let i = 0; i < data.length; i += 4) {
-        // Calculamos la luminosidad real del píxel
-        const r = data[i];
-        const g = data[i + 1];
-        const b = data[i + 2];
-        const brightness = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+      ctx.drawImage(
+        img,
+        0,
+        0,
+        img.width,
+        cropHeight, // Zona de Origen
+        0,
+        0,
+        canvas.width,
+        canvas.height, // Zona de Destino
+      );
 
-        // Si el píxel es oscurito (tinta de las letras), lo hacemos NEGRO PURO
-        // Si es claro (naranja del DNI, brillos, holograma), lo hacemos BLANCO PURO
-        // (El valor 130 es el punto de corte mágico para DNIs)
-        if (brightness < 130) {
-          data[i] = 0; // R
-          data[i + 1] = 0; // G
-          data[i + 2] = 0; // B
-        } else {
-          data[i] = 255; // R
-          data[i + 1] = 255; // G
-          data[i + 2] = 255; // B
-        }
-      }
-
-      // Aplicamos los píxeles destruidos al canvas
-      ctx.putImageData(imageData, 0, 0);
-
+      console.log(
+        "📸 IMAGEN DEL DOMICILIO PREPARADA PARA OCR:",
+        canvas.toDataURL("image/jpeg", 0.8),
+      );
       resolve(canvas.toDataURL("image/jpeg", 0.95));
     };
     img.onerror = reject;
     img.src = URL.createObjectURL(fileOrBlob);
   });
 }
+
 // ─── Tesseract Worker ─────────────────────────────────────────────────────────
 
 type TWorker = Awaited<ReturnType<typeof createWorker>>;
@@ -639,20 +619,14 @@ async function runMrzOCR(
 async function runTextOCR(worker: TWorker, dataURL: string): Promise<string> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   await (worker as any).setParameters({
-    // 🔥 SOLO LETRAS Y NÚMEROS. Ni barras, ni puntos, ni comas.
-    // Si hay un punto en "C.", lo ignorará y leerá "C BUENDIA", que es perfecto.
-    tessedit_char_whitelist: "ABCDEFGHIJKLMNOPQRSTUVWXYZÁÉÍÓÚÑ0123456789 \n",
-
-    tessedit_pageseg_mode: "11",
-
-    // Apagamos diccionarios para que no alucine
+    tessedit_char_whitelist:
+      "ABCDEFGHIJKLMNOPQRSTUVWXYZÁÉÍÓÚÑ0123456789 .,ºª/-\n",
+    tessedit_pageseg_mode: "6", // Asume un bloque uniforme de texto
+    // Al apagar los diccionarios, evitamos que la IA intente adivinar palabras a partir de manchas.
     load_system_dawg: "0",
     load_freq_dawg: "0",
     load_punc_dawg: "0",
-    load_number_dawg: "0",
     load_unambig_dawg: "0",
-    load_bigram_dawg: "0",
-    load_word_dawg: "0",
   });
 
   const { data } = await worker.recognize(dataURL);
@@ -760,29 +734,28 @@ export function useDocumentOCR() {
         const mrzData = mrzToGuest(best.result);
         let addressData: Partial<PartialGuestData> = {};
 
+        // 🏡 LECTURA DEL DOMICILIO MEDIANTE METODOLOGÍA LÓGICA
         if (best.result.format !== "TD3") {
           try {
-            // Usamos nuestra nueva función indestructible pasándole la foto original recortada
             const addrDataURL = await buildAddressVariantNative(file);
 
             if (addrDataURL) {
-              // 📸 ¡EL CHIVATO VISUAL DEFINITIVO!
-              console.log("📸 IMAGEN QUE VE TESSERACT:");
-              console.log(
-                "%c HAZ CLIC AQUÍ PARA VER LA FOTO EN BLANCO Y NEGRO",
-                `font-weight:bold; font-size:14px; color:blue;`,
-              );
-              console.log(addrDataURL); // Copia este texto larguísimo en la barra de tu navegador para ver la foto
-
               const addrText = await runTextOCR(worker, addrDataURL);
               addressData = parseDniBackAddress(addrText);
 
               if (addressData.ciudad) {
+                console.log(
+                  `🔎 Validando ciudad en la API: "${addressData.ciudad}"`,
+                );
                 const validated = await normalizeOcrCity(addressData.ciudad);
+
                 if (validated) {
+                  console.log("✅ API encontró coincidencia:", validated);
                   addressData.ciudad = validated.name;
                   addressData.cp = validated.cp;
                   addressData.provincia = validated.provincia;
+                } else {
+                  console.log(`❌ La API no encontró "${addressData.ciudad}".`);
                 }
               }
             }
@@ -790,6 +763,7 @@ export function useDocumentOCR() {
             console.warn("[OCR] Error procesando el domicilio:", err);
           }
         }
+
         if (cancelRef.current || _terminating) return { ok: false };
 
         setFase(t("ocr.success"), 100);

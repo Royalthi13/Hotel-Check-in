@@ -1,6 +1,6 @@
 import { searchCitiesByName } from "./cities.service";
 
-const PROVINCIAS_MAP: Record<string, string> = {
+export const PROVINCIAS_CP: Record<string, string> = {
   "01": "ÁLAVA",
   "02": "ALBACETE",
   "03": "ALICANTE",
@@ -92,7 +92,7 @@ export async function normalizeOcrCity(ocrText: string) {
     return {
       name: bestMatch.name.toUpperCase(),
       cp: bestMatch.codcity,
-      provincia: PROVINCIAS_MAP[provCode] || "",
+      provincia: PROVINCIAS_CP[provCode] || "",
     };
   }
   return null;
