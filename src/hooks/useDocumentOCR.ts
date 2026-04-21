@@ -67,26 +67,51 @@ async function loadExifCorrectedBlob(file: File): Promise<Blob> {
         const canvas = document.createElement("canvas");
         const ctx = canvas.getContext("2d")!;
 
-        let width = img.naturalWidth;
-        let height = img.naturalHeight;
-        let startX = 0;
-        let startY = 0;
+        const originalWidth = img.naturalWidth;
+        const originalHeight = img.naturalHeight;
 
-        const aspectRatio = width / height;
-        if (aspectRatio > 1.6) {
-          const newWidth = height * 1.5;
-          startX = (width - newWidth) / 2;
-          width = newWidth;
+        // 🎯 1. DEFINIMOS EL RECTÁNGULO DNI (Relación 3:2)
+        // El DNI es más ancho que alto. 1.5 es el ratio ideal (3/2).
+        const targetRatio = 1.5;
+        let cropWidth, cropHeight;
+
+        // Calculamos el recorte centrado según la foto original
+        if (originalWidth / originalHeight > targetRatio) {
+          // La foto es muy ancha (ej. 16:9), recortamos los lados
+          cropHeight = originalHeight;
+          cropWidth = originalHeight * targetRatio;
+        } else {
+          // La foto es muy alta (ej. 4:3 en vertical), recortamos arriba y abajo
+          cropWidth = originalWidth;
+          cropHeight = originalWidth / targetRatio;
         }
 
-        canvas.width = width;
-        canvas.height = height;
+        // 2. CENTRAMOS EL RECORTE
+        const startX = (originalWidth - cropWidth) / 2;
+        const startY = (originalHeight - cropHeight) / 2;
 
-        ctx.drawImage(img, startX, startY, width, height, 0, 0, width, height);
+        // 3. AJUSTAMOS EL LIENZO AL TAMAÑO DEL RECORTE
+        canvas.width = cropWidth;
+        canvas.height = cropHeight;
+
+        // 4. DIBUJAMOS SOLO EL RECTÁNGULO CENTRAL
+        ctx.drawImage(
+          img,
+          startX,
+          startY,
+          cropWidth,
+          cropHeight, // De dónde cortamos (original)
+          0,
+          0,
+          cropWidth,
+          cropHeight, // Dónde lo ponemos (canvas)
+        );
 
         URL.revokeObjectURL(url);
+
+        // Exportamos como PNG de alta calidad
         canvas.toBlob(
-          (b) => (b ? resolve(b) : reject(new Error("toBlob"))),
+          (b) => (b ? resolve(b) : reject(new Error("Error al crear el Blob"))),
           "image/png",
           0.95,
         );
@@ -95,6 +120,7 @@ async function loadExifCorrectedBlob(file: File): Promise<Blob> {
         reject(e);
       }
     };
+    img.onerror = () => reject(new Error("Error al cargar la imagen"));
     img.src = url;
   });
 }
@@ -184,7 +210,6 @@ function parseDate(yymmdd: string | null | undefined): string {
   const mm = yymmdd.slice(2, 4);
   const dd = yymmdd.slice(4, 6);
   if (+mm < 1 || +mm > 12 || +dd < 1 || +dd > 31) return "";
-
   const currentYear = new Date().getFullYear();
   let fullYear = 2000 + yy;
   if (fullYear > currentYear) fullYear = 1900 + yy;
@@ -197,7 +222,7 @@ function parseSex(s: string | null | undefined): string {
   return "No indicar";
 }
 
-// ─── Lógica MRZ ───────────────────────────────────────────────────────────────
+// ─── Lógica MRZ (DNI 4.0 Ready) ───────────────────────────────────────────────
 
 function scoreResult(p: ParseResult): number {
   const rel = p.details.filter((d) => d.field !== null);
@@ -214,7 +239,6 @@ function cleanLine(raw: string) {
   cleaned = cleaned.replace(/<K/g, "<<").replace(/K</g, "<<");
   cleaned = cleaned.replace(/<Z</g, "<<<").replace(/<Z</g, "<<<");
   cleaned = cleaned.replace(/<Z$/g, "<<");
-
   return cleaned
     .split("")
     .map((c) => (WHITELIST.includes(c) ? c : "<"))
@@ -281,39 +305,37 @@ function findBestMRZ(lines: string[]): MRZCandidate | null {
 function mrzToGuest(parsed: ParseResult): Partial<PartialGuestData> {
   const f = parsed.fields as Record<string, string | null>;
   const out: Partial<PartialGuestData> = {};
-
-  const rawLast = (f.lastName ?? "").trim();
-  const rawFirst = (f.firstName ?? "").trim();
   const isSpanish =
     f.issuingState?.includes("ESP") || f.nationality?.includes("ESP");
 
+  const rawLast = (f.lastName ?? "").trim();
+  const rawFirst = (f.firstName ?? "").trim();
   const allWords = `${rawLast} ${rawFirst}`.split(/\s+/).filter(Boolean);
-  if (allWords.length === 0) return out;
-
-  let ap1 = "",
-    ap2 = "",
-    nom = "";
-  const particles = ["DE", "DEL", "LA", "LAS", "LOS"];
-
-  if (isSpanish) {
-    ap1 = allWords[0];
-    if (allWords.length >= 4 && particles.includes(allWords[1].toUpperCase())) {
-      ap2 = `${allWords[1]} ${allWords[2]}`;
-      nom = allWords.slice(3).join(" ");
-    } else if (allWords.length >= 3) {
-      ap2 = allWords[1];
-      nom = allWords.slice(2).join(" ");
+  if (allWords.length > 0) {
+    let ap1 = allWords[0],
+      ap2 = "",
+      nom = "";
+    const particles = ["DE", "DEL", "LA", "LAS", "LOS"];
+    if (isSpanish) {
+      if (
+        allWords.length >= 4 &&
+        particles.includes(allWords[1].toUpperCase())
+      ) {
+        ap2 = `${allWords[1]} ${allWords[2]}`;
+        nom = allWords.slice(3).join(" ");
+      } else if (allWords.length >= 3) {
+        ap2 = allWords[1];
+        nom = allWords.slice(2).join(" ");
+      } else {
+        nom = allWords.slice(1).join(" ");
+      }
     } else {
       nom = allWords.slice(1).join(" ");
     }
-  } else {
-    ap1 = allWords[0];
-    nom = allWords.slice(1).join(" ");
+    out.apellido = filterOcrGarbage(ap1);
+    out.apellido2 = filterOcrGarbage(ap2);
+    out.nombre = filterOcrGarbage(nom);
   }
-
-  out.apellido = filterOcrGarbage(ap1);
-  out.apellido2 = filterOcrGarbage(ap2);
-  out.nombre = filterOcrGarbage(nom);
 
   const fecha = parseDate(f.birthDate);
   if (fecha) out.fechaNac = fecha;
@@ -325,22 +347,25 @@ function mrzToGuest(parsed: ParseResult): Partial<PartialGuestData> {
   out.nacionalidad = NAT[natCode] ?? "Otra";
   if (natCode === "ESP") out.pais = "ES";
 
-  // 🛠️ CORRECCIÓN: MRZ MÁS FLEXIBLE
   if (parsed.format === "TD1") {
-    // soporte = Número de Soporte (documentNumber)
     const soporte = (f.documentNumber ?? "").replace(/<+$/g, "").trim();
-    // optionalFull = DNI o NIE (suele tener dígitos de control extra pegados)
-    const optionalFull = (f.optional1 ?? "").replace(/<+$/g, "").trim();
+    const optionalFull = (f.optional1 ?? "").replace(/<+/g, " ").trim();
 
-    if (natCode === "ESP") {
-      // Extraemos sin miedo los primeros 9 caracteres del bloque opcional
-      const dniNie = optionalFull.substring(0, 9);
-      out.numDoc = dniNie || soporte;
+    // Extractor infalible para DNI 4.0 que detecta el patrón DNI/NIE en cualquier posición
+    const dniNieRegex = /([0-9]{8}[A-Z]|[XYZ][0-9]{7}[A-Z])/i;
+    const match = optionalFull.match(dniNieRegex);
+
+    if (match) {
+      out.numDoc = match[1].toUpperCase();
+      out.tipoDoc = /^[XYZ]/i.test(match[1]) ? "NIE" : "DNI";
       out.soporteDoc = soporte;
-      out.tipoDoc = /^[XYZ]/i.test(dniNie) ? "NIE" : "DNI";
     } else {
-      out.tipoDoc = "Otro";
-      out.numDoc = optionalFull || soporte;
+      let cleaned = optionalFull.replace(/\s+/g, "");
+      if (cleaned.length > 9 && /^[0-9]/.test(cleaned))
+        cleaned = cleaned.substring(1);
+      out.numDoc = cleaned.substring(0, 9);
+      out.soporteDoc = soporte;
+      out.tipoDoc = natCode === "ESP" ? "DNI" : "Otro";
     }
   } else if (parsed.format === "TD3") {
     const passNum = (f.documentNumber ?? "").replace(/<+$/g, "").trim();
@@ -353,9 +378,9 @@ function mrzToGuest(parsed: ParseResult): Partial<PartialGuestData> {
   return out;
 }
 
-// ─── Extracción Lógica del Domicilio (Parser Francotirador) ───────────────────
+// ─── Lógica del Domicilio (DNI 3.0 y 4.0 Ready) ───────────────────────────────
+
 function parseDniBackAddress(text: string): Partial<PartialGuestData> {
-  // 1. Prevención del bug de estado (Resetear siempre)
   const out: Partial<PartialGuestData> = {
     direccion: "",
     ciudad: "",
@@ -366,30 +391,25 @@ function parseDniBackAddress(text: string): Partial<PartialGuestData> {
   console.log("=== 1. OCR RAW (Lo que lee) ===", text);
   if (!text) return out;
 
-  // 🧱 2. MAGIA MULTI-FORMATO (DNI 3.0 y DNI 4.0)
-  // Convertimos los saltos de línea del DNI nuevo (\n) en espacios.
-  // Así ambos formatos se convierten en una línea plana perfecta.
   let clean = text
     .toUpperCase()
     .replace(/[\n\r]/g, " ")
     .replace(/[/\\_|]/g, " ")
     .replace(/[^A-Z0-9ÑÁÉÍÓÚÜºª., \-]/g, " ");
 
-  // 🛑 3. EL DOBLE CORTAFUEGOS (Hijo + Nacimiento)
+  // 🛑 1. CORTAFUEGOS MEJORADO (Hijo, Nacimiento, ESP)
   let cutIndex = clean.length;
-  const hijoMatch = clean.match(/\b(HIJO|HIJA|HIJ0|H1JO)\b/);
-  if (hijoMatch && hijoMatch.index !== undefined) {
-    cutIndex = Math.min(cutIndex, hijoMatch.index);
-  }
-  const naciMatch = clean.match(/\b(NACI|NACIMIENTO|NACIMIENT0|NACIMIENT)\b/);
-  if (naciMatch && naciMatch.index !== undefined) {
-    cutIndex = Math.min(cutIndex, naciMatch.index);
+  const stopMatch = clean.match(
+    /\b(HIJO|HIJA|HIJ0|H1JO|NACI|NACIMIENT[O0]?|ESP|ESPAÑA|ESPANA)\b/,
+  );
+  if (stopMatch && stopMatch.index !== undefined) {
+    cutIndex = stopMatch.index;
   }
   if (cutIndex < clean.length) {
     clean = clean.substring(0, cutIndex);
   }
 
-  // 🎯 4. FRANCOTIRADOR (Cortar ruido superior)
+  // 🎯 2. FRANCOTIRADOR (Calle)
   const streetStartRegex =
     /(?:^|\s)(C\.|C\s|C\/|CALLE|AV\.|AV\s|AVENIDA|PZ\.|PZ\s|PLAZA)\s/i;
   const matchStart = clean.match(streetStartRegex);
@@ -397,15 +417,32 @@ function parseDniBackAddress(text: string): Partial<PartialGuestData> {
     clean = clean.substring(matchStart.index).trim();
   }
 
-  // 🧹 5. LA GOMA DE BORRAR (Corregida para salvar números de 1 cifra como el "1")
+  // 🧹 3. GOMA DE BORRAR IMPLACABLE (Con Pase VIP para Calles)
   clean = clean
     .split(/\s+/)
     .filter((w) => {
-      if (/^[CSNY0-9]$/.test(w)) return true; // ¡El 1 se salva aquí!
-      if (w.length === 1) return false;
-      if (/^\d{3,}$/.test(w)) return false;
+      // 🎟️ PASE VIP: Salvamos números, C, S, N, Y, y prefijos de calle (C., AV, PZ)
+      if (/^[CSNY0-9]$/.test(w) || /^(C\.|C\/|AV\.|AV|PZ\.|PZ)$/.test(w))
+        return true;
+
+      // Si tiene 2 letras o menos, y NO es un conector, a la basura
+      if (
+        w.length <= 2 &&
+        !["DE", "LA", "EL", "EN", "Y"].includes(w) &&
+        !/\d/.test(w)
+      )
+        return false;
+      if (/^\d{4,}$/.test(w) && !/^(0[1-9]|[1-4]\d|5[0-2])\d{3}$/.test(w))
+        return false;
       if (/^([A-Z])\1+$/.test(w)) return false;
-      if (/^[A-Z]+$/.test(w) && !/[AEIOU]/.test(w) && w !== "C.") return false;
+      // Las consonantes sueltas (XT, DG) se borran, EXCEPTO los prefijos VIP
+      if (
+        /^[A-Z]+$/.test(w) &&
+        !/[AEIOU]/.test(w) &&
+        !/^(C\.|C\/|AV\.|PZ\.)$/.test(w)
+      )
+        return false;
+
       return true;
     })
     .join(" ");
@@ -415,12 +452,11 @@ function parseDniBackAddress(text: string): Partial<PartialGuestData> {
     .replace(/\s+/g, " ")
     .trim();
 
-  // 🪓 6. EL PIVOTE (Separador Universal Calle/Ciudad)
+  // 🪓 4. EL PIVOTE (Separador)
   const words = clean.split(/\s+/);
   let pivotIndex = -1;
-  const pivotRegex = /^(\d{1,3}[A-Zºª]?|S\/N|S\d|B\d|Z\d|l\d|I\d)$/i;
+  const pivotRegex = /^(\d{1,4}[A-Zºª]?|S\/N|S\d|B\d|Z\d|l\d|I\d)$/i;
 
-  // Buscamos hasta la palabra 9 por si la calle es muy larga
   for (let i = 1; i < Math.min(words.length, 9); i++) {
     if (pivotRegex.test(words[i])) {
       pivotIndex = i;
@@ -428,6 +464,7 @@ function parseDniBackAddress(text: string): Partial<PartialGuestData> {
     }
   }
 
+  // 🏛️ 5. ASIGNACIÓN FINAL Y LIMPIEZA DE CIUDAD
   if (pivotIndex !== -1) {
     let rawStreet = words.slice(0, pivotIndex).join(" ");
     let rawNumber = words[pivotIndex];
@@ -447,11 +484,13 @@ function parseDniBackAddress(text: string): Partial<PartialGuestData> {
 
     out.direccion = titleCase(`${rawStreet} ${cleanNumber}`);
 
-    let rawCity = words
-      .slice(pivotIndex + 1)
-      .filter((w) => !/\d/.test(w))
-      .join(" ");
+    let cityWords = words.slice(pivotIndex + 1).filter((w) => !/\d/.test(w));
 
+    if (cityWords.length > 5) {
+      cityWords = cityWords.slice(0, 5);
+    }
+
+    let rawCity = cityWords.join(" ");
     if (rawCity) out.ciudad = rawCity;
   } else {
     out.direccion = titleCase(clean);
@@ -462,7 +501,8 @@ function parseDniBackAddress(text: string): Partial<PartialGuestData> {
 
   return out;
 }
-// ─── Procesado image-js (Para el MRZ) ─────────────────────────────────────────
+
+// ─── Procesado image-js (Motor MRZ original restaurado) ───────────────────────
 
 interface PrepVariant {
   dataURL: string;
@@ -472,6 +512,7 @@ interface PrepVariant {
 
 async function buildMrzVariants(exifBlob: Blob): Promise<{
   variants: PrepVariant[];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   grey: any;
   width: number;
   height: number;
@@ -544,40 +585,29 @@ async function buildMrzVariants(exifBlob: Blob): Promise<{
   return { variants, grey, width, height };
 }
 
-// ─── Procesado Nativo de Imagen (Recorte del Bloque Domicilio) ────────────────
+// ─── Procesado de Imagen (Para el Domicilio) ──────────────────────────────────
 
 async function buildAddressVariantNative(fileOrBlob: Blob): Promise<string> {
   return new Promise((resolve, reject) => {
     const img = new Image();
     img.onload = () => {
       const canvas = document.createElement("canvas");
-      // Multiplicamos por 2.5 la resolución para que Tesseract lea letras grandes
       const scale = 2.5;
       canvas.width = img.width * scale;
-
-      // ✂️ CORTE FÍSICO: Descartamos el 40% inferior para que no vea el MRZ jamás
       const cropHeight = img.height * 0.6;
       canvas.height = cropHeight * scale;
-
       const ctx = canvas.getContext("2d")!;
-      // Filtro natural para potenciar la tinta sin quemar el fondo
       ctx.filter = "grayscale(100%) contrast(130%) brightness(110%)";
-
       ctx.drawImage(
         img,
         0,
         0,
         img.width,
-        cropHeight, // Zona de Origen
+        cropHeight,
         0,
         0,
         canvas.width,
-        canvas.height, // Zona de Destino
-      );
-
-      console.log(
-        "📸 IMAGEN DEL DOMICILIO PREPARADA PARA OCR:",
-        canvas.toDataURL("image/jpeg", 0.8),
+        canvas.height,
       );
       resolve(canvas.toDataURL("image/jpeg", 0.95));
     };
@@ -636,8 +666,7 @@ async function runTextOCR(worker: TWorker, dataURL: string): Promise<string> {
   await (worker as any).setParameters({
     tessedit_char_whitelist:
       "ABCDEFGHIJKLMNOPQRSTUVWXYZÁÉÍÓÚÑ0123456789 .,ºª/-\n",
-    tessedit_pageseg_mode: "6", // Asume un bloque uniforme de texto
-    // Al apagar los diccionarios, evitamos que la IA intente adivinar palabras a partir de manchas.
+    tessedit_pageseg_mode: "6",
     load_system_dawg: "0",
     load_freq_dawg: "0",
     load_punc_dawg: "0",
@@ -648,7 +677,7 @@ async function runTextOCR(worker: TWorker, dataURL: string): Promise<string> {
   return data.text;
 }
 
-// ─── Hook exportado ───────────────────────────────────────────────────────────
+// ─── Hook Exportado ───────────────────────────────────────────────────────────
 
 export function useDocumentOCR() {
   const { t } = useTranslation();
@@ -658,6 +687,29 @@ export function useDocumentOCR() {
 
   const setFase = useCallback((fase: string, pct: number) => {
     if (!cancelRef.current) setProgress({ fase, pct: Math.round(pct) });
+  }, []);
+
+  const terminate = useCallback(async () => {
+    cancelRef.current = true;
+    _terminating = true;
+    if (_loading) {
+      try {
+        await _loading;
+      } catch {
+        /* */
+      }
+    }
+    if (_worker) {
+      try {
+        await _worker.terminate();
+      } catch {
+        /* */
+      }
+      _worker = null;
+      _ready = false;
+      _loading = null;
+    }
+    _terminating = false;
   }, []);
 
   const processDocument = useCallback(
@@ -733,9 +785,7 @@ export function useDocumentOCR() {
         }
 
         if (cancelRef.current || _terminating) return { ok: false };
-
         if (!best) return { ok: false, error: t("ocr.err_not_found") };
-
         if (best.score < MIN_SCORE) {
           return {
             ok: false,
@@ -749,7 +799,6 @@ export function useDocumentOCR() {
         const mrzData = mrzToGuest(best.result);
         let addressData: Partial<PartialGuestData> = {};
 
-        // 🏡 LECTURA DEL DOMICILIO MEDIANTE METODOLOGÍA LÓGICA
         if (best.result.format !== "TD3") {
           try {
             const addrDataURL = await buildAddressVariantNative(file);
@@ -759,18 +808,11 @@ export function useDocumentOCR() {
               addressData = parseDniBackAddress(addrText);
 
               if (addressData.ciudad) {
-                console.log(
-                  `🔎 Validando ciudad en la API: "${addressData.ciudad}"`,
-                );
                 const validated = await normalizeOcrCity(addressData.ciudad);
-
                 if (validated) {
-                  console.log("✅ API encontró coincidencia:", validated);
                   addressData.ciudad = validated.name;
                   addressData.cp = validated.cp;
                   addressData.provincia = validated.provincia;
-                } else {
-                  console.log(`❌ La API no encontró "${addressData.ciudad}".`);
                 }
               }
             }
@@ -798,29 +840,6 @@ export function useDocumentOCR() {
     },
     [setFase, t],
   );
-
-  const terminate = useCallback(async () => {
-    cancelRef.current = true;
-    _terminating = true;
-    if (_loading) {
-      try {
-        await _loading;
-      } catch {
-        /* */
-      }
-    }
-    if (_worker) {
-      try {
-        await _worker.terminate();
-      } catch {
-        /* */
-      }
-      _worker = null;
-      _ready = false;
-      _loading = null;
-    }
-    _terminating = false;
-  }, []);
 
   return { processDocument, isProcessing, progress, terminate };
 }
