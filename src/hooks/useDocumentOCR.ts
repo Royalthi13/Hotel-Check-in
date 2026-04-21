@@ -325,22 +325,22 @@ function mrzToGuest(parsed: ParseResult): Partial<PartialGuestData> {
   out.nacionalidad = NAT[natCode] ?? "Otra";
   if (natCode === "ESP") out.pais = "ES";
 
+  // 🛠️ CORRECCIÓN: MRZ MÁS FLEXIBLE
   if (parsed.format === "TD1") {
+    // soporte = Número de Soporte (documentNumber)
     const soporte = (f.documentNumber ?? "").replace(/<+$/g, "").trim();
-    const optional = (f.optional1 ?? "").slice(0, 9).replace(/<+$/g, "").trim();
-    const isDNI = (s: string) => /^\d{8}[A-Z]$/.test(s);
-    const isNIE = (s: string) => /^[XYZ]\d{7}[A-Z]$/.test(s);
+    // optionalFull = DNI o NIE (suele tener dígitos de control extra pegados)
+    const optionalFull = (f.optional1 ?? "").replace(/<+$/g, "").trim();
 
-    if (isDNI(optional) || isNIE(optional)) {
-      out.tipoDoc = isDNI(optional) ? "DNI" : "NIE";
-      out.numDoc = optional;
-      if (soporte.length >= 8) out.soporteDoc = soporte;
-    } else if (isDNI(soporte) || isNIE(soporte)) {
-      out.tipoDoc = isDNI(soporte) ? "DNI" : "NIE";
-      out.numDoc = soporte;
+    if (natCode === "ESP") {
+      // Extraemos sin miedo los primeros 9 caracteres del bloque opcional
+      const dniNie = optionalFull.substring(0, 9);
+      out.numDoc = dniNie || soporte;
+      out.soporteDoc = soporte;
+      out.tipoDoc = /^[XYZ]/i.test(dniNie) ? "NIE" : "DNI";
     } else {
-      out.tipoDoc = natCode === "ESP" ? "DNI" : "Otro";
-      out.numDoc = optional || soporte;
+      out.tipoDoc = "Otro";
+      out.numDoc = optionalFull || soporte;
     }
   } else if (parsed.format === "TD3") {
     const passNum = (f.documentNumber ?? "").replace(/<+$/g, "").trim();
@@ -355,67 +355,83 @@ function mrzToGuest(parsed: ParseResult): Partial<PartialGuestData> {
 
 // ─── Extracción Lógica del Domicilio (Parser Francotirador) ───────────────────
 function parseDniBackAddress(text: string): Partial<PartialGuestData> {
-  const out: Partial<PartialGuestData> = {};
+  // 1. Prevención del bug de estado (Resetear siempre)
+  const out: Partial<PartialGuestData> = {
+    direccion: "",
+    ciudad: "",
+    cp: "",
+    provincia: "",
+  };
 
   console.log("=== 1. OCR RAW (Lo que lee) ===", text);
   if (!text) return out;
 
-  // 1. LIMPIEZA INICIAL EXTREMA
-  // Pasamos todo a mayúsculas y cambiamos barras, guiones bajos y tuberías por espacios
+  // 🧱 2. MAGIA MULTI-FORMATO (DNI 3.0 y DNI 4.0)
+  // Convertimos los saltos de línea del DNI nuevo (\n) en espacios.
+  // Así ambos formatos se convierten en una línea plana perfecta.
   let clean = text
     .toUpperCase()
+    .replace(/[\n\r]/g, " ")
     .replace(/[/\\_|]/g, " ")
     .replace(/[^A-Z0-9ÑÁÉÍÓÚÜºª., \-]/g, " ");
 
-  // 2. EL FRANCOTIRADOR (Cortar la basura de arriba)
-  // Busca exactamente dónde empieza la calle (C., C, CALLE, AV., PZ.)
-  // Al encontrarlo, borra TODO lo que haya a su izquierda (padres, XT, DG, TTT, etc.)
+  // 🛑 3. EL DOBLE CORTAFUEGOS (Hijo + Nacimiento)
+  let cutIndex = clean.length;
+  const hijoMatch = clean.match(/\b(HIJO|HIJA|HIJ0|H1JO)\b/);
+  if (hijoMatch && hijoMatch.index !== undefined) {
+    cutIndex = Math.min(cutIndex, hijoMatch.index);
+  }
+  const naciMatch = clean.match(/\b(NACI|NACIMIENTO|NACIMIENT0|NACIMIENT)\b/);
+  if (naciMatch && naciMatch.index !== undefined) {
+    cutIndex = Math.min(cutIndex, naciMatch.index);
+  }
+  if (cutIndex < clean.length) {
+    clean = clean.substring(0, cutIndex);
+  }
+
+  // 🎯 4. FRANCOTIRADOR (Cortar ruido superior)
   const streetStartRegex =
     /(?:^|\s)(C\.|C\s|C\/|CALLE|AV\.|AV\s|AVENIDA|PZ\.|PZ\s|PLAZA)\s/i;
   const matchStart = clean.match(streetStartRegex);
-
   if (matchStart && matchStart.index !== undefined) {
     clean = clean.substring(matchStart.index).trim();
   }
 
-  // 3. LA GOMA DE BORRAR DEFINITIVA (Mata-Hologramas)
+  // 🧹 5. LA GOMA DE BORRAR (Corregida para salvar números de 1 cifra como el "1")
   clean = clean
     .split(/\s+/)
     .filter((w) => {
-      // A. Salvar las letras de la calle
-      if (/^[CSNY]$/.test(w)) return true;
-      // B. Matar letras y números sueltos (mata "I", "1", "7", "E")
-      if (w.length === 1 && !/^[Y]$/.test(w)) return false;
-      // C. Matar cadenas de números largos (mata "1107", "777777")
+      if (/^[CSNY0-9]$/.test(w)) return true; // ¡El 1 se salva aquí!
+      if (w.length === 1) return false;
       if (/^\d{3,}$/.test(w)) return false;
-      // D. Matar palabras repetitivas o sin vocales (mata "TTT", "TTF", "XT")
       if (/^([A-Z])\1+$/.test(w)) return false;
       if (/^[A-Z]+$/.test(w) && !/[AEIOU]/.test(w) && w !== "C.") return false;
       return true;
     })
     .join(" ");
 
-  console.log("=== 2. TEXTO SIN RUIDO ===", clean);
+  clean = clean
+    .replace(/\b(DOMICILIO|LUGAR|PROVINCIA|MUNICIPIO|EQUIPO|VALIDEZ)\b/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
 
-  // 4. EL PIVOTE INTELIGENTE (Separar Calle de Ciudad)
-  // Busca el PRIMER token que sea un número (ej: 57, S7, B8, S/N) dentro de las primeras palabras
+  // 🪓 6. EL PIVOTE (Separador Universal Calle/Ciudad)
   const words = clean.split(/\s+/);
   let pivotIndex = -1;
   const pivotRegex = /^(\d{1,3}[A-Zºª]?|S\/N|S\d|B\d|Z\d|l\d|I\d)$/i;
 
-  for (let i = 1; i < Math.min(words.length, 6); i++) {
+  // Buscamos hasta la palabra 9 por si la calle es muy larga
+  for (let i = 1; i < Math.min(words.length, 9); i++) {
     if (pivotRegex.test(words[i])) {
       pivotIndex = i;
       break;
     }
   }
 
-  // 5. ASIGNACIÓN FINAL
   if (pivotIndex !== -1) {
     let rawStreet = words.slice(0, pivotIndex).join(" ");
     let rawNumber = words[pivotIndex];
 
-    // Traducir cosas como S7 a 57
     const translateMap: Record<string, string> = {
       S: "5",
       B: "8",
@@ -431,19 +447,18 @@ function parseDniBackAddress(text: string): Partial<PartialGuestData> {
 
     out.direccion = titleCase(`${rawStreet} ${cleanNumber}`);
 
-    // La ciudad es todo lo que hay a la derecha del número...
-    // Pero le quitamos cualquier número suelto residual que haya sobrevivido (ej: el "17" y el "74")
     let rawCity = words
       .slice(pivotIndex + 1)
       .filter((w) => !/\d/.test(w))
       .join(" ");
-    out.ciudad = rawCity;
+
+    if (rawCity) out.ciudad = rawCity;
   } else {
     out.direccion = titleCase(clean);
   }
 
-  console.log("📍 Dirección final aislada:", out.direccion);
-  console.log("🏙️ Ciudad final aislada:", out.ciudad);
+  console.log("📍 Dirección final aislada:", out.direccion || "(vacía)");
+  console.log("🏙️ Ciudad final aislada:", out.ciudad || "(vacía)");
 
   return out;
 }
