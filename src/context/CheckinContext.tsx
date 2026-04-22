@@ -12,7 +12,10 @@ export const CheckinProvider: React.FC<{ children: React.ReactNode }> = ({
   const { token: urlToken, step } = useParams();
   const token = urlToken ?? "new";
   const PERSISTENCE_KEY = `h_ckin_data_${token}`;
- const [state, nav, actions, isLoading, setModoFlujo] = useCheckin(token, step);
+  const [state, nav, actions, isLoading, setModoFlujo] = useCheckin(
+    token,
+    step,
+  );
 
   const [submitError, setSubmitError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -50,7 +53,7 @@ export const CheckinProvider: React.FC<{ children: React.ReactNode }> = ({
     };
   }, []);
 
- // --- PERSISTENCIA DE HUÉSPEDES (sessionStorage, se vacía al cerrar pestaña) ---
+  // --- PERSISTENCIA DE HUÉSPEDES (sessionStorage, se vacía al cerrar pestaña) ---
   // Sin cifrado: los datos ya viven en sessionStorage y el cifrado con clave
   // almacenada junto a los datos no aporta seguridad real.
   useEffect(() => {
@@ -95,13 +98,17 @@ export const CheckinProvider: React.FC<{ children: React.ReactNode }> = ({
     `clientId_${token}`,
   ];
 
- const handleChooseMethod = (method: "scan" | "manual") => {
+  const handleChooseMethod = (method: "scan" | "manual") => {
     setModoFlujo(method);
-    actions.setNumPersonas(state.reserva?.numHuespedes ?? 1);
+
+    if (nav.guestIndex === 0) {
+      actions.setNumPersonas(state.reserva?.numHuespedes ?? 1);
+    }
+
     actions.goTo(
       method === "scan" ? "escanear" : "form_personal",
       "forward",
-      0,
+      nav.guestIndex,
     );
   };
 
@@ -110,7 +117,8 @@ export const CheckinProvider: React.FC<{ children: React.ReactNode }> = ({
     setIsSubmitting(true);
     try {
       const { bookingId, clientId } = getBackendIds();
-if (isPartial) {
+
+      if (isPartial) {
         const newClientId = await savePartialCheckin(
           bookingId,
           clientId,
@@ -129,8 +137,8 @@ if (isPartial) {
         horaLlegada: state.horaLlegada,
         observaciones: state.observaciones,
       });
-setIsPartialSuccess(false);
 
+      setIsPartialSuccess(false);
       SESSION_KEYS_TO_CLEAR.forEach((key) => sessionStorage.removeItem(key));
       sessionStorage.removeItem(PERSISTENCE_KEY);
       localStorage.removeItem(PERSISTENCE_KEY); // limpiar datos antiguos cifrados si los hubiera

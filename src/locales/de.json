@@ -230,6 +230,11 @@
     "error_connection": "Verbindungsfehler. Bitte versuchen Sie es erneut."
   },
   "welcome": {
+    "next_step": "Nächster Schritt",
+    "guest_data_1": "Daten von",
+    "guest_data_2": "Gast {{index}}",
+    "companion_subtitle": "Bitte geben Sie die Informationen für die Registrierung dieser Begleitperson an.",
+    "how_to_companion": "Wie möchten Sie die Daten eingeben?",
     "summary_title": "Aufenthaltsdetails",
     "reservation": "Referenz",
     "guests_booked": "Gebuchte Gäste",

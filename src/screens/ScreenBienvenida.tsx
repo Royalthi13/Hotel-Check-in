@@ -1,5 +1,5 @@
 import React from "react";
-import { useTranslation } from "react-i18next"; // 1. Importamos el hook
+import { useTranslation } from "react-i18next";
 import { Icon, ReservationCard } from "@/components/ui";
 import type { Reserva, GuestData } from "@/types";
 import "@/screens/ScreenBienvenida.css";
@@ -7,6 +7,7 @@ import "@/screens/ScreenBienvenida.css";
 interface Props {
   knownGuest: GuestData | null;
   reserva: Reserva | null;
+  guestIndex?: number;
   onChooseScan: () => void;
   onChooseManual: () => void;
 }
@@ -14,32 +15,48 @@ interface Props {
 export const ScreenBienvenida: React.FC<Props> = ({
   knownGuest,
   reserva,
+  guestIndex = 0,
   onChooseScan,
   onChooseManual,
 }) => {
-  const { t } = useTranslation(); // 2. Inicializamos el traductor
+  const { t } = useTranslation();
   const isKnown = !!knownGuest;
+
+  const isTitular = guestIndex === 0;
 
   return (
     <>
       <div className="hero">
-        <div className="hero-eyebrow">{t("welcome.eyebrow")}</div>
+        <div className="hero-eyebrow">
+          {/* ✅ Usamos clave de i18n para la cejilla */}
+          {isTitular ? t("welcome.eyebrow") : t("welcome.next_step")}
+        </div>
+
         <h1 className="hero-title">
-          {isKnown ? (
-            <>
-              {t("welcome.title_known_1")}
-              <br />
-              <em>{t("welcome.title_known_2")}</em>
-            </>
+          {isTitular ? (
+            isKnown ? (
+              <>
+                {t("welcome.title_known_1")}
+                <br />
+                <em>{t("welcome.title_known_2")}</em>
+              </>
+            ) : (
+              <>
+                {t("welcome.title_new_1")}
+                <br />
+                <em>{t("welcome.title_new_2")}</em>
+              </>
+            )
           ) : (
             <>
-              {t("welcome.title_new_1")}
-              <br />
-              <em>{t("welcome.title_new_2")}</em>
+              {/* ✅ Pasamos el índice dinámico al traductor */}
+              {t("welcome.guest_data_1")} <br />
+              <em>{t("welcome.guest_data_2", { index: guestIndex + 1 })}</em>
             </>
           )}
         </h1>
-        {isKnown && knownGuest?.nombre && (
+
+        {isTitular && isKnown && knownGuest?.nombre && (
           <p
             style={{
               fontFamily: "'Cormorant Garamond', serif",
@@ -49,12 +66,17 @@ export const ScreenBienvenida: React.FC<Props> = ({
               marginTop: 10,
             }}
           >
-            {/* 3. Interpolación de variables. Le pasamos el nombre al diccionario */}
             {t("welcome.greeting", { name: knownGuest.nombre })}
           </p>
         )}
+
         <p className="hero-subtitle">
-          {isKnown ? t("welcome.subtitle_known") : t("welcome.subtitle_new")}
+          {/* ✅ Subtítulo del acompañante por i18n */}
+          {isTitular
+            ? isKnown
+              ? t("welcome.subtitle_known")
+              : t("welcome.subtitle_new")
+            : t("welcome.companion_subtitle")}
         </p>
       </div>
 
@@ -64,7 +86,6 @@ export const ScreenBienvenida: React.FC<Props> = ({
         </div>
       )}
 
-      {/* CONTENEDOR DE LA ZONA DE ACCIÓN */}
       <div
         style={{
           padding: "32px 24px 16px",
@@ -83,7 +104,12 @@ export const ScreenBienvenida: React.FC<Props> = ({
             letterSpacing: "-0.01em",
           }}
         >
-          {isKnown ? t("welcome.how_to_review") : t("welcome.how_to_complete")}
+          {/* ✅ Pregunta del acompañante por i18n */}
+          {isTitular
+            ? isKnown
+              ? t("welcome.how_to_review")
+              : t("welcome.how_to_complete")
+            : t("welcome.how_to_companion")}
         </h3>
 
         <div
@@ -128,12 +154,12 @@ export const ScreenBienvenida: React.FC<Props> = ({
             </div>
             <div className="choice-card-body">
               <div className="choice-card-title">
-                {isKnown
+                {isTitular && isKnown
                   ? t("welcome.card_manual_title_known")
                   : t("welcome.card_manual_title_new")}
               </div>
               <div className="choice-card-sub">
-                {isKnown
+                {isTitular && isKnown
                   ? t("welcome.card_manual_sub_known")
                   : t("welcome.card_manual_sub_new")}
               </div>

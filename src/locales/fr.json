@@ -210,6 +210,11 @@
     "no_results": "Aucun résultat trouvé"
   },
   "welcome": {
+    "next_step": "Étape suivante",
+    "guest_data_1": "Informations du",
+    "guest_data_2": "Voyageur {{index}}",
+    "companion_subtitle": "Veuillez fournir les informations pour l'enregistrement de cet accompagnateur.",
+    "how_to_companion": "Comment préférez-vous remplir ses coordonnées ?",
     "summary_title": "Détails de votre séjour",
     "reservation": "Référence",
     "guests_booked": "Personnes réservées",
