@@ -1,4 +1,5 @@
 import React, { useRef, useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 interface CameraScannerProps {
   onCapture: (blob: Blob) => void;
@@ -9,6 +10,7 @@ export const CameraScanner: React.FC<CameraScannerProps> = ({
   onCapture,
   onClose,
 }) => {
+  const { t } = useTranslation();
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [stream, setStream] = useState<MediaStream | null>(null);
@@ -80,7 +82,6 @@ export const CameraScanner: React.FC<CameraScannerProps> = ({
     <div style={styles.container}>
       <video ref={videoRef} autoPlay playsInline style={styles.video} />
 
-      {/* 🖼️ EL MARCO GUÍA (Overlay) */}
       <div style={styles.overlay}>
         <div style={styles.guideBox}>
           <div style={styles.cornerTopLeft} />
@@ -92,10 +93,10 @@ export const CameraScanner: React.FC<CameraScannerProps> = ({
 
       <div style={styles.controls}>
         <button onClick={onClose} style={styles.btnCancel}>
-          Cancelar
+          {t("common.cancel")}
         </button>
         <button onClick={capturePhoto} style={styles.btnCapture}>
-          FOTOGRAFIAR
+          {t("scan.btn_capture")}
         </button>
       </div>
       <canvas ref={canvasRef} style={{ display: "none" }} />
@@ -103,7 +104,6 @@ export const CameraScanner: React.FC<CameraScannerProps> = ({
   );
 };
 
-// Estilos rápidos para que veas el diseño
 const styles: Record<string, React.CSSProperties> = {
   container: {
     position: "fixed",
@@ -118,7 +118,7 @@ const styles: Record<string, React.CSSProperties> = {
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "rgba(0,0,0,0.5)", // Oscurece fuera del marco
+    backgroundColor: "rgba(0,0,0,0.5)",
   },
   guideBox: {
     width: "85vw",
@@ -134,6 +134,7 @@ const styles: Record<string, React.CSSProperties> = {
     backgroundColor: "#fff",
     border: "none",
     fontWeight: "bold",
+    textTransform: "uppercase",
   },
   controls: {
     position: "absolute",
@@ -142,5 +143,10 @@ const styles: Record<string, React.CSSProperties> = {
     display: "flex",
     justifyContent: "space-around",
   },
-  btnCancel: { color: "#fff", background: "none", border: "none" },
+  btnCancel: {
+    color: "#fff",
+    background: "none",
+    border: "none",
+    fontSize: "16px",
+  },
 };

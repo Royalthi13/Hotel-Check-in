@@ -20,12 +20,14 @@ type Phase =
   | "error";
 
 const ConfidenceBadge: React.FC<{ value: number }> = ({ value }) => {
+  const { t } = useTranslation();
   const pct = Math.round(value * 100);
   const color =
     value >= 0.8 ? "var(--ok)" : value >= 0.55 ? "#d97706" : "var(--err)";
   return (
     <div style={{ fontSize: 13, color, fontWeight: 500, marginTop: 4 }}>
-      {pct}% - {value >= 0.8 ? "Lectura excelente" : "Verifique los datos"}
+      {pct}% -{" "}
+      {value >= 0.8 ? t("scan.confidence_high") : t("scan.confidence_low")}
     </div>
   );
 };
@@ -86,7 +88,6 @@ export const ScreenEscanear: React.FC<Props> = ({ onScanned, onSkip }) => {
 
     const vw = v.videoWidth;
     const vh = v.videoHeight;
-    // Usamos las dimensiones que vemos en pantalla para calcular el recorte
     const cw = v.clientWidth;
     const ch = v.clientHeight;
 
@@ -113,7 +114,6 @@ export const ScreenEscanear: React.FC<Props> = ({ onScanned, onSkip }) => {
     canvas.height = boxH;
     const ctx = canvas.getContext("2d")!;
 
-    // ⚠️ QUITAMOS EL FILTRO QUE "FREÍA" LA IMAGEN
     ctx.drawImage(
       v,
       sx + (sw - boxW) / 2,
@@ -147,7 +147,6 @@ export const ScreenEscanear: React.FC<Props> = ({ onScanned, onSkip }) => {
       });
       streamRef.current = s;
       setPhase("camera");
-      // Damos un milisegundo a React para que renderice la etiqueta <video> antes de meterle el stream
       setTimeout(() => {
         if (videoRef.current) {
           videoRef.current.srcObject = s;
@@ -323,7 +322,6 @@ export const ScreenEscanear: React.FC<Props> = ({ onScanned, onSkip }) => {
               borderRadius: 20,
             }}
           >
-            {/* 📸 VÍDEO NATIVO Y LIMPIO */}
             <video
               ref={videoRef}
               autoPlay
@@ -379,7 +377,6 @@ export const ScreenEscanear: React.FC<Props> = ({ onScanned, onSkip }) => {
           </div>
         )}
 
-        {/* ... FASES PROCESSING, SELECTED, SUCCESS y ERROR se mantienen igual ... */}
         {phase === "processing" && (
           <div style={{ padding: "40px 0", textAlign: "center" }}>
             <div
@@ -416,7 +413,7 @@ export const ScreenEscanear: React.FC<Props> = ({ onScanned, onSkip }) => {
               />
             </div>
             <p style={{ fontSize: 13, color: "var(--text-low)" }}>
-              {progress.pct}% · Procesando localmente
+              {progress.pct}% · {t("scan.processing_local")}
             </p>
           </div>
         )}
@@ -425,7 +422,7 @@ export const ScreenEscanear: React.FC<Props> = ({ onScanned, onSkip }) => {
           <div style={{ textAlign: "center" }}>
             <img
               src={preview!}
-              alt="Preview"
+              alt={t("scan.preview_alt")}
               style={{
                 width: "100%",
                 borderRadius: 16,
@@ -481,7 +478,7 @@ export const ScreenEscanear: React.FC<Props> = ({ onScanned, onSkip }) => {
               onClick={() => setPhase("idle")}
               style={{ marginTop: 15, width: "100%" }}
             >
-              Reintentar
+              {t("scan.btn_retry")}
             </Button>
           </div>
         )}

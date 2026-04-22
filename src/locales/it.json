@@ -127,6 +127,7 @@
     "YN": "Genero / Nuora"
   },
   "common": {
+    "cancel": "Annulla",
     "of": "di ",
     "no": "No",
     "yes": "Sì",
@@ -310,6 +311,11 @@
     "phone": "Telefono"
   },
   "scan": {
+    "confidence_high": "Lettura eccellente",
+    "confidence_low": "Si prega di verificare i dati",
+    "processing_local": "Elaborazione locale in corso",
+    "preview_alt": "Anteprima del documento",
+    "btn_retry": "Riprova",
     "title": "Scansiona documento",
     "subtitle": "Posiziona il tuo documento nel riquadro. I dati verranno compilati automaticamente.",
     "hint_center": "Centra il documento nel riquadro",

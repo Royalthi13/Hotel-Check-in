@@ -127,6 +127,7 @@
     "YN": "Son/Daughter-in-law"
   },
   "common": {
+    "cancel": "Cancel",
     "of": "of ",
     "no": "No",
     "yes": "Yes",
@@ -305,6 +306,11 @@
     "phone": "Phone"
   },
   "scan": {
+    "confidence_high": "Excellent read",
+    "confidence_low": "Please verify data",
+    "processing_local": "Processing locally",
+    "preview_alt": "Document preview",
+    "btn_retry": "Retry",
     "title": "Scan document",
     "subtitle": "Place your ID or passport inside the frame and click capture. The data will be filled in automatically. This step is optional — you can skip it and fill everything manually.",
     "hint_center": "Center the document in the frame",

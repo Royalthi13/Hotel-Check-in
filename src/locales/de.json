@@ -127,6 +127,7 @@
     "YN": "Schwiegersohn/tochter"
   },
   "common": {
+    "cancel": "Abbrechen",
     "of": "von ",
     "no": "Nein",
     "yes": "Ja",
@@ -310,6 +311,11 @@
     "phone": "Telefon"
   },
   "scan": {
+    "confidence_high": "Hervorragendes Ergebnis",
+    "confidence_low": "Bitte Daten überprüfen",
+    "processing_local": "Lokale Verarbeitung",
+    "preview_alt": "Dokumentvorschau",
+    "btn_retry": "Erneut versuchen",
     "title": "Dokument scannen",
     "subtitle": "Platzieren Sie Ihren Ausweis im Rahmen.",
     "hint_center": "Dokument im Rahmen zentrieren",
