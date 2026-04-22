@@ -514,7 +514,7 @@ export function useCheckin(tokenUrl?: string, stepUrl?: string) {
         const guest = guests[currIdx];
         if (guest?.esMenor) {
           if (currIdx + 1 < numPersonas) {
-            return goTo("form_personal", "forward", currIdx + 1);
+            return goTo("bienvenida", "forward", currIdx + 1);
           }
           return goToFirstMinorOrExtras();
         }
@@ -523,7 +523,7 @@ export function useCheckin(tokenUrl?: string, stepUrl?: string) {
 
       if (from === "form_contacto") {
         if (currIdx + 1 < numPersonas) {
-          return goTo("form_personal", "forward", currIdx + 1);
+          return goTo("bienvenida", "forward", currIdx + 1);
         }
         return goToFirstMinorOrExtras();
       }
