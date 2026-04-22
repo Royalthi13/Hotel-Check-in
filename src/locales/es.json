@@ -109,6 +109,7 @@
       "exito": "Completado"
     }
   },
+
   "parentescos": {
     "AB": "Abuelo/a",
     "BA": "Bisabuelo/a",
@@ -135,6 +136,7 @@
   },
 
   "common": {
+    "cancel": "Cancelar",
     "of": "de ",
     "no": "No",
     "yes": "Sí",
@@ -298,6 +300,12 @@
     "phone": "Teléfono"
   },
   "scan": {
+    "pdf_selected": "Documento PDF seleccionado",
+    "confidence_high": "Lectura excelente",
+    "confidence_low": "Verifique los datos",
+    "processing_local": "Procesando localmente",
+    "preview_alt": "Vista previa del documento",
+    "btn_retry": "Reintentar",
     "title": "Escanear documento",
     "subtitle": "Coloque su DNI o pasaporte dentro del marco y pulse capturar. Los datos se rellenarán automáticamente. Este paso es opcional — puede saltarlo y rellenar todo a mano.",
     "hint_center": "Centre el documento en el marco",

@@ -270,7 +270,7 @@ export const AppShell: React.FC<AppShellProps> = ({
   return (
     <div
       className="shell"
-      style={{ minHeight: "100vh", display: "flex", flexDirection: "column" }}
+      style={{ minHeight: "100dvh", display: "flex", flexDirection: "column" }}
     >
       <div
         className="card"
@@ -512,6 +512,7 @@ export const AppShell: React.FC<AppShellProps> = ({
               flexDirection: "column",
               backgroundColor: "var(--white)",
               minHeight: "100%",
+              paddingBottom: "80px",
             }}
           >
             <AnimatePresence mode="wait" initial={false} custom={nav.direction}>

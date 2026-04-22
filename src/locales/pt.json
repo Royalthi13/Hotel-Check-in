@@ -127,6 +127,7 @@
     "YN": "Genro / Nora"
   },
   "common": {
+    "cancel": "Cancelar",
     "of": "de ",
     "no": "Não",
     "yes": "Sim",
@@ -288,6 +289,12 @@
     "No indicar": "Não indicar"
   },
   "scan": {
+    "pdf_selected": "Documento PDF selecionado",
+    "confidence_high": "Leitura excelente",
+    "confidence_low": "Por favor, verifique os dados",
+    "processing_local": "A processar localmente",
+    "preview_alt": "Pré-visualização do documento",
+    "btn_retry": "Tentar novamente",
     "title": "Digitalizar documento",
     "subtitle": "Coloque o seu documento no quadro. Os dados serão preenchidos automaticamente.",
     "hint_center": "Centre o documento no quadro",

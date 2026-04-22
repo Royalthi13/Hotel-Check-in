@@ -35,7 +35,8 @@ export type IconName =
   | "clock"
   | "plus"
   | "minus"
-  | "hotel";
+  | "hotel"
+  | "file";
 
 const PATHS: Record<IconName, string[]> = {
   left: ["M19 12H5", "M12 19l-7-7 7-7"],
@@ -105,6 +106,10 @@ const PATHS: Record<IconName, string[]> = {
     "M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2",
     "M9 2h6v4H9z",
   ],
+  file: [
+    "M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z",
+    "M14 2v6h6",
+  ],
 };
 
 export const Icon: React.FC<IconProps> = ({
@@ -135,8 +140,7 @@ export interface IconProps {
   size?: number;
   color?: string;
   strokeWidth?: number;
-   style?: React.CSSProperties;
-   
+  style?: React.CSSProperties;
 }
 export interface FieldProps {
   label: string;

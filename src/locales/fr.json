@@ -128,6 +128,7 @@
     "YN": "Gendre / Belle-fille"
   },
   "common": {
+    "cancel": "Annuler",
     "of": "de ",
     "no": "Non",
     "yes": "Oui",
@@ -290,6 +291,12 @@
     "phone": "Téléphone"
   },
   "scan": {
+    "pdf_selected": "Document PDF sélectionné",
+    "confidence_high": "Lecture excellente",
+    "confidence_low": "Veuillez vérifier les données",
+    "processing_local": "Traitement local",
+    "preview_alt": "Aperçu du document",
+    "btn_retry": "Réessayer",
     "title": "Scanner document",
     "subtitle": "Placez votre CNI ou passeport dans le cadre. Les données se rempliront automatiquement.",
     "hint_center": "Centrez le document dans le cadre",
