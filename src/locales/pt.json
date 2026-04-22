@@ -289,6 +289,7 @@
     "No indicar": "Não indicar"
   },
   "scan": {
+    "pdf_selected": "Documento PDF selecionado",
     "confidence_high": "Leitura excelente",
     "confidence_low": "Por favor, verifique os dados",
     "processing_local": "A processar localmente",

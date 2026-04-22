@@ -311,6 +311,7 @@
     "phone": "Telefon"
   },
   "scan": {
+    "pdf_selected": "PDF-Dokument ausgewählt",
     "confidence_high": "Hervorragendes Ergebnis",
     "confidence_low": "Bitte Daten überprüfen",
     "processing_local": "Lokale Verarbeitung",

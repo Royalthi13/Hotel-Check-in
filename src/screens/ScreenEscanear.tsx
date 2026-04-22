@@ -186,7 +186,7 @@ export const ScreenEscanear: React.FC<Props> = ({ onScanned, onSkip }) => {
       <input
         ref={galleryRef}
         type="file"
-        accept="image/*"
+        accept="image/*,application/pdf"
         style={{ display: "none" }}
         onChange={(e) => handleFile(e.target.files?.[0])}
       />
@@ -420,15 +420,39 @@ export const ScreenEscanear: React.FC<Props> = ({ onScanned, onSkip }) => {
 
         {phase === "selected" && (
           <div style={{ textAlign: "center" }}>
-            <img
-              src={preview!}
-              alt={t("scan.preview_alt")}
-              style={{
-                width: "100%",
-                borderRadius: 16,
-                border: "2px solid var(--primary)",
-              }}
-            />
+            {file?.type === "application/pdf" ? (
+              <div
+                style={{
+                  width: "100%",
+                  height: 200,
+                  borderRadius: 16,
+                  border: "2px solid var(--primary)",
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  background: "var(--bg-alt)",
+                }}
+              >
+                <Icon name="file" size={48} color="var(--primary)" />
+                <span style={{ marginTop: 10, fontWeight: 500 }}>
+                  {t("scan.pdf_selected")}
+                </span>
+                <span style={{ fontSize: 12, color: "var(--text-low)" }}>
+                  {file.name}
+                </span>
+              </div>
+            ) : (
+              <img
+                src={preview!}
+                alt={t("scan.preview_alt")}
+                style={{
+                  width: "100%",
+                  borderRadius: 16,
+                  border: "2px solid var(--primary)",
+                }}
+              />
+            )}
             <div
               style={{
                 display: "flex",

@@ -300,6 +300,7 @@
     "phone": "Teléfono"
   },
   "scan": {
+    "pdf_selected": "Documento PDF seleccionado",
     "confidence_high": "Lectura excelente",
     "confidence_low": "Verifique los datos",
     "processing_local": "Procesando localmente",
