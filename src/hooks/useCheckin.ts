@@ -6,7 +6,7 @@ import type {
   AppMode,
   Reserva,
   PartialGuestData,
-  GuestData, // <-- ¡Solucionado el error de TS2304!
+  GuestData,
   StepId,
   CheckinNav,
   NavDirection,
@@ -16,15 +16,31 @@ import { FLOW_STEPS_LINK, DOT_STEPS_BASE } from "@/constants";
 import { loadCheckinData } from "@/api/checkin.service";
 import { loginMagicLink } from "@/api/auth.service";
 
+// ── Lista de pasos válidos ───────────────────────────────────────────────────
+const VALID_STEPS: ReadonlyArray<StepId> = [
+  "tablet_buscar",
+  "inicio",
+  "bienvenida",
+  "confirmar_datos",
+  "escanear",
+  "form_personal",
+  "form_contacto",
+  "form_documento",
+  "form_relaciones",
+  "num_personas",
+  "form_extras",
+  "revision",
+  "exito",
+];
 
-// ── Tipos Internos (Necesarios para que el Hook funcione) ───────────────────
+// ── Tipos Internos ───────────────────────────────────────────────────────────
 interface HistoryEntry {
   step: StepId;
   guestIndex: number;
 }
 
 type CheckinAction =
- | { type: "SET_KNOWN_GUEST"; guest: GuestData }
+  | { type: "SET_KNOWN_GUEST"; guest: GuestData }
   | { type: "SET_RESERVA_TABLET"; reserva: Reserva }
   | { type: "SET_RESERVA"; reserva: Reserva }
   | { type: "SET_NUM_PERSONAS"; total: number }
@@ -41,18 +57,17 @@ type CheckinAction =
       adultoIndex: number;
       parentesco: string;
     }
-| { type: "APPLY_SCAN"; data: Partial<GuestData>; guestIdx: number }
+  | { type: "APPLY_SCAN"; data: Partial<GuestData>; guestIdx: number }
   | { type: "SET_HORA_LLEGADA"; value: string }
   | { type: "SET_OBSERVACIONES"; value: string }
   | { type: "SET_RGPD"; value: boolean }
   | { type: "SET_LEGAL_PASSED"; value: boolean }
   | { type: "SET_HAS_MINORS_FLAG"; value: boolean }
   | { type: "RESTORE_FULL_STATE"; payload: CheckinState }
-  // FIX: acción nueva para cargar acompañantes recuperados de la BD
   | { type: "SET_COMPANIONS_LOADED"; companions: GuestData[] }
   | { type: "RESET" };
 
-// ── Helpers de Persistencia (LAS QUE FALTABAN) ───────────────────────────────
+// ── Helpers de Persistencia ──────────────────────────────────────────────────
 function getSession<T>(key: string, fallback: T): T {
   try {
     const stored = sessionStorage.getItem(key);
@@ -61,16 +76,23 @@ function getSession<T>(key: string, fallback: T): T {
     return fallback;
   }
 }
+
 function getInitialState(token: string, mode: AppMode): CheckinState {
   const persistenceKey = `h_ckin_data_${token}`;
   const sessionKey = `state_${token}`;
 
-  // Limpieza defensiva: eliminar restos antiguos cifrados en localStorage.
-  try { localStorage.removeItem(persistenceKey); } catch { /* noop */ }
-  try { sessionStorage.removeItem('lumina_enc_key'); } catch { /* noop */ }
+  try {
+    localStorage.removeItem(persistenceKey);
+  } catch {
+    /* noop */
+  }
+  try {
+    sessionStorage.removeItem("lumina_enc_key");
+  } catch {
+    /* noop */
+  }
 
   try {
-    // Backup de guests con TTL 30 min
     const raw = sessionStorage.getItem(persistenceKey);
     if (raw) {
       const { guests, timestamp } = JSON.parse(raw);
@@ -80,7 +102,6 @@ function getInitialState(token: string, mode: AppMode): CheckinState {
       sessionStorage.removeItem(persistenceKey);
     }
 
-    // Estado completo de la sesión actual
     const session = sessionStorage.getItem(sessionKey);
     if (session) return JSON.parse(session);
   } catch (e) {
@@ -89,7 +110,7 @@ function getInitialState(token: string, mode: AppMode): CheckinState {
 
   return buildEmptyState(mode);
 }
-// Valores por defecto de un huésped nuevo (pais="ES" por ser mercado principal)
+
 function emptyGuest(): PartialGuestData {
   return { esMenor: false, relacionesConAdultos: [], pais: "ES" };
 }
@@ -117,7 +138,8 @@ function mergeGuests(
 ): PartialGuestData[] {
   return Array.from({ length: total }, (_, i) => prev[i] ?? emptyGuest());
 }
-// ── Reducer ───────────────────────────────────────────────────────────────────
+
+// ── Reducer ──────────────────────────────────────────────────────────────────
 export function checkinReducer(
   state: CheckinState,
   action: CheckinAction,
@@ -125,7 +147,7 @@ export function checkinReducer(
   switch (action.type) {
     case "SET_GUESTS":
       return { ...state, guests: action.guests };
-   case "SET_KNOWN_GUEST":
+    case "SET_KNOWN_GUEST":
       return {
         ...state,
         knownGuest: action.guest,
@@ -160,7 +182,6 @@ export function checkinReducer(
       };
     }
 
-    // ── FIX: carga de acompañantes desde la BD ─────────────────────────────
     case "SET_COMPANIONS_LOADED": {
       const mainGuest = state.guests[0] ?? {
         esMenor: false,
@@ -250,28 +271,46 @@ export function checkinReducer(
       return state;
   }
 }
-// ── Hook Principal ────────────────────────────────────────────────────────────
+
+// ── Hook Principal ───────────────────────────────────────────────────────────
 export function useCheckin(tokenUrl?: string, stepUrl?: string) {
   const navigate = useNavigate();
   const token = tokenUrl ?? "new";
   const initialMode: AppMode = token === "new" ? "tablet" : "link";
 
-  // Carga inicial síncrona
   const [state, setState] = useState<CheckinState>(() =>
     getInitialState(token, initialMode),
   );
-  const [appHistory, setAppHistory] = useState<HistoryEntry[]>(() =>
-    getSession(`history_${token}`, []),
-  );
+
+  // 1. SOLUCIÓN AL F5: appHistory ahora respeta la URL
+  const [appHistory, setAppHistory] = useState<HistoryEntry[]>(() => {
+    const storedHistory = getSession<HistoryEntry[]>(`history_${token}`, []);
+
+    if (stepUrl && VALID_STEPS.includes(stepUrl as StepId)) {
+      const stepExists = storedHistory.some((h) => h.step === stepUrl);
+      if (!stepExists) {
+        return [...storedHistory, { step: stepUrl as StepId, guestIndex: 0 }];
+      }
+    }
+    return storedHistory;
+  });
+
+  // 2. SOLUCIÓN AL F5: allowedSteps ahora respeta la URL
   const [allowedSteps, setAllowedSteps] = useState<Set<StepId>>(() => {
     const stored = getSession<StepId[] | null>(`allowedSteps_${token}`, null);
-    return new Set(stored ?? ["inicio", "tablet_buscar"]);
+    const validStored = stored ?? ["inicio", "tablet_buscar"];
+
+    if (stepUrl && VALID_STEPS.includes(stepUrl as StepId)) {
+      return new Set([...validStored, stepUrl as StepId]);
+    }
+    return new Set(validStored);
   });
-  // modoFlujo reactivo: se lee una vez del storage y luego se actualiza aquí
+
   const [modoFlujo, setModoFlujo] = useState<"scan" | "manual" | null>(() => {
     const stored = sessionStorage.getItem(`modoFlujo_${token}`);
     return stored === "scan" || stored === "manual" ? stored : null;
   });
+
   useEffect(() => {
     if (modoFlujo) sessionStorage.setItem(`modoFlujo_${token}`, modoFlujo);
   }, [modoFlujo, token]);
@@ -289,11 +328,11 @@ export function useCheckin(tokenUrl?: string, stepUrl?: string) {
   useEffect(() => {
     navigateRef.current = navigate;
   });
+
   useEffect(() => {
     stateRef.current = state;
   }, [state]);
 
-  // Sincronización con SessionStorage
   useEffect(() => {
     const persistableState = {
       ...state,
@@ -307,6 +346,7 @@ export function useCheckin(tokenUrl?: string, stepUrl?: string) {
       sessionStorage.setItem(`history_${token}`, JSON.stringify(appHistory)),
     [appHistory, token],
   );
+
   useEffect(
     () =>
       sessionStorage.setItem(
@@ -335,44 +375,36 @@ export function useCheckin(tokenUrl?: string, stepUrl?: string) {
         if (!yaAutenticado) {
           try {
             await loginMagicLink(token);
-          } catch  {
+          } catch {
             if (cancelled) return;
             localStorage.removeItem(`h_ckin_data_${token}`);
             navigateRef.current("/invalid", { replace: true });
             return;
-          }}
+          }
+        }
+
         const result = await loadCheckinData(token);
         if (cancelled) return;
 
-        // IDs siempre necesarios
         sessionStorage.setItem(`bookingId_${token}`, String(result.bookingId));
         if (result.clientId)
           sessionStorage.setItem(`clientId_${token}`, String(result.clientId));
 
-        // Reserva siempre
         dispatch({ type: "SET_RESERVA", reserva: result.reserva });
 
-        // Si ya completó el pre-checkin → redirigir a exito sin más
-        if (result.isAlreadyCheckedIn) {
-          if (result.knownGuest)
-            dispatch({ type: "SET_KNOWN_GUEST", guest: result.knownGuest });
-          navigateRef.current(`/checkin/${token}/exito`, { replace: true });
-        } else {
-          // Titular — solo pre-rellenar si el usuario no tiene datos propios
-          const hasOwnData =
-            stateRef.current.guests[0]?.nombre?.trim() ||
-            stateRef.current.guests[0]?.numDoc?.trim();
-          if (result.knownGuest && !hasOwnData) {
-            dispatch({ type: "SET_KNOWN_GUEST", guest: result.knownGuest });
-          }
+        const hasOwnData =
+          stateRef.current.guests[0]?.nombre?.trim() ||
+          stateRef.current.guests[0]?.numDoc?.trim();
 
-          // Acompañantes
-          if (result.companions.length > 0) {
-            dispatch({
-              type: "SET_COMPANIONS_LOADED",
-              companions: result.companions,
-            });
-          }
+        if (result.knownGuest && !hasOwnData) {
+          dispatch({ type: "SET_KNOWN_GUEST", guest: result.knownGuest });
+        }
+
+        if (result.companions.length > 0) {
+          dispatch({
+            type: "SET_COMPANIONS_LOADED",
+            companions: result.companions,
+          });
         }
       } catch {
         if (cancelled) return;
@@ -394,17 +426,26 @@ export function useCheckin(tokenUrl?: string, stepUrl?: string) {
     };
   }, []);
 
- // Whitelist de StepIds válidos (evita que /checkin/XXX/basura rompa el wizard)
-  const VALID_STEPS: ReadonlyArray<StepId> = [
-    "tablet_buscar", "inicio", "bienvenida", "confirmar_datos", "escanear",
-    "form_personal", "form_contacto", "form_documento", "form_relaciones",
-    "num_personas", "form_extras", "revision", "exito",
-  ];
+  // ── FIX: Cálculo de la pantalla actual y memoria del RGPD ──────────────────
   const requestedStep = stepUrl as StepId | undefined;
-  const actualStep: StepId =
-    requestedStep && VALID_STEPS.includes(requestedStep)
-      ? requestedStep
-      : (initialMode === "tablet" ? "tablet_buscar" : "inicio");
+
+  const actualStep: StepId = (() => {
+    if (requestedStep && VALID_STEPS.includes(requestedStep))
+      return requestedStep;
+    if (initialMode === "tablet") return "tablet_buscar";
+
+    const yaAcepto =
+      sessionStorage.getItem(`legalPassed_${token}`) === "true" ||
+      state.legalPassed;
+    if (yaAcepto) {
+      const hist = getSession<HistoryEntry[]>(`history_${token}`, []);
+      if (hist.length > 0) return hist[hist.length - 1].step;
+      return "bienvenida";
+    }
+
+    return "inicio";
+  })();
+
   const activeGuestIndex = (() => {
     for (let i = appHistory.length - 1; i >= 0; i--) {
       if (appHistory[i].step === actualStep) return appHistory[i].guestIndex;
@@ -458,12 +499,7 @@ export function useCheckin(tokenUrl?: string, stepUrl?: string) {
     window.addEventListener("popstate", onPop);
     return () => window.removeEventListener("popstate", onPop);
   }, []);
-// Flujo:
-  //   Adulto: form_personal → form_contacto → siguiente huésped
-  //   Menor:  form_personal → siguiente huésped (sin contacto)
-  //           Cuando TODOS los personales están hechos → form_relaciones para
-  //           cada menor (sólo declaración de parentesco, sin dirección).
-  //   Tras relaciones → form_extras
+
   const nextGuest = useCallback(
     (currIdx: number, from: StepId) => {
       const { guests, numPersonas } = stateRef.current;
@@ -476,19 +512,16 @@ export function useCheckin(tokenUrl?: string, stepUrl?: string) {
 
       if (from === "form_personal") {
         const guest = guests[currIdx];
-        // Menor: nunca va a contacto. Pasa al siguiente huésped (o fase menores).
         if (guest?.esMenor) {
           if (currIdx + 1 < numPersonas) {
             return goTo("form_personal", "forward", currIdx + 1);
           }
           return goToFirstMinorOrExtras();
         }
-        // Adulto: va a su propio contacto.
         return goTo("form_contacto", "forward", currIdx);
       }
 
       if (from === "form_contacto") {
-        // Sólo adultos llegan aquí.
         if (currIdx + 1 < numPersonas) {
           return goTo("form_personal", "forward", currIdx + 1);
         }
@@ -504,7 +537,7 @@ export function useCheckin(tokenUrl?: string, stepUrl?: string) {
     [goTo],
   );
 
- const dotSteps = useMemo(() => {
+  const dotSteps = useMemo(() => {
     const base = state.appMode === "link" ? FLOW_STEPS_LINK : DOT_STEPS_BASE;
     return modoFlujo === "manual" ? base.filter((s) => s !== "escanear") : base;
   }, [state.appMode, modoFlujo]);
@@ -512,6 +545,7 @@ export function useCheckin(tokenUrl?: string, stepUrl?: string) {
   const canGoBack =
     appHistory.length > 0 &&
     !["exito", "tablet_buscar", "inicio"].includes(actualStep);
+
   let currentDotIndex = dotSteps.indexOf(actualStep);
   if (["confirmar_datos", "form_relaciones"].includes(actualStep))
     currentDotIndex = dotSteps.indexOf("form_personal");
@@ -595,9 +629,18 @@ export function useCheckin(tokenUrl?: string, stepUrl?: string) {
       setHasMinorsFlag: (v) =>
         dispatch({ type: "SET_HAS_MINORS_FLAG", value: v }),
     }),
-    // <-- FIX: Borrada la matriz de dependencias que estaba duplicada en la línea final
     [goTo, goBack, dispatch, dotSteps, currentDotIndex, nextGuest],
   );
 
- return [state, nav, actions, isLoading, setModoFlujo] as const;
+  // ── FIX: Efecto Guardia de Seguridad ──────────────
+  useEffect(() => {
+    const yaAcepto =
+      sessionStorage.getItem(`legalPassed_${token}`) === "true" ||
+      state.legalPassed;
+    if (actualStep === "inicio" && yaAcepto && !isNavigating) {
+      goTo("bienvenida", "forward");
+    }
+  }, [actualStep, token, state.legalPassed, isNavigating, goTo]);
+
+  return [state, nav, actions, isLoading, setModoFlujo] as const;
 }
