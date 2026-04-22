@@ -632,15 +632,5 @@ export function useCheckin(tokenUrl?: string, stepUrl?: string) {
     [goTo, goBack, dispatch, dotSteps, currentDotIndex, nextGuest],
   );
 
-  // ── FIX: Efecto Guardia de Seguridad ──────────────
-  useEffect(() => {
-    const yaAcepto =
-      sessionStorage.getItem(`legalPassed_${token}`) === "true" ||
-      state.legalPassed;
-    if (actualStep === "inicio" && yaAcepto && !isNavigating) {
-      goTo("bienvenida", "forward");
-    }
-  }, [actualStep, token, state.legalPassed, isNavigating, goTo]);
-
   return [state, nav, actions, isLoading, setModoFlujo] as const;
 }

@@ -230,6 +230,11 @@
     "error_connection": "Erro de ligação. Por favor, tente novamente."
   },
   "welcome": {
+    "next_step": "Próximo passo",
+    "guest_data_1": "Dados do",
+    "guest_data_2": "Hóspede {{index}}",
+    "companion_subtitle": "Por favor, forneça as informações para o registro deste acompanhante.",
+    "how_to_companion": "Como prefere preencher os seus dados?",
     "summary_title": "Detalhes da sua estadia",
     "reservation": "Referência",
     "guests_booked": "Pessoas reservadas",

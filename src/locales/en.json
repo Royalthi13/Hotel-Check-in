@@ -225,6 +225,11 @@
     "error_connection": "Connection error. Please try again."
   },
   "welcome": {
+    "next_step": "Next step",
+    "guest_data_1": "Details for",
+    "guest_data_2": "Guest {{index}}",
+    "companion_subtitle": "Please provide the information to register this companion.",
+    "how_to_companion": "How would you like to provide their details?",
     "summary_title": "Stay details",
     "reservation": "Reference",
     "guests_booked": "Booked guests",

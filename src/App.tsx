@@ -182,6 +182,7 @@ function CheckinWizard() {
         <ScreenBienvenida
           knownGuest={state.knownGuest}
           reserva={state.reserva}
+          guestIndex={nav.guestIndex}
           onChooseScan={() => handleChooseMethod("scan")}
           onChooseManual={() => handleChooseMethod("manual")}
         />
@@ -203,7 +204,7 @@ function CheckinWizard() {
       {currentStep === "form_relaciones" && (
         <ScreenRelacionesMenor
           menor={currentGuest}
-        adultos={adultosConIndice}
+          adultos={adultosConIndice}
           onRelacionChange={(aIdx: number, p: string) => {
             actions.updateRelacion(nav.guestIndex, aIdx, p);
           }}

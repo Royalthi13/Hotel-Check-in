@@ -21,6 +21,7 @@ import "./AppShell.css";
 import { validatePersonal, validateContacto } from "../hooks/useFormValidation";
 import { useCheckinContext } from "../context/useCheckinContext";
 import type { TFunction } from "i18next";
+
 const SIDE_STEPS: { id: StepId }[] = [
   { id: "inicio" },
   { id: "bienvenida" },
@@ -64,12 +65,15 @@ function currentStepIsInvalid(
     );
   }
   if (logicalStep === "form_contacto") {
-    // Los menores no tienen contacto propio
     if (g.esMenor) return false;
-    return Object.keys(validateContacto(g, t, { email: false, telefono: false })).length > 0;
+    return (
+      Object.keys(validateContacto(g, t, { email: false, telefono: false }))
+        .length > 0
+    );
   }
   return false;
 }
+
 const variants = {
   enter: (direction: string) => ({
     x: direction === "forward" ? 80 : -80,
@@ -105,7 +109,7 @@ export const AppShell: React.FC<AppShellProps> = ({
   guests = [],
   guestIndex = 0,
 }) => {
- const { t } = useTranslation();
+  const { t } = useTranslation();
   const { legalPassed, hasMinorsFlag } = useCheckinContext();
   const trackRef = useRef<HTMLDivElement>(null);
   const progressX = useMotionValue(0);
@@ -116,12 +120,10 @@ export const AppShell: React.FC<AppShellProps> = ({
   const activeStep = getActiveSideStep(nav.step);
   const activeIdx = SIDE_STEPS.findIndex((s) => s.id === activeStep);
 
-  // Progreso máximo alcanzado: state que sólo crece (nunca decrece).
-  // La condición de guarda se chequea en el setter del useEffect, que es
-  // válido porque sólo actualizamos cuando el nuevo valor es estrictamente mayor.
   const [maxDotReached, setMaxDotReached] = useState(0);
   const [maxSideIdxReached, setMaxSideIdxReached] = useState(0);
-const canAdvance =
+
+  const canAdvance =
     nav.step !== "exito" &&
     (nav.step !== "revision" || nav.allowedSteps?.has("form_extras"));
 
@@ -133,6 +135,7 @@ const canAdvance =
       setMaxSideIdxReached(activeIdx);
     }
   }
+
   const { safeWidth, stepWidth, targetX } = useMemo(() => {
     const sw = Math.max(0, trackWidth - 6);
     const stw = dotSteps.length > 1 ? sw / (dotSteps.length - 1) : 0;
@@ -183,13 +186,19 @@ const canAdvance =
     return index <= activeIdx;
   };
 
- const stepInvalid =
+  const stepInvalid =
     activeStep !== "revision" &&
     activeStep !== "exito" &&
     !!onGoToRevision &&
     currentStepIsInvalid(
-      nav.step, guests, guestIndex, legalPassed, hasMinorsFlag, t,
+      nav.step,
+      guests,
+      guestIndex,
+      legalPassed,
+      hasMinorsFlag,
+      t,
     );
+
   const summaryDisabled =
     !onGoToRevision || activeStep === "revision" || activeStep === "exito";
 
@@ -213,6 +222,33 @@ const canAdvance =
       return;
     }
     actions.goToDotIndex(landedIndex);
+  };
+
+  // ── NUEVA FUNCIÓN PARA TOCAR LOS PUNTOS DIRECTAMENTE ──
+  const handleDotClick = (targetIndex: number) => {
+    if (
+      dotSteps.length <= 1 ||
+      trackWidth === 0 ||
+      targetIndex === nav.dotIndex
+    )
+      return;
+
+    const targetStepId = dotSteps[targetIndex];
+    const isAllowed =
+      targetIndex <= maxDotReached || isStepUnlocked(targetStepId, targetIndex);
+    const isBlockedByError =
+      targetIndex > nav.dotIndex && stepInvalid && targetStepId !== "revision";
+
+    // Si intenta saltar hacia adelante pero hay un error en el formulario actual
+    if (isBlockedByError) {
+      window.dispatchEvent(new Event("FORCE_VALIDATE"));
+      return;
+    }
+
+    // Si el paso está desbloqueado o ya se ha pasado por él, viajamos
+    if (isAllowed) {
+      actions.goToDotIndex(targetIndex);
+    }
   };
 
   const hotelDisplayName =
@@ -267,18 +303,34 @@ const canAdvance =
                   const isDone = i <= maxDotReached && i !== nav.dotIndex;
                   const isActive = i === nav.dotIndex;
                   return (
+                    /* 👇 CONTENEDOR NUEVO CON HITBOX GIGANTE 👇 */
                     <div
                       key={i}
-                      className={`dot-static ${isDone ? "is-done" : ""}`}
+                      onClick={() => handleDotClick(i)}
                       style={{
-                        opacity: isActive ? 0 : isDone ? 1 : 0.35,
-                        transform: isActive ? "scale(0)" : "scale(1)",
-                        backgroundColor: isDone
-                          ? "var(--primary)"
-                          : "rgba(255, 255, 255, 0.4)",
-                        transition: "all 0.3s ease",
+                        position: "relative",
+                        padding:
+                          "24px 14px" /* Área táctil inmensa arriba, abajo y lados */,
+                        margin:
+                          "-24px -14px" /* Compensa el padding para que no se descoloquen visualmente */,
+                        cursor: "pointer",
+                        zIndex: 10,
+                        WebkitTapHighlightColor:
+                          "transparent" /* Quita el destello azul feo de los móviles al hacer tap */,
                       }}
-                    />
+                    >
+                      <div
+                        className={`dot-static ${isDone ? "is-done" : ""}`}
+                        style={{
+                          opacity: isActive ? 0 : isDone ? 1 : 0.35,
+                          transform: isActive ? "scale(0)" : "scale(1)",
+                          backgroundColor: isDone
+                            ? "var(--primary)"
+                            : "rgba(255, 255, 255, 0.4)",
+                          transition: "all 0.3s ease",
+                        }}
+                      />
+                    </div>
                   );
                 })}
               {trackWidth > 0 && (
@@ -385,7 +437,7 @@ const canAdvance =
                           return;
                         }
 
-                     if (isClickable) {
+                        if (isClickable) {
                           const dIdx = (nav.dotSteps || []).indexOf(s.id);
                           if (dIdx !== -1) actions.goToDotIndex(dIdx);
                           else
