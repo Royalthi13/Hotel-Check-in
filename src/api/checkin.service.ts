@@ -35,7 +35,7 @@ export async function loadCheckinData(
     try {
       knownGuest = await getClientById(clientId);
     } catch (e) {
-      console.warn("No se pudo cargar el huésped conocido:", e);
+      console.warn("No se pudo cargar el huésped:", e);
       knownGuest = null;
     }
   }
@@ -56,7 +56,6 @@ export async function loadCheckinData(
     }
   } catch (e) {
     console.warn("Error cargando acompañantes:", e);
-    companions = [];
   }
 
   return {
@@ -78,7 +77,7 @@ export async function submitCheckin(
   type GuestForAPI = PartialGuestData & { parentescoParaAPI?: string };
   const finalGuests: GuestForAPI[] = [...guests];
 
-  // 1. Lógica de parentescos inversos
+  // 1. Parentescos
   finalGuests.forEach((guest, index) => {
     if (guest.esMenor && guest.relacionesConAdultos?.length) {
       const rel = guest.relacionesConAdultos[0];
@@ -98,17 +97,14 @@ export async function submitCheckin(
     }
   });
 
-  // 2. Herencia de dirección (incluyendo codCity)
+  // 2. Herencia de dirección
   const CODIGOS_PROGENITOR = new Set(["PM", "TU"]);
   finalGuests.forEach((guest, index) => {
     if (!guest.esMenor || guest.direccion?.trim()) return;
-
     const rel = guest.relacionesConAdultos?.[0];
     if (!rel) return;
-
     const adulto = finalGuests[rel.adultoIndex];
     if (!adulto || adulto.esMenor) return;
-
     const codAdulto = adulto.parentescoParaAPI ?? rel.parentesco;
     if (!CODIGOS_PROGENITOR.has(codAdulto)) return;
 
@@ -125,7 +121,7 @@ export async function submitCheckin(
 
   const [mainGuest, ...companionGuests] = finalGuests;
 
-  // 3. Guardar titular
+  // 3. Titular
   let mainClientId = clientId;
   if (mainGuest) {
     if (mainClientId) {
@@ -135,7 +131,7 @@ export async function submitCheckin(
     }
   }
 
-  // 4. Guardar acompañantes
+  // 4. Acompañantes
   const newClientIds: number[] = [];
   for (const guest of companionGuests) {
     if (!guest.nombre?.trim() && !guest.numDoc?.trim()) continue;
@@ -148,24 +144,29 @@ export async function submitCheckin(
     }
   }
 
-  // 5. Limpieza de companions antiguos (Corregido bloque vacío)
+  // 5. Limpieza
   try {
     const existing = await getCompanionsByBooking(bookingId);
     const toDelete = existing.filter((c) => c.client_id !== mainClientId);
     await Promise.all(toDelete.map((c) => deleteCompanion(c.id)));
   } catch (e) {
-    console.warn("No se pudieron limpiar los acompañantes antiguos:", e);
+    console.warn("Error limpiando antiguos:", e);
   }
 
-  // 6. Vincular nuevos companions
+  // 6. Vinculación acompañantes
   await Promise.all(
     newClientIds.map((id) =>
       createCompanion({ booking_id: bookingId, client_id: id }),
     ),
   );
 
-  // 7. Finalizar reserva
-  await updateBookingCheckin(bookingId, { horaLlegada, observaciones });
+  // 7. Finalizar reserva (VINCULACIÓN EXPLÍCITA DEL TITULAR)
+  // 👇 Se añade mainClientId para asegurar que el booking quede vinculado al cliente
+  await updateBookingCheckin(bookingId, {
+    horaLlegada,
+    observaciones,
+    clientId: mainClientId,
+  });
 }
 
 export async function savePartialCheckin(
@@ -173,10 +174,12 @@ export async function savePartialCheckin(
   clientId: number | null,
   mainGuest: PartialGuestData,
 ): Promise<number> {
-  void bookingId;
   if (clientId) {
     await updateClient(clientId, mainGuest);
     return clientId;
   }
-  return createClient(mainGuest);
+  const newId = await createClient(mainGuest);
+  // Al crear el titular parcial, también lo vinculamos a la reserva
+  await updateBookingCheckin(bookingId, { clientId: newId });
+  return newId;
 }

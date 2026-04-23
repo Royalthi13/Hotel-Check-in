@@ -1,8 +1,6 @@
 import { apiAuth } from "./axiosInstance";
 import type { Reserva } from "@/types";
 
-// BookingSearch: lo que devuelve GET /bookings/{id} y GET /bookings (vista con JOINs)
-// BookingInDB (sin JOINs) solo aparece en respuesta de POST/PUT.
 export interface BookingSearch {
   id: number;
   room_id: number;
@@ -35,7 +33,7 @@ function toReserva(b: BookingSearch): Reserva {
   );
   return {
     confirmacion: `#LM-${b.id}`,
-    habitacion: b.room_name, // ya viene formateado del JOIN
+    habitacion: b.room_name,
     fechaEntrada: b.check_in,
     fechaSalida: b.check_out,
     numHuespedes: b.persons,
@@ -43,9 +41,6 @@ function toReserva(b: BookingSearch): Reserva {
   };
 }
 
-// GET /bookings/{booking_id}
-// Paso 1 del flujo: obtener la reserva e identificar si ya hay un cliente asociado.
-// FIX: expone `isAlreadyCheckedIn` para que la UI pueda detectar re-visitas.
 export async function getBookingById(bookingId: string | number): Promise<{
   reserva: Reserva;
   clientId: number | null;
@@ -63,76 +58,53 @@ export async function getBookingById(bookingId: string | number): Promise<{
   };
 }
 
-// GET /bookings — búsqueda por número (tablet)
 export async function searchBookingByConfirmation(
   query: string,
-  apellidoInput: string, // 👈 NUEVO: Ahora esperamos el apellido desde la pantalla
+  apellidoInput: string,
 ): Promise<{ reserva: Reserva; clientId: number | null } | null> {
-  // Usamos el tipo exacto que devuelve getBookingById para no perder el 'raw'
   let resultEncontrado: Awaited<ReturnType<typeof getBookingById>> | null =
     null;
-
-  // Intento 1: directamente por id numérico
   try {
     resultEncontrado = await getBookingById(query);
-  } catch {
-    // Intento 2: continuar con búsqueda por lista
-    // (Aquí iría tu código si buscaras en una lista general)
+  } catch (e) {
+    console.warn("Error en búsqueda directa:", e);
   }
 
-  // Si después de buscar por ID y por lista no hay nada, cortamos ya
-  if (!resultEncontrado || !resultEncontrado.reserva) {
-    return null;
-  }
+  if (!resultEncontrado || !resultEncontrado.reserva) return null;
 
-  // 🛡️ CONTROL DE ADUANAS: VALIDACIÓN POR APELLIDO 🛡️
   const apellidoLimpio = apellidoInput.trim().toLowerCase();
-
-  // Sacamos el apellido de la base de datos usando el objeto 'raw'
   const apellidoReserva = (resultEncontrado.raw.client_surname || "")
     .trim()
     .toLowerCase();
 
-  // Comprobamos si el apellido coincide (incluso si incluyen un trozo, ej: "Perez" vs "Perez Garcia")
   if (
     apellidoReserva.includes(apellidoLimpio) ||
     apellidoLimpio.includes(apellidoReserva)
   ) {
-    // ¡Match perfecto! Es el dueño real de la reserva
     return {
       reserva: resultEncontrado.reserva,
       clientId: resultEncontrado.clientId,
     };
-  } else {
-    // El localizador es válido, pero el apellido no coincide.
-    // ¡Denegado por privacidad!
-    console.warn(
-      `Alerta de Privacidad: Intento de acceso fallido al localizador ${query}. El apellido no coincide.`,
-    );
-    return null;
   }
+  return null;
 }
 
-// PUT /bookings/{booking_id}
-// BookingUpdate requiere TODOS los campos — no se puede mandar solo los que cambian.
-// arrival_time NO existe como columna → se persiste en notes como "Hora llegada: HH:MM".
-// pre_checking se pone a true para marcar el pre-checkin como completado.
-//
-// FIX: acepta `existingRaw` para evitar el GET redundante cuando ya se tiene
-// el raw del booking (cargado al inicio del flujo en loadCheckinData).
+/**
+ * ACTUALIZACIÓN: Ahora acepta clientId en el payload para vinculación explícita
+ */
 export async function updateBookingCheckin(
   bookingId: number,
-  payload: { horaLlegada?: string; observaciones?: string },
+  payload: {
+    horaLlegada?: string;
+    observaciones?: string;
+    clientId?: number | null;
+  },
   existingRaw?: BookingSearch,
 ): Promise<void> {
-  if (!payload.horaLlegada && !payload.observaciones) return;
-
-  // Si no tenemos el raw, lo obtenemos ahora
   const current =
     existingRaw ??
     (await apiAuth.get<BookingSearch>(`/bookings/${bookingId}`)).data;
 
-  // Construir notas: observaciones + hora de llegada al final
   let notasFinales: string | null =
     payload.observaciones ?? current.notes ?? null;
 
@@ -149,7 +121,9 @@ export async function updateBookingCheckin(
     room_id: current.room_id,
     check_in: current.check_in,
     check_out: current.check_out,
-    client_id: current.client_id,
+    // 👇 VINCULACIÓN EXPLÍCITA: Si viene en el payload, usamos ese, si no, el que tenía.
+    client_id:
+      payload.clientId !== undefined ? payload.clientId : current.client_id,
     status_id: current.status_id,
     persons: current.persons,
     notes: notasFinales,
