@@ -36,27 +36,60 @@ export async function loadCheckinData(
     try {
       knownGuest = await getClientById(clientId);
     } catch (e) {
-      console.warn("No se pudo cargar el huésped:", e);
+      console.warn("No se pudo cargar el titular:", e);
       knownGuest = null;
     }
   }
 
   let companions: GuestData[] = [];
   try {
-    const companionList = await getCompanionsByBooking(bookingId);
-    if (companionList.length > 0) {
-      const results = await Promise.allSettled(
-        companionList.map((c) => getClientById(c.client_id)),
+    const companionLinks = await getCompanionsByBooking(bookingId);
+
+    if (companionLinks.length > 0) {
+      const detailsResults = await Promise.allSettled(
+        companionLinks.map((link) => getClientById(link.client_id)),
       );
-      companions = results
+
+      const guestsFound = detailsResults
         .filter(
           (r): r is PromiseFulfilledResult<GuestData> =>
             r.status === "fulfilled",
         )
         .map((r) => r.value);
+
+      // Rehidratación por ID real
+      const idToIndex = new Map<number, number>();
+      if (clientId) idToIndex.set(clientId, 0);
+
+      guestsFound.forEach((g, i) => {
+        if (g.id) idToIndex.set(g.id, i + 1);
+      });
+
+      companions = guestsFound.map((guest) => {
+        const linkData = companionLinks.find((l) => l.client_id === guest.id);
+
+        if (guest.esMenor && linkData?.parentesco && clientId) {
+          const adultoIdx = idToIndex.get(clientId);
+
+          return {
+            ...guest,
+            relacionesConAdultos:
+              adultoIdx !== undefined
+                ? [
+                    {
+                      adultoIndex: adultoIdx,
+                      parentesco: linkData.parentesco,
+                    },
+                  ]
+                : [],
+          };
+        }
+        return guest;
+      });
     }
   } catch (e) {
-    console.warn("Error cargando acompañantes:", e);
+    console.warn("Error rehidratando acompañantes:", e);
+    companions = [];
   }
 
   return {
@@ -79,7 +112,7 @@ export async function submitCheckin(
   type GuestForAPI = PartialGuestData & { parentescoParaAPI?: string };
   const finalGuests: GuestForAPI[] = [...guests];
 
-  // 1. 🛡️ GESTIÓN DE PARENTESCOS (Evita sobrescritura si hay varios menores)
+  // 1. Parentescos (con protección de sobrescritura)
   finalGuests.forEach((guest, index) => {
     if (guest.esMenor && guest.relacionesConAdultos?.length) {
       const rel = guest.relacionesConAdultos[0];
@@ -88,13 +121,10 @@ export async function submitCheckin(
 
       const adulto = finalGuests[adultoIndex];
       if (adulto) {
-        // Solo asignamos código al adulto si aún NO tiene uno.
-        // Evitamos que el segundo hijo sobrescriba lo que puso el primero.
         if (!adulto.parentescoParaAPI) {
           adulto.parentescoParaAPI = codigoSeleccionado;
         }
 
-        // El menor siempre recibe su código inverso (ej: "HJ" para Hijo)
         const relacionInfo = catalogo.find(
           (r) => r.codrelation === codigoSeleccionado,
         );
@@ -105,18 +135,14 @@ export async function submitCheckin(
     }
   });
 
-  // 2. HERENCIA DE DIRECCIÓN PARA MENORES (Incluye codCity)
+  // 2. Herencia de dirección
   const CODIGOS_PROGENITOR = new Set(["PM", "TU"]);
   finalGuests.forEach((guest, index) => {
     if (!guest.esMenor || guest.direccion?.trim()) return;
-
     const rel = guest.relacionesConAdultos?.[0];
     if (!rel) return;
-
     const adulto = finalGuests[rel.adultoIndex];
     if (!adulto || adulto.esMenor) return;
-
-    // Usamos el código asignado en el paso anterior o el directo de la relación
     const codAdulto = adulto.parentescoParaAPI ?? rel.parentesco;
     if (!CODIGOS_PROGENITOR.has(codAdulto)) return;
 
@@ -133,7 +159,7 @@ export async function submitCheckin(
 
   const [mainGuest, ...companionGuests] = finalGuests;
 
-  // 3. PROCESAR TITULAR (Crear o Actualizar)
+  // 3. Titular
   let mainClientId = clientId;
   if (mainGuest) {
     if (mainClientId) {
@@ -143,20 +169,27 @@ export async function submitCheckin(
     }
   }
 
-  // 4. PROCESAR ACOMPAÑANTES
+  // 4. Acompañantes
   const newClientIds: number[] = [];
+  const parentescosMap = new Map<number, string>();
+
   for (const guest of companionGuests) {
     if (!guest.nombre?.trim() && !guest.numDoc?.trim()) continue;
-    if (guest.id) {
-      await updateClient(guest.id, guest);
-      newClientIds.push(guest.id);
+
+    let id = guest.id;
+    if (id) {
+      await updateClient(id, guest);
     } else {
-      const id = await createClient(guest);
-      newClientIds.push(id);
+      id = await createClient(guest);
+    }
+
+    newClientIds.push(id);
+    if (guest.parentescoParaAPI) {
+      parentescosMap.set(id, guest.parentescoParaAPI);
     }
   }
 
-  // 5. LIMPIEZA DE COMPANIONS ANTIGUOS
+  // 5. Limpieza antiguos
   try {
     const existing = await getCompanionsByBooking(bookingId);
     const toDelete = existing.filter((c) => c.client_id !== mainClientId);
@@ -165,14 +198,18 @@ export async function submitCheckin(
     console.warn("Error limpiando antiguos:", e);
   }
 
-  // 6. VINCULAR NUEVOS ACOMPAÑANTES
+  // 6. Vincular nuevos
   await Promise.all(
     newClientIds.map((id) =>
-      createCompanion({ booking_id: bookingId, client_id: id }),
+      createCompanion({
+        booking_id: bookingId,
+        client_id: id,
+        parentesco: parentescosMap.get(id) || null,
+      }),
     ),
   );
 
-  // 7. FINALIZAR RESERVA (Con vinculación de clientId)
+  // 7. Finalizar
   await updateBookingCheckin(bookingId, {
     horaLlegada,
     observaciones,
@@ -180,7 +217,6 @@ export async function submitCheckin(
   });
 }
 
-// ── Guardado parcial ─────────────────────────────────────────────────────────
 export async function savePartialCheckin(
   bookingId: number,
   clientId: number | null,
@@ -191,7 +227,6 @@ export async function savePartialCheckin(
     return clientId;
   }
   const newId = await createClient(mainGuest);
-  // También vinculamos el ID parcial a la reserva
   await updateBookingCheckin(bookingId, { clientId: newId });
   return newId;
 }
