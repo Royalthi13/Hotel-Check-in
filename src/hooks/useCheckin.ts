@@ -41,8 +41,18 @@ interface HistoryEntry {
 
 type CheckinAction =
   | { type: "SET_KNOWN_GUEST"; guest: GuestData }
-  | { type: "SET_RESERVA_TABLET"; reserva: Reserva }
-  | { type: "SET_RESERVA"; reserva: Reserva }
+  | {
+      type: "SET_RESERVA_TABLET";
+      reserva: Reserva;
+      bookingId: number;
+      clientId: number | null;
+    }
+  | {
+      type: "SET_RESERVA";
+      reserva: Reserva;
+      bookingId: number;
+      clientId: number | null;
+    }
   | { type: "SET_NUM_PERSONAS"; total: number }
   | { type: "SET_GUESTS"; guests: PartialGuestData[] }
   | {
@@ -72,22 +82,18 @@ type CheckinAction =
 function getInitialState(token: string, mode: AppMode): CheckinState {
   const sessionKey = `state_${token}`;
 
-  // Limpieza de claves obsoletas
   try {
     sessionStorage.removeItem(`h_ckin_data_${token}`);
     sessionStorage.removeItem("lumina_enc_key");
-  } catch {
-    /* noop */
+  } catch (e) {
+    console.warn(e);
   }
 
-  // 👇 LECTURA DESDE LOCALSTORAGE (Persiste al cerrar pestaña) 👇
   try {
     const raw = localStorage.getItem(sessionKey);
     if (raw) {
       const storedData = JSON.parse(raw);
       const { timestamp, state } = storedData;
-
-      // Control de caducidad: 30 minutos
       if (Date.now() - timestamp < 30 * 60 * 1000) {
         return state;
       } else {
@@ -109,6 +115,8 @@ export function buildEmptyState(appMode: AppMode): CheckinState {
   return {
     appMode,
     reserva: null,
+    bookingId: null, // 👈 IDs integrados en el estado
+    clientId: null,
     knownGuest: null,
     numAdultos: 1,
     numMenores: 0,
@@ -142,12 +150,15 @@ export function checkinReducer(
         ...state,
         knownGuest: action.guest,
         guests: [{ ...action.guest, esMenor: false }],
+        clientId: action.guest.id || state.clientId,
       };
 
     case "SET_RESERVA_TABLET":
       return {
         ...state,
         reserva: action.reserva,
+        bookingId: action.bookingId, // 👈 Persistimos el ID en tablet
+        clientId: action.clientId,
         numPersonas: action.reserva.numHuespedes,
         numAdultos: action.reserva.numHuespedes,
         numMenores: 0,
@@ -158,6 +169,8 @@ export function checkinReducer(
       return {
         ...state,
         reserva: action.reserva,
+        bookingId: action.bookingId, // 👈 Persistimos el ID en link flow
+        clientId: action.clientId,
         numPersonas: action.reserva.numHuespedes,
       };
 
@@ -272,7 +285,6 @@ export function useCheckin(tokenUrl?: string, stepUrl?: string) {
     getInitialState(token, initialMode),
   );
 
-  // 👇 LECTURA DE HISTORIAL DESDE LOCALSTORAGE 👇
   const [appHistory, setAppHistory] = useState<HistoryEntry[]>(() => {
     let storedHistory: HistoryEntry[] = [];
     try {
@@ -282,7 +294,7 @@ export function useCheckin(tokenUrl?: string, stepUrl?: string) {
         if (Date.now() - timestamp < 30 * 60 * 1000) storedHistory = data;
       }
     } catch (e) {
-      console.warn("No se pudo cargar el historial", e); // ✅ FIX ESLINT
+      console.warn("No se pudo cargar el historial", e);
     }
 
     if (stepUrl && VALID_STEPS.includes(stepUrl as StepId)) {
@@ -294,7 +306,6 @@ export function useCheckin(tokenUrl?: string, stepUrl?: string) {
     return storedHistory;
   });
 
-  // 👇 LECTURA DE PASOS PERMITIDOS DESDE LOCALSTORAGE 👇
   const [allowedSteps, setAllowedSteps] = useState<Set<StepId>>(() => {
     let validStored: StepId[] = ["inicio", "tablet_buscar"];
     try {
@@ -304,7 +315,7 @@ export function useCheckin(tokenUrl?: string, stepUrl?: string) {
         if (Date.now() - timestamp < 30 * 60 * 1000) validStored = data;
       }
     } catch (e) {
-      console.warn("No se pudieron cargar los pasos permitidos", e); // ✅ FIX ESLINT
+      console.warn("No se pudieron cargar los pasos permitidos", e);
     }
 
     if (stepUrl && VALID_STEPS.includes(stepUrl as StepId)) {
@@ -340,9 +351,8 @@ export function useCheckin(tokenUrl?: string, stepUrl?: string) {
     stateRef.current = state;
   }, [state]);
 
-  // 👇 GUARDADO DEL ESTADO EN LOCALSTORAGE CON TIMESTAMP 👇
   useEffect(() => {
-    if (token === "new") return;
+    if (token === "new" && !state.reserva) return; // No persistimos el estado vacío inicial en tablet
 
     const persistableState = {
       ...state,
@@ -357,7 +367,6 @@ export function useCheckin(tokenUrl?: string, stepUrl?: string) {
     localStorage.setItem(`state_${token}`, dataToSave);
   }, [state, token]);
 
-  // 👇 GUARDADO DEL HISTORIAL Y STEPS EN LOCALSTORAGE 👇
   useEffect(
     () =>
       localStorage.setItem(
@@ -409,11 +418,13 @@ export function useCheckin(tokenUrl?: string, stepUrl?: string) {
         const result = await loadCheckinData(token);
         if (cancelled) return;
 
-        sessionStorage.setItem(`bookingId_${token}`, String(result.bookingId));
-        if (result.clientId)
-          sessionStorage.setItem(`clientId_${token}`, String(result.clientId));
-
-        dispatch({ type: "SET_RESERVA", reserva: result.reserva });
+        // 👇 IDs enviados al dispatch para que vivan en el state persistente
+        dispatch({
+          type: "SET_RESERVA",
+          reserva: result.reserva,
+          bookingId: result.bookingId,
+          clientId: result.clientId,
+        });
 
         const hasOwnData =
           stateRef.current.guests[0]?.nombre?.trim() ||
@@ -429,8 +440,9 @@ export function useCheckin(tokenUrl?: string, stepUrl?: string) {
             companions: result.companions,
           });
         }
-      } catch {
+      } catch (e) {
         if (cancelled) return;
+        console.warn(e);
         localStorage.removeItem(`h_ckin_data_${token}`);
         navigateRef.current("/invalid", { replace: true });
       } finally {
@@ -465,7 +477,7 @@ export function useCheckin(tokenUrl?: string, stepUrl?: string) {
         const raw = localStorage.getItem(`history_${token}`);
         if (raw) hist = JSON.parse(raw).data || [];
       } catch (e) {
-        console.warn("No se pudo leer la historia para actualStep", e); // ✅ FIX ESLINT
+        console.warn("No se pudo leer la historia para actualStep", e);
       }
 
       if (hist.length > 0) return hist[hist.length - 1].step;
@@ -614,8 +626,14 @@ export function useCheckin(tokenUrl?: string, stepUrl?: string) {
         if (idx < 0 || idx >= dotSteps.length) return;
         goTo(dotSteps[idx], idx < currentDotIndex ? "back" : "forward", 0);
       },
-      setReservaFromTablet: (res: Reserva) => {
-        dispatch({ type: "SET_RESERVA_TABLET", reserva: res });
+      // 👇 Actualizado para recibir y guardar IDs en tablet mode
+      setReservaFromTablet: (res: Reserva, bId: number, cId: number | null) => {
+        dispatch({
+          type: "SET_RESERVA_TABLET",
+          reserva: res,
+          bookingId: bId,
+          clientId: cId,
+        });
         setAppHistory([{ step: "bienvenida", guestIndex: 0 }]);
         setAllowedSteps(new Set(["bienvenida", "tablet_buscar"]));
         goTo("bienvenida", "forward", 0);

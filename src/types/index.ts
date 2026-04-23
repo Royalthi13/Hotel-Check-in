@@ -81,7 +81,7 @@ export interface GuestData {
   cp?: string;
   pais?: string;
 
- // Documento
+  // Documento
   tipoDoc: string;
   numDoc: string;
   soporteDoc?: string;
@@ -107,6 +107,8 @@ export interface CheckinState {
   rgpdAcepted: boolean;
   legalPassed: boolean;
   hasMinorsFlag: boolean;
+  bookingId: number | null;
+  clientId: number | null;
 }
 
 // ─── Validación, Navegación y Hook ───────────────────────────────────────────
@@ -120,7 +122,7 @@ export interface CheckinNav {
   dotSteps: StepId[];
   dotIndex: number;
   canGoBack: boolean;
- allowedSteps: Set<StepId>;
+  allowedSteps: Set<StepId>;
   isNavigating: boolean;
   maxAllowedDotIndex: number;
 }
@@ -129,7 +131,11 @@ export interface CheckinActions {
   goTo: (step: StepId, dir?: NavDirection, gIdx?: number) => void;
   goBack: () => void;
   goToDotIndex: (dotIdx: number) => void;
-  setReservaFromTablet: (res: Reserva) => void;
+  setReservaFromTablet: (
+    res: Reserva,
+    bookingId: number,
+    clientId: number | null,
+  ) => void;
   setNumPersonas: (total: number) => void;
   updateGuest: (
     index: number,
