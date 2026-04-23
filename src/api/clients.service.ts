@@ -183,6 +183,3 @@ export async function updateClient(
   await apiAuth.put(`/clients/${clientId}`, toClientPayload(guest));
 }
 
-export async function validateClient(clientId: number): Promise<void> {
-  await apiAuth.patch(`/clients/${clientId}/validate`);
-}
