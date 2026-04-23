@@ -25,6 +25,7 @@ export interface CheckinSubmitPayload {
   observaciones: string;
 }
 
+// ── Carga inicial de datos ───────────────────────────────────────────────────
 export async function loadCheckinData(
   token: string,
 ): Promise<CheckinLoadResult> {
@@ -68,6 +69,7 @@ export async function loadCheckinData(
   };
 }
 
+// ── Envío final del Check-in ─────────────────────────────────────────────────
 export async function submitCheckin(
   payload: CheckinSubmitPayload,
 ): Promise<void> {
@@ -77,34 +79,44 @@ export async function submitCheckin(
   type GuestForAPI = PartialGuestData & { parentescoParaAPI?: string };
   const finalGuests: GuestForAPI[] = [...guests];
 
-  // 1. Parentescos
+  // 1. 🛡️ GESTIÓN DE PARENTESCOS (Evita sobrescritura si hay varios menores)
   finalGuests.forEach((guest, index) => {
     if (guest.esMenor && guest.relacionesConAdultos?.length) {
       const rel = guest.relacionesConAdultos[0];
       const adultoIndex = rel.adultoIndex;
       const codigoSeleccionado = rel.parentesco;
 
-      if (finalGuests[adultoIndex]) {
-        finalGuests[adultoIndex].parentescoParaAPI = codigoSeleccionado;
-      }
+      const adulto = finalGuests[adultoIndex];
+      if (adulto) {
+        // Solo asignamos código al adulto si aún NO tiene uno.
+        // Evitamos que el segundo hijo sobrescriba lo que puso el primero.
+        if (!adulto.parentescoParaAPI) {
+          adulto.parentescoParaAPI = codigoSeleccionado;
+        }
 
-      const relacionInfo = catalogo.find(
-        (r) => r.codrelation === codigoSeleccionado,
-      );
-      if (relacionInfo?.linked_relation) {
-        finalGuests[index].parentescoParaAPI = relacionInfo.linked_relation;
+        // El menor siempre recibe su código inverso (ej: "HJ" para Hijo)
+        const relacionInfo = catalogo.find(
+          (r) => r.codrelation === codigoSeleccionado,
+        );
+        if (relacionInfo?.linked_relation) {
+          finalGuests[index].parentescoParaAPI = relacionInfo.linked_relation;
+        }
       }
     }
   });
 
-  // 2. Herencia de dirección
+  // 2. HERENCIA DE DIRECCIÓN PARA MENORES (Incluye codCity)
   const CODIGOS_PROGENITOR = new Set(["PM", "TU"]);
   finalGuests.forEach((guest, index) => {
     if (!guest.esMenor || guest.direccion?.trim()) return;
+
     const rel = guest.relacionesConAdultos?.[0];
     if (!rel) return;
+
     const adulto = finalGuests[rel.adultoIndex];
     if (!adulto || adulto.esMenor) return;
+
+    // Usamos el código asignado en el paso anterior o el directo de la relación
     const codAdulto = adulto.parentescoParaAPI ?? rel.parentesco;
     if (!CODIGOS_PROGENITOR.has(codAdulto)) return;
 
@@ -121,7 +133,7 @@ export async function submitCheckin(
 
   const [mainGuest, ...companionGuests] = finalGuests;
 
-  // 3. Titular
+  // 3. PROCESAR TITULAR (Crear o Actualizar)
   let mainClientId = clientId;
   if (mainGuest) {
     if (mainClientId) {
@@ -131,7 +143,7 @@ export async function submitCheckin(
     }
   }
 
-  // 4. Acompañantes
+  // 4. PROCESAR ACOMPAÑANTES
   const newClientIds: number[] = [];
   for (const guest of companionGuests) {
     if (!guest.nombre?.trim() && !guest.numDoc?.trim()) continue;
@@ -144,7 +156,7 @@ export async function submitCheckin(
     }
   }
 
-  // 5. Limpieza
+  // 5. LIMPIEZA DE COMPANIONS ANTIGUOS
   try {
     const existing = await getCompanionsByBooking(bookingId);
     const toDelete = existing.filter((c) => c.client_id !== mainClientId);
@@ -153,15 +165,14 @@ export async function submitCheckin(
     console.warn("Error limpiando antiguos:", e);
   }
 
-  // 6. Vinculación acompañantes
+  // 6. VINCULAR NUEVOS ACOMPAÑANTES
   await Promise.all(
     newClientIds.map((id) =>
       createCompanion({ booking_id: bookingId, client_id: id }),
     ),
   );
 
-  // 7. Finalizar reserva (VINCULACIÓN EXPLÍCITA DEL TITULAR)
-  // 👇 Se añade mainClientId para asegurar que el booking quede vinculado al cliente
+  // 7. FINALIZAR RESERVA (Con vinculación de clientId)
   await updateBookingCheckin(bookingId, {
     horaLlegada,
     observaciones,
@@ -169,6 +180,7 @@ export async function submitCheckin(
   });
 }
 
+// ── Guardado parcial ─────────────────────────────────────────────────────────
 export async function savePartialCheckin(
   bookingId: number,
   clientId: number | null,
@@ -179,7 +191,7 @@ export async function savePartialCheckin(
     return clientId;
   }
   const newId = await createClient(mainGuest);
-  // Al crear el titular parcial, también lo vinculamos a la reserva
+  // También vinculamos el ID parcial a la reserva
   await updateBookingCheckin(bookingId, { clientId: newId });
   return newId;
 }
