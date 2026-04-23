@@ -127,6 +127,15 @@
     "YN": "Genro / Nora"
   },
   "common": {
+    "languages": {
+      "es": "Espanhol",
+      "en": "Inglês",
+      "fr": "Francês",
+      "it": "Italiano",
+      "de": "Alemão",
+      "pt": "Português",
+      "selector_aria": "Alterar idioma"
+    },
     "cancel": "Cancelar",
     "of": "de ",
     "no": "Não",

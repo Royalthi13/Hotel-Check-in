@@ -127,6 +127,15 @@
     "YN": "Schwiegersohn/tochter"
   },
   "common": {
+    "languages": {
+      "es": "Spanisch",
+      "en": "Englisch",
+      "fr": "Französisch",
+      "it": "Italienisch",
+      "de": "Deutsch",
+      "pt": "Portugiesisch",
+      "selector_aria": "Sprache ändern"
+    },
     "cancel": "Abbrechen",
     "of": "von ",
     "no": "Nein",

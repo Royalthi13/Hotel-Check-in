@@ -127,6 +127,15 @@
     "YN": "Genero / Nuora"
   },
   "common": {
+    "languages": {
+      "es": "Spagnolo",
+      "en": "Inglese",
+      "fr": "Francese",
+      "it": "Italiano",
+      "de": "Tedesco",
+      "pt": "Portoghese",
+      "selector_aria": "Cambia lingua"
+    },
     "cancel": "Annulla",
     "of": "di ",
     "no": "No",

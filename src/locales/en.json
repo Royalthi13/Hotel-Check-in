@@ -127,6 +127,15 @@
     "YN": "Son/Daughter-in-law"
   },
   "common": {
+    "languages": {
+      "es": "Spanish",
+      "en": "English",
+      "fr": "French",
+      "it": "Italian",
+      "de": "German",
+      "pt": "Portuguese",
+      "selector_aria": "Change language"
+    },
     "cancel": "Cancel",
     "of": "of ",
     "no": "No",

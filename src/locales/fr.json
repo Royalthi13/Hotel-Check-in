@@ -128,6 +128,15 @@
     "YN": "Gendre / Belle-fille"
   },
   "common": {
+    "languages": {
+      "es": "Espagnol",
+      "en": "Anglais",
+      "fr": "Français",
+      "it": "Italien",
+      "de": "Allemand",
+      "pt": "Portugais",
+      "selector_aria": "Changer de langue"
+    },
     "cancel": "Annuler",
     "of": "de ",
     "no": "Non",

@@ -136,6 +136,15 @@
   },
 
   "common": {
+    "languages": {
+      "es": "Español",
+      "en": "Inglés",
+      "fr": "Francés",
+      "it": "Italiano",
+      "de": "Alemán",
+      "pt": "Portugués",
+      "selector_aria": "Cambiar idioma"
+    },
     "cancel": "Cancelar",
     "of": "de ",
     "no": "No",
