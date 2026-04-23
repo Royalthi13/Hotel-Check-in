@@ -99,8 +99,6 @@ export async function updateBookingCheckin(
   payload: { horaLlegada?: string; observaciones?: string },
   existingRaw?: BookingSearch,
 ): Promise<void> {
-  if (!payload.horaLlegada && !payload.observaciones) return;
-
   // Si no tenemos el raw, lo obtenemos ahora
   const current = existingRaw
     ?? (await apiAuth.get<BookingSearch>(`/bookings/${bookingId}`)).data;
