@@ -43,6 +43,9 @@ export const ScreenEscanear: React.FC<Props> = ({ onScanned, onSkip }) => {
   const [confianza, setConfianza] = useState<number | null>(null);
   const [cameraH, setCameraH] = useState(300);
 
+  const [isFlashSupported, setIsFlashSupported] = useState(false);
+  const [flashOn, setFlashOn] = useState(false);
+
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const galleryRef = useRef<HTMLInputElement>(null);
@@ -67,6 +70,7 @@ export const ScreenEscanear: React.FC<Props> = ({ onScanned, onSkip }) => {
       videoRef.current.pause();
       videoRef.current.srcObject = null;
     }
+    setFlashOn(false);
   }, []);
 
   const handleFile = useCallback(
@@ -152,10 +156,37 @@ export const ScreenEscanear: React.FC<Props> = ({ onScanned, onSkip }) => {
           videoRef.current.srcObject = s;
         }
       }, 50);
+
+      const track = s.getVideoTracks()[0];
+      const capabilities = track.getCapabilities() as MediaTrackCapabilities & {
+        torch?: boolean;
+      };
+      if (capabilities.torch) {
+        setIsFlashSupported(true);
+      } else {
+        setIsFlashSupported(false);
+      }
     } catch {
       nativeRef.current?.click();
     }
   }, []);
+
+  const toggleFlash = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!streamRef.current) return;
+    const track = streamRef.current.getVideoTracks()[0];
+
+    try {
+      await track.applyConstraints({
+        advanced: [
+          { torch: !flashOn } as MediaTrackConstraintSet & { torch?: boolean },
+        ],
+      });
+      setFlashOn(!flashOn);
+    } catch (err) {
+      console.error("Error al cambiar el flash:", err);
+    }
+  };
 
   const handleProcess = async () => {
     if (!file) return;
@@ -292,22 +323,27 @@ export const ScreenEscanear: React.FC<Props> = ({ onScanned, onSkip }) => {
               </div>
             </button>
 
-            <Alert
-              variant="info"
-              style={{ marginTop: "auto", marginBottom: 20 }}
+            <div
+              style={{
+                marginTop: "auto",
+                marginBottom: 20,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 8,
+                padding: "12px 16px",
+                backgroundColor: "var(--bg-alt, rgba(0,0,0,0.04))",
+                borderRadius: 12,
+                color: "var(--text-low, #666)",
+                fontSize: 12,
+                textAlign: "center",
+              }}
             >
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 8,
-                  fontSize: 12,
-                }}
-              >
-                <Icon name="lock" size={14} />
-                <span>{t("scan.privacy_note")}</span>
-              </div>
-            </Alert>
+              <Icon name="lock" size={16} />
+              <span style={{ lineHeight: "1.4" }}>
+                {t("scan.privacy_note")}
+              </span>
+            </div>
           </>
         )}
 
@@ -353,6 +389,30 @@ export const ScreenEscanear: React.FC<Props> = ({ onScanned, onSkip }) => {
                 }}
               />
             </div>
+
+            {isFlashSupported && (
+              <button
+                onClick={toggleFlash}
+                style={{
+                  position: "absolute",
+                  top: 15,
+                  right: 15,
+                  zIndex: 3,
+                  background: flashOn ? "#FA865C" : "rgba(0,0,0,0.6)",
+                  border: "none",
+                  width: 44,
+                  height: 44,
+                  borderRadius: "50%",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  transition: "background 0.2s",
+                }}
+              >
+                <Icon name="flash" size={20} color="#fff" />
+              </button>
+            )}
+
             <button
               onClick={captureFrame}
               className="scan-main-btn"
