@@ -139,6 +139,10 @@
     "checkin": {
       "error_invalid_reservation": "Die Reservierung konnte nicht identifiziert werden. Der Link ist möglicherweise abgelaufen oder falsch."
     },
+    "brand": {
+      "name": "Lumina",
+      "suffix": "Hotels"
+    },
     "cancel": "Abbrechen",
     "of": "von ",
     "no": "Nein",

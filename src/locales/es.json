@@ -175,7 +175,8 @@
     "privacy_short": "Cifrado SSL · RGPD"
   },
   "brand": {
-    "name": "Lumina "
+    "name": "Lumina",
+    "suffix": "Hotels"
   },
   "validation": {
     "min_adults": "Debe haber al menos 1 adulto.",
@@ -447,6 +448,7 @@
   "checkin": {
     "error_invalid_reservation": "No se pudo identificar la reserva. El enlace puede haber caducado o ser incorrecto."
   },
+
   "errorBoundary": {
     "unknown_error": "An unknown error has occurred.",
     "title": "Algo ha salido mal",

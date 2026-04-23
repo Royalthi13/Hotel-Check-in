@@ -167,7 +167,8 @@
     "privacy_short": "Chiffrement SSL · RGPD"
   },
   "brand": {
-    "name": "Lumina"
+    "name": "Lumina",
+    "suffix": "Hotels"
   },
   "validation": {
     "min_adults": "Il doit y avoir au moins 1 adulte.",

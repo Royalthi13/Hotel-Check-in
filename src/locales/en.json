@@ -166,7 +166,8 @@
     "privacy_short": "SSL Encryption · GDPR"
   },
   "brand": {
-    "name": "Lumina "
+    "name": "Lumina",
+    "suffix": "Hotels"
   },
   "validation": {
     "min_adults": "Must have at least 1 adult.",
@@ -444,6 +445,7 @@
   "checkin": {
     "error_invalid_reservation": "The reservation could not be identified. The link may have expired or is incorrect."
   },
+
   "errorBoundary": {
     "unknown_error": "An unknown error has occurred.",
     "title": "Something went wrong",

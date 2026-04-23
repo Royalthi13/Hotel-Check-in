@@ -166,7 +166,8 @@
     "privacy_short": "Crittografia SSL · GDPR"
   },
   "brand": {
-    "name": "Lumina"
+    "name": "Lumina",
+    "suffix": "Hotels"
   },
   "validation": {
     "min_adults": "Deve esserci almeno 1 adulto.",
