@@ -439,6 +439,9 @@
     "err_quality": "La qualità dell'immagine è troppo bassa per leggere il documento. Riprova con una migliore illuminazione.",
     "err_unexpected": "Errore imprevisto. Riprova."
   },
+  "checkin": {
+    "error_invalid_reservation": "Impossibile identificare la prenotazione. Il link potrebbe essere scaduto o errato."
+  },
   "errorBoundary": {
     "unknown_error": "Si è verificato un errore sconosciuto.",
     "title": "Qualcosa è andato storto",

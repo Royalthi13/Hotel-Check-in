@@ -417,6 +417,9 @@
     "err_quality": "A qualidade da imagem é muito baixa para ler o documento. Tente novamente com uma iluminação melhor.",
     "err_unexpected": "Erro inesperado. Por favor, tente novamente."
   },
+  "checkin": {
+    "error_invalid_reservation": "Não foi posible identificar a reserva. O link pode ter expirado ou estar incorreto."
+  },
   "errorBoundary": {
     "unknown_error": "Ocorreu um erro desconhecido.",
     "title": "Algo correu mal",

@@ -444,6 +444,9 @@
     "err_quality": "Imagen con poca calidad para leer el documento. Intente con mejor iluminación.",
     "err_unexpected": "Error inesperado. Inténtelo de nuevo."
   },
+  "checkin": {
+    "error_invalid_reservation": "No se pudo identificar la reserva. El enlace puede haber caducado o ser incorrecto."
+  },
   "errorBoundary": {
     "unknown_error": "An unknown error has occurred.",
     "title": "Algo ha salido mal",

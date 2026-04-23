@@ -54,8 +54,6 @@ export const CheckinProvider: React.FC<{ children: React.ReactNode }> = ({
   }, []);
 
   // --- PERSISTENCIA DE HUÉSPEDES (sessionStorage, se vacía al cerrar pestaña) ---
-  // Sin cifrado: los datos ya viven en sessionStorage y el cifrado con clave
-  // almacenada junto a los datos no aporta seguridad real.
   useEffect(() => {
     if (state.guests && state.guests.length > 0) {
       const backup = {
@@ -65,20 +63,17 @@ export const CheckinProvider: React.FC<{ children: React.ReactNode }> = ({
       sessionStorage.setItem(PERSISTENCE_KEY, JSON.stringify(backup));
     }
   }, [state.guests, PERSISTENCE_KEY]);
-  // --- LIMPIEZA Y AUXILIARES ---
 
+  // --- LIMPIEZA Y AUXILIARES ---
   const clearSubmitError = () => setSubmitError("");
   const triggerFormValidation = () => setValidationTrigger((v) => v + 1);
 
-  // FIX: lanza error descriptivo si el bookingId no está en sessionStorage.
   const getBackendIds = () => {
     const rawId = sessionStorage.getItem(`bookingId_${token}`);
     const bookingId = rawId ? parseInt(rawId, 10) : null;
 
     if (!bookingId || isNaN(bookingId)) {
-      throw new Error(
-        "No se pudo identificar la reserva. Por favor, recargue la página o acceda de nuevo mediante el enlace de su reserva.",
-      );
+      throw new Error(t("checkin.error_invalid_reservation"));
     }
 
     const rawClientId = sessionStorage.getItem(`clientId_${token}`);
@@ -141,10 +136,12 @@ export const CheckinProvider: React.FC<{ children: React.ReactNode }> = ({
       setIsPartialSuccess(false);
       SESSION_KEYS_TO_CLEAR.forEach((key) => sessionStorage.removeItem(key));
       sessionStorage.removeItem(PERSISTENCE_KEY);
-      localStorage.removeItem(PERSISTENCE_KEY); // limpiar datos antiguos cifrados si los hubiera
+      localStorage.removeItem(PERSISTENCE_KEY);
 
       actions.goTo("exito", "forward");
     } catch (err: unknown) {
+      // Si falla y no es un error que hayamos tirado nosotros con un mensaje,
+      // usará el title del ErrorBoundary como fallback.
       let msg = t("errorBoundary.title");
       if (err instanceof Error) msg = err.message;
       else if (typeof err === "string") msg = err;

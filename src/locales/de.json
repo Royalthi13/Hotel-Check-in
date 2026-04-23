@@ -136,6 +136,9 @@
       "pt": "Portugiesisch",
       "selector_aria": "Sprache ändern"
     },
+    "checkin": {
+      "error_invalid_reservation": "Die Reservierung konnte nicht identifiziert werden. Der Link ist möglicherweise abgelaufen oder falsch."
+    },
     "cancel": "Abbrechen",
     "of": "von ",
     "no": "Nein",
