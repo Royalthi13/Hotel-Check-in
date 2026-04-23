@@ -68,42 +68,32 @@ type CheckinAction =
   | { type: "RESET" };
 
 // ── Helpers de Persistencia ──────────────────────────────────────────────────
-function getSession<T>(key: string, fallback: T): T {
-  try {
-    const stored = sessionStorage.getItem(key);
-    return stored ? (JSON.parse(stored) as T) : fallback;
-  } catch {
-    return fallback;
-  }
-}
 
 function getInitialState(token: string, mode: AppMode): CheckinState {
-  const persistenceKey = `h_ckin_data_${token}`;
   const sessionKey = `state_${token}`;
 
+  // Limpieza de claves obsoletas
   try {
-    localStorage.removeItem(persistenceKey);
-  } catch {
-    /* noop */
-  }
-  try {
+    sessionStorage.removeItem(`h_ckin_data_${token}`);
     sessionStorage.removeItem("lumina_enc_key");
   } catch {
     /* noop */
   }
 
+  // 👇 LECTURA DESDE LOCALSTORAGE (Persiste al cerrar pestaña) 👇
   try {
-    const raw = sessionStorage.getItem(persistenceKey);
+    const raw = localStorage.getItem(sessionKey);
     if (raw) {
-      const { guests, timestamp } = JSON.parse(raw);
-      if (Date.now() - timestamp < 30 * 60 * 1000 && Array.isArray(guests)) {
-        return { ...buildEmptyState(mode), guests };
-      }
-      sessionStorage.removeItem(persistenceKey);
-    }
+      const storedData = JSON.parse(raw);
+      const { timestamp, state } = storedData;
 
-    const session = sessionStorage.getItem(sessionKey);
-    if (session) return JSON.parse(session);
+      // Control de caducidad: 30 minutos
+      if (Date.now() - timestamp < 30 * 60 * 1000) {
+        return state;
+      } else {
+        localStorage.removeItem(sessionKey);
+      }
+    }
   } catch (e) {
     if (import.meta.env.DEV) console.warn("[useCheckin] getInitialState:", e);
   }
@@ -282,9 +272,18 @@ export function useCheckin(tokenUrl?: string, stepUrl?: string) {
     getInitialState(token, initialMode),
   );
 
-  // 1. SOLUCIÓN AL F5: appHistory ahora respeta la URL
+  // 👇 LECTURA DE HISTORIAL DESDE LOCALSTORAGE 👇
   const [appHistory, setAppHistory] = useState<HistoryEntry[]>(() => {
-    const storedHistory = getSession<HistoryEntry[]>(`history_${token}`, []);
+    let storedHistory: HistoryEntry[] = [];
+    try {
+      const raw = localStorage.getItem(`history_${token}`);
+      if (raw) {
+        const { data, timestamp } = JSON.parse(raw);
+        if (Date.now() - timestamp < 30 * 60 * 1000) storedHistory = data;
+      }
+    } catch (e) {
+      console.warn("No se pudo cargar el historial", e); // ✅ FIX ESLINT
+    }
 
     if (stepUrl && VALID_STEPS.includes(stepUrl as StepId)) {
       const stepExists = storedHistory.some((h) => h.step === stepUrl);
@@ -295,10 +294,18 @@ export function useCheckin(tokenUrl?: string, stepUrl?: string) {
     return storedHistory;
   });
 
-  // 2. SOLUCIÓN AL F5: allowedSteps ahora respeta la URL
+  // 👇 LECTURA DE PASOS PERMITIDOS DESDE LOCALSTORAGE 👇
   const [allowedSteps, setAllowedSteps] = useState<Set<StepId>>(() => {
-    const stored = getSession<StepId[] | null>(`allowedSteps_${token}`, null);
-    const validStored = stored ?? ["inicio", "tablet_buscar"];
+    let validStored: StepId[] = ["inicio", "tablet_buscar"];
+    try {
+      const raw = localStorage.getItem(`allowedSteps_${token}`);
+      if (raw) {
+        const { data, timestamp } = JSON.parse(raw);
+        if (Date.now() - timestamp < 30 * 60 * 1000) validStored = data;
+      }
+    } catch (e) {
+      console.warn("No se pudieron cargar los pasos permitidos", e); // ✅ FIX ESLINT
+    }
 
     if (stepUrl && VALID_STEPS.includes(stepUrl as StepId)) {
       return new Set([...validStored, stepUrl as StepId]);
@@ -307,12 +314,12 @@ export function useCheckin(tokenUrl?: string, stepUrl?: string) {
   });
 
   const [modoFlujo, setModoFlujo] = useState<"scan" | "manual" | null>(() => {
-    const stored = sessionStorage.getItem(`modoFlujo_${token}`);
+    const stored = localStorage.getItem(`modoFlujo_${token}`);
     return stored === "scan" || stored === "manual" ? stored : null;
   });
 
   useEffect(() => {
-    if (modoFlujo) sessionStorage.setItem(`modoFlujo_${token}`, modoFlujo);
+    if (modoFlujo) localStorage.setItem(`modoFlujo_${token}`, modoFlujo);
   }, [modoFlujo, token]);
 
   const [isLoading, setIsLoading] = useState(token !== "new");
@@ -333,25 +340,41 @@ export function useCheckin(tokenUrl?: string, stepUrl?: string) {
     stateRef.current = state;
   }, [state]);
 
+  // 👇 GUARDADO DEL ESTADO EN LOCALSTORAGE CON TIMESTAMP 👇
   useEffect(() => {
+    if (token === "new") return;
+
     const persistableState = {
       ...state,
       guests: state.guests.map((g) => ({ ...g, docFile: null })),
     };
-    sessionStorage.setItem(`state_${token}`, JSON.stringify(persistableState));
+
+    const dataToSave = JSON.stringify({
+      state: persistableState,
+      timestamp: Date.now(),
+    });
+
+    localStorage.setItem(`state_${token}`, dataToSave);
   }, [state, token]);
 
+  // 👇 GUARDADO DEL HISTORIAL Y STEPS EN LOCALSTORAGE 👇
   useEffect(
     () =>
-      sessionStorage.setItem(`history_${token}`, JSON.stringify(appHistory)),
+      localStorage.setItem(
+        `history_${token}`,
+        JSON.stringify({ data: appHistory, timestamp: Date.now() }),
+      ),
     [appHistory, token],
   );
 
   useEffect(
     () =>
-      sessionStorage.setItem(
+      localStorage.setItem(
         `allowedSteps_${token}`,
-        JSON.stringify(Array.from(allowedSteps)),
+        JSON.stringify({
+          data: Array.from(allowedSteps),
+          timestamp: Date.now(),
+        }),
       ),
     [allowedSteps, token],
   );
@@ -384,7 +407,7 @@ export function useCheckin(tokenUrl?: string, stepUrl?: string) {
         }
 
         const result = await loadCheckinData(token);
-            if (cancelled) return;
+        if (cancelled) return;
 
         sessionStorage.setItem(`bookingId_${token}`, String(result.bookingId));
         if (result.clientId)
@@ -426,7 +449,6 @@ export function useCheckin(tokenUrl?: string, stepUrl?: string) {
     };
   }, []);
 
-  // ── FIX: Cálculo de la pantalla actual y memoria del RGPD ──────────────────
   const requestedStep = stepUrl as StepId | undefined;
 
   const actualStep: StepId = (() => {
@@ -435,10 +457,17 @@ export function useCheckin(tokenUrl?: string, stepUrl?: string) {
     if (initialMode === "tablet") return "tablet_buscar";
 
     const yaAcepto =
-      sessionStorage.getItem(`legalPassed_${token}`) === "true" ||
+      localStorage.getItem(`legalPassed_${token}`) === "true" ||
       state.legalPassed;
     if (yaAcepto) {
-      const hist = getSession<HistoryEntry[]>(`history_${token}`, []);
+      let hist: HistoryEntry[] = [];
+      try {
+        const raw = localStorage.getItem(`history_${token}`);
+        if (raw) hist = JSON.parse(raw).data || [];
+      } catch (e) {
+        console.warn("No se pudo leer la historia para actualStep", e); // ✅ FIX ESLINT
+      }
+
       if (hist.length > 0) return hist[hist.length - 1].step;
       return "bienvenida";
     }
@@ -618,11 +647,14 @@ export function useCheckin(tokenUrl?: string, stepUrl?: string) {
         dispatch({ type: "SET_OBSERVACIONES", value: v }),
       nextGuest,
       setRgpdAcepted: (v) => dispatch({ type: "SET_RGPD", value: v }),
-      setLegalPassed: (v) => dispatch({ type: "SET_LEGAL_PASSED", value: v }),
+      setLegalPassed: (v) => {
+        dispatch({ type: "SET_LEGAL_PASSED", value: v });
+        localStorage.setItem(`legalPassed_${token}`, String(v));
+      },
       setHasMinorsFlag: (v) =>
         dispatch({ type: "SET_HAS_MINORS_FLAG", value: v }),
     }),
-    [goTo, goBack, dispatch, dotSteps, currentDotIndex, nextGuest],
+    [goTo, goBack, dispatch, dotSteps, currentDotIndex, nextGuest, token],
   );
 
   return [state, nav, actions, isLoading, setModoFlujo] as const;
