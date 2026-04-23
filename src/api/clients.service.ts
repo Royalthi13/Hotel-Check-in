@@ -1,6 +1,7 @@
 import { apiAuth } from "./axiosInstance";
 import dayjs from "dayjs";
 import type { GuestData, PartialGuestData } from "@/types";
+import { splitSurnames } from "@/utils/surnames";
 
 // ── Schema real ClientInDB ──────────────────────────────────
 interface ClientResponse {
@@ -25,53 +26,6 @@ interface ClientResponse {
   sex: string | null;
 }
 
-function splitClientSurnames(surnameRaw: string | null | undefined): {
-  apellido: string;
-  apellido2: string;
-} {
-  const surname = (surnameRaw ?? "").trim().replace(/\s+/g, " ");
-  if (!surname) return { apellido: "", apellido2: "" };
-
-  const tokens = surname.split(" ");
-  if (tokens.length === 1) return { apellido: tokens[0], apellido2: "" };
-  if (tokens.length === 2) {
-    return { apellido: tokens[0], apellido2: tokens[1] };
-  }
-
-  // Heurística para apellidos compuestos:
-  // - El segundo apellido parte del último token.
-  // - Si antes hay conectores ("de", "del", "van", ...), se anexan al segundo.
-  const connectors = new Set([
-    "de",
-    "del",
-    "la",
-    "las",
-    "los",
-    "y",
-    "i",
-    "da",
-    "das",
-    "do",
-    "dos",
-    "van",
-    "von",
-    "di",
-  ]);
-
-  const secondSurnameTokens = [tokens[tokens.length - 1]];
-  let idx = tokens.length - 2;
-  while (idx >= 1 && connectors.has(tokens[idx].toLowerCase())) {
-    secondSurnameTokens.unshift(tokens[idx]);
-    idx -= 1;
-  }
-
-  const firstSurnameTokens = tokens.slice(0, idx + 1);
-  const apellido = firstSurnameTokens.join(" ").trim();
-  const apellido2 = secondSurnameTokens.join(" ").trim();
-
-  if (!apellido) return { apellido: surname, apellido2: "" };
-  return { apellido, apellido2 };
-}
 // ── ISO2 ↔ codpais ────────────────────────────────────────────────────────────
 const ISO2_TO_CODPAIS: Record<string, string> = {
   ES: "ESP", GB: "GBR", FR: "FRA", DE: "DEU", IT: "ITA",
@@ -120,7 +74,7 @@ const COD_TO_DOC: Record<string, string> = {
 // ── DB → GuestData ─────────────────────────────────────────────────────────────
 export function toGuestData(c: ClientResponse): GuestData {
   const esMenor = c.birth ? dayjs().diff(dayjs(c.birth), "years") < 18 : false;
-  const { apellido, apellido2 } = splitClientSurnames(c.surname);
+  const { apellido, apellido2 } = splitSurnames(c.surname);
 
   return {
     id: c.id,
