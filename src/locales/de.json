@@ -440,6 +440,7 @@
     "err_unexpected": "Unerwarteter Fehler. Bitte versuchen Sie es erneut."
   },
   "errorBoundary": {
+    "unknown_error": "Ein unbekannter Fehler ist aufgetreten.",
     "title": "Etwas ist schiefgelaufen",
     "subtitle": "Ein unerwarteter Fehler ist aufgetreten. Ihre Daten sind nicht verloren.",
     "btn_retry": "Erneut versuchen",

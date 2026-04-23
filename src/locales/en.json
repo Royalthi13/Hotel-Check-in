@@ -442,6 +442,7 @@
     "err_unexpected": "Unexpected error. Please try again."
   },
   "errorBoundary": {
+    "unknown_error": "An unknown error has occurred.",
     "title": "Something went wrong",
     "subtitle": "An unexpected error occurred. Your data is not lost — you can try to continue or reload the page.",
     "btn_retry": "Try to continue",

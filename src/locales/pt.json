@@ -418,6 +418,7 @@
     "err_unexpected": "Erro inesperado. Por favor, tente novamente."
   },
   "errorBoundary": {
+    "unknown_error": "Ocorreu um erro desconhecido.",
     "title": "Algo correu mal",
     "subtitle": "Ocorreu um erro inesperado. Os seus dados não foram perdidos.",
     "btn_retry": "Tentar continuar",

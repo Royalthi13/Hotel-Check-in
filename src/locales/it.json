@@ -440,6 +440,7 @@
     "err_unexpected": "Errore imprevisto. Riprova."
   },
   "errorBoundary": {
+    "unknown_error": "Si è verificato un errore sconosciuto.",
     "title": "Qualcosa è andato storto",
     "subtitle": "Si è verificato un errore imprevisto. I tuoi dati non sono andati persi.",
     "btn_retry": "Prova a continuare",
