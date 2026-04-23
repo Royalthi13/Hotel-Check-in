@@ -77,6 +77,65 @@ function getSession<T>(key: string, fallback: T): T {
   }
 }
 
+function splitSurnameForState(
+  apellidoRaw: string | undefined,
+  apellido2Raw: string | undefined,
+): { apellido: string; apellido2: string } {
+  const apellido = (apellidoRaw ?? "").trim().replace(/\s+/g, " ");
+  const apellido2 = (apellido2Raw ?? "").trim().replace(/\s+/g, " ");
+
+  // Si ya viene dividido, respetamos lo existente.
+  if (!apellido || apellido2) return { apellido, apellido2 };
+
+  const tokens = apellido.split(" ");
+  if (tokens.length <= 1) return { apellido, apellido2: "" };
+  if (tokens.length === 2) return { apellido: tokens[0], apellido2: tokens[1] };
+
+  const connectors = new Set([
+    "de",
+    "del",
+    "la",
+    "las",
+    "los",
+    "y",
+    "i",
+    "da",
+    "das",
+    "do",
+    "dos",
+    "van",
+    "von",
+    "di",
+  ]);
+
+  const secondSurnameTokens = [tokens[tokens.length - 1]];
+  let idx = tokens.length - 2;
+  while (idx >= 1 && connectors.has(tokens[idx].toLowerCase())) {
+    secondSurnameTokens.unshift(tokens[idx]);
+    idx -= 1;
+  }
+
+  const firstSurname = tokens.slice(0, idx + 1).join(" ").trim();
+  const secondSurname = secondSurnameTokens.join(" ").trim();
+  if (!firstSurname) return { apellido, apellido2: "" };
+
+  return { apellido: firstSurname, apellido2: secondSurname };
+}
+
+function normalizeGuestSurnames(guests: PartialGuestData[]): PartialGuestData[] {
+  return guests.map((g) => {
+    const { apellido, apellido2 } = splitSurnameForState(g.apellido, g.apellido2);
+    return { ...g, apellido, apellido2 };
+  });
+}
+
+function normalizeStateSurnames(state: CheckinState): CheckinState {
+  return {
+    ...state,
+    guests: normalizeGuestSurnames(state.guests ?? []),
+  };
+}
+
 function getInitialState(token: string, mode: AppMode): CheckinState {
   const persistenceKey = `h_ckin_data_${token}`;
   const sessionKey = `state_${token}`;
@@ -97,13 +156,13 @@ function getInitialState(token: string, mode: AppMode): CheckinState {
     if (raw) {
       const { guests, timestamp } = JSON.parse(raw);
       if (Date.now() - timestamp < 30 * 60 * 1000 && Array.isArray(guests)) {
-        return { ...buildEmptyState(mode), guests };
+        return normalizeStateSurnames({ ...buildEmptyState(mode), guests });
       }
       sessionStorage.removeItem(persistenceKey);
     }
 
     const session = sessionStorage.getItem(sessionKey);
-    if (session) return JSON.parse(session);
+    if (session) return normalizeStateSurnames(JSON.parse(session));
   } catch (e) {
     if (import.meta.env.DEV) console.warn("[useCheckin] getInitialState:", e);
   }
