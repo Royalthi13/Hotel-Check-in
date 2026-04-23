@@ -568,17 +568,17 @@ const handleUpdate = useCallback(
   // --- 🔥 DEBOUNCES PARA VALIDACIÓN Y BÚSQUEDA ---
   useDebounce(
     () => {
-      if (data.email?.includes("@")) validate(data);
+      if (!data.esMenor && data.email?.includes("@")) validate(data);
     },
     600,
-    [data.email],
+    [data.email, data.esMenor],
   );
   useDebounce(
     () => {
-      if ((data.telefono?.length ?? 0) >= 7) validate(data);
+      if (!data.esMenor && (data.telefono?.length ?? 0) >= 7) validate(data);
     },
     600,
-    [data.telefono],
+    [data.telefono, data.esMenor],
   );
 
   // Búsqueda unificada de CP
@@ -732,88 +732,90 @@ const RenderList = (
               px: "var(--px)",
             }}
           >
-            <Box
-              sx={{
-                display: "grid",
-                gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" },
-                gap: 2,
-              }}
-            >
-              <TextField
-                label={t("forms.email")}
-                fullWidth
-                value={data.email ?? ""}
-                error={!!errors.email}
-                onChange={(e) => {
-                  handleUpdate("email", e.target.value);
-                  clearError("email");
+            {!data.esMenor && (
+              <Box
+                sx={{
+                  display: "grid",
+                  gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" },
+                  gap: 2,
                 }}
-                sx={inputSx}
-              />
-              <TextField
-                label={t("forms.phone")}
-                fullWidth
-                type="tel"
-                value={data.telefono ?? ""}
-                error={!!errors.telefono}
-                onChange={(e) => {
-                  handleUpdate(
-                    "telefono",
-                    formatPhoneNumber(e.target.value.replace(/\D/g, "")),
-                  );
-                  clearError("telefono");
-                }}
-                sx={inputSx}
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start" sx={{ mr: 1 }}>
-                      <Box
-                        onClick={(e) =>
-                          isMobile
-                            ? setPrefijoModalOpen(true)
-                            : setAnchorElPrefijo(e.currentTarget)
-                        }
-                        sx={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: 0.5,
-                          cursor: "pointer",
-                          px: 1,
-                          py: 0.5,
-                          borderRadius: "8px",
-                        }}
-                      >
-                        <img
-                          width="20"
-                          src={`https://flagcdn.com/w20/${prefijoActual?.code.substring(0, 2).toLowerCase()}.png`}
-                          alt=""
-                          style={{ borderRadius: "2px" }}
-                        />
-                        <Typography
-                          sx={{ fontSize: "0.9rem", fontWeight: 700 }}
-                        >
-                          {prefijoActual?.dial}
-                        </Typography>
-                        <div
-                          style={{
-                            transform: "rotate(90deg)",
+              >
+                <TextField
+                  label={t("forms.email")}
+                  fullWidth
+                  value={data.email ?? ""}
+                  error={!!errors.email}
+                  onChange={(e) => {
+                    handleUpdate("email", e.target.value);
+                    clearError("email");
+                  }}
+                  sx={inputSx}
+                />
+                <TextField
+                  label={t("forms.phone")}
+                  fullWidth
+                  type="tel"
+                  value={data.telefono ?? ""}
+                  error={!!errors.telefono}
+                  onChange={(e) => {
+                    handleUpdate(
+                      "telefono",
+                      formatPhoneNumber(e.target.value.replace(/\D/g, "")),
+                    );
+                    clearError("telefono");
+                  }}
+                  sx={inputSx}
+                  InputProps={{
+                    startAdornment: (
+                      <InputAdornment position="start" sx={{ mr: 1 }}>
+                        <Box
+                          onClick={(e) =>
+                            isMobile
+                              ? setPrefijoModalOpen(true)
+                              : setAnchorElPrefijo(e.currentTarget)
+                          }
+                          sx={{
                             display: "flex",
-                            opacity: 0.5,
-                            marginLeft: 2,
+                            alignItems: "center",
+                            gap: 0.5,
+                            cursor: "pointer",
+                            px: 1,
+                            py: 0.5,
+                            borderRadius: "8px",
                           }}
                         >
-                          <Icon name="right" size={12} />
-                        </div>
-                      </Box>
-                      <Divider
-                        sx={{ height: 24, ml: 1 }}
-                        orientation="vertical"
-                      />
-                    </InputAdornment>
-                  ),
-                }}
-              />
-            </Box>
+                          <img
+                            width="20"
+                            src={`https://flagcdn.com/w20/${prefijoActual?.code.substring(0, 2).toLowerCase()}.png`}
+                            alt=""
+                            style={{ borderRadius: "2px" }}
+                          />
+                          <Typography
+                            sx={{ fontSize: "0.9rem", fontWeight: 700 }}
+                          >
+                            {prefijoActual?.dial}
+                          </Typography>
+                          <div
+                            style={{
+                              transform: "rotate(90deg)",
+                              display: "flex",
+                              opacity: 0.5,
+                              marginLeft: 2,
+                            }}
+                          >
+                            <Icon name="right" size={12} />
+                          </div>
+                        </Box>
+                        <Divider
+                          sx={{ height: 24, ml: 1 }}
+                          orientation="vertical"
+                        />
+                      </InputAdornment>
+                    ),
+                  }}
+                />
+              </Box>
+            )}
 
             <TextField
               label={t("forms.address")}

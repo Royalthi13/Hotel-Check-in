@@ -126,6 +126,35 @@ export async function submitCheckin(
       }
     }
   });
+  // Copiar dirección del adulto responsable al menor solo si:
+  // - El menor no tiene dirección propia
+  // - La relación del adulto es de progenitor/tutor (PM o TU)
+  const CODIGOS_PROGENITOR = new Set(["PM", "TU"]);
+
+  finalGuests.forEach((guest, index) => {
+    if (!guest.esMenor) return;
+    if (guest.direccion?.trim()) return; // ya tiene dirección propia, no sobreescribir
+
+    const rel = guest.relacionesConAdultos?.[0];
+    if (!rel) return;
+
+    const adulto = finalGuests[rel.adultoIndex] as
+      | (typeof guest & { parentescoParaAPI?: string })
+      | undefined;
+    if (!adulto || adulto.esMenor) return;
+
+    const codAdulto = adulto?.parentescoParaAPI ?? rel.parentesco;
+    if (!CODIGOS_PROGENITOR.has(codAdulto)) return;
+
+    finalGuests[index] = {
+      ...guest,
+      direccion: adulto.direccion,
+      ciudad: adulto.ciudad,
+      provincia: adulto.provincia,
+      cp: adulto.cp,
+      pais: adulto.pais,
+    };
+  });
 
   const [mainGuest, ...companionGuests] = finalGuests;
 

@@ -111,8 +111,8 @@ export function toClientPayload(g: PartialGuestData): Record<string, unknown> {
   const str = (v: string | undefined | null) => v?.trim() || null;
   const esMenor = !!g.esMenor;
 
-  // Los menores NO tienen dirección ni contacto propios — se envían como null.
-  // La dirección real la comparte el adulto responsable vía relationship.
+  // Para menores se anula contacto (email/teléfono).
+  // La dirección puede venir vacía o copiada del adulto en checkin.service.ts.
 
   const codpais = ISO2_TO_CODPAIS[g.pais ?? "ES"] ?? "ESP";
   const nacCod =
@@ -147,11 +147,10 @@ export function toClientPayload(g: PartialGuestData): Record<string, unknown> {
       : (g.telefono?.trim()
           ? `${g.prefijo ?? '+34'} ${g.telefono.trim()}`.trim()
           : null),
-
-    address:     esMenor ? null : str(g.direccion),
-    city:        esMenor ? null : str(g.ciudad),
-    province:    esMenor ? null : str(g.provincia),
-    cp:          esMenor ? null : str(g.cp),
+address:     str(g.direccion) ?? null,
+    city:        str(g.ciudad) ?? null,
+    province:    str(g.provincia) ?? null,
+    cp:          str(g.cp) ?? null,
 
     doc_type:    docCod ?? null,
     vat:         str(g.numDoc),
