@@ -1006,7 +1006,7 @@ const RenderList = (
               justifyContent: "flex-end",
             }}
           >
-            {state.numPersonas > 1 && (
+            {guestIndex === 0 && (
               <Button
                 variant="secondary"
                 onClick={handlePartialSubmit}
