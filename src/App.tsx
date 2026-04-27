@@ -139,8 +139,10 @@ function CheckinWizard() {
     return (
       <div className="shell">
         <div className="card">
-          <ScreenTabletBuscar
-            onFound={(res) => actions.setReservaFromTablet(res)}
+        <ScreenTabletBuscar
+            onFound={(res, bookingId, clientId) =>
+              actions.setReservaFromTablet(res, bookingId, clientId)
+            }
           />
         </div>
       </div>

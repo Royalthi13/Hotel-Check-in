@@ -5,7 +5,11 @@ import { searchBookingByConfirmation } from "@/api/bookings.service";
 import type { Reserva } from "@/types";
 
 interface Props {
-  onFound: (reserva: Reserva) => void;
+  onFound: (
+    reserva: Reserva,
+    bookingId: number,
+    clientId: number | null,
+  ) => void;
 }
 
 export const ScreenTabletBuscar: React.FC<Props> = ({ onFound }) => {
@@ -45,9 +49,8 @@ export const ScreenTabletBuscar: React.FC<Props> = ({ onFound }) => {
         trimmedNum,
         trimmedContacto,
       );
-
-      if (result) {
-        onFound(result.reserva);
+if (result) {
+        onFound(result.reserva, result.bookingId, result.clientId);
       } else {
         setError(t("search.error_not_found"));
       }

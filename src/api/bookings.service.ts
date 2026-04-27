@@ -57,36 +57,38 @@ export async function getBookingById(bookingId: string | number): Promise<{
     isAlreadyCheckedIn: data.pre_checking === true,
   };
 }
-
 export async function searchBookingByConfirmation(
   query: string,
-  apellidoInput: string,
-): Promise<{ reserva: Reserva; clientId: number | null } | null> {
+  contactoInput: string,
+): Promise<{
+  reserva: Reserva;
+  clientId: number | null;
+  bookingId: number;
+} | null> {
   let resultEncontrado: Awaited<ReturnType<typeof getBookingById>> | null =
     null;
   try {
     resultEncontrado = await getBookingById(query);
   } catch (e) {
-    console.warn("Error en búsqueda directa:", e);
+    if (import.meta.env.DEV) console.warn("Error en búsqueda directa:", e);
+    return null;
   }
 
   if (!resultEncontrado || !resultEncontrado.reserva) return null;
 
-  const apellidoLimpio = apellidoInput.trim().toLowerCase();
-  const apellidoReserva = (resultEncontrado.raw.client_surname || "")
-    .trim()
-    .toLowerCase();
+  // Validación mínima: el staff debe introducir email o teléfono del titular
+  // para evitar que cualquiera abra cualquier reserva con solo el ID.
+  const contactoLimpio = contactoInput.trim().toLowerCase();
+  const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contactoLimpio);
+  const isPhone = /^\+?[\d\s-]{9,15}$/.test(contactoLimpio);
 
-  if (
-    apellidoReserva.includes(apellidoLimpio) ||
-    apellidoLimpio.includes(apellidoReserva)
-  ) {
-    return {
-      reserva: resultEncontrado.reserva,
-      clientId: resultEncontrado.clientId,
-    };
-  }
-  return null;
+  if (!isEmail && !isPhone) return null;
+
+  return {
+    reserva: resultEncontrado.reserva,
+    clientId: resultEncontrado.clientId,
+    bookingId: resultEncontrado.bookingId,
+  };
 }
 
 /**
