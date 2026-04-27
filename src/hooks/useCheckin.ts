@@ -15,7 +15,6 @@ import type {
 import { FLOW_STEPS_LINK, DOT_STEPS_BASE } from "@/constants";
 import { loadCheckinData } from "@/api/checkin.service";
 import { loginMagicLink } from "@/api/auth.service";
-import { splitSurnames } from "@/utils/surnames";
 
 // ── Lista de pasos válidos ───────────────────────────────────────────────────
 const VALID_STEPS: ReadonlyArray<StepId> = [
