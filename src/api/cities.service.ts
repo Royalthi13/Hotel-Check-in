@@ -23,17 +23,4 @@ export async function searchCitiesByName(name: string): Promise<CityResult[]> {
   return results;
 }
 
-// GET /cities/{code}
-export async function getCityByCode(code: string): Promise<CityResult | null> {
-  if (!code.trim()) return null;
-  try {
-    const { data } = await apiAuth.get<CityResult>(
-      `/cities/${encodeURIComponent(code.trim())}`,
-    );
-    return data ?? null;
-  } catch {
-    return null;
-  }
-}
-
 
