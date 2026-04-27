@@ -74,18 +74,14 @@ const getBackendIds = () => {
     }
     return { bookingId, clientId };
   };
-
-  const SESSION_KEYS_TO_CLEAR = [
+const STORAGE_KEYS_TO_CLEAR = [
     `state_${token}`,
     `history_${token}`,
     `allowedSteps_${token}`,
     `legalPassed_${token}`,
     `hasMinors_${token}`,
     `modoFlujo_${token}`,
-    `bookingId_${token}`,
-    `clientId_${token}`,
   ];
-
   const handleChooseMethod = (method: "scan" | "manual") => {
     setModoFlujo(method);
 
