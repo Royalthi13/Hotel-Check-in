@@ -476,6 +476,7 @@ const handleUpdate = useCallback(
 
   const contactoValidator = useCallback(
     (d: PartialGuestData, tf: TFunction) =>
+      
       validateContacto(d, tf, d.esMenor ? { email: true, telefono: true } : lockedFields),
     [lockedFields],
   );
@@ -713,9 +714,9 @@ const RenderList = (
 
       <form
         onSubmit={(e) => {
-          e.preventDefault();
-          if (validate(data)) actions.nextGuest(guestIndex, "form_contacto");
-        }}
+  e.preventDefault();
+  if (validate(data)) actions.nextGuest(guestIndex, "form_contacto");
+}}
         noValidate
       >
         <fieldset
