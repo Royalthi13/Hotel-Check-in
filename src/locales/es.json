@@ -136,6 +136,15 @@
   },
 
   "common": {
+    "languages": {
+      "es": "Español",
+      "en": "Inglés",
+      "fr": "Francés",
+      "it": "Italiano",
+      "de": "Alemán",
+      "pt": "Portugués",
+      "selector_aria": "Cambiar idioma"
+    },
     "cancel": "Cancelar",
     "of": "de ",
     "no": "No",
@@ -166,7 +175,8 @@
     "privacy_short": "Cifrado SSL · RGPD"
   },
   "brand": {
-    "name": "Lumina "
+    "name": "Lumina",
+    "suffix": "Hotels"
   },
   "validation": {
     "min_adults": "Debe haber al menos 1 adulto.",
@@ -435,7 +445,12 @@
     "err_quality": "Imagen con poca calidad para leer el documento. Intente con mejor iluminación.",
     "err_unexpected": "Error inesperado. Inténtelo de nuevo."
   },
+  "checkin": {
+    "error_invalid_reservation": "No se pudo identificar la reserva. El enlace puede haber caducado o ser incorrecto."
+  },
+
   "errorBoundary": {
+    "unknown_error": "An unknown error has occurred.",
     "title": "Algo ha salido mal",
     "subtitle": "Se ha producido un error inesperado. Sus datos no se han perdido — puede intentar continuar o recargar la página.",
     "btn_retry": "Intentar continuar",

@@ -127,6 +127,15 @@
     "YN": "Son/Daughter-in-law"
   },
   "common": {
+    "languages": {
+      "es": "Spanish",
+      "en": "English",
+      "fr": "French",
+      "it": "Italian",
+      "de": "German",
+      "pt": "Portuguese",
+      "selector_aria": "Change language"
+    },
     "cancel": "Cancel",
     "of": "of ",
     "no": "No",
@@ -157,7 +166,8 @@
     "privacy_short": "SSL Encryption · GDPR"
   },
   "brand": {
-    "name": "Lumina "
+    "name": "Lumina",
+    "suffix": "Hotels"
   },
   "validation": {
     "min_adults": "Must have at least 1 adult.",
@@ -432,7 +442,12 @@
     "err_quality": "Image quality is too low to read the document. Please try again with better lighting.",
     "err_unexpected": "Unexpected error. Please try again."
   },
+  "checkin": {
+    "error_invalid_reservation": "The reservation could not be identified. The link may have expired or is incorrect."
+  },
+
   "errorBoundary": {
+    "unknown_error": "An unknown error has occurred.",
     "title": "Something went wrong",
     "subtitle": "An unexpected error occurred. Your data is not lost — you can try to continue or reload the page.",
     "btn_retry": "Try to continue",

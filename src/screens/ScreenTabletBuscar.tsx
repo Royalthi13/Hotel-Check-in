@@ -1,44 +1,51 @@
- 
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Field, Button, Alert, LoadingSpinner, Icon } from "@/components/ui";
 import { searchBookingByConfirmation } from "@/api/bookings.service";
 import type { Reserva } from "@/types";
- 
+
 interface Props {
   onFound: (reserva: Reserva) => void;
 }
- 
+
 export const ScreenTabletBuscar: React.FC<Props> = ({ onFound }) => {
   const { t } = useTranslation();
-  const [num,      setNum]      = useState("");
+  const [num, setNum] = useState("");
   const [contacto, setContacto] = useState("");
-  const [loading,  setLoading]  = useState(false);
-  const [error,    setError]    = useState("");
- 
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
   const buscar = async (e?: React.SyntheticEvent<HTMLFormElement>) => {
     if (e) e.preventDefault();
- 
-    const trimmedNum      = num.trim();
+
+    const trimmedNum = num.trim();
     const trimmedContacto = contacto.trim();
- 
+
     if (!trimmedNum || !trimmedContacto) {
       setError(t("search.error_no_booking"));
       return;
     }
- 
+
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     const phoneRegex = /^\+?[\d\s-]{9,15}$/;
-    if (!emailRegex.test(trimmedContacto) && !phoneRegex.test(trimmedContacto)) {
+    if (
+      !emailRegex.test(trimmedContacto) &&
+      !phoneRegex.test(trimmedContacto)
+    ) {
       setError(t("validation.invalid_email"));
       return;
     }
- 
+
     setError("");
     setLoading(true);
- 
+
     try {
-      const result = await searchBookingByConfirmation(trimmedNum);
+      // 👇 AQUÍ ESTÁ EL ARREGLO: AHORA ENVIAMOS LAS DOS COSAS 👇
+      const result = await searchBookingByConfirmation(
+        trimmedNum,
+        trimmedContacto,
+      );
+
       if (result) {
         onFound(result.reserva);
       } else {
@@ -50,7 +57,7 @@ export const ScreenTabletBuscar: React.FC<Props> = ({ onFound }) => {
       setLoading(false);
     }
   };
- 
+
   return (
     <form className="screen" onSubmit={buscar}>
       <div style={{ display: "contents" }}>
@@ -59,11 +66,13 @@ export const ScreenTabletBuscar: React.FC<Props> = ({ onFound }) => {
             <Icon name="search" size={30} color="var(--primary)" />
           </div>
           <h1 className="tablet-title">
-            {t("search.title_1")}<br />{t("search.title_2")}
+            {t("search.title_1")}
+            <br />
+            {t("search.title_2")}
           </h1>
           <p className="tablet-sub">{t("search.subtitle")}</p>
         </div>
- 
+
         <div style={{ padding: "28px 24px 0", flex: 1 }}>
           {error && <Alert variant="err">{error}</Alert>}
           {loading ? (
@@ -72,29 +81,57 @@ export const ScreenTabletBuscar: React.FC<Props> = ({ onFound }) => {
             <>
               <Field label={t("search.contact_label")} required>
                 <input
-                  type="text" value={contacto}
-                  onChange={(e) => { setContacto(e.target.value); setError(""); }}
+                  type="text"
+                  value={contacto}
+                  onChange={(e) => {
+                    setContacto(e.target.value);
+                    setError("");
+                  }}
                   placeholder={t("search.contact_placeholder")}
-                  style={{ fontSize: 18, textAlign: "center", height: 56, letterSpacing: ".06em" }}
+                  style={{
+                    fontSize: 18,
+                    textAlign: "center",
+                    height: 56,
+                    letterSpacing: ".06em",
+                  }}
                 />
               </Field>
               <Field label={t("search.booking_label")} required>
                 <input
-                  type="text" value={num}
-                  onChange={(e) => { setNum(e.target.value); setError(""); }}
+                  type="text"
+                  value={num}
+                  onChange={(e) => {
+                    setNum(e.target.value);
+                    setError("");
+                  }}
                   placeholder={t("search.booking_placeholder")}
                   className={error && !num.trim() ? "err" : ""}
                   autoFocus
-                  style={{ fontSize: 18, textAlign: "center", height: 56, letterSpacing: ".06em", marginBottom: 16 }}
+                  style={{
+                    fontSize: 18,
+                    textAlign: "center",
+                    height: 56,
+                    letterSpacing: ".06em",
+                    marginBottom: 16,
+                  }}
                 />
               </Field>
-              <p style={{ fontSize: 11, color: "var(--text-low)", textAlign: "center", marginTop: 16, marginBottom: 20, lineHeight: 1.5 }}>
+              <p
+                style={{
+                  fontSize: 11,
+                  color: "var(--text-low)",
+                  textAlign: "center",
+                  marginTop: 16,
+                  marginBottom: 20,
+                  lineHeight: 1.5,
+                }}
+              >
                 {t("search.booking_hint")}
               </p>
             </>
           )}
         </div>
- 
+
         <div className="spacer" />
         <div className="btn-row">
           <Button variant="primary" iconRight="search" disabled={loading}>
@@ -110,4 +147,3 @@ export const ScreenTabletBuscar: React.FC<Props> = ({ onFound }) => {
     </form>
   );
 };
- 

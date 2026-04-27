@@ -120,9 +120,6 @@ export const AppShell: React.FC<AppShellProps> = ({
   const activeStep = getActiveSideStep(nav.step);
   const activeIdx = SIDE_STEPS.findIndex((s) => s.id === activeStep);
   // Progreso máximo alcanzado: derivado de nav.allowedSteps (state del hook).
-  // Como allowedSteps guarda todos los pasos por los que ya ha pasado el usuario,
-  // el pico se calcula recorriéndolos y quedándonos con el índice más alto.
-  // Sin state local, sin useEffect, sin refs — solo derivación pura.
   const canAdvance =
     nav.step !== "exito" &&
     (nav.step !== "revision" || nav.allowedSteps?.has("form_extras"));
@@ -146,6 +143,7 @@ export const AppShell: React.FC<AppShellProps> = ({
     }
     return max;
   }, [canAdvance, activeIdx, nav.allowedSteps]);
+
   const { safeWidth, stepWidth, targetX } = useMemo(() => {
     const sw = Math.max(0, trackWidth - 6);
     const stw = dotSteps.length > 1 ? sw / (dotSteps.length - 1) : 0;
@@ -261,11 +259,11 @@ export const AppShell: React.FC<AppShellProps> = ({
     }
   };
 
+  // 1️⃣ AQUÍ ESTÁ EL PRIMER CAMBIO MAGNÍFICO (Lumina -> t("brand.name"))
   const hotelDisplayName =
     (reserva as ExtendedReserva)?.hotelName ||
     (reserva as ExtendedReserva)?.establishment ||
-    t("brand.name") ||
-    "Lumina";
+    t("brand.name");
 
   return (
     <div
@@ -319,14 +317,11 @@ export const AppShell: React.FC<AppShellProps> = ({
                       onClick={() => handleDotClick(i)}
                       style={{
                         position: "relative",
-                        padding:
-                          "24px 14px" /* Área táctil inmensa arriba, abajo y lados */,
-                        margin:
-                          "-24px -14px" /* Compensa el padding para que no se descoloquen visualmente */,
+                        padding: "24px 14px",
+                        margin: "-24px -14px",
                         cursor: "pointer",
                         zIndex: 10,
-                        WebkitTapHighlightColor:
-                          "transparent" /* Quita el destello azul feo de los móviles al hacer tap */,
+                        WebkitTapHighlightColor: "transparent",
                       }}
                     >
                       <div
@@ -370,8 +365,9 @@ export const AppShell: React.FC<AppShellProps> = ({
                 onClick={() => actions.goTo("inicio", "back", 0)}
                 style={{ cursor: "pointer" }}
               >
-                <span>Lumina</span>
-                <em>Hotels</em>
+                {/* 2️⃣ AQUÍ ESTÁ EL SEGUNDO CAMBIO MAGNÍFICO (Extracción de literales) */}
+                <span>{t("brand.name")}</span>
+                <em>{t("brand.suffix")}</em>
               </div>
               <p className="sp-sub">{t("appShell.subtitle")}</p>
 

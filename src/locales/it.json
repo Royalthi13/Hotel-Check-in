@@ -127,6 +127,15 @@
     "YN": "Genero / Nuora"
   },
   "common": {
+    "languages": {
+      "es": "Spagnolo",
+      "en": "Inglese",
+      "fr": "Francese",
+      "it": "Italiano",
+      "de": "Tedesco",
+      "pt": "Portoghese",
+      "selector_aria": "Cambia lingua"
+    },
     "cancel": "Annulla",
     "of": "di ",
     "no": "No",
@@ -157,7 +166,8 @@
     "privacy_short": "Crittografia SSL · GDPR"
   },
   "brand": {
-    "name": "Lumina"
+    "name": "Lumina",
+    "suffix": "Hotels"
   },
   "validation": {
     "min_adults": "Deve esserci almeno 1 adulto.",
@@ -430,7 +440,11 @@
     "err_quality": "La qualità dell'immagine è troppo bassa per leggere il documento. Riprova con una migliore illuminazione.",
     "err_unexpected": "Errore imprevisto. Riprova."
   },
+  "checkin": {
+    "error_invalid_reservation": "Impossibile identificare la prenotazione. Il link potrebbe essere scaduto o errato."
+  },
   "errorBoundary": {
+    "unknown_error": "Si è verificato un errore sconosciuto.",
     "title": "Qualcosa è andato storto",
     "subtitle": "Si è verificato un errore imprevisto. I tuoi dati non sono andati persi.",
     "btn_retry": "Prova a continuare",
