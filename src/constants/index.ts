@@ -264,17 +264,7 @@ export const PREFIJOS_TELEFONICOS = [
   { code: "ZM", dial: "+260" },
   { code: "ZW", dial: "+263" },
 ];
-
-export const FLOW_STEPS_LINK: StepId[] = [
-  "inicio",
-  "bienvenida",
-  "form_personal",
-  "form_contacto",
-  "form_extras",
-  "revision",
-  "exito",
-];
-export const DOT_STEPS_BASE: StepId[] = [
+export const FLOW_STEPS: StepId[] = [
   "inicio",
   "bienvenida",
   "form_personal",

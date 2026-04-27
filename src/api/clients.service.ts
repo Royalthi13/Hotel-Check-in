@@ -45,7 +45,3 @@ export async function updateClient(
   const payload = mapGuestToApi(guest);
   await apiAuth.put(`/clients/${id}`, payload);
 }
-
-export async function deleteClient(id: number): Promise<void> {
-  await apiAuth.delete(`/clients/${id}`);
-}

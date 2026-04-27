@@ -35,7 +35,6 @@ export type IconName =
   | "clock"
   | "plus"
   | "minus"
-  | "hotel"
   | "file";
 
 const PATHS: Record<IconName, string[]> = {
@@ -101,7 +100,6 @@ const PATHS: Record<IconName, string[]> = {
   clock: ["M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20z", "M12 6v6l4 2"],
   plus: ["M12 5v14", "M5 12h14"],
   minus: ["M5 12h14"],
-  hotel: ["M3 22V6l9-4 9 4v16", "M9 22V12h6v10", "M12 2v4"],
   clipboard: [
     "M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2",
     "M9 2h6v4H9z",

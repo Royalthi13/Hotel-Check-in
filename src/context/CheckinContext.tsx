@@ -21,7 +21,7 @@ export const CheckinProvider: React.FC<{ children: React.ReactNode }> = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isOffline, setIsOffline] = useState(!navigator.onLine);
   const [isPartialSuccess, setIsPartialSuccess] = useState(false);
-  const [validationTrigger, setValidationTrigger] = useState(0);
+
 
   const [legalPassed, setLegalPassed] = useState(
     () => sessionStorage.getItem(`legalPassed_${token}`) === "true",
@@ -66,7 +66,7 @@ export const CheckinProvider: React.FC<{ children: React.ReactNode }> = ({
 
   // --- LIMPIEZA Y AUXILIARES ---
   const clearSubmitError = () => setSubmitError("");
-  const triggerFormValidation = () => setValidationTrigger((v) => v + 1);
+ 
 const getBackendIds = () => {
     const { bookingId, clientId } = state;
     if (!bookingId) {
@@ -124,8 +124,11 @@ if (isPartial) {
         observaciones: state.observaciones,
       });
 
-      setIsPartialSuccess(false);
-      SESSION_KEYS_TO_CLEAR.forEach((key) => sessionStorage.removeItem(key));
+     setIsPartialSuccess(false);
+      STORAGE_KEYS_TO_CLEAR.forEach((key) => {
+        localStorage.removeItem(key);
+        sessionStorage.removeItem(key);
+      });
       sessionStorage.removeItem(PERSISTENCE_KEY);
       localStorage.removeItem(PERSISTENCE_KEY);
 
@@ -164,8 +167,6 @@ if (isPartial) {
     handleChooseMethod,
     handleSubmit,
     handlePartialSubmit,
-    validationTrigger,
-    triggerFormValidation,
     clearSubmitError,
   };
 

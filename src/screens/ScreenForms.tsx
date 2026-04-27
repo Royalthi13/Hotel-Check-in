@@ -531,8 +531,7 @@ const handleUpdate = useCallback(
   const prefijoActual = useMemo(
     () =>
       prefijosTraducidos.find(
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (p) => p.dial === ((data as any).prefijo || "+34"),
+       (p) => p.dial === (data.prefijo || "+34"),
       ) || prefijosTraducidos.find((p) => p.code === "ES"),
     [prefijosTraducidos, data],
   );

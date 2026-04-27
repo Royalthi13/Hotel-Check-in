@@ -36,6 +36,4 @@ export async function getCityByCode(code: string): Promise<CityResult | null> {
   }
 }
 
-export function clearCitiesCache(): void {
-  searchCache.clear();
-}
+
