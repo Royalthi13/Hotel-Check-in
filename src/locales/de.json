@@ -136,13 +136,6 @@
       "pt": "Portugiesisch",
       "selector_aria": "Sprache ändern"
     },
-    "checkin": {
-      "error_invalid_reservation": "Die Reservierung konnte nicht identifiziert werden. Der Link ist möglicherweise abgelaufen oder falsch."
-    },
-    "brand": {
-      "name": "Lumina",
-      "suffix": "Hotels"
-    },
     "cancel": "Abbrechen",
     "of": "von ",
     "no": "Nein",
@@ -165,15 +158,18 @@
     "copy_link": "Link zum Teilen kopieren",
     "copied": "Link kopiert!",
     "offline": "Es scheint, als hätten Sie Ihre Internetverbindung verloren."
-  },
-  "appShell": {
+  },"appShell": {
     "subtitle": "Schließen Sie Ihren Pre-Check-in ab und kommen Sie ohne Wartezeiten an der Rezeption im Hotel an.",
     "fix_errors_tooltip": "Bitte korrigieren Sie die Formularfehler, bevor Sie fortfahren",
     "booking_summary": "Buchungsübersicht",
     "privacy_short": "SSL-Verschlüsselung · DSGVO"
   },
   "brand": {
-    "name": "Lumina "
+    "name": "Lumina",
+    "suffix": "Hotels"
+  },
+  "checkin": {
+    "error_invalid_reservation": "Die Reservierung konnte nicht identifiziert werden. Der Link ist möglicherweise abgelaufen oder falsch."
   },
   "validation": {
     "min_adults": "Es muss mindestens 1 Erwachsener anwesend sein.",

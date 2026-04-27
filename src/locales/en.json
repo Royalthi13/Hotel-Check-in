@@ -192,7 +192,7 @@
     "required_email_or_phone": "Please enter at least an email or phone number",
     "invalid_dni": "Invalid ID. Format: 8 digits + letter",
     "invalid_nie": "Invalid NIE. Format: X/Y/Z + 7 digits + letter",
-    "invalid_passport": "Invalid Passport. Format: 3 letters + 6 digits",
+  "invalid_passport": "Invalid Passport. Must be 6-15 alphanumeric characters",
     "invalid_cif": "Invalid CIF. Format: letter + 7 digits + letter/digit",
     "invalid_license": "Invalid License. Expected format: up to 2 letters + 8 digits + letters",
     "doc_too_short": "Document number seems too short",
