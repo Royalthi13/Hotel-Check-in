@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Field, Button, Alert, Icon } from "@/components/ui";
 import { LanguageSelector } from "../components/LanguageSelector";
+import "./ScreenVerificarAcceso.css";
 
 interface Props {
   mode: "email" | "phone";
@@ -55,43 +56,28 @@ export const ScreenVerificarAcceso: React.FC<Props> = ({
   const placeholder = mode === "email" ? t("forms.email_placeholder") : "•••";
 
   return (
-    <form
-      onSubmit={handleSubmit}
-      className="screen"
-      style={{ padding: "40px 24px" }}
-    >
-      <div className="tablet-hero" style={{ position: "relative" }}>
-        <div
-          style={{
-            position: "absolute",
-            top: "16px",
-            right: "16px",
-            zIndex: 10,
-          }}
-        >
+    <form onSubmit={handleSubmit} className="screen verify-screen">
+      <div className="tablet-hero verify-hero">
+        <div className="verify-lang-wrapper">
           <LanguageSelector />
         </div>
 
         <div className="tablet-big-icon">
           <Icon name="lock" size={28} color="var(--primary)" />
         </div>
-        <h1 className="tablet-title">{t("verification.title")}</h1>
-        <p className="tablet-sub">
-          {t("verification.booking_label")}: {bookingRef}
+
+        <h1 className="tablet-title verify-title-margin">
+          {t("verification.title")}
+        </h1>
+
+        <p className="tablet-sub verify-sub-opacity">
+          {t("verification.booking_label")}:{" "}
+          <strong className="verify-sub-strong">{bookingRef}</strong>
         </p>
       </div>
 
-      <div style={{ padding: "28px 24px 0", flex: 1 }}>
-        {/* ✨ NUEVO: Helper text explicativo para dar contexto al usuario */}
-        <p
-          style={{
-            fontSize: "15px",
-            color: "var(--text-muted, #666)", // Usa tu variable de color suave si tienes, o #666
-            lineHeight: 1.5,
-            marginBottom: "24px",
-            textAlign: "center",
-          }}
-        >
+      <div className="verify-content">
+        <p className="verify-instruction">
           {mode === "email"
             ? t("verification.instruction_email")
             : t("verification.instruction_phone")}
@@ -115,24 +101,21 @@ export const ScreenVerificarAcceso: React.FC<Props> = ({
             placeholder={placeholder}
             maxLength={mode === "phone" ? 3 : undefined}
             autoFocus
-            style={{
-              fontSize: mode === "phone" ? 28 : 18,
-              textAlign: "center",
-              height: 56,
-              letterSpacing: mode === "phone" ? "0.5em" : undefined,
-            }}
+            className={`verify-input ${mode === "email" ? "verify-input--email" : "verify-input--phone"}`}
           />
         </Field>
       </div>
 
-      <div className="spacer" />
+      <div className="spacer verify-spacer" />
 
-      <div className="btn-row">
+      <div className="btn-row verify-btn-wrapper">
         <Button
           variant="primary"
           type="submit"
           iconRight="right"
           disabled={!val.trim()}
+          style={{ height: "56px", fontSize: "16px", fontWeight: "600" }} // Mantenemos solo lo estructural crítico para el componente UI
+          className={val.trim() ? "verify-btn-active" : ""}
         >
           {t("verification.button_submit")}
         </Button>
