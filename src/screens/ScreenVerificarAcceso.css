@@ -1,8 +1,3 @@
-/* ScreenVerificarAcceso.css */
-
-/* =========================================
-   1. ESTILOS BASE (Desktop / Tablet)
-   ========================================= */
 .verify-screen {
   padding: 0 0 40px 0;
   background-color: #fafafa;
@@ -11,22 +6,19 @@
 
 .verify-hero {
   position: relative;
-  padding: 60px 24px 40px; /* Más aire arriba y abajo en el hero */
+  padding: 60px 24px 40px;
   border-radius: 0 0 24px 24px;
   box-shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
-  /* 🔥 IMPORTANTE: Quitamos cualquier posible overflow oculto para que el menú respire */
   overflow: visible !important;
 }
 
-/* 🔥 FIX: Posicionamiento con aire real y visibilidad total */
 .verify-lang-wrapper {
   position: absolute;
   top: 30px;
-  right: 50px; /* Aire generoso en los laterales */
-  z-index: 9999; /* Por encima de TODO */
+  right: 50px;
+  z-index: 9999;
 }
 
-/* Aseguramos que el dropdown del selector no se corte */
 .verify-lang-wrapper .lang-dropdown {
   position: absolute;
   top: 100%;
@@ -49,7 +41,7 @@
 }
 
 .verify-content {
-  padding: 40px 24px 0; /* Más aire entre el hero y el texto */
+  padding: 40px 24px 0;
   flex: 1;
   display: flex;
   flex-direction: column;
@@ -96,7 +88,6 @@
   justify-content: center;
 }
 
-/* Botón al 100% del ancho del contenedor (igual que el input) */
 .verify-btn-wrapper > button {
   width: 100%;
   height: 56px;
@@ -108,9 +99,6 @@
   box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
 }
 
-/* =========================================
-   2. MODO MÓVIL
-   ========================================= */
 @media (max-width: 480px) {
   .verify-hero {
     padding: 40px 16px 30px;
