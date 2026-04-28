@@ -34,7 +34,6 @@ const SIDE_STEPS: { id: StepId }[] = [
 
 const DOT_FOR: Partial<Record<StepId, StepId>> = {
   escanear: "form_personal",
-  confirmar_datos: "form_personal",
   form_relaciones: "form_personal",
 };
 
@@ -42,7 +41,7 @@ function getActiveSideStep(step: StepId): StepId {
   return DOT_FOR[step] ?? step;
 }
 
-// 🛡️ AHORA VALIDA TAMBIÉN LA PANTALLA DE INICIO
+//  VALIDA LA PANTALLA DE INICIO
 function currentStepIsInvalid(
   step: StepId,
   guests: PartialGuestData[],
@@ -114,7 +113,11 @@ export const AppShell: React.FC<AppShellProps> = ({
   const trackRef = useRef<HTMLDivElement>(null);
   const progressX = useMotionValue(0);
   const [trackWidth, setTrackWidth] = useState(0);
-  const dotSteps = nav.dotSteps || [];
+
+  // Envolvemos dotSteps en useMemo para dar estabilidad a la referencia
+  // y evitar que los hooks dependientes se disparen en cada render.
+  const dotSteps = useMemo(() => nav.dotSteps || [], [nav.dotSteps]);
+
   const prevIndexRef = useRef(nav.dotIndex);
 
   const activeStep = getActiveSideStep(nav.step);
@@ -232,7 +235,7 @@ export const AppShell: React.FC<AppShellProps> = ({
     actions.goToDotIndex(landedIndex);
   };
 
-  // ── NUEVA FUNCIÓN PARA TOCAR LOS PUNTOS DIRECTAMENTE ──
+  //FUNCIÓN PARA TOCAR LOS PUNTOS DIRECTAMENTE
   const handleDotClick = (targetIndex: number) => {
     if (
       dotSteps.length <= 1 ||
@@ -259,7 +262,6 @@ export const AppShell: React.FC<AppShellProps> = ({
     }
   };
 
-  // 1️⃣ AQUÍ ESTÁ EL PRIMER CAMBIO MAGNÍFICO (Lumina -> t("brand.name"))
   const hotelDisplayName =
     (reserva as ExtendedReserva)?.hotelName ||
     (reserva as ExtendedReserva)?.establishment ||
@@ -311,7 +313,6 @@ export const AppShell: React.FC<AppShellProps> = ({
                   const isDone = i <= maxDotReached && i !== nav.dotIndex;
                   const isActive = i === nav.dotIndex;
                   return (
-                    /* 👇 CONTENEDOR NUEVO CON HITBOX GIGANTE 👇 */
                     <div
                       key={i}
                       onClick={() => handleDotClick(i)}
@@ -365,7 +366,6 @@ export const AppShell: React.FC<AppShellProps> = ({
                 onClick={() => actions.goTo("inicio", "back", 0)}
                 style={{ cursor: "pointer" }}
               >
-                {/* 2️⃣ AQUÍ ESTÁ EL SEGUNDO CAMBIO MAGNÍFICO (Extracción de literales) */}
                 <span>{t("brand.name")}</span>
                 <em>{t("brand.suffix")}</em>
               </div>
