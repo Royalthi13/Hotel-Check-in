@@ -142,7 +142,7 @@ export function checkinReducer(
   switch (action.type) {
     case "SET_GUESTS":
       return { ...state, guests: action.guests };
-   case "SET_KNOWN_GUEST": {
+    case "SET_KNOWN_GUEST": {
       const existing = state.guests[0] ?? {};
       const hasData = !!(existing.nombre?.trim() || existing.numDoc?.trim());
       return {
@@ -160,7 +160,7 @@ export function checkinReducer(
       return {
         ...state,
         reserva: action.reserva,
-        bookingId: action.bookingId, // 👈 Persistimos el ID en tablet
+        bookingId: action.bookingId,
         clientId: action.clientId,
         numPersonas: action.reserva.numHuespedes,
         numAdultos: action.reserva.numHuespedes,
@@ -172,7 +172,7 @@ export function checkinReducer(
       return {
         ...state,
         reserva: action.reserva,
-        bookingId: action.bookingId, // 👈 Persistimos el ID en link flow
+        bookingId: action.bookingId,
         clientId: action.clientId,
         numPersonas: action.reserva.numHuespedes,
       };
@@ -429,9 +429,7 @@ export function useCheckin(tokenUrl?: string, stepUrl?: string) {
           clientId: result.clientId,
         });
 
-       
-
-       if (result.knownGuest) {
+        if (result.knownGuest) {
           dispatch({ type: "SET_KNOWN_GUEST", guest: result.knownGuest });
         }
         if (result.companions.length > 0) {
@@ -471,16 +469,11 @@ export function useCheckin(tokenUrl?: string, stepUrl?: string) {
     const yaAcepto =
       localStorage.getItem(`legalPassed_${token}`) === "true" ||
       state.legalPassed;
-    if (yaAcepto) {
-      let hist: HistoryEntry[] = [];
-      try {
-        const raw = localStorage.getItem(`history_${token}`);
-        if (raw) hist = JSON.parse(raw).data || [];
-      } catch (e) {
-        console.warn("No se pudo leer la historia para actualStep", e);
-      }
 
-      if (hist.length > 0) return hist[hist.length - 1].step;
+    if (yaAcepto) {
+      if (appHistory.length > 0) {
+        return appHistory[appHistory.length - 1].step;
+      }
       return "bienvenida";
     }
 
@@ -571,7 +564,7 @@ export function useCheckin(tokenUrl?: string, stepUrl?: string) {
     [goTo],
   );
 
- const dotSteps = useMemo(() => {
+  const dotSteps = useMemo(() => {
     return modoFlujo === "manual"
       ? FLOW_STEPS.filter((s) => s !== "escanear")
       : FLOW_STEPS;

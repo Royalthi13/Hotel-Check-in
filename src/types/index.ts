@@ -48,10 +48,6 @@ export interface GuestData {
   parentescoParaAPI?: string;
   esMenor: boolean;
   observations?: string;
-  vengoConMenores?: boolean;
-  tienesMenor?: boolean;
-  nombreMenor?: string;
-  relacionMenor?: string;
   relacionesConAdultos: RelacionConAdulto[];
 
   // Contacto (Huésped principal)
@@ -138,6 +134,5 @@ export interface CheckinActions {
   setRgpdAcepted: (v: boolean) => void;
   setLegalPassed: (v: boolean) => void;
   setHasMinorsFlag: (v: boolean) => void;
-  handleSubmit?: () => Promise<void>;
   setGuests: (guests: PartialGuestData[]) => void;
 }
