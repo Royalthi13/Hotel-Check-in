@@ -19,9 +19,12 @@ export interface CheckinContextValue {
   handleChooseMethod: (method: "scan" | "manual") => void;
   handleSubmit: () => Promise<void>;
   handlePartialSubmit: () => Promise<void>;
-  clearSubmitError: () => void;
-    accessVerified: boolean;
+  validationTrigger: number;
+  triggerFormValidation: () => void;
+ clearSubmitError: () => void;
+  accessVerified: boolean;
   setAccessVerified: (v: boolean) => void;
+
 }
 
 export const CheckinContext = createContext<CheckinContextValue | null>(null);

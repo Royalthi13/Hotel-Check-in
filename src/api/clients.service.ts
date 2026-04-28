@@ -76,6 +76,11 @@ export function toGuestData(c: ClientResponse): GuestData {
   const esMenor = c.birth ? dayjs().diff(dayjs(c.birth), "years") < 18 : false;
   const { apellido, apellido2 } = splitSurnames(c.surname);
 
+
+  const phoneStr = c.phone?.trim() ?? "";
+  const phoneMatch = phoneStr.match(/^(\+\d{1,3})\s+(.+)$/);
+  const prefijo = phoneMatch ? phoneMatch[1] : "+34";
+  const telefono = phoneMatch ? phoneMatch[2].replace(/\s/g, " ").trim() : phoneStr;
   return {
     id: c.id,
     nombre:    c.name    ?? "",
@@ -92,7 +97,8 @@ export function toGuestData(c: ClientResponse): GuestData {
     tipoDoc:      COD_TO_DOC[c.doc_type ?? ""] ?? "DNI",
 
     email:     c.email    ?? "",
-    telefono:  c.phone    ?? "",
+   prefijo: prefijo,
+    telefono: telefono,
     direccion: c.address  ?? "",
     ciudad:    c.city     ?? "",
     codCity:   c.cod_city ?? "",
