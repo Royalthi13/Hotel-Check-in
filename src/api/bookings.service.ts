@@ -1,6 +1,6 @@
 import { apiAuth } from "./axiosInstance";
 import type { Reserva } from "@/types";
-
+import { getClientById } from "./clients.service";
 export interface BookingSearch {
   id: number;
   room_id: number;
@@ -56,13 +56,11 @@ export async function getBookingById(bookingId: string | number): Promise<{
     raw: data,
     isAlreadyCheckedIn: data.pre_checking === true,
   };
-}
-export async function searchBookingByConfirmation(
+}export async function searchBookingByConfirmation(
   query: string,
-  apellidoInput: string,
+  contactoInput: string,
 ): Promise<{ reserva: Reserva; clientId: number | null; bookingId: number } | null> {
-  let resultEncontrado: Awaited<ReturnType<typeof getBookingById>> | null =
-    null;
+  let resultEncontrado: Awaited<ReturnType<typeof getBookingById>> | null = null;
   try {
     resultEncontrado = await getBookingById(query);
   } catch (e) {
@@ -72,24 +70,46 @@ export async function searchBookingByConfirmation(
 
   if (!resultEncontrado || !resultEncontrado.reserva) return null;
 
-  const apellidoLimpio = apellidoInput.trim().toLowerCase();
-  const apellidoReserva = (resultEncontrado.raw.client_surname || "")
-    .trim()
-    .toLowerCase();
-
-  if (
-    apellidoReserva.includes(apellidoLimpio) ||
-    apellidoLimpio.includes(apellidoReserva)
-  ) {
-   return {
+  // Si la reserva no tiene cliente vinculado todavía, no podemos verificar contacto
+  // por aquí; dejamos pasar y la verja anti-enumeración la hará el cliente cargado.
+  if (!resultEncontrado.clientId) {
+    return {
       reserva: resultEncontrado.reserva,
       clientId: resultEncontrado.clientId,
       bookingId: resultEncontrado.bookingId,
     };
   }
+
+  // Cargamos el cliente titular y verificamos email o últimas 3 cifras del teléfono
+  try {
+  const titular = await getClientById(resultEncontrado.clientId);
+
+    const input = contactoInput.trim().toLowerCase();
+    const onlyDigits = (s: string) => s.replace(/\D/g, "");
+
+    const emailMatch =
+      !!titular.email && titular.email.trim().toLowerCase() === input;
+
+    const inputDigits = onlyDigits(contactoInput);
+    const phoneDigits = onlyDigits(titular.telefono ?? "");
+    const phoneMatch =
+      phoneDigits.length >= 3 &&
+      inputDigits.length >= 3 &&
+      phoneDigits.endsWith(inputDigits.slice(-Math.min(inputDigits.length, phoneDigits.length)));
+
+    if (emailMatch || phoneMatch) {
+      return {
+        reserva: resultEncontrado.reserva,
+        clientId: resultEncontrado.clientId,
+        bookingId: resultEncontrado.bookingId,
+      };
+    }
+  } catch (e) {
+    if (import.meta.env.DEV) console.warn("Error verificando titular:", e);
+  }
+
   return null;
 }
-
 /**
  * ACTUALIZACIÓN: Ahora acepta clientId en el payload para vinculación explícita
  */
