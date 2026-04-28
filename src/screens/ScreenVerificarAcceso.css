@@ -1,0 +1,131 @@
+/* ScreenVerificarAcceso.css */
+
+/* =========================================
+   1. ESTILOS BASE (Desktop / Tablet)
+   ========================================= */
+.verify-screen {
+  padding: 0 0 40px 0;
+  background-color: #fafafa;
+  min-height: 100vh;
+}
+
+.verify-hero {
+  position: relative;
+  padding: 60px 24px 40px; /* Más aire arriba y abajo en el hero */
+  border-radius: 0 0 24px 24px;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
+  /* 🔥 IMPORTANTE: Quitamos cualquier posible overflow oculto para que el menú respire */
+  overflow: visible !important;
+}
+
+/* 🔥 FIX: Posicionamiento con aire real y visibilidad total */
+.verify-lang-wrapper {
+  position: absolute;
+  top: 30px;
+  right: 50px; /* Aire generoso en los laterales */
+  z-index: 9999; /* Por encima de TODO */
+}
+
+/* Aseguramos que el dropdown del selector no se corte */
+.verify-lang-wrapper .lang-dropdown {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 8px;
+  z-index: 10000;
+}
+
+.verify-title-margin {
+  margin-top: 20px;
+  margin-bottom: 12px;
+}
+
+.verify-sub-opacity {
+  opacity: 0.8;
+}
+
+.verify-sub-strong {
+  color: #fff;
+}
+
+.verify-content {
+  padding: 40px 24px 0; /* Más aire entre el hero y el texto */
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  max-width: 500px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.verify-instruction {
+  font-size: 15px;
+  color: #6b7280;
+  line-height: 1.6;
+  margin-bottom: 24px;
+  text-align: center;
+}
+
+.verify-input {
+  height: 56px;
+  background-color: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.02);
+  width: 100%;
+}
+
+.verify-input:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(var(--primary-rgb), 0.1);
+}
+
+.verify-input--email {
+  text-align: left;
+  padding: 0 16px;
+  font-size: 16px;
+}
+
+.verify-btn-wrapper {
+  padding: 0 24px;
+  max-width: 500px;
+  margin: 0 auto;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+}
+
+/* Botón al 100% del ancho del contenedor (igual que el input) */
+.verify-btn-wrapper > button {
+  width: 100%;
+  height: 56px;
+  font-weight: 600;
+  font-size: 16px;
+}
+
+.verify-btn-active {
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+}
+
+/* =========================================
+   2. MODO MÓVIL
+   ========================================= */
+@media (max-width: 480px) {
+  .verify-hero {
+    padding: 40px 16px 30px;
+  }
+
+  .verify-lang-wrapper {
+    top: 15px;
+    right: 15px;
+  }
+
+  .verify-content {
+    padding: 30px 20px 0;
+  }
+
+  .verify-btn-wrapper {
+    padding: 0 20px;
+  }
+}
