@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Field, Button, Alert, Icon } from "@/components/ui";
+import { LanguageSelector } from "../components/LanguageSelector";
 
 interface Props {
   mode: "email" | "phone";
@@ -31,12 +32,9 @@ export const ScreenVerificarAcceso: React.FC<Props> = ({
     if (mode === "email") {
       ok = !!val.trim() && norm(val) === norm(expected);
     } else {
-      // últimas 3 cifras del teléfono
       const last3Esperado = onlyDigits(expected).slice(-3);
       const last3Introducido = onlyDigits(val).slice(-3);
-      ok =
-        last3Esperado.length === 3 &&
-        last3Introducido === last3Esperado;
+      ok = last3Esperado.length === 3 && last3Introducido === last3Esperado;
     }
     if (ok) {
       onSuccess();
@@ -53,12 +51,27 @@ export const ScreenVerificarAcceso: React.FC<Props> = ({
 
   const label =
     mode === "email" ? t("forms.email") : t("verification.phone_last3_label");
-  const placeholder =
-    mode === "email" ? "nombre@email.com" : "•••";
+
+  const placeholder = mode === "email" ? t("forms.email_placeholder") : "•••";
 
   return (
-    <form onSubmit={handleSubmit} className="screen" style={{ padding: "40px 24px" }}>
-      <div className="tablet-hero">
+    <form
+      onSubmit={handleSubmit}
+      className="screen"
+      style={{ padding: "40px 24px" }}
+    >
+      <div className="tablet-hero" style={{ position: "relative" }}>
+        <div
+          style={{
+            position: "absolute",
+            top: "16px",
+            right: "16px",
+            zIndex: 10,
+          }}
+        >
+          <LanguageSelector />
+        </div>
+
         <div className="tablet-big-icon">
           <Icon name="lock" size={28} color="var(--primary)" />
         </div>
@@ -67,8 +80,25 @@ export const ScreenVerificarAcceso: React.FC<Props> = ({
           {t("verification.booking_label")}: {bookingRef}
         </p>
       </div>
+
       <div style={{ padding: "28px 24px 0", flex: 1 }}>
+        {/* ✨ NUEVO: Helper text explicativo para dar contexto al usuario */}
+        <p
+          style={{
+            fontSize: "15px",
+            color: "var(--text-muted, #666)", // Usa tu variable de color suave si tienes, o #666
+            lineHeight: 1.5,
+            marginBottom: "24px",
+            textAlign: "center",
+          }}
+        >
+          {mode === "email"
+            ? t("verification.instruction_email")
+            : t("verification.instruction_phone")}
+        </p>
+
         {err && <Alert variant="err">{err}</Alert>}
+
         <Field label={label} required>
           <input
             type={mode === "email" ? "email" : "tel"}
@@ -76,7 +106,9 @@ export const ScreenVerificarAcceso: React.FC<Props> = ({
             value={val}
             onChange={(e) => {
               setVal(
-                mode === "phone" ? e.target.value.replace(/\D/g, "").slice(0, 3) : e.target.value,
+                mode === "phone"
+                  ? e.target.value.replace(/\D/g, "").slice(0, 3)
+                  : e.target.value,
               );
               setErr("");
             }}
@@ -92,9 +124,16 @@ export const ScreenVerificarAcceso: React.FC<Props> = ({
           />
         </Field>
       </div>
+
       <div className="spacer" />
+
       <div className="btn-row">
-        <Button variant="primary" type="submit" iconRight="right" disabled={!val.trim()}>
+        <Button
+          variant="primary"
+          type="submit"
+          iconRight="right"
+          disabled={!val.trim()}
+        >
           {t("verification.button_submit")}
         </Button>
       </div>

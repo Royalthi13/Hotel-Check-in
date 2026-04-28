@@ -158,7 +158,8 @@
     "copy_link": "Link zum Teilen kopieren",
     "copied": "Link kopiert!",
     "offline": "Es scheint, als hätten Sie Ihre Internetverbindung verloren."
-  },"appShell": {
+  },
+  "appShell": {
     "subtitle": "Schließen Sie Ihren Pre-Check-in ab und kommen Sie ohne Wartezeiten an der Rezeption im Hotel an.",
     "fix_errors_tooltip": "Bitte korrigieren Sie die Formularfehler, bevor Sie fortfahren",
     "booking_summary": "Buchungsübersicht",
@@ -209,6 +210,8 @@
     "error_server": "Verbindungsfehler zum Server."
   },
   "verification": {
+    "instruction_email": "Geben Sie zu Ihrer Sicherheit bitte die für die Buchung verwendete E-Mail-Adresse ein, um Ihre Identität zu überprüfen.",
+    "instruction_phone": "Geben Sie zu Ihrer Sicherheit bitte die letzten 3 Ziffern der mit der Buchung verknüpften Telefonnummer ein.",
     "title": "Sicherer Zugang",
     "booking_label": "Buchung",
     "surname_label": "Nachname des Hauptgasts",
@@ -273,6 +276,7 @@
     "card_manual_sub_known": "Überprüfen Sie Ihre gespeicherten Daten."
   },
   "forms": {
+    "email_placeholder": "name@email.com",
     "adult_tag": " - Erwachsener",
     "invalid_date_title": "Falsches Datum!",
     "adult_must_be_18": "Ein Erwachsener muss mindestens 18 sein.",

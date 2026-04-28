@@ -251,6 +251,7 @@
     "card_manual_sub_known": "Vérifiez les données que nous avons enregistrées."
   },
   "forms": {
+    "email_placeholder": "nom@email.com",
     "adult_tag": " - Adulte",
     "invalid_date_title": "Date incorrecte !",
     "adult_must_be_18": "Un adulte doit avoir au moins 18 ans.",
@@ -399,6 +400,8 @@
     "error_server": "Erreur de connexion au serveur."
   },
   "verification": {
+    "instruction_email": "Pour votre sécurité, veuillez saisir l'e-mail utilisé lors de la réservation pour vérifier votre identité.",
+    "instruction_phone": "Pour votre sécurité, veuillez saisir les 3 derniers chiffres du numéro de téléphone associé à la réservation.",
     "title": "Accès Sécurisé",
     "booking_label": "Réservation",
     "surname_label": "Nom du titulaire",

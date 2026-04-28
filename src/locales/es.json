@@ -201,7 +201,7 @@
     "required_email_or_phone": "Introduce al menos un email o teléfono",
     "invalid_dni": "DNI no válido. Formato: 8 dígitos + letra (ej: 12345678Z)",
     "invalid_nie": "NIE no válido. Formato: X/Y/Z + 7 dígitos + letra (ej: X1234567Z)",
- "invalid_passport": "Pasaporte no válido. Debe tener entre 6 y 15 caracteres alfanuméricos.",
+    "invalid_passport": "Pasaporte no válido. Debe tener entre 6 y 15 caracteres alfanuméricos.",
     "invalid_cif": "CIF no válido. Formato: letra + 7 dígitos + letra/dígito (ej: A1234567B)",
     "invalid_license": "Carnet no válido. Formato esperado: hasta 2 letras + 8 dígitos + letras",
     "doc_too_short": "El número de documento parece demasiado corto",
@@ -260,6 +260,7 @@
   },
 
   "forms": {
+    "email_placeholder": "nombre@email.com",
     "adult_tag": " - Adulto",
     "invalid_date_title": "¡Fecha incorrecta!",
     "adult_must_be_18": "Un adulto debe tener al menos 18 años.",
@@ -403,6 +404,8 @@
     "btn_add_time": "Añadir hora de llegada"
   },
   "verification": {
+    "instruction_email": "Por su seguridad, introduzca el email con el que realizó la reserva para verificar su identidad.",
+    "instruction_phone": "Por su seguridad, introduzca los últimos 3 dígitos del teléfono asociado a la reserva.",
     "title": "Acceso Seguro",
     "booking_label": "Reserva",
     "surname_label": "Primer apellido del titular",
@@ -448,7 +451,7 @@
   "checkin": {
     "error_invalid_reservation": "No se pudo identificar la reserva. El enlace puede haber caducado o ser incorrecto."
   },
-"errorBoundary": {
+  "errorBoundary": {
     "unknown_error": "Se ha producido un error desconocido.",
     "title": "Algo ha salido mal",
     "subtitle": "Se ha producido un error inesperado. Sus datos no se han perdido — puede intentar continuar o recargar la página.",

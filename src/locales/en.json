@@ -192,7 +192,7 @@
     "required_email_or_phone": "Please enter at least an email or phone number",
     "invalid_dni": "Invalid ID. Format: 8 digits + letter",
     "invalid_nie": "Invalid NIE. Format: X/Y/Z + 7 digits + letter",
-  "invalid_passport": "Invalid Passport. Must be 6-15 alphanumeric characters",
+    "invalid_passport": "Invalid Passport. Must be 6-15 alphanumeric characters",
     "invalid_cif": "Invalid CIF. Format: letter + 7 digits + letter/digit",
     "invalid_license": "Invalid License. Expected format: up to 2 letters + 8 digits + letters",
     "doc_too_short": "Document number seems too short",
@@ -202,6 +202,8 @@
     "duplicate_doc": "This document has already been registered for another guest."
   },
   "verification": {
+    "instruction_email": "For your security, please enter the email used for this booking to verify your identity.",
+    "instruction_phone": "For your security, please enter the last 3 digits of the phone number associated with this booking.",
     "title": "Secure Access",
     "booking_label": "Booking",
     "surname_label": "Lead guest's last name",
@@ -266,6 +268,7 @@
     "card_manual_sub_known": "Check the data we have saved and confirm or modify it."
   },
   "forms": {
+    "email_placeholder": "name@email.com",
     "adult_tag": " - Adult",
     "invalid_date_title": "Invalid date!",
     "adult_must_be_18": "An adult must be at least 18 years old.",

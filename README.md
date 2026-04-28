@@ -1,7 +1,11 @@
 # 🏨 Lumina Hotels — Sistema de Pre-Check-in Online
 
 Plataforma web de alto rendimiento desarrollada en **React 19 + TypeScript + Vite**, diseñada para digitalizar y agilizar el proceso de recepción en hoteles boutique. Funciona en dos modos: enlace mágico enviado por email al huésped, y quiosco táctil en recepción.
+# 🏨 Lumina Hotels — Sistema de Pre-Check-in Online
 
+Plataforma web de alto rendimiento desarrollada en **React 19 + TypeScript + Vite**, diseñada para digitalizar y agilizar el proceso de recepción en hoteles boutique. Funciona en dos modos: enlace mágico enviado por email al huésped, y quiosco táctil en recepción.
+
+---
 ---
 
 ## 🌟 Características Principales
@@ -79,6 +83,16 @@ CheckinState
 
 El **dot-slider** (móvil) es un `motion.div` arrastrable de Framer Motion. `goToDotIndex` en el panel lateral (escritorio) comparte la misma lógica de validación previa.
 
+### Auth
+
+Dos flujos de autenticación con la misma instancia de Axios (`apiAuth`):
+
+- **Link mágico** — `loginMagicLink()` hace login con credenciales de servicio (`VITE_SERVICE_USER` / `VITE_SERVICE_PASS`) y guarda el JWT en `sessionStorage`. El token del enlace es el `booking_id`, no un JWT.
+- **Staff/tablet** — `login(username, password)` estándar con opción de persistencia en `localStorage`.
+
+El interceptor de respuesta en `apiAuth` detecta 401 y dispara el evento `AUTH_EXPIRED`, que `AuthExpiredWatcher` captura para navegar a `/invalid` sin recargar la página.
+
+---
 ### Auth
 
 Dos flujos de autenticación con la misma instancia de Axios (`apiAuth`):

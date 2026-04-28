@@ -312,9 +312,11 @@ function mrzToGuest(parsed: ParseResult): Partial<PartialGuestData> {
   const rawFirst = (f.firstName ?? "").trim();
   const allWords = `${rawLast} ${rawFirst}`.split(/\s+/).filter(Boolean);
   if (allWords.length > 0) {
-    let ap1 = allWords[0],
-      ap2 = "",
-      nom = "";
+    // FIX: Cambiamos 'let ap1' por 'const ap1' y separamos las variables
+    const ap1 = allWords[0];
+    let ap2 = "";
+    let nom = "";
+
     const particles = ["DE", "DEL", "LA", "LAS", "LOS"];
     if (isSpanish) {
       if (
@@ -395,7 +397,8 @@ function parseDniBackAddress(text: string): Partial<PartialGuestData> {
     .toUpperCase()
     .replace(/[\n\r]/g, " ")
     .replace(/[/\\_|]/g, " ")
-    .replace(/[^A-Z0-9ÑÁÉÍÓÚÜºª., \-]/g, " ");
+    // FIX: Eliminada la barra de escape innecesaria en el guión (-)
+    .replace(/[^A-Z0-9ÑÁÉÍÓÚÜºª., -]/g, " ");
 
   // 🛑 1. CORTAFUEGOS MEJORADO (Hijo, Nacimiento, ESP)
   let cutIndex = clean.length;
@@ -466,8 +469,9 @@ function parseDniBackAddress(text: string): Partial<PartialGuestData> {
 
   // 🏛️ 5. ASIGNACIÓN FINAL Y LIMPIEZA DE CIUDAD
   if (pivotIndex !== -1) {
-    let rawStreet = words.slice(0, pivotIndex).join(" ");
-    let rawNumber = words[pivotIndex];
+    // FIX: Cambiados 'let' por 'const' al no ser reasignados
+    const rawStreet = words.slice(0, pivotIndex).join(" ");
+    const rawNumber = words[pivotIndex];
 
     const translateMap: Record<string, string> = {
       S: "5",
@@ -477,7 +481,8 @@ function parseDniBackAddress(text: string): Partial<PartialGuestData> {
       l: "1",
       I: "1",
     };
-    let cleanNumber = rawNumber.replace(
+    // FIX: Cambiado 'let' por 'const'
+    const cleanNumber = rawNumber.replace(
       /[SBOZlI]/g,
       (m) => translateMap[m] || m,
     );
@@ -490,7 +495,8 @@ function parseDniBackAddress(text: string): Partial<PartialGuestData> {
       cityWords = cityWords.slice(0, 5);
     }
 
-    let rawCity = cityWords.join(" ");
+    // FIX: Cambiado 'let' por 'const'
+    const rawCity = cityWords.join(" ");
     if (rawCity) out.ciudad = rawCity;
   } else {
     out.direccion = titleCase(clean);
@@ -723,21 +729,19 @@ export function useDocumentOCR() {
         try {
           setFase(t("ocr.fix_orientation"), 8);
           exifBlob = await loadExifCorrectedBlob(file);
-        } catch (err) {
+          // FIX: Eliminada la captura de variable 'err' sin usar
+        } catch {
           return { ok: false, error: t("ocr.err_format") };
         }
 
         let mrzVariants: PrepVariant[];
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        let grey: any, width: number, height: number;
         try {
           setFase(t("ocr.analyzing"), 13);
           const built = await buildMrzVariants(exifBlob);
           mrzVariants = built.variants;
-          grey = built.grey;
-          width = built.width;
-          height = built.height;
-        } catch (err) {
+          // FIX: Eliminada la extracción de grey, width y height que luego no se usaban en ninguna parte del hook.
+          // FIX: Eliminada la captura de variable 'err' sin usar
+        } catch {
           return { ok: false, error: t("ocr.err_size") };
         }
 
@@ -777,7 +781,8 @@ export function useDocumentOCR() {
             const cands = extractCandidates(text);
             const cand = findBestMRZ(cands);
             if (cand && (!best || cand.score > best.score)) best = cand;
-          } catch (err) {
+            // FIX: Eliminada la captura de variable 'err' sin usar
+          } catch {
             /* */
           }
 

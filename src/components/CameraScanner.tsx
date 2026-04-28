@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useState } from "react";
+import React, { useRef, useEffect } from "react";
 
 interface CameraScannerProps {
   onCapture: (blob: Blob) => void;
@@ -11,10 +11,11 @@ export const CameraScanner: React.FC<CameraScannerProps> = ({
 }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [stream, setStream] = useState<MediaStream | null>(null);
 
   // Iniciar cámara
   useEffect(() => {
+    let activeStream: MediaStream | null = null;
+
     async function startCamera() {
       try {
         const s = await navigator.mediaDevices.getUserMedia({
@@ -24,14 +25,21 @@ export const CameraScanner: React.FC<CameraScannerProps> = ({
             height: { ideal: 1080 },
           },
         });
-        setStream(s);
+
+        activeStream = s;
+
         if (videoRef.current) videoRef.current.srcObject = s;
       } catch (err) {
         console.error("Error acceso cámara:", err);
       }
     }
     startCamera();
-    return () => stream?.getTracks().forEach((t) => t.stop());
+
+    return () => {
+      if (activeStream) {
+        activeStream.getTracks().forEach((t) => t.stop());
+      }
+    };
   }, []);
 
   const capturePhoto = () => {
@@ -42,7 +50,6 @@ export const CameraScanner: React.FC<CameraScannerProps> = ({
     const ctx = canvas.getContext("2d")!;
 
     // 1. Definimos el "Rectángulo de interés" (donde está el marco en la UI)
-    // Supongamos que el DNI ocupa el 80% del ancho y está centrado.
     const cropWidth = video.videoWidth * 0.8;
     const cropHeight = cropWidth * 0.63; // Proporción ID-1 (DNI)
     const startX = (video.videoWidth - cropWidth) / 2;
@@ -52,7 +59,6 @@ export const CameraScanner: React.FC<CameraScannerProps> = ({
     canvas.height = cropHeight;
 
     // 2. CAPTURA + ENHANCE (Mejora de imagen)
-    // Aplicamos un poco de contraste y nitidez vía filtros de Canvas
     ctx.filter = "contrast(1.2) brightness(1.1) saturate(0.8)";
 
     ctx.drawImage(
@@ -80,7 +86,7 @@ export const CameraScanner: React.FC<CameraScannerProps> = ({
     <div style={styles.container}>
       <video ref={videoRef} autoPlay playsInline style={styles.video} />
 
-      {/* 🖼️ EL MARCO GUÍA (Overlay) */}
+      {/* 🖼️ EL MARCO GUÍA */}
       <div style={styles.overlay}>
         <div style={styles.guideBox}>
           <div style={styles.cornerTopLeft} />
@@ -118,7 +124,7 @@ const styles: Record<string, React.CSSProperties> = {
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "rgba(0,0,0,0.5)", // Oscurece fuera del marco
+    backgroundColor: "rgba(0,0,0,0.5)",
   },
   guideBox: {
     width: "85vw",

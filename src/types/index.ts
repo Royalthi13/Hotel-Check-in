@@ -6,17 +6,13 @@ export type StepId =
   | "tablet_buscar"
   | "inicio"
   | "bienvenida"
-  | "confirmar_datos"
   | "escanear"
   | "form_personal"
   | "form_contacto"
-  | "form_documento"
   | "form_relaciones"
-  | "num_personas"
   | "form_extras"
   | "revision"
   | "exito";
-
 
 export interface RelacionDB {
   codrelation: string;
