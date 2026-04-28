@@ -1,13 +1,16 @@
 # 🏨 Lumina Hotels — Sistema de Pre-Check-in Online
 
 Plataforma web de alto rendimiento desarrollada en **React 19 + TypeScript + Vite**, diseñada para digitalizar y agilizar el proceso de recepción en hoteles boutique. Funciona en dos modos: enlace mágico enviado por email al huésped, y quiosco táctil en recepción.
+# 🏨 Lumina Hotels — Sistema de Pre-Check-in Online
 
+Plataforma web de alto rendimiento desarrollada en **React 19 + TypeScript + Vite**, diseñada para digitalizar y agilizar el proceso de recepción en hoteles boutique. Funciona en dos modos: enlace mágico enviado por email al huésped, y quiosco táctil en recepción.
+
+---
 ---
 
 ## 🌟 Características Principales
 
 ### Flujo del Huésped (Link Mode)
-
 - **Verificación de acceso anti-enumeración** — al entrar por enlace mágico se solicita email o últimas 3 cifras del teléfono antes de mostrar ningún dato de la reserva.
 - **Wizard paso a paso** — Inicio legal → Bienvenida → Escaneo/Manual → Datos Personales → Contacto → Relaciones (menores) → Extras → Revisión → Éxito.
 - **Escáner de documentos con OCR** — captura por cámara o galería, pre-procesado con `image-js` y lectura de zona MRZ mediante `tesseract.js`. Extrae nombre, apellidos, fecha de nacimiento, sexo, número de documento, número de soporte y domicilio (con normalización fuzzy de municipios).
@@ -17,19 +20,16 @@ Plataforma web de alto rendimiento desarrollada en **React 19 + TypeScript + Vit
 - **Revisión y envío final** — pantalla de resumen con edición inline de cualquier bloque antes del envío definitivo.
 
 ### Modo Tablet / Kiosko (Staff)
-
 - **Búsqueda por número de reserva + contacto** — el personal introduce el ID de reserva y el email/teléfono del titular para localizarla.
 - **Arranque directo** en `/checkin/new` o `/checkin/kiosko/tablet_buscar`.
 
 ### Internacionalización completa (i18n)
-
 - **6 idiomas**: Español, Inglés, Francés, Alemán, Portugués, Italiano.
 - Detección automática del navegador, con persistencia en `localStorage`.
 - Traducciones para todos los textos de UI, mensajes de error, nombres de países, nacionalidades, tipos de documento, sexo, horas de llegada y códigos de parentesco.
 - Fechas de reserva localizadas con `Day.js` vinculado al idioma activo.
 
 ### Validación de Documentos
-
 - **DNI / NIF** — 8 dígitos + letra de control (módulo 23).
 - **NIE** — X/Y/Z + 7 dígitos + letra de control.
 - **CIF** — letra organizativa + 7 dígitos + dígito/letra de control.
@@ -41,19 +41,19 @@ Plataforma web de alto rendimiento desarrollada en **React 19 + TypeScript + Vit
 
 ## 🚀 Stack Tecnológico
 
-| Capa          | Tecnología                                                        |
-| ------------- | ----------------------------------------------------------------- |
-| Core          | React 19 · TypeScript · Vite                                      |
-| Estado global | Context API (`CheckinContext` + `useCheckin` reducer)             |
-| Enrutamiento  | React Router DOM v7                                               |
-| UI Components | Material-UI (MUI v7) — DatePicker, Autocomplete, Dialog, Menu     |
-| Animaciones   | Framer Motion (transiciones de pantalla + dot-slider arrastrable) |
-| Estilos       | CSS Modules + variables CSS globales                              |
-| i18n          | i18next + react-i18next + i18next-browser-languagedetector        |
-| Fechas        | Day.js con localización dinámica                                  |
-| OCR           | Tesseract.js (eng + spa) + image-js + mrz (parser MRZ)            |
-| HTTP          | Axios con interceptores de auth y gestión de errores              |
-| Flags         | flag-icons (CSS) + flagcdn.com (imágenes dinámicas)               |
+| Capa | Tecnología |
+|---|---|
+| Core | React 19 · TypeScript · Vite |
+| Estado global | Context API (`CheckinContext` + `useCheckin` reducer) |
+| Enrutamiento | React Router DOM v7 |
+| UI Components | Material-UI (MUI v7) — DatePicker, Autocomplete, Dialog, Menu |
+| Animaciones | Framer Motion (transiciones de pantalla + dot-slider arrastrable) |
+| Estilos | CSS Modules + variables CSS globales |
+| i18n | i18next + react-i18next + i18next-browser-languagedetector |
+| Fechas | Day.js con localización dinámica |
+| OCR | Tesseract.js (eng + spa) + image-js + mrz (parser MRZ) |
+| HTTP | Axios con interceptores de auth y gestión de errores |
+| Flags | flag-icons (CSS) + flagcdn.com (imágenes dinámicas) |
 
 ---
 
@@ -83,6 +83,16 @@ CheckinState
 
 El **dot-slider** (móvil) es un `motion.div` arrastrable de Framer Motion. `goToDotIndex` en el panel lateral (escritorio) comparte la misma lógica de validación previa.
 
+### Auth
+
+Dos flujos de autenticación con la misma instancia de Axios (`apiAuth`):
+
+- **Link mágico** — `loginMagicLink()` hace login con credenciales de servicio (`VITE_SERVICE_USER` / `VITE_SERVICE_PASS`) y guarda el JWT en `sessionStorage`. El token del enlace es el `booking_id`, no un JWT.
+- **Staff/tablet** — `login(username, password)` estándar con opción de persistencia en `localStorage`.
+
+El interceptor de respuesta en `apiAuth` detecta 401 y dispara el evento `AUTH_EXPIRED`, que `AuthExpiredWatcher` captura para navegar a `/invalid` sin recargar la página.
+
+---
 ### Auth
 
 Dos flujos de autenticación con la misma instancia de Axios (`apiAuth`):
@@ -164,48 +174,42 @@ src/
 Base URL configurable via `VITE_API_URL` (fallback a `/api`).
 
 ### Autenticación
-
-| Método | Endpoint            | Descripción                                                |
-| ------ | ------------------- | ---------------------------------------------------------- |
-| `POST` | `/auth/token`       | Login estándar (form-urlencoded). Devuelve `access_token`. |
-| `POST` | `/auth/guest-login` | Login de huésped con `booking_id` + `surname`.             |
+| Método | Endpoint | Descripción |
+|---|---|---|
+| `POST` | `/auth/token` | Login estándar (form-urlencoded). Devuelve `access_token`. |
+| `POST` | `/auth/guest-login` | Login de huésped con `booking_id` + `surname`. |
 
 ### Reservas
-
-| Método | Endpoint         | Descripción                                                                         |
-| ------ | ---------------- | ----------------------------------------------------------------------------------- |
-| `GET`  | `/bookings/{id}` | Obtiene reserva por ID. Devuelve `BookingSearch` completo.                          |
-| `PUT`  | `/bookings/{id}` | Actualiza reserva (marca `pre_checking: true`, añade `notes`, vincula `client_id`). |
+| Método | Endpoint | Descripción |
+|---|---|---|
+| `GET` | `/bookings/{id}` | Obtiene reserva por ID. Devuelve `BookingSearch` completo. |
+| `PUT` | `/bookings/{id}` | Actualiza reserva (marca `pre_checking: true`, añade `notes`, vincula `client_id`). |
 
 ### Clientes
-
-| Método | Endpoint        | Descripción                            |
-| ------ | --------------- | -------------------------------------- |
-| `GET`  | `/clients/{id}` | Obtiene datos completos de un cliente. |
-| `POST` | `/clients`      | Crea nuevo cliente. Devuelve `{ id }`. |
-| `PUT`  | `/clients/{id}` | Actualiza cliente existente.           |
+| Método | Endpoint | Descripción |
+|---|---|---|
+| `GET` | `/clients/{id}` | Obtiene datos completos de un cliente. |
+| `POST` | `/clients` | Crea nuevo cliente. Devuelve `{ id }`. |
+| `PUT` | `/clients/{id}` | Actualiza cliente existente. |
 
 ### Acompañantes
-
-| Método   | Endpoint                          | Descripción                                                         |
-| -------- | --------------------------------- | ------------------------------------------------------------------- |
-| `GET`    | `/companions/booking/{bookingId}` | Lista acompañantes de una reserva.                                  |
-| `POST`   | `/companions`                     | Crea vínculo acompañante (`booking_id`, `client_id`, `parentesco`). |
-| `DELETE` | `/companions/{id}`                | Elimina vínculo acompañante.                                        |
+| Método | Endpoint | Descripción |
+|---|---|---|
+| `GET` | `/companions/booking/{bookingId}` | Lista acompañantes de una reserva. |
+| `POST` | `/companions` | Crea vínculo acompañante (`booking_id`, `client_id`, `parentesco`). |
+| `DELETE` | `/companions/{id}` | Elimina vínculo acompañante. |
 
 ### Catálogos (con caché en memoria)
-
-| Método | Endpoint          | Descripción                                                              |
-| ------ | ----------------- | ------------------------------------------------------------------------ |
-| `GET`  | `/countries`      | Lista de países (`codpais`, `name`). Ordenada alfabéticamente.           |
-| `GET`  | `/documents_type` | Tipos de documento (`coddoc`, `name`).                                   |
-| `GET`  | `/relationships`  | Tipos de relación/parentesco (`codrelation`, `name`, `linked_relation`). |
+| Método | Endpoint | Descripción |
+|---|---|---|
+| `GET` | `/countries` | Lista de países (`codpais`, `name`). Ordenada alfabéticamente. |
+| `GET` | `/documents_type` | Tipos de documento (`coddoc`, `name`). |
+| `GET` | `/relationships` | Tipos de relación/parentesco (`codrelation`, `name`, `linked_relation`). |
 
 ### Municipios
-
-| Método | Endpoint              | Descripción                                                                                                              |
-| ------ | --------------------- | ------------------------------------------------------------------------------------------------------------------------ |
-| `GET`  | `/cities/name/{name}` | Búsqueda de municipios españoles por nombre. Devuelve `codcity` (código INE) + `name`. Retorna 204 si no hay resultados. |
+| Método | Endpoint | Descripción |
+|---|---|---|
+| `GET` | `/cities/name/{name}` | Búsqueda de municipios españoles por nombre. Devuelve `codcity` (código INE) + `name`. Retorna 204 si no hay resultados. |
 
 ---
 
@@ -226,18 +230,18 @@ El envío final en `checkin.service.ts` ejecuta estos pasos en orden:
 
 ## 🗺️ Mapeos DB ↔ Frontend (`clients.service.ts`)
 
-| Campo DB                | Campo Frontend                       | Ejemplo                                    |
-| ----------------------- | ------------------------------------ | ------------------------------------------ |
-| `country` (codpais)     | `pais` (ISO2)                        | `"ESP"` → `"ES"`                           |
-| `nationality` (codpais) | `nacionalidad` (label)               | `"ESP"` → `"Española"`                     |
-| `doc_type`              | `tipoDoc`                            | `"NIF"` → `"DNI"`, `"PAS"` → `"Pasaporte"` |
-| `vat`                   | `numDoc`                             | número del documento                       |
-| `doc_support`           | `soporteDoc`                         | número de soporte                          |
-| `sex`                   | `sexo`                               | `"M"` → `"Hombre"`, `"F"` → `"Mujer"`      |
-| `surname`               | `apellido` + `apellido2`             | split via `splitSurnames()`                |
-| `phone`                 | `prefijo` + `telefono`               | `"+34 612 34 56 78"`                       |
-| `relationship`          | `relacionesConAdultos[0].parentesco` | `"HJ"`, `"TU"`, etc.                       |
-| `cod_city`              | `codCity`                            | código INE del municipio                   |
+| Campo DB | Campo Frontend | Ejemplo |
+|---|---|---|
+| `country` (codpais) | `pais` (ISO2) | `"ESP"` → `"ES"` |
+| `nationality` (codpais) | `nacionalidad` (label) | `"ESP"` → `"Española"` |
+| `doc_type` | `tipoDoc` | `"NIF"` → `"DNI"`, `"PAS"` → `"Pasaporte"` |
+| `vat` | `numDoc` | número del documento |
+| `doc_support` | `soporteDoc` | número de soporte |
+| `sex` | `sexo` | `"M"` → `"Hombre"`, `"F"` → `"Mujer"` |
+| `surname` | `apellido` + `apellido2` | split via `splitSurnames()` |
+| `phone` | `prefijo` + `telefono` | `"+34 612 34 56 78"` |
+| `relationship` | `relacionesConAdultos[0].parentesco` | `"HJ"`, `"TU"`, etc. |
+| `cod_city` | `codCity` | código INE del municipio |
 
 ---
 
@@ -289,15 +293,15 @@ VITE_SERVICE_PASS=service_password          # Contraseña para login mágico
 
 ## 🚦 Rutas
 
-| Ruta                            | Descripción                                           |
-| ------------------------------- | ----------------------------------------------------- |
-| `/`                             | Redirige a `/checkin/new`                             |
-| `/checkin/new`                  | Modo tablet — muestra `ScreenTabletBuscar`            |
-| `/checkin/:token`               | Modo link — carga reserva por token (= booking_id)    |
-| `/checkin/:token/:step`         | Paso específico del wizard (permite restaurar sesión) |
-| `/checkin/kiosko/tablet_buscar` | Acceso directo al kiosko de staff                     |
-| `/invalid`                      | Enlace inválido o sesión expirada                     |
-| `*`                             | Fallback a `/invalid`                                 |
+| Ruta | Descripción |
+|---|---|
+| `/` | Redirige a `/checkin/new` |
+| `/checkin/new` | Modo tablet — muestra `ScreenTabletBuscar` |
+| `/checkin/:token` | Modo link — carga reserva por token (= booking_id) |
+| `/checkin/:token/:step` | Paso específico del wizard (permite restaurar sesión) |
+| `/checkin/kiosko/tablet_buscar` | Acceso directo al kiosko de staff |
+| `/invalid` | Enlace inválido o sesión expirada |
+| `*` | Fallback a `/invalid` |
 
 ---
 

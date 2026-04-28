@@ -10,7 +10,7 @@ interface Props {
     bookingId: number,
     clientId: number | null,
   ) => void;
-  
+ 
 }
 
 export const ScreenTabletBuscar: React.FC<Props> = ({ onFound }) => {
