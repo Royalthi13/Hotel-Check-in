@@ -65,10 +65,4 @@ export async function getRelationships(): Promise<RelacionDB[]> {
   return result;
 }
 
-// ── 4. UTILIDADES ──────────────────────────────────────────────────
 
-export function clearCatalogsCache(): void {
-  delete cache.countries;
-  delete cache.documentTypes;
-  delete cache.relationships;
-}

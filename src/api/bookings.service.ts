@@ -66,7 +66,8 @@ export async function searchBookingByConfirmation(
   try {
     resultEncontrado = await getBookingById(query);
   } catch (e) {
-    console.warn("Error en búsqueda directa:", e);
+    if (import.meta.env.DEV) console.warn("Error en búsqueda directa:", e);
+    return null;
   }
 
   if (!resultEncontrado || !resultEncontrado.reserva) return null;

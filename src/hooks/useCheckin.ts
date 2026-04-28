@@ -12,7 +12,7 @@ import type {
   NavDirection,
   CheckinActions,
 } from "@/types";
-import { FLOW_STEPS_LINK, DOT_STEPS_BASE } from "@/constants";
+import { FLOW_STEPS } from "@/constants";
 import { loadCheckinData } from "@/api/checkin.service";
 import { loginMagicLink } from "@/api/auth.service";
 
@@ -574,10 +574,11 @@ export function useCheckin(tokenUrl?: string, stepUrl?: string) {
     [goTo],
   );
 
-  const dotSteps = useMemo(() => {
-    const base = state.appMode === "link" ? FLOW_STEPS_LINK : DOT_STEPS_BASE;
-    return modoFlujo === "manual" ? base.filter((s) => s !== "escanear") : base;
-  }, [state.appMode, modoFlujo]);
+ const dotSteps = useMemo(() => {
+    return modoFlujo === "manual"
+      ? FLOW_STEPS.filter((s) => s !== "escanear")
+      : FLOW_STEPS;
+  }, [modoFlujo]);
 
   const canGoBack =
     appHistory.length > 0 &&

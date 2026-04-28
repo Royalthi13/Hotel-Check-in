@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import { Button, Icon, Alert } from "@/components/ui";
-import { useZipCode } from "@/hooks/useZipCode";
 import { TIPOS_DOCUMENTO, SEXOS, PREFIJOS_TELEFONICOS } from "@/constants";
 import { getDocumentTypes } from "@/api/catalogs.service";
 import {
@@ -20,7 +19,6 @@ import {
   Divider,
   Dialog,
   InputAdornment,
-  CircularProgress,
   Tooltip,
   useMediaQuery,
   useTheme,
@@ -476,14 +474,13 @@ const handleUpdate = useCallback(
 
   const contactoValidator = useCallback(
     (d: PartialGuestData, tf: TFunction) =>
+      
       validateContacto(d, tf, d.esMenor ? { email: true, telefono: true } : lockedFields),
     [lockedFields],
   );
   const { errors, validate, clearError } = useFormValidation(contactoValidator);
 
-  const { buscarCP, isSearching } = useZipCode((key, val) =>
-    handleUpdate(key as keyof PartialGuestData, val),
-  );
+
   const { sugerenciasProvincias, sugerenciasMunicipios, cargarMunicipios } =
     usePlaces();
 
@@ -531,8 +528,7 @@ const handleUpdate = useCallback(
   const prefijoActual = useMemo(
     () =>
       prefijosTraducidos.find(
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (p) => p.dial === ((data as any).prefijo || "+34"),
+       (p) => p.dial === (data.prefijo || "+34"),
       ) || prefijosTraducidos.find((p) => p.code === "ES"),
     [prefijosTraducidos, data],
   );
@@ -581,21 +577,7 @@ const handleUpdate = useCallback(
     [data.telefono, data.esMenor],
   );
 
-  // Búsqueda unificada de CP
-  useDebounce(
-    () => {
-      if (data.cp && data.pais) {
-        if (esEspana && data.cp.length < 5) {
-          if (data.cp.length === 2) buscarCP(data.cp, data.pais);
-          return;
-        }
-        if (!esEspana && data.cp.length < 3) return;
-        buscarCP(data.cp, data.pais);
-      }
-    },
-    1000,
-    [data.cp, data.pais, esEspana],
-  );
+ 
   useEffect(() => {
     const handleForceValidate = () => validate(data);
     window.addEventListener("FORCE_VALIDATE", handleForceValidate);
@@ -714,9 +696,9 @@ const RenderList = (
 
       <form
         onSubmit={(e) => {
-          e.preventDefault();
-          if (validate(data)) actions.nextGuest(guestIndex, "form_contacto");
-        }}
+  e.preventDefault();
+  if (validate(data)) actions.nextGuest(guestIndex, "form_contacto");
+}}
         noValidate
       >
         <fieldset
@@ -887,8 +869,7 @@ const RenderList = (
                 }}
               />
 
-              {/* CP: AQUÍ ESTÁ LA LÓGICA TÉCNICA CLAVE */}
-              <TextField
+          <TextField
                 label={t("forms.zipcode")}
                 fullWidth
                 value={data.cp ?? ""}
@@ -898,22 +879,6 @@ const RenderList = (
                   const val = e.target.value.toUpperCase();
                   handleUpdate("cp", val);
                   clearError("cp");
-                }}
-                onBlur={() => {
-                  if (data.cp && data.pais) buscarCP(data.cp, data.pais);
-                }}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    e.preventDefault();
-                    if (data.cp && data.pais) buscarCP(data.cp, data.pais);
-                  }
-                }}
-                InputProps={{
-                  endAdornment: isSearching ? (
-                    <InputAdornment position="end">
-                      <CircularProgress size={20} thickness={5} />
-                    </InputAdornment>
-                  ) : null,
                 }}
               />
             </Box>
@@ -961,16 +926,34 @@ const RenderList = (
               </div>
               <div>
                 {esEspana ? (
-                  <Autocomplete
+              <Autocomplete
                     freeSolo
-                    options={(sugerenciasMunicipios || []).map((m) => m.nombre)}
+                    options={sugerenciasMunicipios || []}
+                    getOptionLabel={(o) =>
+                      typeof o === "string" ? o : o.nombre
+                    }
+                    isOptionEqualToValue={(opt, val) => {
+                      const a = typeof opt === "string" ? opt : opt.nombre;
+                      const b = typeof val === "string" ? val : val.nombre;
+                      return a === b;
+                    }}
                     value={data.ciudad || null}
                     onChange={(_, n) => {
-                      handleUpdate("ciudad", n || "");
+                      if (n && typeof n !== "string") {
+                        // Selección desde sugerencias: rellenamos ciudad + codCity
+                        handleUpdate("ciudad", n.nombre);
+                        handleUpdate("codCity", n.codcity);
+                      } else {
+                        handleUpdate("ciudad", n || "");
+                        handleUpdate("codCity", "");
+                      }
                       clearError("ciudad");
                     }}
                     onInputChange={(_, n) => {
+                      // Texto libre escrito por el usuario: limpiamos codCity
+                      // hasta que elija una de las sugerencias
                       handleUpdate("ciudad", n || "");
+                      handleUpdate("codCity", "");
                       cargarMunicipios(n || "", data.provincia);
                       clearError("ciudad");
                     }}

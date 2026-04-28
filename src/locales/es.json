@@ -201,7 +201,7 @@
     "required_email_or_phone": "Introduce al menos un email o teléfono",
     "invalid_dni": "DNI no válido. Formato: 8 dígitos + letra (ej: 12345678Z)",
     "invalid_nie": "NIE no válido. Formato: X/Y/Z + 7 dígitos + letra (ej: X1234567Z)",
-    "invalid_passport": "Pasaporte no válido. Formato: 3 letras + 6 dígitos (ej: AAA123456)",
+ "invalid_passport": "Pasaporte no válido. Debe tener entre 6 y 15 caracteres alfanuméricos.",
     "invalid_cif": "CIF no válido. Formato: letra + 7 dígitos + letra/dígito (ej: A1234567B)",
     "invalid_license": "Carnet no válido. Formato esperado: hasta 2 letras + 8 dígitos + letras",
     "doc_too_short": "El número de documento parece demasiado corto",
@@ -448,9 +448,8 @@
   "checkin": {
     "error_invalid_reservation": "No se pudo identificar la reserva. El enlace puede haber caducado o ser incorrecto."
   },
-
-  "errorBoundary": {
-    "unknown_error": "An unknown error has occurred.",
+"errorBoundary": {
+    "unknown_error": "Se ha producido un error desconocido.",
     "title": "Algo ha salido mal",
     "subtitle": "Se ha producido un error inesperado. Sus datos no se han perdido — puede intentar continuar o recargar la página.",
     "btn_retry": "Intentar continuar",
