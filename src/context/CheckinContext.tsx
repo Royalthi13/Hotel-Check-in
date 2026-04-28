@@ -74,16 +74,14 @@ const [accessVerified, setAccessVerifiedState] = useState(
   const clearSubmitError = () => setSubmitError("");
   const triggerFormValidation = () => setValidationTrigger((v) => v + 1);
 
-  const getBackendIds = () => {
-    const rawId = sessionStorage.getItem(`bookingId_${token}`);
-    const bookingId = rawId ? parseInt(rawId, 10) : null;
+const getBackendIds = () => {
+    const bookingId = state.bookingId;
+    // clientId puede venir del state o haberse generado en un partial-submit previo
+    const clientId = state.clientId ?? state.guests[0]?.id ?? null;
 
-    if (!bookingId || isNaN(bookingId)) {
+    if (!bookingId) {
       throw new Error(t("checkin.error_invalid_reservation"));
     }
-
-    const rawClientId = sessionStorage.getItem(`clientId_${token}`);
-    const clientId = rawClientId ? parseInt(rawClientId, 10) : null;
 
     return { bookingId, clientId };
   };
@@ -118,14 +116,16 @@ const [accessVerified, setAccessVerifiedState] = useState(
     setIsSubmitting(true);
     try {
       const { bookingId, clientId } = getBackendIds();
-
-      if (isPartial) {
+if (isPartial) {
         const newClientId = await savePartialCheckin(
           bookingId,
           clientId,
           state.guests[0],
         );
-        sessionStorage.setItem(`clientId_${token}`, String(newClientId));
+        // Sincronizamos el nuevo clientId en el state para futuros submits
+        if (!state.guests[0]?.id) {
+          actions.updateGuest(0, "id", newClientId);
+        }
         setIsPartialSuccess(true);
         actions.goTo("exito", "forward");
         return;
