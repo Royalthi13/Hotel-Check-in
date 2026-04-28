@@ -72,22 +72,33 @@ const [accessVerified, setAccessVerifiedState] = useState(
 
   // --- LIMPIEZA Y AUXILIARES ---
   const clearSubmitError = () => setSubmitError("");
- 
-const getBackendIds = () => {
-    const { bookingId, clientId } = state;
-    if (!bookingId) {
+  const triggerFormValidation = () => setValidationTrigger((v) => v + 1);
+
+  const getBackendIds = () => {
+    const rawId = sessionStorage.getItem(`bookingId_${token}`);
+    const bookingId = rawId ? parseInt(rawId, 10) : null;
+
+    if (!bookingId || isNaN(bookingId)) {
       throw new Error(t("checkin.error_invalid_reservation"));
     }
+
+    const rawClientId = sessionStorage.getItem(`clientId_${token}`);
+    const clientId = rawClientId ? parseInt(rawClientId, 10) : null;
+
     return { bookingId, clientId };
   };
-const STORAGE_KEYS_TO_CLEAR = [
+
+  const SESSION_KEYS_TO_CLEAR = [
     `state_${token}`,
     `history_${token}`,
     `allowedSteps_${token}`,
     `legalPassed_${token}`,
     `hasMinors_${token}`,
     `modoFlujo_${token}`,
+    `bookingId_${token}`,
+    `clientId_${token}`,
   ];
+
   const handleChooseMethod = (method: "scan" | "manual") => {
     setModoFlujo(method);
 
@@ -107,16 +118,14 @@ const STORAGE_KEYS_TO_CLEAR = [
     setIsSubmitting(true);
     try {
       const { bookingId, clientId } = getBackendIds();
-if (isPartial) {
+
+      if (isPartial) {
         const newClientId = await savePartialCheckin(
           bookingId,
           clientId,
           state.guests[0],
         );
-        // Persistimos el nuevo clientId en el state (el reducer ya lo guarda en localStorage)
-        if (newClientId !== clientId) {
-          actions.updateGuest(0, "id", newClientId);
-        }
+        sessionStorage.setItem(`clientId_${token}`, String(newClientId));
         setIsPartialSuccess(true);
         actions.goTo("exito", "forward");
         return;
@@ -130,11 +139,8 @@ if (isPartial) {
         observaciones: state.observaciones,
       });
 
-     setIsPartialSuccess(false);
-      STORAGE_KEYS_TO_CLEAR.forEach((key) => {
-        localStorage.removeItem(key);
-        sessionStorage.removeItem(key);
-      });
+      setIsPartialSuccess(false);
+      SESSION_KEYS_TO_CLEAR.forEach((key) => sessionStorage.removeItem(key));
       sessionStorage.removeItem(PERSISTENCE_KEY);
       localStorage.removeItem(PERSISTENCE_KEY);
 
