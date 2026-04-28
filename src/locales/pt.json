@@ -207,6 +207,7 @@
     "error_server": "Erro de conexão com o servidor."
   },
   "verification": {
+    "phone_last3_label": "Últimos 3 dígitos do telefone",
     "instruction_email": "Para sua segurança, introduza o e-mail utilizado na reserva para verificar a sua identidade.",
     "instruction_phone": "Para sua segurança, introduza os últimos 3 dígitos do telefone associado à reserva.",
     "title": "Acesso Seguro",

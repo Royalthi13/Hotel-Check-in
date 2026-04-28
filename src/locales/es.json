@@ -404,6 +404,7 @@
     "btn_add_time": "Añadir hora de llegada"
   },
   "verification": {
+    "phone_last3_label": "Últimos 3 dígitos del teléfono",
     "instruction_email": "Por su seguridad, introduzca el email con el que realizó la reserva para verificar su identidad.",
     "instruction_phone": "Por su seguridad, introduzca los últimos 3 dígitos del teléfono asociado a la reserva.",
     "title": "Acceso Seguro",

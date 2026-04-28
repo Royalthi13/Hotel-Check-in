@@ -400,6 +400,7 @@
     "error_server": "Erreur de connexion au serveur."
   },
   "verification": {
+    "phone_last3_label": "Les 3 derniers chiffres du téléphone",
     "instruction_email": "Pour votre sécurité, veuillez saisir l'e-mail utilisé lors de la réservation pour vérifier votre identité.",
     "instruction_phone": "Pour votre sécurité, veuillez saisir les 3 derniers chiffres du numéro de téléphone associé à la réservation.",
     "title": "Accès Sécurisé",

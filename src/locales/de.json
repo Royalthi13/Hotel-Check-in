@@ -210,6 +210,7 @@
     "error_server": "Verbindungsfehler zum Server."
   },
   "verification": {
+    "phone_last3_label": "Letzte 3 Ziffern der Telefonnummer",
     "instruction_email": "Geben Sie zu Ihrer Sicherheit bitte die für die Buchung verwendete E-Mail-Adresse ein, um Ihre Identität zu überprüfen.",
     "instruction_phone": "Geben Sie zu Ihrer Sicherheit bitte die letzten 3 Ziffern der mit der Buchung verknüpften Telefonnummer ein.",
     "title": "Sicherer Zugang",

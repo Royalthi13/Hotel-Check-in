@@ -202,6 +202,7 @@
     "duplicate_doc": "This document has already been registered for another guest."
   },
   "verification": {
+    "phone_last3_label": "Last 3 digits of your phone",
     "instruction_email": "For your security, please enter the email used for this booking to verify your identity.",
     "instruction_phone": "For your security, please enter the last 3 digits of the phone number associated with this booking.",
     "title": "Secure Access",

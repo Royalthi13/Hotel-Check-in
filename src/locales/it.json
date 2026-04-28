@@ -207,6 +207,7 @@
     "error_server": "Errore di connessione con il server."
   },
   "verification": {
+    "phone_last3_label": "Ultimi 3 numeri del telefono",
     "instruction_email": "Per la tua sicurezza, inserisci l'email utilizzata per la prenotazione per verificare la tua identità.",
     "instruction_phone": "Per la tua sicurezza, inserisci gli ultimi 3 numeri del telefono associato alla prenotazione.",
     "title": "Accesso Sicuro",
