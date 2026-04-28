@@ -51,7 +51,8 @@ export const ScreenVerificarAcceso: React.FC<Props> = ({
 
   const label =
     mode === "email" ? t("forms.email") : t("verification.phone_last3_label");
-  const placeholder = mode === "email" ? "nombre@email.com" : "•••";
+
+  const placeholder = mode === "email" ? t("forms.email_placeholder") : "•••";
 
   return (
     <form
@@ -81,7 +82,23 @@ export const ScreenVerificarAcceso: React.FC<Props> = ({
       </div>
 
       <div style={{ padding: "28px 24px 0", flex: 1 }}>
+        {/* ✨ NUEVO: Helper text explicativo para dar contexto al usuario */}
+        <p
+          style={{
+            fontSize: "15px",
+            color: "var(--text-muted, #666)", // Usa tu variable de color suave si tienes, o #666
+            lineHeight: 1.5,
+            marginBottom: "24px",
+            textAlign: "center",
+          }}
+        >
+          {mode === "email"
+            ? t("verification.instruction_email")
+            : t("verification.instruction_phone")}
+        </p>
+
         {err && <Alert variant="err">{err}</Alert>}
+
         <Field label={label} required>
           <input
             type={mode === "email" ? "email" : "tel"}

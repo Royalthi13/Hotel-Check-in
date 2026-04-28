@@ -207,6 +207,8 @@
     "error_server": "Erro de conexão com o servidor."
   },
   "verification": {
+    "instruction_email": "Para sua segurança, introduza o e-mail utilizado na reserva para verificar a sua identidade.",
+    "instruction_phone": "Para sua segurança, introduza os últimos 3 dígitos do telefone associado à reserva.",
     "title": "Acesso Seguro",
     "booking_label": "Reserva",
     "surname_label": "Sobrenome do titular",
@@ -271,6 +273,7 @@
     "card_manual_sub_known": "Verifique os dados que temos guardados."
   },
   "forms": {
+    "email_placeholder": "nome@email.com",
     "personal_title": "Dados pessoais",
     "minor_data": "Dados do menor",
     "guest_counter": "Hóspede {{current}} de {{total}}",
@@ -293,7 +296,7 @@
     "province": "Distrito / Província",
     "city": "Localidade / Cidade"
   },
- 
+
   "scan": {
     "pdf_selected": "Documento PDF selecionado",
     "confidence_high": "Leitura excelente",
@@ -415,7 +418,7 @@
     "err_unexpected": "Erro inesperado. Por favor, tente novamente."
   },
   "checkin": {
-   "error_invalid_reservation": "Não foi possível identificar a reserva. O link pode ter expirado ou estar incorreto."
+    "error_invalid_reservation": "Não foi possível identificar a reserva. O link pode ter expirado ou estar incorreto."
   },
   "errorBoundary": {
     "unknown_error": "Ocorreu um erro desconhecido.",
