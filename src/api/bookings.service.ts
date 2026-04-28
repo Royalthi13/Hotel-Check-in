@@ -57,11 +57,10 @@ export async function getBookingById(bookingId: string | number): Promise<{
     isAlreadyCheckedIn: data.pre_checking === true,
   };
 }
-
 export async function searchBookingByConfirmation(
   query: string,
   apellidoInput: string,
-): Promise<{ reserva: Reserva; clientId: number | null } | null> {
+): Promise<{ reserva: Reserva; clientId: number | null; bookingId: number } | null> {
   let resultEncontrado: Awaited<ReturnType<typeof getBookingById>> | null =
     null;
   try {
@@ -81,9 +80,10 @@ export async function searchBookingByConfirmation(
     apellidoReserva.includes(apellidoLimpio) ||
     apellidoLimpio.includes(apellidoReserva)
   ) {
-    return {
+   return {
       reserva: resultEncontrado.reserva,
       clientId: resultEncontrado.clientId,
+      bookingId: resultEncontrado.bookingId,
     };
   }
   return null;

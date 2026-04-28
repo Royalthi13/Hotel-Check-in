@@ -22,7 +22,13 @@ export const CheckinProvider: React.FC<{ children: React.ReactNode }> = ({
   const [isOffline, setIsOffline] = useState(!navigator.onLine);
   const [isPartialSuccess, setIsPartialSuccess] = useState(false);
   const [validationTrigger, setValidationTrigger] = useState(0);
-
+const [accessVerified, setAccessVerifiedState] = useState(
+    () => sessionStorage.getItem(`access_verified_${token}`) === "true",
+  );
+  const setAccessVerified = (v: boolean) => {
+    setAccessVerifiedState(v);
+    sessionStorage.setItem(`access_verified_${token}`, String(v));
+  };
   const [legalPassed, setLegalPassed] = useState(
     () => sessionStorage.getItem(`legalPassed_${token}`) === "true",
   );
@@ -175,7 +181,9 @@ export const CheckinProvider: React.FC<{ children: React.ReactNode }> = ({
     handlePartialSubmit,
     validationTrigger,
     triggerFormValidation,
-    clearSubmitError,
+  clearSubmitError,
+    accessVerified,
+    setAccessVerified,
   };
 
   return (

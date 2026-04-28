@@ -26,7 +26,7 @@ import {
 } from "@/screens/ScreenExtrasRevisionExito";
 
 import type { StepId, Reserva } from "@/types";
-
+import { ScreenVerificarAcceso } from "@/screens/ScreenVerificarAcceso";
 const STEPS_WITHOUT_DOTS = new Set<StepId>(["tablet_buscar", "exito"]);
 
 // ── Página de enlace inválido / caducado ──────────────────────────────────────
@@ -97,6 +97,7 @@ function InvalidLink() {
 // ── Lógica del Wizard (Se mantiene igual que tu código) ───────────────────────
 function CheckinWizard() {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const {
     state,
     nav,
@@ -111,11 +112,51 @@ function CheckinWizard() {
     handleChooseMethod,
     handleSubmit,
     token,
+    accessVerified,
+    setAccessVerified,
   } = useCheckinContext();
 
   const isActuallyLoading =
     isLoading && token !== "new" && nav.step !== "tablet_buscar";
+// Verja anti-enumeración: si la reserva tiene titular con apellido real
+  // y aún no se ha verificado, exigimos que el huésped lo introduzca.
+ // Verja anti-enumeración: 1º email, 2º últimas 3 cifras del teléfono.
+  // Si no hay ninguno de los dos, no podemos verificar y dejamos pasar.
+const expectedEmail = state.knownGuest?.email 
+  ? String(state.knownGuest.email).trim() 
+  : undefined;
 
+const expectedPhone = state.knownGuest?.telefono 
+  ? String(state.knownGuest.telefono).trim() 
+  : undefined;
+
+  const verifyField: "email" | "phone" | null = expectedEmail
+    ? "email"
+    : expectedPhone
+      ? "phone"
+      : null;
+
+  const needsVerification =
+    !accessVerified &&
+    state.knownGuest &&
+    verifyField !== null &&
+    nav.step !== "tablet_buscar";
+
+  if (needsVerification && !isLoading) {
+    return (
+      <div className="shell">
+        <div className="card">
+          <ScreenVerificarAcceso
+            mode={verifyField!}
+            expected={verifyField === "email" ? expectedEmail! : expectedPhone!}
+            bookingRef={state.reserva?.confirmacion ?? `#${state.bookingId}`}
+            onSuccess={() => setAccessVerified(true)}
+            onTooManyAttempts={() => navigate("/invalid", { replace: true })}
+          />
+        </div>
+      </div>
+    );
+  }
   if (isActuallyLoading) {
     return (
       <div
@@ -139,8 +180,10 @@ function CheckinWizard() {
     return (
       <div className="shell">
         <div className="card">
-          <ScreenTabletBuscar
-            onFound={(res) => actions.setReservaFromTablet(res)}
+        <ScreenTabletBuscar
+            onFound={(res, bookingId, clientId) =>
+              actions.setReservaFromTablet(res, bookingId, clientId)
+            }
           />
         </div>
       </div>

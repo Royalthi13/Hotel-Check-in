@@ -145,13 +145,19 @@ export function checkinReducer(
   switch (action.type) {
     case "SET_GUESTS":
       return { ...state, guests: action.guests };
-    case "SET_KNOWN_GUEST":
+   case "SET_KNOWN_GUEST": {
+      const existing = state.guests[0] ?? {};
+      const hasData = !!(existing.nombre?.trim() || existing.numDoc?.trim());
       return {
         ...state,
         knownGuest: action.guest,
-        guests: [{ ...action.guest, esMenor: false }],
+        // Sólo rellenamos guests[0] si está vacío — así no pisamos lo que el
+        // usuario ya hubiese tecleado. knownGuest se setea siempre para que
+        // la verja de acceso pueda comparar el apellido.
+        guests: hasData ? state.guests : [{ ...action.guest, esMenor: false }],
         clientId: action.guest.id || state.clientId,
       };
+    }
 
     case "SET_RESERVA_TABLET":
       return {
@@ -426,14 +432,11 @@ export function useCheckin(tokenUrl?: string, stepUrl?: string) {
           clientId: result.clientId,
         });
 
-        const hasOwnData =
-          stateRef.current.guests[0]?.nombre?.trim() ||
-          stateRef.current.guests[0]?.numDoc?.trim();
+       
 
-        if (result.knownGuest && !hasOwnData) {
+       if (result.knownGuest) {
           dispatch({ type: "SET_KNOWN_GUEST", guest: result.knownGuest });
         }
-
         if (result.companions.length > 0) {
           dispatch({
             type: "SET_COMPANIONS_LOADED",
