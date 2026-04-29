@@ -217,6 +217,8 @@
     "card_manual_sub_known": "Check the details we have saved and confirm or modify them."
   },
   "forms": {
+    "minor_address_label": "Minor's address",
+    "minor_address_info": "For registration purposes, the same address and contact details as the responsible adult will be applied. There is no need to fill them in again.",
     "personal_title": "Personal details",
     "minor_data": "Minor's details",
     "guest_counter": "Guest {{current}} of {{total}}",
