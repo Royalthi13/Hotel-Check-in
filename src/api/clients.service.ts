@@ -236,8 +236,7 @@ export function toClientPayload(g: PartialGuestData): Record<string, unknown> {
     doc_type: docCod ?? null,
     vat: str(g.numDoc),
     doc_support: str(g.soporteDoc),
-    relationship: codrelation ?? null,
-
+    ...(codrelation !== undefined ? { relationship: codrelation } : {}),
     observations: str(g.observations) ?? null,
   };
 }
