@@ -17,10 +17,13 @@ export interface CompanionPayload {
 export async function getCompanionsByBooking(
   bookingId: number,
 ): Promise<CompanionResponse[]> {
-  const { data } = await apiAuth.get<CompanionResponse[]>(
+  const { data, status } = await apiAuth.get<CompanionResponse[]>(
     `/companions/booking/${bookingId}`,
+    { validateStatus: (s) => s === 200 || s === 204 },
   );
-  return data;
+
+  if (status === 204) return [];
+  return Array.isArray(data) ? data : [];
 }
 
 // POST /companions

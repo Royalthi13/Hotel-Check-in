@@ -310,7 +310,8 @@ export const AppShell: React.FC<AppShellProps> = ({
             <div className="swipe-dots-track" ref={trackRef}>
               {trackWidth > 0 &&
                 dotSteps.map((_, i) => {
-                  const isDone = i <= maxDotReached && i !== nav.dotIndex;
+                  const isDone =
+                    nav.allowedSteps?.has(dotSteps[i]) && i !== nav.dotIndex;
                   const isActive = i === nav.dotIndex;
                   return (
                     <div
@@ -414,7 +415,7 @@ export const AppShell: React.FC<AppShellProps> = ({
                     (isUnlocked && !isActive && s.id !== "exito");
 
                   const isDone =
-                    i <= maxSideIdxReached &&
+                    nav.allowedSteps?.has(s.id) &&
                     !isActive &&
                     !isRevision &&
                     s.id !== "exito";
