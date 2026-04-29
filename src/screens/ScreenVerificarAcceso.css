@@ -2,6 +2,9 @@
   padding: 0 0 40px 0;
   background-color: #fafafa;
   min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
 }
 
 .verify-hero {
@@ -42,12 +45,16 @@
 
 .verify-content {
   padding: 40px 24px 0;
-  flex: 1;
   display: flex;
   flex-direction: column;
   max-width: 500px;
   margin: 0 auto;
   width: 100%;
+}
+
+.verify-spacer {
+  height: 40px;
+  flex: none !important;
 }
 
 .verify-instruction {
@@ -111,6 +118,10 @@
 
   .verify-content {
     padding: 30px 20px 0;
+  }
+
+  .verify-spacer {
+    flex: 1 !important;
   }
 
   .verify-btn-wrapper {
