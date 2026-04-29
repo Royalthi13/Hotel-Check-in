@@ -575,7 +575,7 @@ export function useCheckin(tokenUrl?: string, stepUrl?: string) {
     !["exito", "tablet_buscar", "inicio"].includes(actualStep);
 
   let currentDotIndex = dotSteps.indexOf(actualStep);
-  if (["confirmar_datos", "form_relaciones"].includes(actualStep))
+ if (actualStep === "form_relaciones")
     currentDotIndex = dotSteps.indexOf("form_personal");
 
   const maxAllowedDotIndex = useMemo(() => {
