@@ -230,28 +230,46 @@ export function checkinReducer(
       return { ...state, guests };
     }
 
-    case "UPDATE_RELACION": {
-      const guests = [...state.guests];
-      const menor = { ...guests[action.menorIndex] };
-      const rels = [...(menor.relacionesConAdultos ?? [])];
-      if (action.parentesco === "") {
-        menor.relacionesConAdultos = rels.filter(
-          (r) => r.adultoIndex !== action.adultoIndex,
-        );
-      } else {
-        const idx = rels.findIndex((r) => r.adultoIndex === action.adultoIndex);
-        if (idx >= 0)
-          rels[idx] = { ...rels[idx], parentesco: action.parentesco };
-        else
-          rels.push({
-            adultoIndex: action.adultoIndex,
-            parentesco: action.parentesco,
-          });
-        menor.relacionesConAdultos = rels;
+   case "UPDATE_RELACION": {
+  const guests = [...state.guests];
+  const menor = { ...guests[action.menorIndex] };
+  const rels = [...(menor.relacionesConAdultos ?? [])];
+  if (action.parentesco === "") {
+    menor.relacionesConAdultos = rels.filter(
+      (r) => r.adultoIndex !== action.adultoIndex,
+    );
+  } else {
+    const idx = rels.findIndex((r) => r.adultoIndex === action.adultoIndex);
+    if (idx >= 0)
+      rels[idx] = { ...rels[idx], parentesco: action.parentesco };
+    else
+      rels.push({
+        adultoIndex: action.adultoIndex,
+        parentesco: action.parentesco,
+      });
+    menor.relacionesConAdultos = rels;
+
+    // Si la relación implica convivencia (PM/TU), pre-rellenamos la dirección
+    // del menor con la del adulto responsable. El usuario puede modificarla.
+    const CODIGOS_CONVIVENCIA = new Set(["PM", "TU"]);
+    if (CODIGOS_CONVIVENCIA.has(action.parentesco)) {
+      const adulto = guests[action.adultoIndex];
+      if (adulto) {
+        const yaTieneDireccion = !!(menor.direccion?.trim() || menor.ciudad?.trim());
+        if (!yaTieneDireccion && adulto.direccion) {
+          menor.direccion = adulto.direccion;
+          menor.ciudad    = adulto.ciudad    ?? "";
+          menor.codCity   = adulto.codCity   ?? "";
+          menor.provincia = adulto.provincia ?? "";
+          menor.cp        = adulto.cp        ?? "";
+          menor.pais      = adulto.pais      ?? "ES";
+        }
       }
-      guests[action.menorIndex] = menor;
-      return { ...state, guests };
     }
+  }
+  guests[action.menorIndex] = menor;
+  return { ...state, guests };
+}
 
     case "APPLY_SCAN": {
       const guests = [...state.guests];
