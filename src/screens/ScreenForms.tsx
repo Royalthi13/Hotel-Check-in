@@ -714,7 +714,7 @@ const RenderList = (
               px: "var(--px)",
             }}
           >
-          {esUnMenor && (
+         {esUnMenor && !!data.direccion && (
   <Alert variant="info">
     {t("forms.minor_address_info", {
       defaultValue:
