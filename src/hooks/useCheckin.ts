@@ -254,7 +254,7 @@ export function checkinReducer(
     const CODIGOS_CONVIVENCIA = new Set(["PM", "TU"]);
     if (CODIGOS_CONVIVENCIA.has(action.parentesco)) {
       const adulto = guests[action.adultoIndex];
-      if (adulto) {
+    if (adulto && !adulto.esMenor) {
         const yaTieneDireccion = !!(menor.direccion?.trim() || menor.ciudad?.trim());
         if (!yaTieneDireccion && adulto.direccion) {
           menor.direccion = adulto.direccion;
