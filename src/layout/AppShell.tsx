@@ -114,38 +114,36 @@ export const AppShell: React.FC<AppShellProps> = ({
   const progressX = useMotionValue(0);
   const [trackWidth, setTrackWidth] = useState(0);
 
-  // Envolvemos dotSteps en useMemo para dar estabilidad a la referencia
-  // y evitar que los hooks dependientes se disparen en cada render.
   const dotSteps = useMemo(() => nav.dotSteps || [], [nav.dotSteps]);
 
   const prevIndexRef = useRef(nav.dotIndex);
 
   const activeStep = getActiveSideStep(nav.step);
   const activeIdx = SIDE_STEPS.findIndex((s) => s.id === activeStep);
-  // Progreso máximo alcanzado: derivado de nav.allowedSteps (state del hook).
-  const canAdvance =
-    nav.step !== "exito" &&
-    (nav.step !== "revision" || nav.allowedSteps?.has("form_extras"));
 
-  const maxDotReached = useMemo(() => {
-    if (!canAdvance || !nav.allowedSteps) return nav.dotIndex;
-    let max = nav.dotIndex;
-    for (const s of nav.allowedSteps) {
-      const idx = dotSteps.indexOf(s);
-      if (idx > max) max = idx;
+  const maxSequentialDotIdx = useMemo(() => {
+    let max = 0;
+    if (!nav.allowedSteps) return 0;
+    for (let i = 0; i < dotSteps.length; i++) {
+      const stepId = dotSteps[i];
+      if (stepId === "revision" || stepId === "exito") continue;
+      if (nav.allowedSteps.has(stepId)) max = i;
+      else break;
     }
     return max;
-  }, [canAdvance, nav.dotIndex, nav.allowedSteps, dotSteps]);
+  }, [nav.allowedSteps, dotSteps]);
 
-  const maxSideIdxReached = useMemo(() => {
-    if (!canAdvance || !nav.allowedSteps) return activeIdx;
-    let max = activeIdx;
-    for (const s of nav.allowedSteps) {
-      const idx = SIDE_STEPS.findIndex((step) => step.id === s);
-      if (idx > max) max = idx;
+  const maxSequentialSideIdx = useMemo(() => {
+    let max = 0;
+    if (!nav.allowedSteps) return 0;
+    for (let i = 0; i < SIDE_STEPS.length; i++) {
+      const stepId = SIDE_STEPS[i].id;
+      if (stepId === "revision" || stepId === "exito") continue;
+      if (nav.allowedSteps.has(stepId)) max = i;
+      else break;
     }
     return max;
-  }, [canAdvance, activeIdx, nav.allowedSteps]);
+  }, [nav.allowedSteps]);
 
   const { safeWidth, stepWidth, targetX } = useMemo(() => {
     const sw = Math.max(0, trackWidth - 6);
@@ -185,16 +183,11 @@ export const AppShell: React.FC<AppShellProps> = ({
     }
   }, [trackWidth, targetX, progressX, nav.dotIndex]);
 
-  const isStepUnlocked = (stepId: StepId, index: number) => {
-    if (maxSideIdxReached === 0) return index === 0;
-
+  const isStepUnlocked = (stepId: StepId) => {
     if (stepId === "revision" && !!onGoToRevision && activeStep !== "exito")
       return true;
-
     if (nav.allowedSteps) return nav.allowedSteps.has(stepId);
-    if (activeStep === "revision" || activeStep === "exito")
-      return stepId === "bienvenida" || stepId === activeStep;
-    return index <= activeIdx;
+    return false;
   };
 
   const stepInvalid =
@@ -217,9 +210,9 @@ export const AppShell: React.FC<AppShellProps> = ({
     if (dotSteps.length <= 1 || trackWidth === 0) return;
     let landedIndex = Math.round(progressX.get() / stepWidth);
     landedIndex = Math.max(0, Math.min(landedIndex, dotSteps.length - 1));
+
     const targetStepId = dotSteps[landedIndex];
-    const isAllowed =
-      landedIndex <= maxDotReached || isStepUnlocked(targetStepId, landedIndex);
+    const isAllowed = isStepUnlocked(targetStepId);
     const isBlockedByError =
       landedIndex > nav.dotIndex && stepInvalid && targetStepId !== "revision";
 
@@ -235,7 +228,6 @@ export const AppShell: React.FC<AppShellProps> = ({
     actions.goToDotIndex(landedIndex);
   };
 
-  //FUNCIÓN PARA TOCAR LOS PUNTOS DIRECTAMENTE
   const handleDotClick = (targetIndex: number) => {
     if (
       dotSteps.length <= 1 ||
@@ -245,18 +237,15 @@ export const AppShell: React.FC<AppShellProps> = ({
       return;
 
     const targetStepId = dotSteps[targetIndex];
-    const isAllowed =
-      targetIndex <= maxDotReached || isStepUnlocked(targetStepId, targetIndex);
+    const isAllowed = isStepUnlocked(targetStepId);
     const isBlockedByError =
       targetIndex > nav.dotIndex && stepInvalid && targetStepId !== "revision";
 
-    // Si intenta saltar hacia adelante pero hay un error en el formulario actual
     if (isBlockedByError) {
       window.dispatchEvent(new Event("FORCE_VALIDATE"));
       return;
     }
 
-    // Si el paso está desbloqueado o ya se ha pasado por él, viajamos
     if (isAllowed) {
       actions.goToDotIndex(targetIndex);
     }
@@ -291,7 +280,7 @@ export const AppShell: React.FC<AppShellProps> = ({
             onGoToRevision &&
             activeStep !== "revision" &&
             activeStep !== "exito" &&
-            maxSideIdxReached > 0
+            maxSequentialSideIdx > 0
               ? {
                   label: t("common.summary"),
                   icon: "clipboard",
@@ -310,9 +299,13 @@ export const AppShell: React.FC<AppShellProps> = ({
             <div className="swipe-dots-track" ref={trackRef}>
               {trackWidth > 0 &&
                 dotSteps.map((_, i) => {
-                  const isDone =
-                    nav.allowedSteps?.has(dotSteps[i]) && i !== nav.dotIndex;
+                  const stepId = dotSteps[i];
                   const isActive = i === nav.dotIndex;
+                  const isDone =
+                    i < maxSequentialDotIdx &&
+                    !isActive &&
+                    stepId !== "revision";
+
                   return (
                     <div
                       key={i}
@@ -381,8 +374,8 @@ export const AppShell: React.FC<AppShellProps> = ({
                       ? window.dispatchEvent(new Event("FORCE_VALIDATE"))
                       : onGoToRevision?.()
                   }
-                  disabled={summaryDisabled || maxSideIdxReached === 0}
-                  style={{ opacity: maxSideIdxReached === 0 ? 0.3 : 1 }}
+                  disabled={summaryDisabled || maxSequentialSideIdx === 0}
+                  style={{ opacity: maxSequentialSideIdx === 0 ? 0.3 : 1 }}
                 >
                   <Icon name="search" size={14} color="rgba(255,255,255,.8)" />
                   {t("appShell.booking_summary")}
@@ -398,9 +391,6 @@ export const AppShell: React.FC<AppShellProps> = ({
               <nav className="sp-steps" aria-label="Progreso">
                 {SIDE_STEPS.map((s, i) => {
                   const isActive = i === activeIdx;
-                  const isUnlocked =
-                    isStepUnlocked(s.id, i) ||
-                    (maxSideIdxReached > 0 && i <= maxSideIdxReached);
                   const isRevision = s.id === "revision";
 
                   const canGoToRevision =
@@ -408,14 +398,15 @@ export const AppShell: React.FC<AppShellProps> = ({
                     !!onGoToRevision &&
                     !isActive &&
                     activeStep !== "exito" &&
-                    maxSideIdxReached > 0;
+                    maxSequentialSideIdx > 0;
 
+                  const isUnlocked = isStepUnlocked(s.id);
                   const isClickable =
                     canGoToRevision ||
                     (isUnlocked && !isActive && s.id !== "exito");
 
                   const isDone =
-                    nav.allowedSteps?.has(s.id) &&
+                    i < maxSequentialSideIdx &&
                     !isActive &&
                     !isRevision &&
                     s.id !== "exito";

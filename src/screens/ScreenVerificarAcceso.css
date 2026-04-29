@@ -4,7 +4,7 @@
   min-height: 100vh;
   display: flex;
   flex-direction: column;
-  justify-content: flex-start;
+  align-items: center;
 }
 
 .verify-hero {
@@ -13,6 +13,7 @@
   border-radius: 0 0 24px 24px;
   box-shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
   overflow: visible !important;
+  width: 100%;
 }
 
 .verify-lang-wrapper {
@@ -43,18 +44,29 @@
   color: #fff;
 }
 
-.verify-content {
-  padding: 40px 24px 0;
+.verify-card {
+  background-color: #ffffff;
+  max-width: 540px;
+  width: 90%;
+  margin: 40px auto;
+  border-radius: 24px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.08);
+  position: relative;
+  z-index: 10;
   display: flex;
   flex-direction: column;
-  max-width: 500px;
-  margin: 0 auto;
+  padding-bottom: 40px;
+}
+
+.verify-content {
+  padding: 40px 32px 32px;
+  display: flex;
+  flex-direction: column;
   width: 100%;
 }
 
 .verify-spacer {
-  height: 40px;
-  flex: none !important;
+  display: none;
 }
 
 .verify-instruction {
@@ -87,9 +99,7 @@
 }
 
 .verify-btn-wrapper {
-  padding: 0 24px;
-  max-width: 500px;
-  margin: 0 auto;
+  padding: 0 32px;
   width: 100%;
   display: flex;
   justify-content: center;
@@ -116,11 +126,22 @@
     right: 15px;
   }
 
+  .verify-card {
+    background-color: transparent;
+    box-shadow: none;
+    margin: 0 auto;
+    padding-bottom: 0;
+    flex: 1;
+    border-radius: 0;
+    width: 100%;
+  }
+
   .verify-content {
     padding: 30px 20px 0;
   }
 
   .verify-spacer {
+    display: block;
     flex: 1 !important;
   }
 

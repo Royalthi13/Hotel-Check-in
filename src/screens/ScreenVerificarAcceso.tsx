@@ -76,49 +76,51 @@ export const ScreenVerificarAcceso: React.FC<Props> = ({
         </p>
       </div>
 
-      <div className="verify-content">
-        <p className="verify-instruction">
-          {mode === "email"
-            ? t("verification.instruction_email")
-            : t("verification.instruction_phone")}
-        </p>
+      <div className="verify-card">
+        <div className="verify-content">
+          <p className="verify-instruction">
+            {mode === "email"
+              ? t("verification.instruction_email")
+              : t("verification.instruction_phone")}
+          </p>
 
-        {err && <Alert variant="err">{err}</Alert>}
+          {err && <Alert variant="err">{err}</Alert>}
 
-        <Field label={label} required>
-          <input
-            type={mode === "email" ? "email" : "tel"}
-            inputMode={mode === "email" ? "email" : "numeric"}
-            value={val}
-            onChange={(e) => {
-              setVal(
-                mode === "phone"
-                  ? e.target.value.replace(/\D/g, "").slice(0, 3)
-                  : e.target.value,
-              );
-              setErr("");
-            }}
-            placeholder={placeholder}
-            maxLength={mode === "phone" ? 3 : undefined}
-            autoFocus
-            className={`verify-input ${mode === "email" ? "verify-input--email" : "verify-input--phone"}`}
-          />
-        </Field>
-      </div>
+          <Field label={label} required>
+            <input
+              type={mode === "email" ? "email" : "tel"}
+              inputMode={mode === "email" ? "email" : "numeric"}
+              value={val}
+              onChange={(e) => {
+                setVal(
+                  mode === "phone"
+                    ? e.target.value.replace(/\D/g, "").slice(0, 3)
+                    : e.target.value,
+                );
+                setErr("");
+              }}
+              placeholder={placeholder}
+              maxLength={mode === "phone" ? 3 : undefined}
+              autoFocus
+              className={`verify-input ${mode === "email" ? "verify-input--email" : "verify-input--phone"}`}
+            />
+          </Field>
+        </div>
 
-      <div className="spacer verify-spacer" />
+        <div className="spacer verify-spacer" />
 
-      <div className="btn-row verify-btn-wrapper">
-        <Button
-          variant="primary"
-          type="submit"
-          iconRight="right"
-          disabled={!val.trim()}
-          style={{ height: "56px", fontSize: "16px", fontWeight: "600" }} // Mantenemos solo lo estructural crítico para el componente UI
-          className={val.trim() ? "verify-btn-active" : ""}
-        >
-          {t("verification.button_submit")}
-        </Button>
+        <div className="btn-row verify-btn-wrapper">
+          <Button
+            variant="primary"
+            type="submit"
+            iconRight="right"
+            disabled={!val.trim()}
+            style={{ height: "56px", fontSize: "16px", fontWeight: "600" }}
+            className={val.trim() ? "verify-btn-active" : ""}
+          >
+            {t("verification.button_submit")}
+          </Button>
+        </div>
       </div>
     </form>
   );
