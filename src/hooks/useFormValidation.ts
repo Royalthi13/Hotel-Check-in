@@ -67,7 +67,6 @@ function validarDocSupport(docsupport: string): boolean {
 }
 function validarPasaporte(num: string): boolean {
   const upper = num.toUpperCase();
-  // Pasaporte español: 3 letras + 6 dígitos. Internacionales: 6-12 alfanuméricos
   return upper.length >= 6 && /^[A-Z0-9]{6,15}$/.test(upper);
 }
 
@@ -76,7 +75,6 @@ export function validarNumeroDocumento(
   num: string,
   t: TFunction,
 ): string | null {
-  // Quitar guiones que añade formatDocument antes de validar
   const n = num.trim().toUpperCase().replace(/-/g, "");
   if (!n) return t("validation.required_doc_num");
 
@@ -133,7 +131,7 @@ export function validatePersonal(
     const errorNum = validarNumeroDocumento(data.tipoDoc, data.numDoc ?? "", t);
     if (errorNum) e.numDoc = errorNum;
 
-    if (data.tipoDoc === "DNI" || data.tipoDoc === "NIE") {
+    if (data.tipoDoc === "NIF" || data.tipoDoc === "NIE") {
       const soporte = data.soporteDoc?.trim();
 
       if (!soporte) {

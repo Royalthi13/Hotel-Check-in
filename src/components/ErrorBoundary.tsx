@@ -20,7 +20,9 @@ export class ErrorBoundary extends React.Component<Props, State> {
   static getDerivedStateFromError(error: Error): State {
     return {
       hasError: true,
-      message: error?.message ?? "Error desconocido",
+      // FIX: En lugar de poner el texto en duro aquí, guardamos el mensaje real
+      // o un string vacío. Así el render sabrá que tiene que traducirlo.
+      message: error?.message || "",
     };
   }
 
@@ -107,7 +109,7 @@ export class ErrorBoundary extends React.Component<Props, State> {
               </p>
 
               {/* Detalle técnico — solo en desarrollo */}
-              {import.meta.env.DEV && this.state.message && (
+              {import.meta.env.DEV && (
                 <code
                   style={{
                     display: "block",
@@ -121,7 +123,8 @@ export class ErrorBoundary extends React.Component<Props, State> {
                     wordBreak: "break-all",
                   }}
                 >
-                  {this.state.message}
+                  {/* AQUÍ ESTÁ LA MAGIA: Si no hay mensaje de error real, usamos la traducción */}
+                  {this.state.message || t("errorBoundary.unknown_error")}
                 </code>
               )}
 

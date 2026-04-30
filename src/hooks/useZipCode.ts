@@ -1,83 +1,74 @@
-import { useState, useCallback } from "react";
-import type { PartialGuestData } from "@/types";
-import { INE_A_PROVINCIA } from "./usePlaces";
+import { useState } from "react";
+import { getProvinciaFromCP } from "@/constants/index";
 
-type OnChangeFn = (key: keyof PartialGuestData, value: unknown) => void;
-
-const PAIS_A_ISO2: Record<string, string> = {
-  GB: "gb",
-  FR: "fr",
-  DE: "de",
-  IT: "it",
-  NL: "nl",
-  BE: "be",
-  PT: "pt",
-  IE: "ie",
-  US: "us",
-  CH: "ch",
-  SE: "se",
-  NO: "no",
-  DK: "dk",
-  AT: "at",
-  PL: "pl",
-  FI: "fi",
-  MX: "mx",
-  AR: "ar",
-  CO: "co",
-  CA: "ca",
-  AU: "au",
-  NZ: "nz",
-  BR: "br",
-  CL: "cl",
-};
-
-interface ZippopotamPlace {
-  "place name": string;
-  state: string;
+async function fetchWithTimeout(
+  url: string,
+  timeoutMs = 3000,
+): Promise<Response> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(url, { signal: controller.signal });
+  } finally {
+    clearTimeout(timeoutId);
+  }
 }
 
-interface ZippopotamResponse {
-  places: ZippopotamPlace[];
-}
+// Caché en memoria para no machacar Zippopotam con el mismo CP
+const cache = new Map<string, { ciudad: string; provincia: string }>();
 
-export function useZipCode(onChange: OnChangeFn) {
+export const useZipCode = (onUpdate: (key: string, value: string) => void) => {
   const [isSearching, setIsSearching] = useState(false);
 
-  const buscarCP = useCallback(
-    async (cp: string, pais: string) => {
-      if (!cp.trim() || !pais) return;
-      setIsSearching(true);
+  const buscarCP = async (cp: string, paisISO: string = "ES") => {
+    if (!cp) return;
+    const iso2 = paisISO.substring(0, 2).toUpperCase();
+    const cpClean = cp.trim();
 
-      try {
-        if (pais === "ES") {
-          const provCode = cp.substring(0, 2);
-          if (INE_A_PROVINCIA[provCode]) {
-            onChange("provincia", INE_A_PROVINCIA[provCode]);
-          }
-        } else {
-          const iso2 = PAIS_A_ISO2[pais];
-          if (!iso2) return;
+    // LÓGICA PARA ESPAÑA
+    if (iso2 === "ES") {
+      const provinciaLocal = getProvinciaFromCP(cpClean);
+      if (provinciaLocal) {
+        onUpdate("provincia", provinciaLocal);
+      }
+      return;
+    }
 
-          const res = await fetch(
-            `https://api.zippopotam.us/${iso2}/${cp.trim()}`,
-          );
-          if (!res.ok) return;
+    // LÓGICA PARA EL RESTO DEL MUNDO
+    const cacheKey = `${iso2}:${cpClean}`;
+    const cached = cache.get(cacheKey);
+    if (cached) {
+      onUpdate("ciudad", cached.ciudad);
+      onUpdate("provincia", cached.provincia);
+      return;
+    }
 
-          const data: ZippopotamResponse = await res.json();
-          const place = data?.places?.[0];
-
-          if (place) {
-            if (place["place name"]) onChange("ciudad", place["place name"]);
-            if (place.state) onChange("provincia", place.state);
+    setIsSearching(true);
+    try {
+      const response = await fetchWithTimeout(
+        `https://api.zippopotam.us/${iso2.toLowerCase()}/${cpClean}`,
+      );
+      if (response.ok) {
+        const data = await response.json();
+        if (data.places?.length) {
+          const lugar = data.places[0];
+          const ciudad = lugar["place name"] ?? "";
+          const provincia = lugar["state"] ?? "";
+          if (ciudad) {
+            onUpdate("ciudad", ciudad);
+            onUpdate("provincia", provincia);
+            cache.set(cacheKey, { ciudad, provincia });
           }
         }
-      } catch {
-      } finally {
-        setIsSearching(false);
       }
-    },
-    [onChange],
-  );
+    } catch (error) {
+      if (import.meta.env.DEV) {
+        console.warn("Error en búsqueda de CP:", error);
+      }
+    } finally {
+      setIsSearching(false);
+    }
+  };
 
   return { buscarCP, isSearching };
-}
+};

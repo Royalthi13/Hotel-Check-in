@@ -6,27 +6,50 @@ import type {
   AppMode,
   Reserva,
   PartialGuestData,
-  GuestData, // <-- ¡Solucionado el error de TS2304!
+  GuestData,
   StepId,
   CheckinNav,
   NavDirection,
   CheckinActions,
 } from "@/types";
-import { FLOW_STEPS_LINK, DOT_STEPS_BASE } from "@/constants";
-import { loadCheckinData } from "@/api/chekin.service";
+import { FLOW_STEPS } from "@/constants";
+import { loadCheckinData } from "@/api/checkin.service";
 import { loginMagicLink } from "@/api/auth.service";
-import CryptoJS from "crypto-js";
 
-// ── Tipos Internos (Necesarios para que el Hook funcione) ───────────────────
+// ── Lista de pasos válidos ───────────────────────────────────────────────────
+const VALID_STEPS: ReadonlyArray<StepId> = [
+  "tablet_buscar",
+  "inicio",
+  "bienvenida",
+  "escanear",
+  "form_personal",
+  "form_contacto",
+  "form_relaciones",
+  "form_extras",
+  "revision",
+  "exito",
+];
+
+// ── Tipos Internos ───────────────────────────────────────────────────────────
 interface HistoryEntry {
   step: StepId;
   guestIndex: number;
 }
 
 type CheckinAction =
- | { type: "SET_KNOWN_GUEST"; guest: GuestData }
-  | { type: "SET_RESERVA_TABLET"; reserva: Reserva }
-  | { type: "SET_RESERVA"; reserva: Reserva }
+  | { type: "SET_KNOWN_GUEST"; guest: GuestData }
+  | {
+      type: "SET_RESERVA_TABLET";
+      reserva: Reserva;
+      bookingId: number;
+      clientId: number | null;
+    }
+  | {
+      type: "SET_RESERVA";
+      reserva: Reserva;
+      bookingId: number;
+      clientId: number | null;
+    }
   | { type: "SET_NUM_PERSONAS"; total: number }
   | { type: "SET_GUESTS"; guests: PartialGuestData[] }
   | {
@@ -41,69 +64,61 @@ type CheckinAction =
       adultoIndex: number;
       parentesco: string;
     }
-| { type: "APPLY_SCAN"; data: Partial<GuestData>; guestIdx: number }
+  | { type: "APPLY_SCAN"; data: Partial<GuestData>; guestIdx: number }
   | { type: "SET_HORA_LLEGADA"; value: string }
   | { type: "SET_OBSERVACIONES"; value: string }
   | { type: "SET_RGPD"; value: boolean }
   | { type: "SET_LEGAL_PASSED"; value: boolean }
   | { type: "SET_HAS_MINORS_FLAG"; value: boolean }
   | { type: "RESTORE_FULL_STATE"; payload: CheckinState }
-  // FIX: acción nueva para cargar acompañantes recuperados de la BD
   | { type: "SET_COMPANIONS_LOADED"; companions: GuestData[] }
   | { type: "RESET" };
 
-// ── Helpers de Persistencia (LAS QUE FALTABAN) ───────────────────────────────
-function getSession<T>(key: string, fallback: T): T {
-  try {
-    const stored = sessionStorage.getItem(key);
-    return stored ? (JSON.parse(stored) as T) : fallback;
-  } catch {
-    return fallback;
-  }
-}
+// ── Helpers de Persistencia ──────────────────────────────────────────────────
 
 function getInitialState(token: string, mode: AppMode): CheckinState {
-  const localKey = `h_ckin_data_${token}`;
   const sessionKey = `state_${token}`;
 
   try {
-    const local = localStorage.getItem(localKey);
-    if (local) {
-     const encKey = sessionStorage.getItem('lumina_enc_key') ?? token;
-      const bytes = CryptoJS.AES.decrypt(local, encKey);
-      const decryptedString = bytes.toString(CryptoJS.enc.Utf8);
+    sessionStorage.removeItem(`h_ckin_data_${token}`);
+    sessionStorage.removeItem("lumina_enc_key");
+  } catch (e) {
+    console.warn(e);
+  }
 
-      if (!decryptedString) throw new Error("Fallo de descifrado");
-
-      const { guests, timestamp } = JSON.parse(decryptedString);
-
+  try {
+    const raw = localStorage.getItem(sessionKey);
+    if (raw) {
+      const storedData = JSON.parse(raw);
+      const { timestamp, state } = storedData;
       if (Date.now() - timestamp < 30 * 60 * 1000) {
-        const state = buildEmptyState(mode);
-        return { ...state, guests };
+        return state;
       } else {
-        localStorage.removeItem(localKey);
+        localStorage.removeItem(sessionKey);
       }
     }
-
-    const session = sessionStorage.getItem(sessionKey);
-    if (session) return JSON.parse(session);
   } catch (e) {
-    console.error("Firma inválida o datos caducados", e);
-    localStorage.removeItem(localKey);
+    if (import.meta.env.DEV) console.warn("[useCheckin] getInitialState:", e);
   }
 
   return buildEmptyState(mode);
+}
+
+function emptyGuest(): PartialGuestData {
+  return { esMenor: false, relacionesConAdultos: [], pais: "ES" };
 }
 
 export function buildEmptyState(appMode: AppMode): CheckinState {
   return {
     appMode,
     reserva: null,
+    bookingId: null, // 👈 IDs integrados en el estado
+    clientId: null,
     knownGuest: null,
     numAdultos: 1,
     numMenores: 0,
     numPersonas: 1,
-    guests: [{ esMenor: false, relacionesConAdultos: [] }],
+    guests: [emptyGuest()],
     horaLlegada: "",
     observaciones: "",
     rgpdAcepted: false,
@@ -116,13 +131,10 @@ function mergeGuests(
   prev: PartialGuestData[],
   total: number,
 ): PartialGuestData[] {
-  return Array.from(
-    { length: total },
-    (_, i) => prev[i] ?? { esMenor: false, relacionesConAdultos: [] },
-  );
+  return Array.from({ length: total }, (_, i) => prev[i] ?? emptyGuest());
 }
 
-// ── Reducer ───────────────────────────────────────────────────────────────────
+// ── Reducer ──────────────────────────────────────────────────────────────────
 export function checkinReducer(
   state: CheckinState,
   action: CheckinAction,
@@ -130,17 +142,26 @@ export function checkinReducer(
   switch (action.type) {
     case "SET_GUESTS":
       return { ...state, guests: action.guests };
-   case "SET_KNOWN_GUEST":
+    case "SET_KNOWN_GUEST": {
+      const existing = state.guests[0] ?? {};
+      const hasData = !!(existing.nombre?.trim() || existing.numDoc?.trim());
       return {
         ...state,
         knownGuest: action.guest,
-        guests: [{ ...action.guest, esMenor: false }],
+        // Sólo rellenamos guests[0] si está vacío — así no pisamos lo que el
+        // usuario ya hubiese tecleado. knownGuest se setea siempre para que
+        // la verja de acceso pueda comparar el apellido.
+        guests: hasData ? state.guests : [{ ...action.guest, esMenor: false }],
+        clientId: action.guest.id || state.clientId,
       };
+    }
 
     case "SET_RESERVA_TABLET":
       return {
         ...state,
         reserva: action.reserva,
+        bookingId: action.bookingId,
+        clientId: action.clientId,
         numPersonas: action.reserva.numHuespedes,
         numAdultos: action.reserva.numHuespedes,
         numMenores: 0,
@@ -151,6 +172,8 @@ export function checkinReducer(
       return {
         ...state,
         reserva: action.reserva,
+        bookingId: action.bookingId,
+        clientId: action.clientId,
         numPersonas: action.reserva.numHuespedes,
       };
 
@@ -165,7 +188,6 @@ export function checkinReducer(
       };
     }
 
-    // ── FIX: carga de acompañantes desde la BD ─────────────────────────────
     case "SET_COMPANIONS_LOADED": {
       const mainGuest = state.guests[0] ?? {
         esMenor: false,
@@ -208,28 +230,46 @@ export function checkinReducer(
       return { ...state, guests };
     }
 
-    case "UPDATE_RELACION": {
-      const guests = [...state.guests];
-      const menor = { ...guests[action.menorIndex] };
-      const rels = [...(menor.relacionesConAdultos ?? [])];
-      if (action.parentesco === "") {
-        menor.relacionesConAdultos = rels.filter(
-          (r) => r.adultoIndex !== action.adultoIndex,
-        );
-      } else {
-        const idx = rels.findIndex((r) => r.adultoIndex === action.adultoIndex);
-        if (idx >= 0)
-          rels[idx] = { ...rels[idx], parentesco: action.parentesco };
-        else
-          rels.push({
-            adultoIndex: action.adultoIndex,
-            parentesco: action.parentesco,
-          });
-        menor.relacionesConAdultos = rels;
+   case "UPDATE_RELACION": {
+  const guests = [...state.guests];
+  const menor = { ...guests[action.menorIndex] };
+  const rels = [...(menor.relacionesConAdultos ?? [])];
+  if (action.parentesco === "") {
+    menor.relacionesConAdultos = rels.filter(
+      (r) => r.adultoIndex !== action.adultoIndex,
+    );
+  } else {
+    const idx = rels.findIndex((r) => r.adultoIndex === action.adultoIndex);
+    if (idx >= 0)
+      rels[idx] = { ...rels[idx], parentesco: action.parentesco };
+    else
+      rels.push({
+        adultoIndex: action.adultoIndex,
+        parentesco: action.parentesco,
+      });
+    menor.relacionesConAdultos = rels;
+
+    // Si la relación implica convivencia (PM/TU), pre-rellenamos la dirección
+    // del menor con la del adulto responsable. El usuario puede modificarla.
+    const CODIGOS_CONVIVENCIA = new Set(["PM", "TU"]);
+    if (CODIGOS_CONVIVENCIA.has(action.parentesco)) {
+      const adulto = guests[action.adultoIndex];
+    if (adulto && !adulto.esMenor) {
+        const yaTieneDireccion = !!(menor.direccion?.trim() || menor.ciudad?.trim());
+        if (!yaTieneDireccion && adulto.direccion) {
+          menor.direccion = adulto.direccion;
+          menor.ciudad    = adulto.ciudad    ?? "";
+          menor.codCity   = adulto.codCity   ?? "";
+          menor.provincia = adulto.provincia ?? "";
+          menor.cp        = adulto.cp        ?? "";
+          menor.pais      = adulto.pais      ?? "ES";
+        }
       }
-      guests[action.menorIndex] = menor;
-      return { ...state, guests };
     }
+  }
+  guests[action.menorIndex] = menor;
+  return { ...state, guests };
+}
 
     case "APPLY_SCAN": {
       const guests = [...state.guests];
@@ -256,23 +296,63 @@ export function checkinReducer(
   }
 }
 
-// ── Hook Principal ────────────────────────────────────────────────────────────
+// ── Hook Principal ───────────────────────────────────────────────────────────
 export function useCheckin(tokenUrl?: string, stepUrl?: string) {
   const navigate = useNavigate();
   const token = tokenUrl ?? "new";
   const initialMode: AppMode = token === "new" ? "tablet" : "link";
 
-  // Carga inicial síncrona
   const [state, setState] = useState<CheckinState>(() =>
     getInitialState(token, initialMode),
   );
-  const [appHistory, setAppHistory] = useState<HistoryEntry[]>(() =>
-    getSession(`history_${token}`, []),
-  );
-  const [allowedSteps, setAllowedSteps] = useState<Set<StepId>>(() => {
-    const stored = getSession<StepId[] | null>(`allowedSteps_${token}`, null);
-    return new Set(stored ?? ["inicio", "tablet_buscar"]);
+
+  const [appHistory, setAppHistory] = useState<HistoryEntry[]>(() => {
+    let storedHistory: HistoryEntry[] = [];
+    try {
+      const raw = localStorage.getItem(`history_${token}`);
+      if (raw) {
+        const { data, timestamp } = JSON.parse(raw);
+        if (Date.now() - timestamp < 30 * 60 * 1000) storedHistory = data;
+      }
+    } catch (e) {
+      console.warn("No se pudo cargar el historial", e);
+    }
+
+    if (stepUrl && VALID_STEPS.includes(stepUrl as StepId)) {
+      const stepExists = storedHistory.some((h) => h.step === stepUrl);
+      if (!stepExists) {
+        return [...storedHistory, { step: stepUrl as StepId, guestIndex: 0 }];
+      }
+    }
+    return storedHistory;
   });
+
+  const [allowedSteps, setAllowedSteps] = useState<Set<StepId>>(() => {
+    let validStored: StepId[] = ["inicio", "tablet_buscar"];
+    try {
+      const raw = localStorage.getItem(`allowedSteps_${token}`);
+      if (raw) {
+        const { data, timestamp } = JSON.parse(raw);
+        if (Date.now() - timestamp < 30 * 60 * 1000) validStored = data;
+      }
+    } catch (e) {
+      console.warn("No se pudieron cargar los pasos permitidos", e);
+    }
+
+    if (stepUrl && VALID_STEPS.includes(stepUrl as StepId)) {
+      return new Set([...validStored, stepUrl as StepId]);
+    }
+    return new Set(validStored);
+  });
+
+  const [modoFlujo, setModoFlujo] = useState<"scan" | "manual" | null>(() => {
+    const stored = localStorage.getItem(`modoFlujo_${token}`);
+    return stored === "scan" || stored === "manual" ? stored : null;
+  });
+
+  useEffect(() => {
+    if (modoFlujo) localStorage.setItem(`modoFlujo_${token}`, modoFlujo);
+  }, [modoFlujo, token]);
 
   const [isLoading, setIsLoading] = useState(token !== "new");
   const [navDirection, setNavDirection] = useState<NavDirection>("forward");
@@ -287,29 +367,44 @@ export function useCheckin(tokenUrl?: string, stepUrl?: string) {
   useEffect(() => {
     navigateRef.current = navigate;
   });
+
   useEffect(() => {
     stateRef.current = state;
   }, [state]);
 
-  // Sincronización con SessionStorage
   useEffect(() => {
+    if (token === "new" && !state.reserva) return; // No persistimos el estado vacío inicial en tablet
+
     const persistableState = {
       ...state,
       guests: state.guests.map((g) => ({ ...g, docFile: null })),
     };
-    sessionStorage.setItem(`state_${token}`, JSON.stringify(persistableState));
+
+    const dataToSave = JSON.stringify({
+      state: persistableState,
+      timestamp: Date.now(),
+    });
+
+    localStorage.setItem(`state_${token}`, dataToSave);
   }, [state, token]);
 
   useEffect(
     () =>
-      sessionStorage.setItem(`history_${token}`, JSON.stringify(appHistory)),
+      localStorage.setItem(
+        `history_${token}`,
+        JSON.stringify({ data: appHistory, timestamp: Date.now() }),
+      ),
     [appHistory, token],
   );
+
   useEffect(
     () =>
-      sessionStorage.setItem(
+      localStorage.setItem(
         `allowedSteps_${token}`,
-        JSON.stringify(Array.from(allowedSteps)),
+        JSON.stringify({
+          data: Array.from(allowedSteps),
+          timestamp: Date.now(),
+        }),
       ),
     [allowedSteps, token],
   );
@@ -333,47 +428,37 @@ export function useCheckin(tokenUrl?: string, stepUrl?: string) {
         if (!yaAutenticado) {
           try {
             await loginMagicLink(token);
-          } catch  {
+          } catch {
             if (cancelled) return;
             localStorage.removeItem(`h_ckin_data_${token}`);
             navigateRef.current("/invalid", { replace: true });
             return;
           }
-        }const result = await loadCheckinData(token);
-        if (cancelled) return;
-
-        // IDs siempre necesarios
-        sessionStorage.setItem(`bookingId_${token}`, String(result.bookingId));
-        if (result.clientId)
-          sessionStorage.setItem(`clientId_${token}`, String(result.clientId));
-
-        // Reserva siempre
-        dispatch({ type: "SET_RESERVA", reserva: result.reserva });
-
-        // Si ya completó el pre-checkin → redirigir a exito sin más
-        if (result.isAlreadyCheckedIn) {
-          if (result.knownGuest)
-            dispatch({ type: "SET_KNOWN_GUEST", guest: result.knownGuest });
-          navigateRef.current(`/checkin/${token}/exito`, { replace: true });
-        } else {
-          // Titular — solo pre-rellenar si el usuario no tiene datos propios
-          const hasOwnData =
-            stateRef.current.guests[0]?.nombre?.trim() ||
-            stateRef.current.guests[0]?.numDoc?.trim();
-          if (result.knownGuest && !hasOwnData) {
-            dispatch({ type: "SET_KNOWN_GUEST", guest: result.knownGuest });
-          }
-
-          // Acompañantes
-          if (result.companions.length > 0) {
-            dispatch({
-              type: "SET_COMPANIONS_LOADED",
-              companions: result.companions,
-            });
-          }
         }
-      } catch {
+
+        const result = await loadCheckinData(token);
         if (cancelled) return;
+
+        // 👇 IDs enviados al dispatch para que vivan en el state persistente
+        dispatch({
+          type: "SET_RESERVA",
+          reserva: result.reserva,
+          bookingId: result.bookingId,
+          clientId: result.clientId,
+        });
+
+        if (result.knownGuest) {
+          dispatch({ type: "SET_KNOWN_GUEST", guest: result.knownGuest });
+        }
+        if (result.companions.length > 0) {
+          dispatch({
+            type: "SET_COMPANIONS_LOADED",
+            companions: result.companions,
+          });
+        }
+      } catch (e) {
+        if (cancelled) return;
+        console.warn(e);
         localStorage.removeItem(`h_ckin_data_${token}`);
         navigateRef.current("/invalid", { replace: true });
       } finally {
@@ -392,9 +477,27 @@ export function useCheckin(tokenUrl?: string, stepUrl?: string) {
     };
   }, []);
 
-  const actualStep =
-    (stepUrl as StepId) ??
-    (initialMode === "tablet" ? "tablet_buscar" : "inicio");
+  const requestedStep = stepUrl as StepId | undefined;
+
+  const actualStep: StepId = (() => {
+    if (requestedStep && VALID_STEPS.includes(requestedStep))
+      return requestedStep;
+    if (initialMode === "tablet") return "tablet_buscar";
+
+    const yaAcepto =
+      localStorage.getItem(`legalPassed_${token}`) === "true" ||
+      state.legalPassed;
+
+    if (yaAcepto) {
+      if (appHistory.length > 0) {
+        return appHistory[appHistory.length - 1].step;
+      }
+      return "bienvenida";
+    }
+
+    return "inicio";
+  })();
+
   const activeGuestIndex = (() => {
     for (let i = appHistory.length - 1; i >= 0; i--) {
       if (appHistory[i].step === actualStep) return appHistory[i].guestIndex;
@@ -453,31 +556,21 @@ export function useCheckin(tokenUrl?: string, stepUrl?: string) {
     (currIdx: number, from: StepId) => {
       const { guests, numPersonas } = stateRef.current;
 
-     if (from === "form_personal") {
-      const guest = stateRef.current.guests[currIdx];
-      if (guest?.esMenor) {
-        if (currIdx + 1 < numPersonas) {
-          return goTo("form_personal", "forward", currIdx + 1);
-        }
+      const goToFirstMinorOrExtras = () => {
         const nextM = guests.findIndex((g) => g.esMenor);
         if (nextM >= 0) return goTo("form_relaciones", "forward", nextM);
         return goTo("form_extras", "forward", 0);
+      };
+
+      if (from === "form_personal") {
+        return goTo("form_contacto", "forward", currIdx);
       }
-      return goTo("form_contacto", "forward", currIdx);
-    }
-if (from === "form_contacto") {
-        const isCurrentMinor = stateRef.current.guests[currIdx]?.esMenor;
-        if (isCurrentMinor) {
-          const nextM = guests.findIndex((g, i) => i > currIdx && g.esMenor);
-          if (nextM >= 0) return goTo("form_relaciones", "forward", nextM);
-          return goTo("form_extras", "forward", 0);
-        }
+
+      if (from === "form_contacto") {
         if (currIdx + 1 < numPersonas) {
-          return goTo("form_personal", "forward", currIdx + 1);
+          return goTo("bienvenida", "forward", currIdx + 1);
         }
-        const nextM = guests.findIndex((g) => g.esMenor);
-        if (nextM >= 0) return goTo("form_relaciones", "forward", nextM);
-        return goTo("form_extras", "forward", 0);
+        return goToFirstMinorOrExtras();
       }
 
      if (from === "form_relaciones") {
@@ -498,16 +591,17 @@ if (from === "form_contacto") {
   );
 
   const dotSteps = useMemo(() => {
-    const base = state.appMode === "link" ? FLOW_STEPS_LINK : DOT_STEPS_BASE;
-    const flujo = sessionStorage.getItem(`modoFlujo_${token}`);
-    return flujo === "manual" ? base.filter((s) => s !== "escanear") : base;
-  }, [state.appMode, token]);
+    return modoFlujo === "manual"
+      ? FLOW_STEPS.filter((s) => s !== "escanear")
+      : FLOW_STEPS;
+  }, [modoFlujo]);
 
   const canGoBack =
     appHistory.length > 0 &&
     !["exito", "tablet_buscar", "inicio"].includes(actualStep);
+
   let currentDotIndex = dotSteps.indexOf(actualStep);
-  if (["confirmar_datos", "form_relaciones"].includes(actualStep))
+ if (actualStep === "form_relaciones")
     currentDotIndex = dotSteps.indexOf("form_personal");
 
   const maxAllowedDotIndex = useMemo(() => {
@@ -552,8 +646,14 @@ if (from === "form_contacto") {
         if (idx < 0 || idx >= dotSteps.length) return;
         goTo(dotSteps[idx], idx < currentDotIndex ? "back" : "forward", 0);
       },
-      setReservaFromTablet: (res: Reserva) => {
-        dispatch({ type: "SET_RESERVA_TABLET", reserva: res });
+      // 👇 Actualizado para recibir y guardar IDs en tablet mode
+      setReservaFromTablet: (res: Reserva, bId: number, cId: number | null) => {
+        dispatch({
+          type: "SET_RESERVA_TABLET",
+          reserva: res,
+          bookingId: bId,
+          clientId: cId,
+        });
         setAppHistory([{ step: "bienvenida", guestIndex: 0 }]);
         setAllowedSteps(new Set(["bienvenida", "tablet_buscar"]));
         goTo("bienvenida", "forward", 0);
@@ -585,13 +685,15 @@ if (from === "form_contacto") {
         dispatch({ type: "SET_OBSERVACIONES", value: v }),
       nextGuest,
       setRgpdAcepted: (v) => dispatch({ type: "SET_RGPD", value: v }),
-      setLegalPassed: (v) => dispatch({ type: "SET_LEGAL_PASSED", value: v }),
+      setLegalPassed: (v) => {
+        dispatch({ type: "SET_LEGAL_PASSED", value: v });
+        localStorage.setItem(`legalPassed_${token}`, String(v));
+      },
       setHasMinorsFlag: (v) =>
         dispatch({ type: "SET_HAS_MINORS_FLAG", value: v }),
     }),
-    // <-- FIX: Borrada la matriz de dependencias que estaba duplicada en la línea final
-    [goTo, goBack, dispatch, dotSteps, currentDotIndex, nextGuest],
+    [goTo, goBack, dispatch, dotSteps, currentDotIndex, nextGuest, token],
   );
 
-  return [state, nav, actions, isLoading] as const;
+  return [state, nav, actions, isLoading, setModoFlujo] as const;
 }

@@ -1,85 +1,4 @@
-import type { GuestData, StepId } from "@/types";
-
-export const COLORS = {
-  primary: "#fa865c",
-  primaryD: "#e5704a",
-  primaryLt: "#fef0ea",
-  secondary: "#324154",
-  secMid: "#4a5a6e",
-  secLt: "#6a7a8e",
-  bg: "#e5e2dd",
-  bgDark: "#23150f",
-  white: "#ffffff",
-  border: "#d0cbc4",
-  borderLt: "#e8e4de",
-  text: "#1e2c3a",
-  textMid: "#4a5a6a",
-  textLow: "#8a9aaa",
-  ok: "#2d7a50",
-  okBg: "#edf7f1",
-  err: "#c0392b",
-  errBg: "#fdf2f2",
-} as const;
-
-// FIX: pais usa código ISO2 "ES", no el string "España".
-// Todos los selectores de país en el frontend usan códigos ISO2.
-export const MOCK_KNOWN_GUEST: GuestData = {
-  nombre: "",
-  apellido: "",
-  apellido2: "",
-  sexo: "",
-  fechaNac: "",
-  nacionalidad: "Española",
-  email: "",
-  telefono: "",
-  direccion: "",
-  ciudad: "",
-  provincia: "",
-  cp: "",
-  pais: "ES", // ← FIX: antes era "España", rompía el selector en modo dev
-  tipoDoc: "DNI",
-  numDoc: "",
-  vat: "",
-  esMenor: false,
-  relacionesConAdultos: [],
-};
-
-export const PAISES = [
-  "España",
-  "Reino Unido",
-  "Francia",
-  "Alemania",
-  "Italia",
-  "Países Bajos",
-  "Bélgica",
-  "Portugal",
-  "Irlanda",
-  "Estados Unidos",
-  "Suiza",
-  "Suecia",
-  "Noruega",
-  "Dinamarca",
-  "Austria",
-  "Polonia",
-  "Finlandia",
-  "México",
-  "Argentina",
-  "Colombia",
-];
-
-export const NACIONALIDADES = [
-  "Española",
-  "Alemana",
-  "Francesa",
-  "Italiana",
-  "Portuguesa",
-  "Inglesa",
-  "Estadounidense",
-  "Argentina",
-  "Mexicana",
-  "Otra",
-];
-
+import type { StepId } from "@/types";
 export const TIPOS_DOCUMENTO = [
   "DNI",
   "NIF",
@@ -89,6 +8,70 @@ export const TIPOS_DOCUMENTO = [
   "Otro",
 ];
 
+export const PROVINCIAS_MAP: Record<string, string> = {
+  "01": "Álava",
+  "02": "Albacete",
+  "03": "Alicante",
+  "04": "Almería",
+  "05": "Ávila",
+  "06": "Badajoz",
+  "07": "Baleares",
+  "08": "Barcelona",
+  "09": "Burgos",
+  "10": "Cáceres",
+  "11": "Cádiz",
+  "12": "Castellón",
+  "13": "Ciudad Real",
+  "14": "Córdoba",
+  "15": "A Coruña",
+  "16": "Cuenca",
+  "17": "Girona",
+  "18": "Granada",
+  "19": "Guadalajara",
+  "20": "Gipuzkoa",
+  "21": "Huelva",
+  "22": "Huesca",
+  "23": "Jaén",
+  "24": "León",
+  "25": "Lleida",
+  "26": "La Rioja",
+  "27": "Lugo",
+  "28": "Madrid",
+  "29": "Málaga",
+  "30": "Murcia",
+  "31": "Navarra",
+  "32": "Ourense",
+  "33": "Asturias",
+  "34": "Palencia",
+  "35": "Las Palmas",
+  "36": "Pontevedra",
+  "37": "Salamanca",
+  "38": "Santa Cruz de Tenerife",
+  "39": "Cantabria",
+  "40": "Segovia",
+  "41": "Sevilla",
+  "42": "Soria",
+  "43": "Tarragona",
+  "44": "Teruel",
+  "45": "Toledo",
+  "46": "Valencia",
+  "47": "Valladolid",
+  "48": "Bizkaia",
+  "49": "Zamora",
+  "50": "Zaragoza",
+  "51": "Ceuta",
+  "52": "Melilla",
+};
+
+export function getProvinciaByPrefix(prefix: string): string {
+  return PROVINCIAS_MAP[prefix] || "";
+}
+
+export function getProvinciaFromCP(cp: string | undefined | null): string {
+  if (!cp || cp.length < 2) return "";
+  const prefix = cp.substring(0, 2).padStart(2, "0");
+  return getProvinciaByPrefix(prefix);
+}
 export const HORAS_LLEGADA = [
   "No especificada",
   "08:00",
@@ -345,8 +328,7 @@ export const PREFIJOS_TELEFONICOS = [
   { code: "ZM", dial: "+260" },
   { code: "ZW", dial: "+263" },
 ];
-
-export const FLOW_STEPS_LINK: StepId[] = [
+export const FLOW_STEPS: StepId[] = [
   "inicio",
   "bienvenida",
   "form_personal",
@@ -355,22 +337,3 @@ export const FLOW_STEPS_LINK: StepId[] = [
   "revision",
   "exito",
 ];
-export const DOT_STEPS_BASE: StepId[] = [
-  "inicio",
-  "bienvenida",
-  "form_personal",
-  "form_contacto",
-  "form_extras",
-  "revision",
-  "exito",
-];
-
-export const DOT_LABELS: Partial<Record<StepId, string>> = {
-  inicio: "Inicio",
-  bienvenida: "Bienvenida",
-  form_personal: "Datos personales",
-  form_contacto: "Contacto",
-  form_extras: "Preferencias",
-  revision: "Revisión",
-  exito: "Completado",
-};

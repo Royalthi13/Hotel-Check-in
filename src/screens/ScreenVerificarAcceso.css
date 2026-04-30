@@ -1,0 +1,151 @@
+.verify-screen {
+  padding: 0 0 40px 0;
+  background-color: #fafafa;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.verify-hero {
+  position: relative;
+  padding: 60px 24px 40px;
+  border-radius: 0 0 24px 24px;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
+  overflow: visible !important;
+  width: 100%;
+}
+
+.verify-lang-wrapper {
+  position: absolute;
+  top: 30px;
+  right: 50px;
+  z-index: 9999;
+}
+
+.verify-lang-wrapper .lang-dropdown {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 8px;
+  z-index: 10000;
+}
+
+.verify-title-margin {
+  margin-top: 20px;
+  margin-bottom: 12px;
+}
+
+.verify-sub-opacity {
+  opacity: 0.8;
+}
+
+.verify-sub-strong {
+  color: #fff;
+}
+
+.verify-card {
+  background-color: #ffffff;
+  max-width: 540px;
+  width: 90%;
+  margin: 40px auto;
+  border-radius: 24px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.08);
+  position: relative;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  padding-bottom: 40px;
+}
+
+.verify-content {
+  padding: 40px 32px 32px;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
+.verify-spacer {
+  display: none;
+}
+
+.verify-instruction {
+  font-size: 15px;
+  color: #6b7280;
+  line-height: 1.6;
+  margin-bottom: 24px;
+  text-align: center;
+}
+
+.verify-input {
+  height: 56px;
+  background-color: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.02);
+  width: 100%;
+}
+
+.verify-input:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(var(--primary-rgb), 0.1);
+}
+
+.verify-input--email {
+  text-align: left;
+  padding: 0 16px;
+  font-size: 16px;
+}
+
+.verify-btn-wrapper {
+  padding: 0 32px;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+}
+
+.verify-btn-wrapper > button {
+  width: 100%;
+  height: 56px;
+  font-weight: 600;
+  font-size: 16px;
+}
+
+.verify-btn-active {
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+}
+
+@media (max-width: 480px) {
+  .verify-hero {
+    padding: 40px 16px 30px;
+  }
+
+  .verify-lang-wrapper {
+    top: 15px;
+    right: 15px;
+  }
+
+  .verify-card {
+    background-color: transparent;
+    box-shadow: none;
+    margin: 0 auto;
+    padding-bottom: 0;
+    flex: 1;
+    border-radius: 0;
+    width: 100%;
+  }
+
+  .verify-content {
+    padding: 30px 20px 0;
+  }
+
+  .verify-spacer {
+    display: block;
+    flex: 1 !important;
+  }
+
+  .verify-btn-wrapper {
+    padding: 0 20px;
+  }
+}

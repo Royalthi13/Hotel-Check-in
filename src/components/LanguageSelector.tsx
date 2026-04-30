@@ -2,13 +2,14 @@ import React, { useState, useRef, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import "flag-icons/css/flag-icons.min.css";
 
-const LANGUAGES = [
-  { code: "es", label: "Español", country: "es" },
-  { code: "en", label: "English", country: "gb" },
-  { code: "fr", label: "Français", country: "fr" },
-  { code: "de", label: "Deutsch", country: "de" },
-  { code: "pt", label: "Português", country: "pt" },
-  { code: "it", label: "Italiano", country: "it" },
+// 1. Quitamos los "labels" fijos de aquí, pero mantenemos la relación código-bandera
+const LANGUAGES_CONFIG = [
+  { code: "es", country: "es" },
+  { code: "en", country: "gb" },
+  { code: "fr", country: "fr" },
+  { code: "de", country: "de" },
+  { code: "pt", country: "pt" },
+  { code: "it", country: "it" },
 ];
 
 const FlagIcon: React.FC<{ country: string; label: string }> = ({
@@ -17,7 +18,8 @@ const FlagIcon: React.FC<{ country: string; label: string }> = ({
 }) => <span className={`fi fi-${country}`} role="img" aria-label={label} />;
 
 export const LanguageSelector: React.FC = () => {
-  const { i18n } = useTranslation();
+  // 2. Traemos la función 't' para traducir
+  const { t, i18n } = useTranslation();
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -34,8 +36,12 @@ export const LanguageSelector: React.FC = () => {
   }, []);
 
   const current =
-    LANGUAGES.find((l) => l.code === i18n.language.split("-")[0]) ??
-    LANGUAGES[0];
+    LANGUAGES_CONFIG.find((l) => l.code === i18n.language.split("-")[0]) ??
+    LANGUAGES_CONFIG[0];
+
+  // 3. Obtenemos el nombre traducido dinámicamente para el idioma actual
+  const currentLabel = t(`common.languages.${current.code}`);
+  const ariaSelectorLabel = t("common.languages.selector_aria");
 
   return (
     <div className="lang-selector" ref={containerRef}>
@@ -45,9 +51,10 @@ export const LanguageSelector: React.FC = () => {
         onClick={() => setIsOpen((v) => !v)}
         aria-haspopup="listbox"
         aria-expanded={isOpen}
-        aria-label={`Idioma: ${current.label}`}
+        // 4. ARIA label dinámico
+        aria-label={`${ariaSelectorLabel}: ${currentLabel}`}
       >
-        <FlagIcon country={current.country} label={current.label} /> {/* ← */}
+        <FlagIcon country={current.country} label={currentLabel} />
         <span
           className="lang-code"
           style={{ fontSize: 12, fontWeight: 600, letterSpacing: "0.08em" }}
@@ -83,10 +90,14 @@ export const LanguageSelector: React.FC = () => {
           <div
             className="lang-dropdown"
             role="listbox"
-            aria-label="Seleccionar idioma"
+            // 5. ARIA label dinámico para la lista
+            aria-label={ariaSelectorLabel}
           >
-            {LANGUAGES.map((lang) => {
+            {LANGUAGES_CONFIG.map((lang) => {
               const isActive = i18n.language.startsWith(lang.code);
+              // 6. Buscamos la traducción para cada idioma de la lista
+              const langLabel = t(`common.languages.${lang.code}`);
+
               return (
                 <button
                   key={lang.code}
@@ -99,8 +110,8 @@ export const LanguageSelector: React.FC = () => {
                     setIsOpen(false);
                   }}
                 >
-                  <FlagIcon country={lang.country} label={lang.label} />
-                  <span className="lang-label">{lang.label}</span>
+                  <FlagIcon country={lang.country} label={langLabel} />
+                  <span className="lang-label">{langLabel}</span>
                   {isActive && (
                     <svg
                       className="lang-check"

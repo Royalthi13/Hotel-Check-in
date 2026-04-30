@@ -6,30 +6,13 @@ export type StepId =
   | "tablet_buscar"
   | "inicio"
   | "bienvenida"
-  | "confirmar_datos"
   | "escanear"
   | "form_personal"
   | "form_contacto"
-  | "form_documento"
   | "form_relaciones"
-  | "num_personas"
   | "form_extras"
   | "revision"
   | "exito";
-
-// ─── Room Type ──────────────────────────────────────────────────────────────────
-
-export type RoomTypeName =
-  | "Individual"
-  | "Doble"
-  | "Triple"
-  | "Matrimonio"
-  | "Suite";
-
-export interface RoomTypeResponse {
-  id: number;
-  name: RoomTypeName;
-}
 
 export interface RelacionDB {
   codrelation: string;
@@ -55,19 +38,16 @@ export interface RelacionConAdulto {
 
 // ─── Datos de un huésped ──────────────────────────────────────────────────────
 export interface GuestData {
+  id?: number;
   nombre: string;
   apellido: string;
   apellido2: string;
   sexo: string;
   fechaNac: string;
   nacionalidad: string;
-
+  parentescoParaAPI?: string;
   esMenor: boolean;
-
-  vengoConMenores?: boolean;
-  tienesMenor?: boolean;
-  nombreMenor?: string;
-  relacionMenor?: string;
+  observations?: string;
   relacionesConAdultos: RelacionConAdulto[];
 
   // Contacto (Huésped principal)
@@ -75,13 +55,15 @@ export interface GuestData {
   telefono?: string;
   direccion?: string;
   ciudad?: string;
+  codCity?: string;
   provincia?: string;
   cp?: string;
   pais?: string;
 
   // Documento
   tipoDoc: string;
-  numDoc: string;soporteDoc?: string;
+  numDoc: string;
+  soporteDoc?: string;
   vat?: string;
   prefijo?: string;
   docFile?: File | null;
@@ -104,6 +86,8 @@ export interface CheckinState {
   rgpdAcepted: boolean;
   legalPassed: boolean;
   hasMinorsFlag: boolean;
+  bookingId: number | null;
+  clientId: number | null;
 }
 
 // ─── Validación, Navegación y Hook ───────────────────────────────────────────
@@ -118,7 +102,7 @@ export interface CheckinNav {
   dotIndex: number;
   canGoBack: boolean;
   allowedSteps: Set<StepId>;
- isNavigating: boolean;
+  isNavigating: boolean;
   maxAllowedDotIndex: number;
 }
 
@@ -126,7 +110,11 @@ export interface CheckinActions {
   goTo: (step: StepId, dir?: NavDirection, gIdx?: number) => void;
   goBack: () => void;
   goToDotIndex: (dotIdx: number) => void;
-  setReservaFromTablet: (res: Reserva) => void;
+  setReservaFromTablet: (
+    res: Reserva,
+    bookingId: number,
+    clientId: number | null,
+  ) => void;
   setNumPersonas: (total: number) => void;
   updateGuest: (
     index: number,
@@ -146,6 +134,5 @@ export interface CheckinActions {
   setRgpdAcepted: (v: boolean) => void;
   setLegalPassed: (v: boolean) => void;
   setHasMinorsFlag: (v: boolean) => void;
-  handleSubmit?: () => Promise<void>;
   setGuests: (guests: PartialGuestData[]) => void;
 }

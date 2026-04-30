@@ -1,10 +1,6 @@
 import React from "react";
 import { useTranslation } from "react-i18next";
 import type { Reserva } from "../../types";
-import "@/components/ui/buttons.css";
-import "@/components/ui/forms.css";
-import "@/components/ui/alerts.css";
-import "@/components/ui/misc.css";
 import dayjs from "dayjs";
 import "dayjs/locale/es";
 import "dayjs/locale/pt";
@@ -39,7 +35,7 @@ export type IconName =
   | "clock"
   | "plus"
   | "minus"
-  | "hotel";
+  | "file";
 
 const PATHS: Record<IconName, string[]> = {
   left: ["M19 12H5", "M12 19l-7-7 7-7"],
@@ -104,10 +100,13 @@ const PATHS: Record<IconName, string[]> = {
   clock: ["M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20z", "M12 6v6l4 2"],
   plus: ["M12 5v14", "M5 12h14"],
   minus: ["M5 12h14"],
-  hotel: ["M3 22V6l9-4 9 4v16", "M9 22V12h6v10", "M12 2v4"],
   clipboard: [
     "M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2",
     "M9 2h6v4H9z",
+  ],
+  file: [
+    "M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z",
+    "M14 2v6h6",
   ],
 };
 
@@ -139,8 +138,7 @@ export interface IconProps {
   size?: number;
   color?: string;
   strokeWidth?: number;
-   style?: React.CSSProperties;
-   
+  style?: React.CSSProperties;
 }
 export interface FieldProps {
   label: string;

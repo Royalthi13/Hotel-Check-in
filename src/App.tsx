@@ -1,4 +1,11 @@
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { useEffect } from "react";
+import {
+  BrowserRouter,
+  Routes,
+  Route,
+  Navigate,
+  useNavigate,
+} from "react-router-dom";
 import "./App.css";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { useCheckinContext } from "@/context/useCheckinContext";
@@ -6,7 +13,6 @@ import { AppShell } from "@/layout/AppShell";
 import { LoadingSpinner, Alert, Icon } from "@/components/ui";
 import { useTranslation } from "react-i18next";
 import { CheckinProvider } from "@/context/CheckinContext";
-// --- PANTALLAS ---
 import { ScreenTabletBuscar } from "@/screens/ScreenTabletBuscar";
 import { ScreenBienvenida } from "@/screens/ScreenBienvenida";
 import { ScreenCheckinInicio } from "@/screens/ScreenCheckinInicio";
@@ -20,7 +26,7 @@ import {
 } from "@/screens/ScreenExtrasRevisionExito";
 
 import type { StepId, Reserva } from "@/types";
-
+import { ScreenVerificarAcceso } from "@/screens/ScreenVerificarAcceso";
 const STEPS_WITHOUT_DOTS = new Set<StepId>(["tablet_buscar", "exito"]);
 
 // ── Página de enlace inválido / caducado ──────────────────────────────────────
@@ -91,6 +97,7 @@ function InvalidLink() {
 // ── Lógica del Wizard (Se mantiene igual que tu código) ───────────────────────
 function CheckinWizard() {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const {
     state,
     nav,
@@ -105,11 +112,51 @@ function CheckinWizard() {
     handleChooseMethod,
     handleSubmit,
     token,
+    accessVerified,
+    setAccessVerified,
   } = useCheckinContext();
 
   const isActuallyLoading =
     isLoading && token !== "new" && nav.step !== "tablet_buscar";
+  // Verja anti-enumeración: si la reserva tiene titular con apellido real
+  // y aún no se ha verificado, exigimos que el huésped lo introduzca.
+  // Verja anti-enumeración: 1º email, 2º últimas 3 cifras del teléfono.
+  // Si no hay ninguno de los dos, no podemos verificar y dejamos pasar.
+  const expectedEmail = state.knownGuest?.email
+    ? String(state.knownGuest.email).trim()
+    : undefined;
 
+  const expectedPhone = state.knownGuest?.telefono
+    ? String(state.knownGuest.telefono).trim()
+    : undefined;
+
+  const verifyField: "email" | "phone" | null = expectedEmail
+    ? "email"
+    : expectedPhone
+      ? "phone"
+      : null;
+
+  const needsVerification =
+    !accessVerified &&
+    state.knownGuest &&
+    verifyField !== null &&
+    nav.step !== "tablet_buscar";
+
+  if (needsVerification && !isLoading) {
+    return (
+      <div className="shell">
+        <div className="card">
+          <ScreenVerificarAcceso
+            mode={verifyField!}
+            expected={verifyField === "email" ? expectedEmail! : expectedPhone!}
+            bookingRef={state.reserva?.confirmacion ?? `#${state.bookingId}`}
+            onSuccess={() => setAccessVerified(true)}
+            onTooManyAttempts={() => navigate("/invalid", { replace: true })}
+          />
+        </div>
+      </div>
+    );
+  }
   if (isActuallyLoading) {
     return (
       <div
@@ -134,7 +181,9 @@ function CheckinWizard() {
       <div className="shell">
         <div className="card">
           <ScreenTabletBuscar
-            onFound={(res) => actions.setReservaFromTablet(res)}
+            onFound={(res, bookingId, clientId) =>
+              actions.setReservaFromTablet(res, bookingId, clientId)
+            }
           />
         </div>
       </div>
@@ -176,6 +225,7 @@ function CheckinWizard() {
         <ScreenBienvenida
           knownGuest={state.knownGuest}
           reserva={state.reserva}
+          guestIndex={nav.guestIndex}
           onChooseScan={() => handleChooseMethod("scan")}
           onChooseManual={() => handleChooseMethod("manual")}
         />
@@ -197,31 +247,15 @@ function CheckinWizard() {
       {currentStep === "form_relaciones" && (
         <ScreenRelacionesMenor
           menor={currentGuest}
-          adultos={adultosConIndice}onRelacionChange={(aIdx: number, p: string) => {
-  actions.updateRelacion(nav.guestIndex, aIdx, p);
-
-  // Códigos reales del backend que implican convivencia
-  const CODIGOS_CONVIVENCIA = ["PM", "AB", "TU", "HR", "SB"];
-
-  if (CODIGOS_CONVIVENCIA.includes(p)) {
-    const adult = state.guests[aIdx];
-
-    if (adult?.direccion || adult?.ciudad || adult?.cp) {
-      (["direccion", "ciudad", "provincia", "cp", "pais"] as const).forEach(
-        (field) => {
-          if (adult[field]) {
-            actions.updateGuest(nav.guestIndex, field, adult[field]);
-          }
-        },
-      );
-    }
-  } else {
-    // NO convivencia → limpiar dirección heredada
-    (["direccion", "ciudad", "provincia", "cp"] as const).forEach(
-      (field) => actions.updateGuest(nav.guestIndex, field, ""),
-    );
-  }
-}}onNext={() => actions.nextGuest(nav.guestIndex, "form_relaciones")}
+          adultos={adultosConIndice}
+          onRelacionChange={(aIdx: number, p: string) => {
+            actions.updateRelacion(nav.guestIndex, aIdx, p);
+          }}
+          onNext={() => {
+            // El menor NUNCA tiene dirección propia: comparte con el adulto responsable.
+            // Avanzamos al siguiente paso del flujo desde relaciones.
+            actions.nextGuest(nav.guestIndex, "form_relaciones");
+          }}
           hasNextMinor={
             state.guests.findIndex((g, i) => i > nav.guestIndex && g.esMenor) >=
             0
@@ -268,12 +302,23 @@ function CheckinWizard() {
     </AppShell>
   );
 }
+// ── Listener global de expiración de auth ─────────────────────────────────────
+function AuthExpiredWatcher() {
+  const navigate = useNavigate();
+  useEffect(() => {
+    const handler = () => navigate("/invalid", { replace: true });
+    window.addEventListener("AUTH_EXPIRED", handler);
+    return () => window.removeEventListener("AUTH_EXPIRED", handler);
+  }, [navigate]);
+  return null;
+}
 
 // ── Rutas de la Aplicación ───────────────────────────────────────────────────
 //
 export default function App() {
   return (
     <BrowserRouter>
+      <AuthExpiredWatcher />
       <Routes>
         {/* 1. Si alguien entra a la raíz (/), el sistema asume que es personal del hotel.
                Redirigimos a /checkin/new. El Hook detectará el "new" y mostrará la búsqueda. */}

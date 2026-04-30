@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { Button, ReservationCard } from "@/components/ui";
+import { useCheckinContext } from "@/context/useCheckinContext";
 import type { Reserva } from "@/types";
 
 interface Props {
@@ -15,37 +16,43 @@ interface LegalSection {
 
 export const ScreenCheckinInicio: React.FC<Props> = ({ reserva, onNext }) => {
   const { t } = useTranslation();
+  const {
+    legalPassed,
+    setLegalPassed,
+    hasMinorsFlag,
+    setHasMinorsFlag,
+  } = useCheckinContext();
 
   const [legalOpen, setLegalOpen] = useState(false);
-  const [showErrors, setShowErrors] = useState(false); // 🚨 Control de Errores Visuales
+  const [showErrors, setShowErrors] = useState(false);
+  // hayMenoresTouched: true si el usuario ya eligió algo (yes/no).
+  // Separado del flag del Context porque "no he respondido" ≠ "he respondido que no".
+  const [hayMenoresTouched, setHayMenoresTouched] = useState<boolean>(hasMinorsFlag);
 
-  const [acceptedLegal, setAcceptedLegal] = useState<boolean>(() => {
-    return sessionStorage.getItem("lumina_acceptedLegal") === "true";
-  });
+  // Valores derivados directamente del Context — sin state local duplicado.
+  const acceptedLegal = legalPassed;
+  const hayMenores: string | null = !hayMenoresTouched
+    ? null
+    : hasMinorsFlag
+      ? "yes"
+      : "no";
 
-  const [hayMenores, setHayMenores] = useState<string | null>(() => {
-    return sessionStorage.getItem("lumina_hayMenores") || null;
-  });
+  const handleAcceptedLegalChange = (next: boolean) => {
+    setLegalPassed(next);
+    if (next) setShowErrors(false);
+  };
+
+  const handleHayMenoresChange = (next: string) => {
+    setHayMenoresTouched(true);
+    setHasMinorsFlag(next === "yes");
+    setShowErrors(false);
+  };
 
   useEffect(() => {
     const handleErrorEvent = () => setShowErrors(true);
     window.addEventListener("FORCE_VALIDATE", handleErrorEvent);
     return () => window.removeEventListener("FORCE_VALIDATE", handleErrorEvent);
   }, []);
-
-  useEffect(() => {
-    sessionStorage.setItem("lumina_acceptedLegal", String(acceptedLegal));
-    window.dispatchEvent(new Event("LOCAL_STATE_CHANGED")); // Aviso al cerebro principal
-    if (acceptedLegal) setShowErrors(false);
-  }, [acceptedLegal]);
-
-  useEffect(() => {
-    if (hayMenores !== null) {
-      sessionStorage.setItem("lumina_hayMenores", hayMenores);
-      window.dispatchEvent(new Event("LOCAL_STATE_CHANGED")); // Aviso al cerebro principal
-      setShowErrors(false);
-    }
-  }, [hayMenores]);
 
   const legalSections = t("legal.sections", { returnObjects: true });
   const sectionsArray = Array.isArray(legalSections)
@@ -144,7 +151,7 @@ export const ScreenCheckinInicio: React.FC<Props> = ({ reserva, onNext }) => {
                 name="minors"
                 value="no"
                 checked={hayMenores === "no"}
-                onChange={(e) => setHayMenores(e.target.value)}
+                onChange={(e) => handleHayMenoresChange(e.target.value)}
                 style={{ display: "none" }}
               />
               <span
@@ -188,7 +195,7 @@ export const ScreenCheckinInicio: React.FC<Props> = ({ reserva, onNext }) => {
                 name="minors"
                 value="yes"
                 checked={hayMenores === "yes"}
-                onChange={(e) => setHayMenores(e.target.value)}
+                onChange={(e) => handleHayMenoresChange(e.target.value)}
                 style={{ display: "none" }}
               />
               <span
@@ -314,7 +321,7 @@ export const ScreenCheckinInicio: React.FC<Props> = ({ reserva, onNext }) => {
             <input
               type="checkbox"
               checked={acceptedLegal}
-              onChange={(e) => setAcceptedLegal(e.target.checked)}
+              onChange={(e) => handleAcceptedLegalChange(e.target.checked)}
               style={{
                 width: "20px",
                 height: "20px",

@@ -2,18 +2,8 @@ import React, { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useCheckin } from "@/hooks/useCheckin";
-import { submitCheckin, savePartialCheckin } from "@/api/chekin.service";
+import { submitCheckin, savePartialCheckin } from "@/api/checkin.service";
 import { CheckinContext } from "./CheckinContextDef";
-import CryptoJS from "crypto-js";
-const getSessionEncKey = (): string => {
-  const SKEY = 'lumina_enc_key';
-  let key = sessionStorage.getItem(SKEY);
-  if (!key) {
-    key = crypto.randomUUID();
-    sessionStorage.setItem(SKEY, key);
-  }
-  return key;
-};
 
 export const CheckinProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
@@ -22,14 +12,23 @@ export const CheckinProvider: React.FC<{ children: React.ReactNode }> = ({
   const { token: urlToken, step } = useParams();
   const token = urlToken ?? "new";
   const PERSISTENCE_KEY = `h_ckin_data_${token}`;
-  const [state, nav, actions, isLoading] = useCheckin(token, step);
+  const [state, nav, actions, isLoading, setModoFlujo] = useCheckin(
+    token,
+    step,
+  );
 
   const [submitError, setSubmitError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isOffline, setIsOffline] = useState(!navigator.onLine);
   const [isPartialSuccess, setIsPartialSuccess] = useState(false);
   const [validationTrigger, setValidationTrigger] = useState(0);
-
+const [accessVerified, setAccessVerifiedState] = useState(
+    () => sessionStorage.getItem(`access_verified_${token}`) === "true",
+  );
+  const setAccessVerified = (v: boolean) => {
+    setAccessVerifiedState(v);
+    sessionStorage.setItem(`access_verified_${token}`, String(v));
+  };
   const [legalPassed, setLegalPassed] = useState(
     () => sessionStorage.getItem(`legalPassed_${token}`) === "true",
   );
@@ -60,38 +59,29 @@ export const CheckinProvider: React.FC<{ children: React.ReactNode }> = ({
     };
   }, []);
 
-  // ---  LÓGICA DE PERSISTENCIA (LOCALSTORAGE) ---
+  // --- PERSISTENCIA DE HUÉSPEDES (sessionStorage, se vacía al cerrar pestaña) ---
   useEffect(() => {
     if (state.guests && state.guests.length > 0) {
       const backup = {
-        guests: state.guests,
+        guests: state.guests.map((g) => ({ ...g, docFile: null })),
         timestamp: Date.now(),
       };
-
-      const jsonString = JSON.stringify(backup);
-     const encryptedData = CryptoJS.AES.encrypt(jsonString, getSessionEncKey()).toString();
-      localStorage.setItem(PERSISTENCE_KEY, encryptedData);
+      sessionStorage.setItem(PERSISTENCE_KEY, JSON.stringify(backup));
     }
-  }, [state.guests, PERSISTENCE_KEY, token]);
+  }, [state.guests, PERSISTENCE_KEY]);
 
   // --- LIMPIEZA Y AUXILIARES ---
-
   const clearSubmitError = () => setSubmitError("");
   const triggerFormValidation = () => setValidationTrigger((v) => v + 1);
 
-  // FIX: lanza error descriptivo si el bookingId no está en sessionStorage.
-  const getBackendIds = () => {
-    const rawId = sessionStorage.getItem(`bookingId_${token}`);
-    const bookingId = rawId ? parseInt(rawId, 10) : null;
+const getBackendIds = () => {
+    const bookingId = state.bookingId;
+    // clientId puede venir del state o haberse generado en un partial-submit previo
+    const clientId = state.clientId ?? state.guests[0]?.id ?? null;
 
-    if (!bookingId || isNaN(bookingId)) {
-      throw new Error(
-        "No se pudo identificar la reserva. Por favor, recargue la página o acceda de nuevo mediante el enlace de su reserva.",
-      );
+    if (!bookingId) {
+      throw new Error(t("checkin.error_invalid_reservation"));
     }
-
-    const rawClientId = sessionStorage.getItem(`clientId_${token}`);
-    const clientId = rawClientId ? parseInt(rawClientId, 10) : null;
 
     return { bookingId, clientId };
   };
@@ -108,12 +98,16 @@ export const CheckinProvider: React.FC<{ children: React.ReactNode }> = ({
   ];
 
   const handleChooseMethod = (method: "scan" | "manual") => {
-    sessionStorage.setItem(`modoFlujo_${token}`, method);
-    actions.setNumPersonas(state.reserva?.numHuespedes ?? 1);
+    setModoFlujo(method);
+
+    if (nav.guestIndex === 0) {
+      actions.setNumPersonas(state.reserva?.numHuespedes ?? 1);
+    }
+
     actions.goTo(
       method === "scan" ? "escanear" : "form_personal",
       "forward",
-      0,
+      nav.guestIndex,
     );
   };
 
@@ -122,13 +116,16 @@ export const CheckinProvider: React.FC<{ children: React.ReactNode }> = ({
     setIsSubmitting(true);
     try {
       const { bookingId, clientId } = getBackendIds();
-
-      if (isPartial) {
+if (isPartial) {
         const newClientId = await savePartialCheckin(
           bookingId,
           clientId,
           state.guests[0],
-        );sessionStorage.setItem(`clientId_${token}`, String(newClientId));
+        );
+        // Sincronizamos el nuevo clientId en el state para futuros submits
+        if (!state.guests[0]?.id) {
+          actions.updateGuest(0, "id", newClientId);
+        }
         setIsPartialSuccess(true);
         actions.goTo("exito", "forward");
         return;
@@ -143,12 +140,14 @@ export const CheckinProvider: React.FC<{ children: React.ReactNode }> = ({
       });
 
       setIsPartialSuccess(false);
-
       SESSION_KEYS_TO_CLEAR.forEach((key) => sessionStorage.removeItem(key));
+      sessionStorage.removeItem(PERSISTENCE_KEY);
       localStorage.removeItem(PERSISTENCE_KEY);
 
       actions.goTo("exito", "forward");
     } catch (err: unknown) {
+      // Si falla y no es un error que hayamos tirado nosotros con un mensaje,
+      // usará el title del ErrorBoundary como fallback.
       let msg = t("errorBoundary.title");
       if (err instanceof Error) msg = err.message;
       else if (typeof err === "string") msg = err;
@@ -182,7 +181,9 @@ export const CheckinProvider: React.FC<{ children: React.ReactNode }> = ({
     handlePartialSubmit,
     validationTrigger,
     triggerFormValidation,
-    clearSubmitError,
+  clearSubmitError,
+    accessVerified,
+    setAccessVerified,
   };
 
   return (
