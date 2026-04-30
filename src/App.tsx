@@ -30,7 +30,6 @@ import { ScreenVerificarAcceso } from "@/screens/ScreenVerificarAcceso";
 const STEPS_WITHOUT_DOTS = new Set<StepId>(["tablet_buscar", "exito"]);
 
 // ── Página de enlace inválido / caducado ──────────────────────────────────────
-// Dentro de App.tsx
 function InvalidLink() {
   const { t } = useTranslation();
   return (
@@ -94,7 +93,7 @@ function InvalidLink() {
   );
 }
 
-// ── Lógica del Wizard (Se mantiene igual que tu código) ───────────────────────
+// ── Lógica del Wizard ─────────────────────────────────────────────────────────
 function CheckinWizard() {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -118,17 +117,16 @@ function CheckinWizard() {
 
   const isActuallyLoading =
     isLoading && token !== "new" && nav.step !== "tablet_buscar";
-// Verja anti-enumeración: si la reserva tiene titular con apellido real
-  // y aún no se ha verificado, exigimos que el huésped lo introduzca.
- // Verja anti-enumeración: 1º email, 2º últimas 3 cifras del teléfono.
-  // Si no hay ninguno de los dos, no podemos verificar y dejamos pasar.
-const expectedEmail = state.knownGuest?.email 
-  ? String(state.knownGuest.email).trim() 
-  : undefined;
 
-const expectedPhone = state.knownGuest?.telefono 
-  ? String(state.knownGuest.telefono).trim() 
-  : undefined;
+  // Verja anti-enumeración: 1º email, 2º últimas 3 cifras del teléfono.
+  // Si no hay ninguno de los dos, no podemos verificar y dejamos pasar.
+  const expectedEmail = state.knownGuest?.email
+    ? String(state.knownGuest.email).trim()
+    : undefined;
+
+  const expectedPhone = state.knownGuest?.telefono
+    ? String(state.knownGuest.telefono).trim()
+    : undefined;
 
   const verifyField: "email" | "phone" | null = expectedEmail
     ? "email"
@@ -157,6 +155,7 @@ const expectedPhone = state.knownGuest?.telefono
       </div>
     );
   }
+
   if (isActuallyLoading) {
     return (
       <div
@@ -170,7 +169,6 @@ const expectedPhone = state.knownGuest?.telefono
 
   const currentStep = nav.step || "inicio";
   const showDots = !STEPS_WITHOUT_DOTS.has(currentStep);
-  const customNav = { ...nav, canGoBack: nav.canGoBack };
   const currentGuest = state.guests[nav.guestIndex] ?? {};
   const adultosConIndice = state.guests
     .map((g, i) => ({ ...g, originalIndex: i }))
@@ -180,7 +178,7 @@ const expectedPhone = state.knownGuest?.telefono
     return (
       <div className="shell">
         <div className="card">
-        <ScreenTabletBuscar
+          <ScreenTabletBuscar
             onFound={(res, bookingId, clientId) =>
               actions.setReservaFromTablet(res, bookingId, clientId)
             }
@@ -192,7 +190,7 @@ const expectedPhone = state.knownGuest?.telefono
 
   return (
     <AppShell
-      nav={customNav}
+      nav={nav}
       actions={{
         goBack: actions.goBack,
         goToDotIndex: actions.goToDotIndex,
@@ -252,8 +250,6 @@ const expectedPhone = state.knownGuest?.telefono
             actions.updateRelacion(nav.guestIndex, aIdx, p);
           }}
           onNext={() => {
-            // El menor NUNCA tiene dirección propia: comparte con el adulto responsable.
-            // Avanzamos al siguiente paso del flujo desde relaciones.
             actions.nextGuest(nav.guestIndex, "form_relaciones");
           }}
           hasNextMinor={
@@ -302,6 +298,7 @@ const expectedPhone = state.knownGuest?.telefono
     </AppShell>
   );
 }
+
 // ── Listener global de expiración de auth ─────────────────────────────────────
 function AuthExpiredWatcher() {
   const navigate = useNavigate();
@@ -314,17 +311,13 @@ function AuthExpiredWatcher() {
 }
 
 // ── Rutas de la Aplicación ───────────────────────────────────────────────────
-//
 export default function App() {
   return (
     <BrowserRouter>
       <AuthExpiredWatcher />
       <Routes>
-        {/* 1. Si alguien entra a la raíz (/), el sistema asume que es personal del hotel.
-               Redirigimos a /checkin/new. El Hook detectará el "new" y mostrará la búsqueda. */}
         <Route path="/" element={<Navigate to="/checkin/new" replace />} />
 
-        {/* 2. Ruta para el staff/tablet específica (opcional, por si la usas directamente) */}
         <Route
           path="/checkin/kiosko/tablet_buscar"
           element={
@@ -336,9 +329,6 @@ export default function App() {
           }
         />
 
-        {/* 3. CAMBIO CLAVE: Quitamos el Navigate a "inicio". 
-               Ahora cargamos el Wizard directamente. Él decidirá qué pantalla mostrar 
-               según si el token es "new" o un código real. */}
         <Route
           path="/checkin/:token"
           element={
@@ -350,7 +340,6 @@ export default function App() {
           }
         />
 
-        {/* 4. Ruta para pasos específicos del flujo */}
         <Route
           path="/checkin/:token/:step"
           element={
