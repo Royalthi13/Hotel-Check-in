@@ -70,7 +70,6 @@ type CheckinAction =
   | { type: "SET_RGPD"; value: boolean }
   | { type: "SET_LEGAL_PASSED"; value: boolean }
   | { type: "SET_HAS_MINORS_FLAG"; value: boolean }
-  | { type: "RESTORE_FULL_STATE"; payload: CheckinState }
   | { type: "SET_COMPANIONS_LOADED"; companions: GuestData[] }
   | { type: "RESET" };
 
@@ -287,8 +286,7 @@ export function checkinReducer(
       return { ...state, legalPassed: action.value };
     case "SET_HAS_MINORS_FLAG":
       return { ...state, hasMinorsFlag: action.value };
-    case "RESTORE_FULL_STATE":
-      return { ...state, ...action.payload };
+   
     case "RESET":
       return buildEmptyState(state.appMode);
     default:
