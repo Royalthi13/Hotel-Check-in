@@ -112,7 +112,7 @@ export function buildEmptyState(appMode: AppMode): CheckinState {
   return {
     appMode,
     reserva: null,
-    bookingId: null, // 👈 IDs integrados en el estado
+    bookingId: null,
     clientId: null,
     knownGuest: null,
     numAdultos: 1,
@@ -148,9 +148,6 @@ export function checkinReducer(
       return {
         ...state,
         knownGuest: action.guest,
-        // Sólo rellenamos guests[0] si está vacío — así no pisamos lo que el
-        // usuario ya hubiese tecleado. knownGuest se setea siempre para que
-        // la verja de acceso pueda comparar el apellido.
         guests: hasData ? state.guests : [{ ...action.guest, esMenor: false }],
         clientId: action.guest.id || state.clientId,
       };
@@ -230,46 +227,47 @@ export function checkinReducer(
       return { ...state, guests };
     }
 
-   case "UPDATE_RELACION": {
-  const guests = [...state.guests];
-  const menor = { ...guests[action.menorIndex] };
-  const rels = [...(menor.relacionesConAdultos ?? [])];
-  if (action.parentesco === "") {
-    menor.relacionesConAdultos = rels.filter(
-      (r) => r.adultoIndex !== action.adultoIndex,
-    );
-  } else {
-    const idx = rels.findIndex((r) => r.adultoIndex === action.adultoIndex);
-    if (idx >= 0)
-      rels[idx] = { ...rels[idx], parentesco: action.parentesco };
-    else
-      rels.push({
-        adultoIndex: action.adultoIndex,
-        parentesco: action.parentesco,
-      });
-    menor.relacionesConAdultos = rels;
+    case "UPDATE_RELACION": {
+      const guests = [...state.guests];
+      const menor = { ...guests[action.menorIndex] };
+      const rels = [...(menor.relacionesConAdultos ?? [])];
 
-    // Si la relación implica convivencia (PM/TU), pre-rellenamos la dirección
-    // del menor con la del adulto responsable. El usuario puede modificarla.
-    const CODIGOS_CONVIVENCIA = new Set(["PM", "TU"]);
-    if (CODIGOS_CONVIVENCIA.has(action.parentesco)) {
-      const adulto = guests[action.adultoIndex];
-    if (adulto && !adulto.esMenor) {
-        const yaTieneDireccion = !!(menor.direccion?.trim() || menor.ciudad?.trim());
-        if (!yaTieneDireccion && adulto.direccion) {
-          menor.direccion = adulto.direccion;
-          menor.ciudad    = adulto.ciudad    ?? "";
-          menor.codCity   = adulto.codCity   ?? "";
-          menor.provincia = adulto.provincia ?? "";
-          menor.cp        = adulto.cp        ?? "";
-          menor.pais      = adulto.pais      ?? "ES";
+      if (action.parentesco === "") {
+        menor.relacionesConAdultos = rels.filter(
+          (r) => r.adultoIndex !== action.adultoIndex,
+        );
+      } else {
+        const idx = rels.findIndex((r) => r.adultoIndex === action.adultoIndex);
+        if (idx >= 0)
+          rels[idx] = { ...rels[idx], parentesco: action.parentesco };
+        else
+          rels.push({
+            adultoIndex: action.adultoIndex,
+            parentesco: action.parentesco,
+          });
+        menor.relacionesConAdultos = rels;
+
+        const CODIGOS_CONVIVENCIA = new Set(["PM", "TU"]);
+        if (CODIGOS_CONVIVENCIA.has(action.parentesco)) {
+          const adulto = guests[action.adultoIndex];
+          if (adulto && !adulto.esMenor) {
+            const yaTieneDireccion = !!(
+              menor.direccion?.trim() || menor.ciudad?.trim()
+            );
+            if (!yaTieneDireccion && adulto.direccion) {
+              menor.direccion = adulto.direccion;
+              menor.ciudad = adulto.ciudad ?? "";
+              menor.codCity = adulto.codCity ?? "";
+              menor.provincia = adulto.provincia ?? "";
+              menor.cp = adulto.cp ?? "";
+              menor.pais = adulto.pais ?? "ES";
+            }
+          }
         }
       }
+      guests[action.menorIndex] = menor;
+      return { ...state, guests };
     }
-  }
-  guests[action.menorIndex] = menor;
-  return { ...state, guests };
-}
 
     case "APPLY_SCAN": {
       const guests = [...state.guests];
@@ -373,7 +371,7 @@ export function useCheckin(tokenUrl?: string, stepUrl?: string) {
   }, [state]);
 
   useEffect(() => {
-    if (token === "new" && !state.reserva) return; // No persistimos el estado vacío inicial en tablet
+    if (token === "new" && !state.reserva) return;
 
     const persistableState = {
       ...state,
@@ -439,7 +437,6 @@ export function useCheckin(tokenUrl?: string, stepUrl?: string) {
         const result = await loadCheckinData(token);
         if (cancelled) return;
 
-        // 👇 IDs enviados al dispatch para que vivan en el state persistente
         dispatch({
           type: "SET_RESERVA",
           reserva: result.reserva,
@@ -562,11 +559,32 @@ export function useCheckin(tokenUrl?: string, stepUrl?: string) {
         return goTo("form_extras", "forward", 0);
       };
 
+      const goToNextMinorRelaciones = (startIdx: number) => {
+        const nextM = guests.findIndex((g, i) => i > startIdx && g.esMenor);
+        if (nextM >= 0) return goTo("form_relaciones", "forward", nextM);
+        return goTo("form_extras", "forward", 0);
+      };
+
       if (from === "form_personal") {
+        const esMenor = guests[currIdx].esMenor;
+
+        if (esMenor) {
+          if (currIdx + 1 < numPersonas) {
+            return goTo("bienvenida", "forward", currIdx + 1);
+          }
+          return goToFirstMinorOrExtras();
+        }
+
         return goTo("form_contacto", "forward", currIdx);
       }
 
       if (from === "form_contacto") {
+        const esMenor = guests[currIdx].esMenor;
+
+        if (esMenor) {
+          return goToNextMinorRelaciones(currIdx);
+        }
+
         if (currIdx + 1 < numPersonas) {
           return goTo("bienvenida", "forward", currIdx + 1);
         }
@@ -574,9 +592,18 @@ export function useCheckin(tokenUrl?: string, stepUrl?: string) {
       }
 
       if (from === "form_relaciones") {
-        const nextM = guests.findIndex((g, i) => i > currIdx && g.esMenor);
-        if (nextM >= 0) return goTo("form_relaciones", "forward", nextM);
-        return goTo("form_extras", "forward", 0);
+        const minor = guests[currIdx];
+        const tieneDireccion = !!(
+          minor.direccion?.trim() ||
+          minor.ciudad?.trim() ||
+          minor.cp?.trim()
+        );
+
+        if (!tieneDireccion) {
+          return goTo("form_contacto", "forward", currIdx);
+        }
+
+        return goToNextMinorRelaciones(currIdx);
       }
     },
     [goTo],
@@ -593,7 +620,7 @@ export function useCheckin(tokenUrl?: string, stepUrl?: string) {
     !["exito", "tablet_buscar", "inicio"].includes(actualStep);
 
   let currentDotIndex = dotSteps.indexOf(actualStep);
- if (actualStep === "form_relaciones")
+  if (actualStep === "form_relaciones")
     currentDotIndex = dotSteps.indexOf("form_personal");
 
   const maxAllowedDotIndex = useMemo(() => {
@@ -638,7 +665,6 @@ export function useCheckin(tokenUrl?: string, stepUrl?: string) {
         if (idx < 0 || idx >= dotSteps.length) return;
         goTo(dotSteps[idx], idx < currentDotIndex ? "back" : "forward", 0);
       },
-      // 👇 Actualizado para recibir y guardar IDs en tablet mode
       setReservaFromTablet: (res: Reserva, bId: number, cId: number | null) => {
         dispatch({
           type: "SET_RESERVA_TABLET",
