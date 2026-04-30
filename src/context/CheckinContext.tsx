@@ -93,8 +93,6 @@ export const CheckinProvider: React.FC<{ children: React.ReactNode }> = ({
     `legalPassed_${token}`,
     `hasMinors_${token}`,
     `modoFlujo_${token}`,
-    `bookingId_${token}`,
-    `clientId_${token}`,
     `verify_attempts_${token}`, // Añadido por si usas el token en vez de bookingRef
   ];
 
