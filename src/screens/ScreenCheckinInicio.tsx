@@ -113,7 +113,7 @@ export const ScreenCheckinInicio: React.FC<Props> = ({ reserva, onNext }) => {
               marginTop: 0,
               marginBottom: 16,
               color:
-                showErrors && hayMenores === null ? "var(--error)" : "inherit",
+                showErrors && hayMenores === null ? "var(--err)" : "inherit",
             }}
           >
             {t("welcome.question_minors")}
@@ -138,7 +138,7 @@ export const ScreenCheckinInicio: React.FC<Props> = ({ reserva, onNext }) => {
                   hayMenores === "no"
                     ? "var(--primary)"
                     : showErrors && hayMenores === null
-                      ? "var(--error)"
+                      ? "var(--err)"
                       : "var(--border)",
                 background:
                   hayMenores === "no" ? "var(--primary-lt)" : "var(--white)",
@@ -162,7 +162,7 @@ export const ScreenCheckinInicio: React.FC<Props> = ({ reserva, onNext }) => {
                     hayMenores === "no"
                       ? "var(--primary-d)"
                       : showErrors && hayMenores === null
-                        ? "var(--error)"
+                        ? " var(--err)"
                         : "var(--text)",
                 }}
               >
@@ -182,7 +182,7 @@ export const ScreenCheckinInicio: React.FC<Props> = ({ reserva, onNext }) => {
                   hayMenores === "yes"
                     ? "var(--primary)"
                     : showErrors && hayMenores === null
-                      ? "var(--error)"
+                      ? " var(--err)"
                       : "var(--border)",
                 background:
                   hayMenores === "yes" ? "var(--primary-lt)" : "var(--white)",
@@ -206,7 +206,7 @@ export const ScreenCheckinInicio: React.FC<Props> = ({ reserva, onNext }) => {
                     hayMenores === "yes"
                       ? "var(--primary-d)"
                       : showErrors && hayMenores === null
-                        ? "var(--error)"
+                        ? " var(--err)"
                         : "var(--text)",
                 }}
               >
@@ -310,7 +310,7 @@ export const ScreenCheckinInicio: React.FC<Props> = ({ reserva, onNext }) => {
               border: "1px solid",
               borderColor:
                 showErrors && !acceptedLegal
-                  ? "var(--error)"
+                  ? " var(--err)"
                   : "rgba(250, 134, 92, 0.25)",
               borderRadius: "var(--r)",
               cursor: "pointer",
@@ -327,7 +327,7 @@ export const ScreenCheckinInicio: React.FC<Props> = ({ reserva, onNext }) => {
                 height: "20px",
                 accentColor:
                   showErrors && !acceptedLegal
-                    ? "var(--error)"
+                    ? " var(--err)"
                     : "var(--primary)",
                 flexShrink: 0,
                 marginTop: "1px",
@@ -339,7 +339,7 @@ export const ScreenCheckinInicio: React.FC<Props> = ({ reserva, onNext }) => {
                 fontSize: "14px",
                 fontWeight: 500,
                 color:
-                  showErrors && !acceptedLegal ? "var(--error)" : "var(--text)",
+                  showErrors && !acceptedLegal ? " var(--err)" : "var(--text)",
                 lineHeight: 1.4,
                 transition: "color 0.3s ease",
               }}
