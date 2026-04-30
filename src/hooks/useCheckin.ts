@@ -121,9 +121,6 @@ export function buildEmptyState(appMode: AppMode): CheckinState {
     guests: [emptyGuest()],
     horaLlegada: "",
     observaciones: "",
-    rgpdAcepted: false,
-    legalPassed: false,
-    hasMinorsFlag: false,
   };
 }
 
@@ -279,12 +276,6 @@ export function checkinReducer(
       return { ...state, horaLlegada: action.value };
     case "SET_OBSERVACIONES":
       return { ...state, observaciones: action.value };
-    case "SET_RGPD":
-      return { ...state, rgpdAcepted: action.value };
-    case "SET_LEGAL_PASSED":
-      return { ...state, legalPassed: action.value };
-    case "SET_HAS_MINORS_FLAG":
-      return { ...state, hasMinorsFlag: action.value };
     case "RESTORE_FULL_STATE":
       return { ...state, ...action.payload };
     case "RESET":
@@ -481,9 +472,7 @@ export function useCheckin(tokenUrl?: string, stepUrl?: string) {
       return requestedStep;
     if (initialMode === "tablet") return "tablet_buscar";
 
-    const yaAcepto =
-      localStorage.getItem(`legalPassed_${token}`) === "true" ||
-      state.legalPassed;
+    const yaAcepto = sessionStorage.getItem(`legalPassed_${token}`) === "true";
 
     if (yaAcepto) {
       if (appHistory.length > 0) {

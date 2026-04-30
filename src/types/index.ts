@@ -83,9 +83,6 @@ export interface CheckinState {
   guests: PartialGuestData[];
   horaLlegada: string;
   observaciones: string;
-  rgpdAcepted: boolean;
-  legalPassed: boolean;
-  hasMinorsFlag: boolean;
   bookingId: number | null;
   clientId: number | null;
 }
