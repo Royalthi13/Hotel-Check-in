@@ -305,7 +305,7 @@ export const ScreenEscanear: React.FC<Props> = ({ onScanned, onSkip }) => {
                 borderRadius: 16,
                 border: "2px dashed var(--border)",
                 textAlign: "center",
-                background: "var(--bg-alt)",
+               background: "var(--bg)",
               }}
             >
               <Icon name="upload" size={22} color="var(--primary)" />
@@ -491,7 +491,7 @@ export const ScreenEscanear: React.FC<Props> = ({ onScanned, onSkip }) => {
                   flexDirection: "column",
                   alignItems: "center",
                   justifyContent: "center",
-                  background: "var(--bg-alt)",
+                 background: "var(--bg)",
                 }}
               >
                 <Icon name="file" size={48} color="var(--primary)" />
