@@ -151,7 +151,7 @@ export function checkinReducer(
         // Sólo rellenamos guests[0] si está vacío — así no pisamos lo que el
         // usuario ya hubiese tecleado. knownGuest se setea siempre para que
         // la verja de acceso pueda comparar el apellido.
-        guests: hasData ? state.guests : [{ ...action.guest, esMenor: false }],
+       guests: hasData ? state.guests : [{ ...action.guest, esMenor: false }, ...state.guests.slice(1)],
         clientId: action.guest.id || state.clientId,
       };
     }
