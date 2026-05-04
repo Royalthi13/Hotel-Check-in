@@ -386,5 +386,8 @@
     ],
     "footer": "For more details, you can request the full document at reception.",
     "accept_check": "I have read the legal information and accept the processing of my data."
+  },
+  "auth": {
+    "session_expired": "Your session has expired, please identify yourself again."
   }
 }

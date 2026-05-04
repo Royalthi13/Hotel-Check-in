@@ -386,5 +386,8 @@
     ],
     "footer": "Pour plus de détails, vous pouvez demander le document complet à la réception.",
     "accept_check": "J'ai lu les informations légales et j'accepte le traitement de mes données."
+  },
+  "auth": {
+    "session_expired": "Votre session a expiré, veuillez vous identifier à nouveau."
   }
 }
