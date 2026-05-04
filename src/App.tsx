@@ -303,9 +303,16 @@ function CheckinWizard() {
 function AuthExpiredWatcher() {
   useEffect(() => {
     const handler = () => {
-      // Recargamos la misma ruta exacta pero le añadimos el chivatazo a la URL
-      // Al recargar, React leerá el sessionStorage (que ya está vacío)
-      // y mostrará la pantalla de verificación automáticamente.
+      // 1. Extraemos el token de la URL (ej: /checkin/12345/form_personal -> "12345")
+      const pathParts = window.location.pathname.split("/");
+      const token = pathParts[2] || "new";
+
+      // 2. Le quitamos la pulsera VIP (borramos que está verificado)
+      sessionStorage.removeItem(`access_verified_${token}`);
+
+      // 3. Recargamos la página con el chivatazo.
+      // Como no tiene la pulsera VIP, verá la pantalla de verificación.
+      // Como han pasado menos de 1h, useCheckin recuperará sus datos del formulario.
       window.location.href = window.location.pathname + "?expired=true";
     };
 
