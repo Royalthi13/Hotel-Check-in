@@ -91,7 +91,7 @@ function getInitialState(token: string, mode: AppMode): CheckinState {
     if (raw) {
       const storedData = JSON.parse(raw);
       const { timestamp, state } = storedData;
-      if (Date.now() - timestamp < 30 * 60 * 1000) {
+      if (Date.now() - timestamp < 60 * 60 * 1000) {
         return state;
       } else {
         localStorage.removeItem(sessionKey);
@@ -301,7 +301,7 @@ export function useCheckin(tokenUrl?: string, stepUrl?: string) {
       const raw = localStorage.getItem(`history_${token}`);
       if (raw) {
         const { data, timestamp } = JSON.parse(raw);
-        if (Date.now() - timestamp < 30 * 60 * 1000) storedHistory = data;
+        if (Date.now() - timestamp < 60 * 60 * 1000) storedHistory = data;
       }
     } catch (e) {
       console.warn("No se pudo cargar el historial", e);
@@ -322,7 +322,7 @@ export function useCheckin(tokenUrl?: string, stepUrl?: string) {
       const raw = localStorage.getItem(`allowedSteps_${token}`);
       if (raw) {
         const { data, timestamp } = JSON.parse(raw);
-        if (Date.now() - timestamp < 30 * 60 * 1000) validStored = data;
+        if (Date.now() - timestamp < 60 * 60 * 1000) validStored = data;
       }
     } catch (e) {
       console.warn("No se pudieron cargar los pasos permitidos", e);
