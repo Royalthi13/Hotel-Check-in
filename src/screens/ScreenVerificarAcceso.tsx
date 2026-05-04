@@ -24,12 +24,11 @@ export const ScreenVerificarAcceso: React.FC<Props> = ({
   const searchParams = new URLSearchParams(window.location.search);
   const isSessionExpired = searchParams.get("expired") === "true";
 
-  // Claves para el sessionStorage
   const sessionKey = `verify_attempts_${bookingRef}`;
   const blockKey = `verify_block_time_${bookingRef}`;
-  const COOLDOWN_MS = 20 * 60 * 1000;
 
-  // 1. Inicializamos el estado de bloqueo comprobando si ya pasó el tiempo
+  const COOLDOWN_MS = 30 * 60 * 1000;
+
   const [isBlocked, setIsBlocked] = useState(() => {
     const blockStart = sessionStorage.getItem(blockKey);
 
@@ -37,9 +36,8 @@ export const ScreenVerificarAcceso: React.FC<Props> = ({
       const timePassed = Date.now() - parseInt(blockStart, 10);
 
       if (timePassed < COOLDOWN_MS) {
-        return true; // ❌ Aún no han pasado los 20 mins
+        return true;
       } else {
-        // ✅ Ya pasaron los 20 mins. Levantamos el castigo.
         sessionStorage.removeItem(blockKey);
         sessionStorage.removeItem(sessionKey);
         return false;
@@ -48,20 +46,20 @@ export const ScreenVerificarAcceso: React.FC<Props> = ({
     return false;
   });
 
-  // 2. Inicializamos el contador de intentos
   const [attempts, setAttempts] = useState(() => {
     const stored = sessionStorage.getItem(sessionKey);
-    return stored ? parseInt(stored, 10) : 0;
+    const parsedAttempts = stored ? parseInt(stored, 10) : 0;
+
+    if (parsedAttempts >= 5) setIsBlocked(true);
+    return parsedAttempts;
   });
 
-  // 3. Si entra a la pantalla y ya estaba bloqueado, le mostramos el error directamente
   useEffect(() => {
     if (isBlocked) {
       setErr(t("verification.too_many_attempts"));
     }
   }, [isBlocked, t]);
 
-  // Función auxiliar para aplicar el bloqueo
   const applyBlock = () => {
     setIsBlocked(true);
     sessionStorage.setItem(blockKey, Date.now().toString());
@@ -85,7 +83,6 @@ export const ScreenVerificarAcceso: React.FC<Props> = ({
 
       await requestPreCheckinToken(payload);
 
-      // Éxito: Limpiamos historial de errores y continuamos
       sessionStorage.removeItem(sessionKey);
       sessionStorage.removeItem(blockKey);
       window.history.replaceState({}, document.title, window.location.pathname);
@@ -94,21 +91,18 @@ export const ScreenVerificarAcceso: React.FC<Props> = ({
       const status = error.response?.status;
 
       if (status === 429) {
-        // ❌ Rate Limit del Backend
         applyBlock();
       } else if (status === 401 || status === 403 || status === 404) {
-        // ❌ Credenciales incorrectas
         const next = attempts + 1;
         setAttempts(next);
         sessionStorage.setItem(sessionKey, next.toString());
 
-        if (next >= 3) {
-          applyBlock(); // Bloqueamos localmente
+        if (next >= 5) {
+          applyBlock();
         } else {
           setErr(t("verification.error_message"));
         }
       } else {
-        // ❌ Error de red
         setErr(t("search.error_connection"));
       }
     } finally {
