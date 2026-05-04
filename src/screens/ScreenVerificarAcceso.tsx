@@ -1,53 +1,113 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { Field, Button, Alert, Icon } from "@/components/ui";
 import { LanguageSelector } from "../components/LanguageSelector";
+import { requestPreCheckinToken } from "@/api/axiosInstance";
 import "./ScreenVerificarAcceso.css";
 
 interface Props {
   mode: "email" | "phone";
-  expected: string;
   bookingRef: string;
   onSuccess: () => void;
-  onTooManyAttempts: () => void;
 }
-
-const norm = (s: string) => s.toLowerCase().trim();
-const onlyDigits = (s: string) => s.replace(/\D/g, "");
 
 export const ScreenVerificarAcceso: React.FC<Props> = ({
   mode,
-  expected,
   bookingRef,
   onSuccess,
-  onTooManyAttempts,
 }) => {
   const { t } = useTranslation();
   const [val, setVal] = useState("");
   const [err, setErr] = useState("");
-  const [attempts, setAttempts] = useState(0);
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const searchParams = new URLSearchParams(window.location.search);
+  const isSessionExpired = searchParams.get("expired") === "true";
+
+  const sessionKey = `verify_attempts_${bookingRef}`;
+  const blockKey = `verify_block_time_${bookingRef}`;
+
+  const COOLDOWN_MS = 30 * 60 * 1000;
+
+  const [isBlocked, setIsBlocked] = useState(() => {
+    const blockStart = sessionStorage.getItem(blockKey);
+
+    if (blockStart) {
+      const timePassed = Date.now() - parseInt(blockStart, 10);
+
+      if (timePassed < COOLDOWN_MS) {
+        return true;
+      } else {
+        sessionStorage.removeItem(blockKey);
+        sessionStorage.removeItem(sessionKey);
+        return false;
+      }
+    }
+    return false;
+  });
+
+  const [attempts, setAttempts] = useState(() => {
+    const stored = sessionStorage.getItem(sessionKey);
+    const parsedAttempts = stored ? parseInt(stored, 10) : 0;
+
+    if (parsedAttempts >= 5) setIsBlocked(true);
+    return parsedAttempts;
+  });
+
+  useEffect(() => {
+    if (isBlocked) {
+      setErr(t("verification.too_many_attempts"));
+    }
+  }, [isBlocked, t]);
+
+  const applyBlock = () => {
+    setIsBlocked(true);
+    sessionStorage.setItem(blockKey, Date.now().toString());
+    setErr(t("verification.too_many_attempts"));
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    let ok = false;
-    if (mode === "email") {
-      ok = !!val.trim() && norm(val) === norm(expected);
-    } else {
-      const last3Esperado = onlyDigits(expected).slice(-3);
-      const last3Introducido = onlyDigits(val).slice(-3);
-      ok = last3Esperado.length === 3 && last3Introducido === last3Esperado;
-    }
-    if (ok) {
+    if (isBlocked) return;
+
+    setErr("");
+    setIsLoading(true);
+
+    try {
+      const payload = {
+        access_code: bookingRef,
+        ...(mode === "email"
+          ? { email: val.trim() }
+          : { phone: val.replace(/\D/g, "") }),
+      };
+
+      await requestPreCheckinToken(payload);
+
+      sessionStorage.removeItem(sessionKey);
+      sessionStorage.removeItem(blockKey);
+      window.history.replaceState({}, document.title, window.location.pathname);
       onSuccess();
-      return;
+    } catch (error: any) {
+      const status = error.response?.status;
+
+      if (status === 429) {
+        applyBlock();
+      } else if (status === 401 || status === 403 || status === 404) {
+        const next = attempts + 1;
+        setAttempts(next);
+        sessionStorage.setItem(sessionKey, next.toString());
+
+        if (next >= 5) {
+          applyBlock();
+        } else {
+          setErr(t("verification.error_message"));
+        }
+      } else {
+        setErr(t("search.error_connection"));
+      }
+    } finally {
+      setIsLoading(false);
     }
-    const next = attempts + 1;
-    setAttempts(next);
-    if (next >= 3) {
-      onTooManyAttempts();
-      return;
-    }
-    setErr(t("verification.error_message"));
   };
 
   const label =
@@ -84,6 +144,12 @@ export const ScreenVerificarAcceso: React.FC<Props> = ({
               : t("verification.instruction_phone")}
           </p>
 
+          {isSessionExpired && !err && (
+            <Alert variant="err" style={{ marginBottom: "16px" }}>
+              {t("auth.session_expired")}
+            </Alert>
+          )}
+
           {err && <Alert variant="err">{err}</Alert>}
 
           <Field label={label} required>
@@ -102,7 +168,8 @@ export const ScreenVerificarAcceso: React.FC<Props> = ({
               placeholder={placeholder}
               maxLength={mode === "phone" ? 3 : undefined}
               autoFocus
-              className={`verify-input ${mode === "email" ? "verify-input--email" : "verify-input--phone"}`}
+              disabled={isLoading || isBlocked}
+              className={`verify-input ${mode === "email" ? "verify-input--email" : "verify-input--phone"} ${isBlocked ? "opacity-50" : ""}`}
             />
           </Field>
         </div>
@@ -114,11 +181,11 @@ export const ScreenVerificarAcceso: React.FC<Props> = ({
             variant="primary"
             type="submit"
             iconRight="right"
-            disabled={!val.trim()}
+            disabled={!val.trim() || isLoading || isBlocked}
             style={{ height: "56px", fontSize: "16px", fontWeight: "600" }}
-            className={val.trim() ? "verify-btn-active" : ""}
+            className={val.trim() && !isBlocked ? "verify-btn-active" : ""}
           >
-            {t("verification.button_submit")}
+            {isLoading ? t("common.loading") : t("verification.button_submit")}
           </Button>
         </div>
       </div>

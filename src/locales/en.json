@@ -311,7 +311,8 @@
     "instruction_phone": "For your security, enter the last 3 digits of the phone number associated with the booking.",
     "phone_last3_label": "Last 3 digits of phone number",
     "button_submit": "Access Check-in",
-    "error_message": "We couldn't verify your booking. Check the main guest's last name."
+    "error_message": "We couldn't verify your booking. Check the main guest's last name.",
+    "too_many_attempts": "Too many attempts. Please try again later."
   },
   "rooms": {
     "individual": "Single Room",
@@ -385,5 +386,8 @@
     ],
     "footer": "For more details, you can request the full document at reception.",
     "accept_check": "I have read the legal information and accept the processing of my data."
+  },
+  "auth": {
+    "session_expired": "Your session has expired, please identify yourself again."
   }
 }

@@ -1,11 +1,5 @@
 import { useEffect } from "react";
-import {
-  BrowserRouter,
-  Routes,
-  Route,
-  Navigate,
-  useNavigate,
-} from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import "./App.css";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { useCheckinContext } from "@/context/useCheckinContext";
@@ -30,7 +24,6 @@ import { ScreenVerificarAcceso } from "@/screens/ScreenVerificarAcceso";
 const STEPS_WITHOUT_DOTS = new Set<StepId>(["tablet_buscar", "exito"]);
 
 // ── Página de enlace inválido / caducado ──────────────────────────────────────
-// Dentro de App.tsx
 function InvalidLink() {
   const { t } = useTranslation();
   return (
@@ -94,10 +87,9 @@ function InvalidLink() {
   );
 }
 
-// ── Lógica del Wizard (Se mantiene igual que tu código) ───────────────────────
+// ── Lógica del Wizard ─────────────────────────────────────────────────────────
 function CheckinWizard() {
   const { t } = useTranslation();
-  const navigate = useNavigate();
   const {
     state,
     nav,
@@ -118,8 +110,7 @@ function CheckinWizard() {
 
   const isActuallyLoading =
     isLoading && token !== "new" && nav.step !== "tablet_buscar";
-  // Verja anti-enumeración: si la reserva tiene titular con apellido real
-  // y aún no se ha verificado, exigimos que el huésped lo introduzca.
+
   // Verja anti-enumeración: 1º email, 2º últimas 3 cifras del teléfono.
   // Si no hay ninguno de los dos, no podemos verificar y dejamos pasar.
   const expectedEmail = state.knownGuest?.email
@@ -148,15 +139,14 @@ function CheckinWizard() {
         <div className="card">
           <ScreenVerificarAcceso
             mode={verifyField!}
-            expected={verifyField === "email" ? expectedEmail! : expectedPhone!}
             bookingRef={state.reserva?.confirmacion ?? `#${state.bookingId}`}
             onSuccess={() => setAccessVerified(true)}
-            onTooManyAttempts={() => navigate("/invalid", { replace: true })}
           />
         </div>
       </div>
     );
   }
+
   if (isActuallyLoading) {
     return (
       <div
@@ -170,7 +160,6 @@ function CheckinWizard() {
 
   const currentStep = nav.step || "inicio";
   const showDots = !STEPS_WITHOUT_DOTS.has(currentStep);
-  const customNav = { ...nav, canGoBack: nav.canGoBack };
   const currentGuest = state.guests[nav.guestIndex] ?? {};
   const adultosConIndice = state.guests
     .map((g, i) => ({ ...g, originalIndex: i }))
@@ -192,7 +181,7 @@ function CheckinWizard() {
 
   return (
     <AppShell
-      nav={customNav}
+      nav={nav}
       actions={{
         goBack: actions.goBack,
         goToDotIndex: actions.goToDotIndex,
@@ -252,8 +241,6 @@ function CheckinWizard() {
             actions.updateRelacion(nav.guestIndex, aIdx, p);
           }}
           onNext={() => {
-            // El menor NUNCA tiene dirección propia: comparte con el adulto responsable.
-            // Avanzamos al siguiente paso del flujo desde relaciones.
             actions.nextGuest(nav.guestIndex, "form_relaciones");
           }}
           hasNextMinor={
@@ -302,29 +289,39 @@ function CheckinWizard() {
     </AppShell>
   );
 }
+
 // ── Listener global de expiración de auth ─────────────────────────────────────
 function AuthExpiredWatcher() {
-  const navigate = useNavigate();
   useEffect(() => {
-    const handler = () => navigate("/invalid", { replace: true });
-    window.addEventListener("AUTH_EXPIRED", handler);
-    return () => window.removeEventListener("AUTH_EXPIRED", handler);
-  }, [navigate]);
+    const handler = () => {
+      // 1. Extraemos el token de la URL (ej: /checkin/12345/form_personal -> "12345")
+      const pathParts = window.location.pathname.split("/");
+      const token = pathParts[2] || "new";
+
+      // 2. Le quitamos la pulsera VIP (borramos que está verificado)
+      sessionStorage.removeItem(`access_verified_${token}`);
+
+      // 3. Recargamos la página con el chivatazo.
+      // Como no tiene la pulsera VIP, verá la pantalla de verificación.
+      // Como han pasado menos de 1h, useCheckin recuperará sus datos del formulario.
+      window.location.href = window.location.pathname + "?expired=true";
+    };
+
+    window.addEventListener("SESSION_EXPIRED", handler);
+    return () => window.removeEventListener("SESSION_EXPIRED", handler);
+  }, []);
+
   return null;
 }
 
 // ── Rutas de la Aplicación ───────────────────────────────────────────────────
-//
 export default function App() {
   return (
     <BrowserRouter>
       <AuthExpiredWatcher />
       <Routes>
-        {/* 1. Si alguien entra a la raíz (/), el sistema asume que es personal del hotel.
-               Redirigimos a /checkin/new. El Hook detectará el "new" y mostrará la búsqueda. */}
         <Route path="/" element={<Navigate to="/checkin/new" replace />} />
 
-        {/* 2. Ruta para el staff/tablet específica (opcional, por si la usas directamente) */}
         <Route
           path="/checkin/kiosko/tablet_buscar"
           element={
@@ -336,9 +333,6 @@ export default function App() {
           }
         />
 
-        {/* 3. CAMBIO CLAVE: Quitamos el Navigate a "inicio". 
-               Ahora cargamos el Wizard directamente. Él decidirá qué pantalla mostrar 
-               según si el token es "new" o un código real. */}
         <Route
           path="/checkin/:token"
           element={
@@ -350,7 +344,6 @@ export default function App() {
           }
         />
 
-        {/* 4. Ruta para pasos específicos del flujo */}
         <Route
           path="/checkin/:token/:step"
           element={

@@ -1,10 +1,11 @@
 import axios from "axios";
 import type { AxiosError, InternalAxiosRequestConfig } from "axios";
+import i18next from "i18next";
 
-const TOKEN_KEY  = "lumina_access_token";
+const TOKEN_KEY = "lumina_access_token";
 const EXPIRY_KEY = "lumina_token_expiry";
 // 300 min = mismo valor que ACCESS_TOKEN_EXPIRE_MINUTES del backend
-const TOKEN_TTL  = 300 * 60 * 1000;
+const TOKEN_TTL = 300 * 60 * 1000;
 
 const BASE_URL = import.meta.env.VITE_API_URL
   ? `${import.meta.env.VITE_API_URL}`
@@ -27,43 +28,46 @@ apiAuth.interceptors.request.use((config: InternalAxiosRequestConfig) => {
 
 const onResponseError = (error: AxiosError) => {
   if (error.response) {
-    const data   = error.response.data as Record<string, unknown> | undefined;
-    const detail = data?.detail ?? data?.message ?? `Error ${error.response.status}`;
+    const data = error.response.data as Record<string, unknown> | undefined;
+    const detail =
+      data?.detail ??
+      data?.message ??
+      `${i18next.t("errorBoundary.title")} ${error.response.status}`;
     return Promise.reject(new Error(String(detail)));
   }
   if (error.request) {
-    return Promise.reject(
-      new Error("No se pudo conectar con el servidor. Comprueba tu conexión."),
-    );
+    // 🌍 Traducción del error de conexión sin hardcodear
+    return Promise.reject(new Error(i18next.t("search.error_connection")));
   }
   return Promise.reject(error);
 };
 
 api.interceptors.response.use((r) => r, onResponseError);
+
 apiAuth.interceptors.response.use(
   (r) => r,
   (err: AxiosError) => {
     if (err.response?.status === 401) {
       clearToken();
-      // Disparamos un evento para que App.tsx navegue con React Router
-      // en lugar de forzar recarga total.
-      window.dispatchEvent(new CustomEvent("AUTH_EXPIRED"));
-      return Promise.reject(
-        new Error("Sesión expirada. Acceda de nuevo mediante su enlace de reserva."),
-      );
+
+      // Disparamos el evento actualizado
+      window.dispatchEvent(new CustomEvent("SESSION_EXPIRED"));
+
+      return Promise.reject(new Error(i18next.t("auth.session_expired")));
     }
     return onResponseError(err);
   },
 );
+
 // ── Token helpers ─────────────────────────────────────────────────────────────
 
 export const saveToken = (token: string, persistent = false): void => {
   const expiry = String(Date.now() + TOKEN_TTL);
   if (persistent) {
-    localStorage.setItem(TOKEN_KEY,  token);
+    localStorage.setItem(TOKEN_KEY, token);
     localStorage.setItem(EXPIRY_KEY, expiry);
   } else {
-    sessionStorage.setItem(TOKEN_KEY,  token);
+    sessionStorage.setItem(TOKEN_KEY, token);
     sessionStorage.setItem(EXPIRY_KEY, expiry);
   }
 };
@@ -77,11 +81,30 @@ export const clearToken = (): void => {
 
 export const getToken = (): string | null => {
   const expiry = Number(
-    sessionStorage.getItem(EXPIRY_KEY) ?? localStorage.getItem(EXPIRY_KEY) ?? "0",
+    sessionStorage.getItem(EXPIRY_KEY) ??
+      localStorage.getItem(EXPIRY_KEY) ??
+      "0",
   );
   if (expiry && Date.now() > expiry) {
     clearToken();
     return null;
   }
   return sessionStorage.getItem(TOKEN_KEY) ?? localStorage.getItem(TOKEN_KEY);
+};
+
+// ── NUEVA LLAMADA AL ENDPOINT ────────────────────────────────────────────────
+interface RequestTokenPayload {
+  access_code: string;
+  email?: string;
+  phone?: string;
+}
+
+export const requestPreCheckinToken = async (
+  payload: RequestTokenPayload,
+): Promise<void> => {
+  const { data } = await api.post("/pre-checkin/request-token", payload);
+  // Guardamos el token temporal que nos devuelve (que dura 30 mins)
+  if (data.token) {
+    saveToken(data.token, false);
+  }
 };

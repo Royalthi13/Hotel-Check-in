@@ -89,7 +89,7 @@
 .verify-input:focus {
   outline: none;
   border-color: var(--primary);
-  box-shadow: 0 0 0 3px rgba(var(--primary-rgb), 0.1);
+  box-shadow: 0 0 0 3px rgba(250, 134, 92, 0.1);
 }
 
 .verify-input--email {

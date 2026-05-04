@@ -311,7 +311,8 @@
     "instruction_phone": "Per la sua sicurezza, inserisca gli ultimi 3 numeri del telefono associato alla prenotazione.",
     "phone_last3_label": "Ultimi 3 numeri del telefono",
     "button_submit": "Accedi al Check-in",
-    "error_message": "Non siamo riusciti a verificare la prenotazione. Controlli il cognome del titolare."
+    "error_message": "Non siamo riusciti a verificare la prenotazione. Controlli il cognome del titolare.",
+    "too_many_attempts": "Troppi tentativi. Riprova più tardi."
   },
   "rooms": {
     "individual": "Camera Singola",
@@ -385,5 +386,8 @@
     ],
     "footer": "Per ulteriori dettagli, può richiedere il documento completo alla reception.",
     "accept_check": "Ho letto l'informativa legale e acconsento al trattamento dei miei dati."
+  },
+  "auth": {
+    "session_expired": "La tua sessione è scaduta, ti preghiamo di identificarti di nuovo."
   }
 }

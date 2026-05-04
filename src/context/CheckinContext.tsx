@@ -21,14 +21,15 @@ export const CheckinProvider: React.FC<{ children: React.ReactNode }> = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isOffline, setIsOffline] = useState(!navigator.onLine);
   const [isPartialSuccess, setIsPartialSuccess] = useState(false);
-  const [validationTrigger, setValidationTrigger] = useState(0);
-const [accessVerified, setAccessVerifiedState] = useState(
+
+  const [accessVerified, setAccessVerifiedState] = useState(
     () => sessionStorage.getItem(`access_verified_${token}`) === "true",
   );
   const setAccessVerified = (v: boolean) => {
     setAccessVerifiedState(v);
     sessionStorage.setItem(`access_verified_${token}`, String(v));
   };
+
   const [legalPassed, setLegalPassed] = useState(
     () => sessionStorage.getItem(`legalPassed_${token}`) === "true",
   );
@@ -72,9 +73,8 @@ const [accessVerified, setAccessVerifiedState] = useState(
 
   // --- LIMPIEZA Y AUXILIARES ---
   const clearSubmitError = () => setSubmitError("");
-  const triggerFormValidation = () => setValidationTrigger((v) => v + 1);
 
-const getBackendIds = () => {
+  const getBackendIds = () => {
     const bookingId = state.bookingId;
     // clientId puede venir del state o haberse generado en un partial-submit previo
     const clientId = state.clientId ?? state.guests[0]?.id ?? null;
@@ -93,8 +93,7 @@ const getBackendIds = () => {
     `legalPassed_${token}`,
     `hasMinors_${token}`,
     `modoFlujo_${token}`,
-    `bookingId_${token}`,
-    `clientId_${token}`,
+    `verify_attempts_${token}`, // Añadido por si usas el token en vez de bookingRef
   ];
 
   const handleChooseMethod = (method: "scan" | "manual") => {
@@ -116,7 +115,8 @@ const getBackendIds = () => {
     setIsSubmitting(true);
     try {
       const { bookingId, clientId } = getBackendIds();
-if (isPartial) {
+
+      if (isPartial) {
         const newClientId = await savePartialCheckin(
           bookingId,
           clientId,
@@ -179,9 +179,7 @@ if (isPartial) {
     handleChooseMethod,
     handleSubmit,
     handlePartialSubmit,
-    validationTrigger,
-    triggerFormValidation,
-  clearSubmitError,
+    clearSubmitError,
     accessVerified,
     setAccessVerified,
   };
