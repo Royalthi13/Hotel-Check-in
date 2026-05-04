@@ -6,18 +6,23 @@ import { requestPreCheckinToken } from "@/api/axiosInstance";
 import "./ScreenVerificarAcceso.css";
 
 interface Props {
-  mode: "email" | "phone";
+  // Cambiamos el nombre de la prop a initialMode para que quede claro
+  // que es solo el valor de inicio.
+  initialMode?: "email" | "phone";
   bookingRef: string;
   onSuccess: () => void;
 }
 
 export const ScreenVerificarAcceso: React.FC<Props> = ({
-  mode,
+  initialMode = "email", // Valor por defecto
   bookingRef,
   onSuccess,
 }) => {
   const { t } = useTranslation();
-  const [mode, setMode] = useState<"email" | "phone">("email");
+
+  // ✅ AQUÍ CREAMOS EL ESTADO PARA CONTROLAR EL MODO INTERNAMENTE
+  const [verifyMode, setVerifyMode] = useState<"email" | "phone">(initialMode);
+
   const [val, setVal] = useState("");
   const [err, setErr] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -77,7 +82,7 @@ export const ScreenVerificarAcceso: React.FC<Props> = ({
     try {
       const payload = {
         access_code: bookingRef,
-        ...(mode === "email"
+        ...(verifyMode === "email" // Usamos verifyMode
           ? { email: val.trim() }
           : { phone: val.replace(/\D/g, "") }),
       };
@@ -112,9 +117,18 @@ export const ScreenVerificarAcceso: React.FC<Props> = ({
   };
 
   const label =
-    mode === "email" ? t("forms.email") : t("verification.phone_last3_label");
+    verifyMode === "email"
+      ? t("forms.email")
+      : t("verification.phone_last3_label");
   const placeholder =
-    mode === "email" ? t("forms.email_placeholder") : "612 345 678";
+    verifyMode === "email" ? t("forms.email_placeholder") : "612 345 678";
+
+  // ✅ FUNCIÓN PARA CAMBIAR EL MODO CUANDO SE PULSA EL BOTÓN
+  const toggleMode = () => {
+    setVerifyMode((prev) => (prev === "email" ? "phone" : "email"));
+    setVal(""); // Limpiamos el input al cambiar
+    setErr("");
+  };
 
   return (
     <form onSubmit={handleSubmit} className="screen verify-screen">
@@ -130,17 +144,12 @@ export const ScreenVerificarAcceso: React.FC<Props> = ({
         <h1 className="tablet-title verify-title-margin">
           {t("verification.title")}
         </h1>
-
-        <p className="tablet-sub verify-sub-opacity">
-          {t("verification.booking_label")}:{" "}
-          <strong className="verify-sub-strong">{bookingRef}</strong>
-        </p>
       </div>
 
       <div className="verify-card">
         <div className="verify-content">
           <p className="verify-instruction">
-            {mode === "email"
+            {verifyMode === "email"
               ? t("verification.instruction_email")
               : t("verification.instruction_phone")}
           </p>
@@ -155,8 +164,8 @@ export const ScreenVerificarAcceso: React.FC<Props> = ({
 
           <Field label={label} required>
             <input
-              type={mode === "email" ? "email" : "tel"}
-              inputMode={mode === "email" ? "email" : "tel"}
+              type={verifyMode === "email" ? "email" : "tel"}
+              inputMode={verifyMode === "email" ? "email" : "tel"}
               value={val}
               onChange={(e) => {
                 setVal(e.target.value);
@@ -165,13 +174,13 @@ export const ScreenVerificarAcceso: React.FC<Props> = ({
               placeholder={placeholder}
               autoFocus
               disabled={isLoading || isBlocked}
-              className={`verify-input ${mode === "email" ? "verify-input--email" : "verify-input--phone"} ${isBlocked ? "opacity-50" : ""}`}
+              className={`verify-input ${verifyMode === "email" ? "verify-input--email" : "verify-input--phone"} ${isBlocked ? "opacity-50" : ""}`}
             />
           </Field>
 
           <button
             type="button"
-            onClick={() => switchMode(mode === "email" ? "phone" : "email")}
+            onClick={toggleMode} // ✅ CONECTAMOS LA FUNCIÓN AQUÍ
             style={{
               background: "none",
               border: "none",
@@ -184,7 +193,7 @@ export const ScreenVerificarAcceso: React.FC<Props> = ({
               fontFamily: "inherit",
             }}
           >
-            {mode === "email"
+            {verifyMode === "email"
               ? t("verification.switch_to_phone")
               : t("verification.switch_to_email")}
           </button>

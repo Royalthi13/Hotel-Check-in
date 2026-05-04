@@ -1,5 +1,11 @@
 import { useEffect } from "react";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import {
+  BrowserRouter,
+  Routes,
+  Route,
+  Navigate,
+  useParams,
+} from "react-router-dom";
 import "./App.css";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { useCheckinContext } from "@/context/useCheckinContext";
@@ -120,13 +126,11 @@ function CheckinWizard() {
       <div className="shell">
         <div className="card">
           <ScreenVerificarAcceso
-            accessCode={token}
-            bookingRef={state.reserva?.confirmacion ?? `#${state.bookingId}`}
+            initialMode="email"
+            bookingRef={token}
             onSuccess={() => {
               setAccessVerified(true);
-              window.location.reload();
             }}
-            onTooManyAttempts={() => navigate("/invalid", { replace: true })}
           />
         </div>
       </div>
