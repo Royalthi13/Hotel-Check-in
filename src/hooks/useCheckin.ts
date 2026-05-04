@@ -70,6 +70,7 @@ type CheckinAction =
   | { type: "SET_LEGAL_PASSED"; value: boolean }
   | { type: "SET_HAS_MINORS_FLAG"; value: boolean }
   | { type: "SET_COMPANIONS_LOADED"; companions: GuestData[] }
+  | { type: "RESTORE_FULL_STATE"; payload: CheckinState }
   | { type: "RESET" };
 
 // ── Helpers de Persistencia ──────────────────────────────────────────────────
@@ -274,7 +275,10 @@ export function checkinReducer(
       return { ...state, horaLlegada: action.value };
     case "SET_OBSERVACIONES":
       return { ...state, observaciones: action.value };
-   
+
+    case "RESTORE_FULL_STATE":
+      return { ...action.payload };
+
     case "RESET":
       return buildEmptyState(state.appMode);
     default:
@@ -399,7 +403,7 @@ export function useCheckin(tokenUrl?: string, stepUrl?: string) {
     (action: CheckinAction) => setState((prev) => checkinReducer(prev, action)),
     [],
   );
-useEffect(() => {
+  useEffect(() => {
     if (token === "new") {
       setIsLoading(false);
       return;
@@ -688,6 +692,9 @@ useEffect(() => {
       },
       setHasMinorsFlag: (v) =>
         dispatch({ type: "SET_HAS_MINORS_FLAG", value: v }),
+
+      restoreFullState: (state: CheckinState) =>
+        dispatch({ type: "RESTORE_FULL_STATE", payload: state }),
     }),
     [goTo, goBack, dispatch, dotSteps, currentDotIndex, nextGuest, token],
   );

@@ -47,7 +47,7 @@ export interface GuestData {
   nacionalidad: string;
   parentescoParaAPI?: string;
   esMenor: boolean;
- observations?: string;
+  observations?: string;
   vengoConMenores?: boolean;
   tienesMenor?: boolean;
   nombreMenor?: string;
@@ -136,4 +136,5 @@ export interface CheckinActions {
   setLegalPassed: (v: boolean) => void;
   setHasMinorsFlag: (v: boolean) => void;
   setGuests: (guests: PartialGuestData[]) => void;
+  restoreFullState: (state: CheckinState) => void;
 }

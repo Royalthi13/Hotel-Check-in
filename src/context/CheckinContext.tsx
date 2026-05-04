@@ -21,11 +21,12 @@ export const CheckinProvider: React.FC<{ children: React.ReactNode }> = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isOffline, setIsOffline] = useState(!navigator.onLine);
   const [isPartialSuccess, setIsPartialSuccess] = useState(false);
-// Verificación = tener JWT válido. La pantalla de verificación lo consigue;
+  // Verificación = tener JWT válido. La pantalla de verificación lo consigue;
   // tras éxito hacemos un reload para que useCheckin recargue datos con el token.
   const [accessVerified, setAccessVerified] = useState(
-    () => !!sessionStorage.getItem("lumina_access_token") ||
-          !!localStorage.getItem("lumina_access_token"),
+    () =>
+      !!sessionStorage.getItem("lumina_access_token") ||
+      !!localStorage.getItem("lumina_access_token"),
   );
 
   const [legalPassed, setLegalPassed] = useState(
@@ -115,19 +116,27 @@ export const CheckinProvider: React.FC<{ children: React.ReactNode }> = ({
       const { bookingId, clientId } = getBackendIds();
 
       if (isPartial) {
-     const newClientId = await savePartialCheckin(
+        // 1. CAMBIO: Usar nav.guestIndex en lugar de 0
+        // Así guardamos al huésped que acabamos de completar, sea el 1, el 2 o el que toque.
+        const newClientId = await savePartialCheckin(
           clientId,
-          state.guests[0],
+          state.guests[nav.guestIndex],
         );
-        // Sincronizamos el nuevo clientId en el state para futuros submits
-        if (!state.guests[0]?.id) {
-          actions.updateGuest(0, "id", newClientId);
+
+        // 2. CAMBIO: Sincronizar el ID del huésped específico
+        if (!state.guests[nav.guestIndex]?.id) {
+          actions.updateGuest(nav.guestIndex, "id", newClientId);
         }
+
         setIsPartialSuccess(true);
-        actions.goTo("exito", "forward");
+
+        // 🚩 3. CAMBIO CRÍTICO: ¡BORRA LA LÍNEA actions.goTo("exito", "forward")!
+        // Si dejas esa línea, el usuario se va a la pantalla de éxito en cuanto
+        // termina el primer huésped y no puede seguir con los demás.
         return;
       }
 
+      // --- El resto del código para el envío FINAL (isPartial = false) se queda igual ---
       await submitCheckin({
         bookingId,
         clientId,
