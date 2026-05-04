@@ -10,6 +10,7 @@ interface Props {
     bookingId: number,
     clientId: number | null,
   ) => void;
+ 
 }
 
 export const ScreenTabletBuscar: React.FC<Props> = ({ onFound }) => {
@@ -49,7 +50,8 @@ export const ScreenTabletBuscar: React.FC<Props> = ({ onFound }) => {
         trimmedNum,
         trimmedContacto,
       );
-if (result) {
+
+     if (result) {
         onFound(result.reserva, result.bookingId, result.clientId);
       } else {
         setError(t("search.error_not_found"));

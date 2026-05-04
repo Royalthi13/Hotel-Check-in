@@ -21,8 +21,14 @@ export const CheckinProvider: React.FC<{ children: React.ReactNode }> = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isOffline, setIsOffline] = useState(!navigator.onLine);
   const [isPartialSuccess, setIsPartialSuccess] = useState(false);
-
-
+  const [validationTrigger, setValidationTrigger] = useState(0);
+const [accessVerified, setAccessVerifiedState] = useState(
+    () => sessionStorage.getItem(`access_verified_${token}`) === "true",
+  );
+  const setAccessVerified = (v: boolean) => {
+    setAccessVerifiedState(v);
+    sessionStorage.setItem(`access_verified_${token}`, String(v));
+  };
   const [legalPassed, setLegalPassed] = useState(
     () => sessionStorage.getItem(`legalPassed_${token}`) === "true",
   );
@@ -66,22 +72,31 @@ export const CheckinProvider: React.FC<{ children: React.ReactNode }> = ({
 
   // --- LIMPIEZA Y AUXILIARES ---
   const clearSubmitError = () => setSubmitError("");
- 
+  const triggerFormValidation = () => setValidationTrigger((v) => v + 1);
+
 const getBackendIds = () => {
-    const { bookingId, clientId } = state;
+    const bookingId = state.bookingId;
+    // clientId puede venir del state o haberse generado en un partial-submit previo
+    const clientId = state.clientId ?? state.guests[0]?.id ?? null;
+
     if (!bookingId) {
       throw new Error(t("checkin.error_invalid_reservation"));
     }
+
     return { bookingId, clientId };
   };
-const STORAGE_KEYS_TO_CLEAR = [
+
+  const SESSION_KEYS_TO_CLEAR = [
     `state_${token}`,
     `history_${token}`,
     `allowedSteps_${token}`,
     `legalPassed_${token}`,
     `hasMinors_${token}`,
     `modoFlujo_${token}`,
+    `bookingId_${token}`,
+    `clientId_${token}`,
   ];
+
   const handleChooseMethod = (method: "scan" | "manual") => {
     setModoFlujo(method);
 
@@ -107,8 +122,8 @@ if (isPartial) {
           clientId,
           state.guests[0],
         );
-        // Persistimos el nuevo clientId en el state (el reducer ya lo guarda en localStorage)
-        if (newClientId !== clientId) {
+        // Sincronizamos el nuevo clientId en el state para futuros submits
+        if (!state.guests[0]?.id) {
           actions.updateGuest(0, "id", newClientId);
         }
         setIsPartialSuccess(true);
@@ -124,11 +139,8 @@ if (isPartial) {
         observaciones: state.observaciones,
       });
 
-     setIsPartialSuccess(false);
-      STORAGE_KEYS_TO_CLEAR.forEach((key) => {
-        localStorage.removeItem(key);
-        sessionStorage.removeItem(key);
-      });
+      setIsPartialSuccess(false);
+      SESSION_KEYS_TO_CLEAR.forEach((key) => sessionStorage.removeItem(key));
       sessionStorage.removeItem(PERSISTENCE_KEY);
       localStorage.removeItem(PERSISTENCE_KEY);
 
@@ -167,7 +179,11 @@ if (isPartial) {
     handleChooseMethod,
     handleSubmit,
     handlePartialSubmit,
-    clearSubmitError,
+    validationTrigger,
+    triggerFormValidation,
+  clearSubmitError,
+    accessVerified,
+    setAccessVerified,
   };
 
   return (

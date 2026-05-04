@@ -6,17 +6,13 @@ export type StepId =
   | "tablet_buscar"
   | "inicio"
   | "bienvenida"
-  | "confirmar_datos"
   | "escanear"
   | "form_personal"
   | "form_contacto"
-  | "form_documento"
   | "form_relaciones"
-  | "num_personas"
   | "form_extras"
   | "revision"
   | "exito";
-
 
 export interface RelacionDB {
   codrelation: string;
@@ -142,6 +138,5 @@ export interface CheckinActions {
   setRgpdAcepted: (v: boolean) => void;
   setLegalPassed: (v: boolean) => void;
   setHasMinorsFlag: (v: boolean) => void;
-  handleSubmit?: () => Promise<void>;
   setGuests: (guests: PartialGuestData[]) => void;
 }

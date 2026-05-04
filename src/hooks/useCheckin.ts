@@ -21,13 +21,10 @@ const VALID_STEPS: ReadonlyArray<StepId> = [
   "tablet_buscar",
   "inicio",
   "bienvenida",
-  "confirmar_datos",
   "escanear",
   "form_personal",
   "form_contacto",
-  "form_documento",
   "form_relaciones",
-  "num_personas",
   "form_extras",
   "revision",
   "exito",
@@ -73,7 +70,6 @@ type CheckinAction =
   | { type: "SET_RGPD"; value: boolean }
   | { type: "SET_LEGAL_PASSED"; value: boolean }
   | { type: "SET_HAS_MINORS_FLAG"; value: boolean }
-  | { type: "RESTORE_FULL_STATE"; payload: CheckinState }
   | { type: "SET_COMPANIONS_LOADED"; companions: GuestData[] }
   | { type: "RESET" };
 
@@ -145,19 +141,25 @@ export function checkinReducer(
   switch (action.type) {
     case "SET_GUESTS":
       return { ...state, guests: action.guests };
-    case "SET_KNOWN_GUEST":
+    case "SET_KNOWN_GUEST": {
+      const existing = state.guests[0] ?? {};
+      const hasData = !!(existing.nombre?.trim() || existing.numDoc?.trim());
       return {
         ...state,
         knownGuest: action.guest,
-        guests: [{ ...action.guest, esMenor: false }],
+        // Sólo rellenamos guests[0] si está vacío — así no pisamos lo que el
+        // usuario ya hubiese tecleado. knownGuest se setea siempre para que
+        // la verja de acceso pueda comparar el apellido.
+       guests: hasData ? state.guests : [{ ...action.guest, esMenor: false }, ...state.guests.slice(1)],
         clientId: action.guest.id || state.clientId,
       };
+    }
 
     case "SET_RESERVA_TABLET":
       return {
         ...state,
         reserva: action.reserva,
-        bookingId: action.bookingId, // 👈 Persistimos el ID en tablet
+        bookingId: action.bookingId,
         clientId: action.clientId,
         numPersonas: action.reserva.numHuespedes,
         numAdultos: action.reserva.numHuespedes,
@@ -169,7 +171,7 @@ export function checkinReducer(
       return {
         ...state,
         reserva: action.reserva,
-        bookingId: action.bookingId, // 👈 Persistimos el ID en link flow
+        bookingId: action.bookingId,
         clientId: action.clientId,
         numPersonas: action.reserva.numHuespedes,
       };
@@ -227,28 +229,46 @@ export function checkinReducer(
       return { ...state, guests };
     }
 
-    case "UPDATE_RELACION": {
-      const guests = [...state.guests];
-      const menor = { ...guests[action.menorIndex] };
-      const rels = [...(menor.relacionesConAdultos ?? [])];
-      if (action.parentesco === "") {
-        menor.relacionesConAdultos = rels.filter(
-          (r) => r.adultoIndex !== action.adultoIndex,
-        );
-      } else {
-        const idx = rels.findIndex((r) => r.adultoIndex === action.adultoIndex);
-        if (idx >= 0)
-          rels[idx] = { ...rels[idx], parentesco: action.parentesco };
-        else
-          rels.push({
-            adultoIndex: action.adultoIndex,
-            parentesco: action.parentesco,
-          });
-        menor.relacionesConAdultos = rels;
+   case "UPDATE_RELACION": {
+  const guests = [...state.guests];
+  const menor = { ...guests[action.menorIndex] };
+  const rels = [...(menor.relacionesConAdultos ?? [])];
+  if (action.parentesco === "") {
+    menor.relacionesConAdultos = rels.filter(
+      (r) => r.adultoIndex !== action.adultoIndex,
+    );
+  } else {
+    const idx = rels.findIndex((r) => r.adultoIndex === action.adultoIndex);
+    if (idx >= 0)
+      rels[idx] = { ...rels[idx], parentesco: action.parentesco };
+    else
+      rels.push({
+        adultoIndex: action.adultoIndex,
+        parentesco: action.parentesco,
+      });
+    menor.relacionesConAdultos = rels;
+
+    // Si la relación implica convivencia (PM/TU), pre-rellenamos la dirección
+    // del menor con la del adulto responsable. El usuario puede modificarla.
+    const CODIGOS_CONVIVENCIA = new Set(["PM", "TU"]);
+    if (CODIGOS_CONVIVENCIA.has(action.parentesco)) {
+      const adulto = guests[action.adultoIndex];
+    if (adulto && !adulto.esMenor) {
+        const yaTieneDireccion = !!(menor.direccion?.trim() || menor.ciudad?.trim());
+        if (!yaTieneDireccion && adulto.direccion) {
+          menor.direccion = adulto.direccion;
+          menor.ciudad    = adulto.ciudad    ?? "";
+          menor.codCity   = adulto.codCity   ?? "";
+          menor.provincia = adulto.provincia ?? "";
+          menor.cp        = adulto.cp        ?? "";
+          menor.pais      = adulto.pais      ?? "ES";
+        }
       }
-      guests[action.menorIndex] = menor;
-      return { ...state, guests };
     }
+  }
+  guests[action.menorIndex] = menor;
+  return { ...state, guests };
+}
 
     case "APPLY_SCAN": {
       const guests = [...state.guests];
@@ -266,8 +286,7 @@ export function checkinReducer(
       return { ...state, legalPassed: action.value };
     case "SET_HAS_MINORS_FLAG":
       return { ...state, hasMinorsFlag: action.value };
-    case "RESTORE_FULL_STATE":
-      return { ...state, ...action.payload };
+   
     case "RESET":
       return buildEmptyState(state.appMode);
     default:
@@ -426,14 +445,9 @@ export function useCheckin(tokenUrl?: string, stepUrl?: string) {
           clientId: result.clientId,
         });
 
-        const hasOwnData =
-          stateRef.current.guests[0]?.nombre?.trim() ||
-          stateRef.current.guests[0]?.numDoc?.trim();
-
-        if (result.knownGuest && !hasOwnData) {
+        if (result.knownGuest) {
           dispatch({ type: "SET_KNOWN_GUEST", guest: result.knownGuest });
         }
-
         if (result.companions.length > 0) {
           dispatch({
             type: "SET_COMPANIONS_LOADED",
@@ -471,16 +485,11 @@ export function useCheckin(tokenUrl?: string, stepUrl?: string) {
     const yaAcepto =
       localStorage.getItem(`legalPassed_${token}`) === "true" ||
       state.legalPassed;
-    if (yaAcepto) {
-      let hist: HistoryEntry[] = [];
-      try {
-        const raw = localStorage.getItem(`history_${token}`);
-        if (raw) hist = JSON.parse(raw).data || [];
-      } catch (e) {
-        console.warn("No se pudo leer la historia para actualStep", e);
-      }
 
-      if (hist.length > 0) return hist[hist.length - 1].step;
+    if (yaAcepto) {
+      if (appHistory.length > 0) {
+        return appHistory[appHistory.length - 1].step;
+      }
       return "bienvenida";
     }
 
@@ -562,16 +571,24 @@ export function useCheckin(tokenUrl?: string, stepUrl?: string) {
         return goToFirstMinorOrExtras();
       }
 
-      if (from === "form_relaciones") {
-        const nextM = guests.findIndex((g, i) => i > currIdx && g.esMenor);
-        if (nextM >= 0) return goTo("form_relaciones", "forward", nextM);
-        return goTo("form_extras", "forward", 0);
-      }
+     if (from === "form_relaciones") {
+  const minor = stateRef.current.guests[currIdx];
+
+  const nextM = guests.findIndex((g, i) => i > currIdx && g.esMenor);
+  if (nextM >= 0) return goTo("form_relaciones", "forward", nextM);
+
+  // 🔥 CLAVE: si NO tiene dirección → ir a contacto
+  if (!minor?.ciudad && !minor?.cp) {
+    return goTo("form_contacto", "forward", currIdx);
+  }
+
+  return goTo("form_extras", "forward", 0);
+}
     },
     [goTo],
   );
 
- const dotSteps = useMemo(() => {
+  const dotSteps = useMemo(() => {
     return modoFlujo === "manual"
       ? FLOW_STEPS.filter((s) => s !== "escanear")
       : FLOW_STEPS;
@@ -582,7 +599,7 @@ export function useCheckin(tokenUrl?: string, stepUrl?: string) {
     !["exito", "tablet_buscar", "inicio"].includes(actualStep);
 
   let currentDotIndex = dotSteps.indexOf(actualStep);
-  if (["confirmar_datos", "form_relaciones"].includes(actualStep))
+ if (actualStep === "form_relaciones")
     currentDotIndex = dotSteps.indexOf("form_personal");
 
   const maxAllowedDotIndex = useMemo(() => {

@@ -10,7 +10,7 @@ interface ClientResponse {
   surname: string;
   address: string | null;
   city: string | null;
-  cod_city: string | null; // ID de la ciudad en BBDD
+  cod_city: string | null;
   province: string | null;
   cp: string | null;
   country: string;
@@ -28,31 +28,91 @@ interface ClientResponse {
 
 // ── ISO2 ↔ codpais ────────────────────────────────────────────────────────────
 const ISO2_TO_CODPAIS: Record<string, string> = {
-  ES: "ESP", GB: "GBR", FR: "FRA", DE: "DEU", IT: "ITA",
-  PT: "PRT", US: "USA", CA: "CAN", MX: "MEX", AR: "ARG",
-  CO: "COL", BR: "BRA", CL: "CHL", PE: "PER", VE: "VEN",
-  UY: "URY", EC: "ECU", BO: "BOL", PY: "PRY", CR: "CRI",
-  PA: "PAN", DO: "DOM", CU: "CUB", NL: "NLD", BE: "BEL",
-  CH: "CHE", AT: "AUT", SE: "SWE", NO: "NOR", DK: "DNK",
-  FI: "FIN", IE: "IRL", GR: "GRC", PL: "POL", CZ: "CZE",
-  HU: "HUN", RO: "ROU", TR: "TUR", RU: "RUS", CN: "CHN",
-  JP: "JPN", KR: "KOR", IN: "IND", AU: "AUS", NZ: "NZL",
-  ZA: "ZAF", EG: "EGY", MA: "MAR", SA: "SAU", AE: "ARE",
-  IL: "ISR", SG: "SGP", TH: "THA", PH: "PHL", VN: "VNM",
-  ID: "IDN", MY: "MYS", PK: "PAK", BD: "BGD", IR: "IRN",
-  IQ: "IRQ", NG: "NGA", KE: "KEN",
+  ES: "ESP",
+  GB: "GBR",
+  FR: "FRA",
+  DE: "DEU",
+  IT: "ITA",
+  PT: "PRT",
+  US: "USA",
+  CA: "CAN",
+  MX: "MEX",
+  AR: "ARG",
+  CO: "COL",
+  BR: "BRA",
+  CL: "CHL",
+  PE: "PER",
+  VE: "VEN",
+  UY: "URY",
+  EC: "ECU",
+  BO: "BOL",
+  PY: "PRY",
+  CR: "CRI",
+  PA: "PAN",
+  DO: "DOM",
+  CU: "CUB",
+  NL: "NLD",
+  BE: "BEL",
+  CH: "CHE",
+  AT: "AUT",
+  SE: "SWE",
+  NO: "NOR",
+  DK: "DNK",
+  FI: "FIN",
+  IE: "IRL",
+  GR: "GRC",
+  PL: "POL",
+  CZ: "CZE",
+  HU: "HUN",
+  RO: "ROU",
+  TR: "TUR",
+  RU: "RUS",
+  CN: "CHN",
+  JP: "JPN",
+  KR: "KOR",
+  IN: "IND",
+  AU: "AUS",
+  NZ: "NZL",
+  ZA: "ZAF",
+  EG: "EGY",
+  MA: "MAR",
+  SA: "SAU",
+  AE: "ARE",
+  IL: "ISR",
+  SG: "SGP",
+  TH: "THA",
+  PH: "PHL",
+  VN: "VNM",
+  ID: "IDN",
+  MY: "MYS",
+  PK: "PAK",
+  BD: "BGD",
+  IR: "IRN",
+  IQ: "IRQ",
+  NG: "NGA",
+  KE: "KEN",
 };
 
 const NAC_TO_CODPAIS: Record<string, string> = {
-  "Española": "ESP", "Inglesa": "GBR", "Francesa": "FRA",
-  "Alemana": "DEU", "Italiana": "ITA", "Portuguesa": "PRT",
-  "Estadounidense": "USA", "Argentina": "ARG", "Mexicana": "MEX",
+  Española: "ESP",
+  Inglesa: "GBR",
+  Francesa: "FRA",
+  Alemana: "DEU",
+  Italiana: "ITA",
+  Portuguesa: "PRT",
+  Estadounidense: "USA",
+  Argentina: "ARG",
+  Mexicana: "MEX",
 };
 
 // Tipo documento — BD acepta: CIF, NIE, NIF, OTRO, PAS
 const DOC_TO_COD: Record<string, string> = {
-  "DNI": "NIF", "NIF": "NIF", "NIE": "NIE",
-  "CIF": "CIF", "Pasaporte": "PAS", "Otro": "OTRO",
+  DNI: "NIF",
+  NIF: "NIF",
+  NIE: "NIE",
+  CIF: "CIF",
+  Pasaporte: "PAS",
+  Otro: "OTRO",
 };
 // ── Mapeos inversos DB → Frontend ─────────────────────────────────────────────
 // Los 3 mapeos principales (ISO2, NAC, DOC) ya están arriba — construimos los
@@ -64,7 +124,11 @@ const CODPAIS_TO_NAC: Record<string, string> = Object.fromEntries(
   Object.entries(NAC_TO_CODPAIS).map(([nac, codpais]) => [codpais, nac]),
 );
 const COD_TO_DOC: Record<string, string> = {
-  NIF: "DNI", NIE: "NIE", CIF: "CIF", PAS: "Pasaporte", OTRO: "Otro",
+  NIF: "DNI",
+  NIE: "NIE",
+  CIF: "CIF",
+  PAS: "Pasaporte",
+  OTRO: "Otro",
 };
 // Nota: el parentesco NO se mapea — la API devuelve y acepta el mismo
 // `codrelation` (ej: "HJ", "TU", "PM", "OT") que el frontend guarda en el
@@ -76,40 +140,53 @@ export function toGuestData(c: ClientResponse): GuestData {
   const esMenor = c.birth ? dayjs().diff(dayjs(c.birth), "years") < 18 : false;
   const { apellido, apellido2 } = splitSurnames(c.surname);
 
+  const phoneStr = c.phone?.trim() ?? "";
+  const phoneMatch = phoneStr.match(/^(\+\d{1,3})\s+(.+)$/);
+  const prefijo = phoneMatch ? phoneMatch[1] : "+34";
+  const telefono = phoneMatch
+    ? phoneMatch[2].replace(/\s/g, " ").trim()
+    : phoneStr;
+
   return {
     id: c.id,
-    nombre:    c.name    ?? "",
+    nombre: c.name ?? "",
     apellido: apellido,
     apellido2: apellido2,
-    sexo:      c.sex === "M" ? "Hombre" : c.sex === "F" ? "Mujer" : "No indicar",
-    fechaNac:  c.birth   ?? "",
+    sexo: c.sex === "M" ? "Hombre" : c.sex === "F" ? "Mujer" : "No indicar",
+    fechaNac: c.birth ?? "",
 
     // codpais ("ESP") → ISO2 ("ES") para el selector del frontend
-    pais:         CODPAIS_TO_ISO2[c.country ?? ""] ?? "ES",
+    pais: CODPAIS_TO_ISO2[c.country ?? ""] ?? "ES",
     // codpais → label de nacionalidad ("ESP" → "Española"), fallback "Otra"
     nacionalidad: CODPAIS_TO_NAC[c.nationality ?? ""] ?? "Otra",
     // "NIF" → "DNI", "PAS" → "Pasaporte", etc.
-    tipoDoc:      COD_TO_DOC[c.doc_type ?? ""] ?? "DNI",
+    tipoDoc: COD_TO_DOC[c.doc_type ?? ""] ?? "DNI",
 
-    email:     c.email    ?? "",
-    telefono:  c.phone    ?? "",
-    direccion: c.address  ?? "",
-    ciudad:    c.city     ?? "",
-    codCity:   c.cod_city ?? "",
+    email: c.email ?? "",
+    prefijo: prefijo,
+    telefono: telefono,
+    direccion: c.address ?? "",
+    ciudad: c.city ?? "",
+    codCity: c.cod_city ?? "",
     provincia: c.province ?? "",
-    cp:        c.cp       ?? "",
+    cp: c.cp ?? "",
 
     // vat (columna BD) → numDoc (número del documento)
-    numDoc:     c.vat         ?? "",
+    numDoc: c.vat ?? "",
     soporteDoc: c.doc_support ?? "",
     esMenor,
-// La API devuelve codrelation (ej: "HJ", "TU") — lo guardamos tal cual.
+
+    observations: c.observations ?? "",
+
+    // La API devuelve codrelation (ej: "HJ", "TU") — lo guardamos tal cual.
     // La UI y la traducción trabajan con los mismos códigos.
     relacionesConAdultos: c.relationship
       ? [{ adultoIndex: 0, parentesco: c.relationship }]
       : [],
   };
-}// ── GuestData → payload API ────────────────────────────────────────────────────
+}
+
+// ── GuestData → payload API ────────────────────────────────────────────────────
 export function toClientPayload(g: PartialGuestData): Record<string, unknown> {
   const str = (v: string | undefined | null) => v?.trim() || null;
   const esMenor = !!g.esMenor;
@@ -124,43 +201,46 @@ export function toClientPayload(g: PartialGuestData): Record<string, unknown> {
       : codpais;
   const docCod = DOC_TO_COD[g.tipoDoc ?? ""] ?? undefined;
 
-  const apellido1 = (g.apellido  ?? "").trim();
+  const apellido1 = (g.apellido ?? "").trim();
   const apellido2 = (g.apellido2 ?? "").trim();
-  const surname   = [apellido1, apellido2].filter(Boolean).join(" ");
-// El parentesco ya viene como codrelation de la API (ej: "HJ", "TU", "OT").
+  const surname = [apellido1, apellido2].filter(Boolean).join(" ");
+
+  // El parentesco ya viene como codrelation de la API (ej: "HJ", "TU", "OT").
   // Si checkin.service.ts sobrescribió con `parentescoParaAPI` (relación invertida
   // para el adulto, ej: "PM"), ése tiene prioridad.
   const withApiField = g as PartialGuestData & { parentescoParaAPI?: string };
   const codrelation =
-    withApiField.parentescoParaAPI
-    ?? g.relacionesConAdultos?.[0]?.parentesco
-    ?? undefined;
+    withApiField.parentescoParaAPI ??
+    g.relacionesConAdultos?.[0]?.parentesco ??
+    undefined;
 
   return {
-    name:        str(g.nombre) ?? "",
-    surname:     surname       || "",
-    sex:         g.sexo === "Hombre" ? "M" : g.sexo === "Mujer" ? "F" : null,
-    birth:       g.fechaNac    || null,
+    name: str(g.nombre) ?? "",
+    surname: surname || "",
+    sex: g.sexo === "Hombre" ? "M" : g.sexo === "Mujer" ? "F" : null,
+    birth: g.fechaNac || null,
     nationality: nacCod,
-    country:     codpais,
+    country: codpais,
 
-    email:       esMenor ? null : str(g.email),
-    phone:       esMenor
+    email: esMenor ? null : str(g.email),
+    phone: esMenor
       ? null
-      : (g.telefono?.trim()
-          ? `${g.prefijo ?? '+34'} ${g.telefono.trim()}`.trim()
-          : null),
-address:     str(g.direccion) ?? null,
-    city:        str(g.ciudad) ?? null,
-    province:    str(g.provincia) ?? null,
-    cp:          str(g.cp) ?? null,
+      : g.telefono?.trim()
+        ? `${g.prefijo ?? "+34"} ${g.telefono.trim()}`.trim()
+        : null,
+    address: str(g.direccion) ?? null,
+    city: str(g.ciudad) ?? null,
+    province: str(g.provincia) ?? null,
+    cp: str(g.cp) ?? null,
 
-    doc_type:    docCod ?? null,
-    vat:         str(g.numDoc),
+    doc_type: docCod ?? null,
+    vat: str(g.numDoc),
     doc_support: str(g.soporteDoc),
-    relationship: codrelation ?? null,
+    ...(codrelation !== undefined ? { relationship: codrelation } : {}),
+    observations: str(g.observations) ?? null,
   };
 }
+
 // ── Servicios API ─────────────────────────────────────────────────────────────
 
 export async function getClientById(clientId: number): Promise<GuestData> {

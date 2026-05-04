@@ -1,6 +1,6 @@
 import { apiAuth } from "./axiosInstance";
 import type { Reserva } from "@/types";
-
+import { getClientById } from "./clients.service";
 export interface BookingSearch {
   id: number;
   room_id: number;
@@ -56,17 +56,11 @@ export async function getBookingById(bookingId: string | number): Promise<{
     raw: data,
     isAlreadyCheckedIn: data.pre_checking === true,
   };
-}
-export async function searchBookingByConfirmation(
+}export async function searchBookingByConfirmation(
   query: string,
   contactoInput: string,
-): Promise<{
-  reserva: Reserva;
-  clientId: number | null;
-  bookingId: number;
-} | null> {
-  let resultEncontrado: Awaited<ReturnType<typeof getBookingById>> | null =
-    null;
+): Promise<{ reserva: Reserva; clientId: number | null; bookingId: number } | null> {
+  let resultEncontrado: Awaited<ReturnType<typeof getBookingById>> | null = null;
   try {
     resultEncontrado = await getBookingById(query);
   } catch (e) {
@@ -76,17 +70,90 @@ export async function searchBookingByConfirmation(
 
   if (!resultEncontrado || !resultEncontrado.reserva) return null;
 
-  // Validación mínima: el staff debe introducir email o teléfono del titular
-  // para evitar que cualquiera abra cualquier reserva con solo el ID.
-  const contactoLimpio = contactoInput.trim().toLowerCase();
-  const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contactoLimpio);
-  const isPhone = /^\+?[\d\s-]{9,15}$/.test(contactoLimpio);
+  // Si la reserva no tiene cliente vinculado todavía, no podemos verificar contacto
+  // por aquí; dejamos pasar y la verja anti-enumeración la hará el cliente cargado.
+  if (!resultEncontrado.clientId) {
+    return {
+      reserva: resultEncontrado.reserva,
+      clientId: resultEncontrado.clientId,
+      bookingId: resultEncontrado.bookingId,
+    };
+  }
 
-  if (!isEmail && !isPhone) return null;
+  // Cargamos el cliente titular y verificamos email o últimas 3 cifras del teléfono
+  try {
+  const titular = await getClientById(resultEncontrado.clientId);
 
-  return {
-    reserva: resultEncontrado.reserva,
-    clientId: resultEncontrado.clientId,
-    bookingId: resultEncontrado.bookingId,
-  };
+    const input = contactoInput.trim().toLowerCase();
+    const onlyDigits = (s: string) => s.replace(/\D/g, "");
+
+    const emailMatch =
+      !!titular.email && titular.email.trim().toLowerCase() === input;
+
+    const inputDigits = onlyDigits(contactoInput);
+    const phoneDigits = onlyDigits(titular.telefono ?? "");
+    const phoneMatch =
+      phoneDigits.length >= 3 &&
+      inputDigits.length >= 3 &&
+      phoneDigits.endsWith(inputDigits.slice(-Math.min(inputDigits.length, phoneDigits.length)));
+
+    if (emailMatch || phoneMatch) {
+      return {
+        reserva: resultEncontrado.reserva,
+        clientId: resultEncontrado.clientId,
+        bookingId: resultEncontrado.bookingId,
+      };
+    }
+  } catch (e) {
+    if (import.meta.env.DEV) console.warn("Error verificando titular:", e);
+  }
+
+  return null;
+}
+/**
+ * ACTUALIZACIÓN: Ahora acepta clientId en el payload para vinculación explícita
+ */
+export async function updateBookingCheckin(
+  bookingId: number,
+  payload: {
+    horaLlegada?: string;
+    observaciones?: string;
+    clientId?: number | null;
+  },
+  existingRaw?: BookingSearch,
+): Promise<void> {
+  const current =
+    existingRaw ??
+    (await apiAuth.get<BookingSearch>(`/bookings/${bookingId}`)).data;
+
+  let notasFinales: string | null =
+    payload.observaciones ?? current.notes ?? null;
+
+  if (
+    payload.horaLlegada &&
+    payload.horaLlegada !== "No especificada" &&
+    !payload.horaLlegada.startsWith("No ")
+  ) {
+    const sufijo = `Hora llegada: ${payload.horaLlegada}`;
+    notasFinales = notasFinales ? `${notasFinales}\n${sufijo}` : sufijo;
+  }
+
+  await apiAuth.put(`/bookings/${bookingId}`, {
+    room_id: current.room_id,
+    check_in: current.check_in,
+    check_out: current.check_out,
+    // 👇 VINCULACIÓN EXPLÍCITA: Si viene en el payload, usamos ese, si no, el que tenía.
+    client_id:
+      payload.clientId !== undefined ? payload.clientId : current.client_id,
+    status_id: current.status_id,
+    persons: current.persons,
+    notes: notasFinales,
+    source: current.source,
+    pay_type: current.pay_type,
+    pay_date: current.pay_date,
+    pay_num: current.pay_num,
+    pay_titular: current.pay_titular,
+    card_cad: current.card_cad,
+    pre_checking: true,
+  });
 }

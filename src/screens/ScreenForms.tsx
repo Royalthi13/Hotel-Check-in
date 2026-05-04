@@ -95,7 +95,6 @@ export const ScreenFormPersonal: React.FC = () => {
   const [tiposDoc, setTiposDoc] = useState<Array<{ value: string; label: string }>>([]);
 
   const isMainGuest = guestIndex === 0;
-
   useEffect(() => {
     getDocumentTypes()
       .then((tipos) =>
@@ -455,6 +454,7 @@ export const ScreenFormContacto: React.FC = () => {
     () => state.guests[guestIndex] ?? {},
     [state.guests, guestIndex],
   );
+  const esUnMenor = !!data.esMenor;
   const { t, i18n } = useTranslation();
 const handleUpdate = useCallback(
     (key: keyof PartialGuestData, value: unknown) =>
@@ -693,7 +693,16 @@ const RenderList = (
           })}
         </Typography>
       </div>
-
+            {data.esMenor && (
+  <Box style={{ padding: "0 var(--px)", marginTop: 12 }}>
+    <Alert variant="info">
+      {t(
+        "forms.minor_address_info",
+        "La dirección del menor se ha copiado de su acompañante. Puedes modificarla si es diferente.",
+      )}
+    </Alert>
+  </Box>
+)}
       <form
         onSubmit={(e) => {
   e.preventDefault();
@@ -714,6 +723,14 @@ const RenderList = (
               px: "var(--px)",
             }}
           >
+         {esUnMenor && !!data.direccion && (
+  <Alert variant="info">
+    {t("forms.minor_address_info", {
+      defaultValue:
+        "La dirección se ha completado con la del adulto responsable. Puedes modificarla si es diferente.",
+    })}
+  </Alert>
+)}
             {!data.esMenor && (
               <Box
                 sx={{

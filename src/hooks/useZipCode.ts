@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { getProvinciaFromCP } from "@/constants/index";
 
 async function fetchWithTimeout(
   url: string,
@@ -16,21 +17,24 @@ async function fetchWithTimeout(
 // Caché en memoria para no machacar Zippopotam con el mismo CP
 const cache = new Map<string, { ciudad: string; provincia: string }>();
 
-export const useZipCode = (
-  onUpdate: (key: string, value: string) => void,
-) => {
+export const useZipCode = (onUpdate: (key: string, value: string) => void) => {
   const [isSearching, setIsSearching] = useState(false);
 
   const buscarCP = async (cp: string, paisISO: string = "ES") => {
     if (!cp) return;
     const iso2 = paisISO.substring(0, 2).toUpperCase();
-
-    // En España el CP no mapea a una ciudad en nuestra BBDD
-    // (el endpoint /cities/{code} usa codcity INE, no CP postal).
-    // El usuario rellena ciudad por autocomplete, no por CP.
-    if (iso2 === "ES") return;
-
     const cpClean = cp.trim();
+
+    // LÓGICA PARA ESPAÑA
+    if (iso2 === "ES") {
+      const provinciaLocal = getProvinciaFromCP(cpClean);
+      if (provinciaLocal) {
+        onUpdate("provincia", provinciaLocal);
+      }
+      return;
+    }
+
+    // LÓGICA PARA EL RESTO DEL MUNDO
     const cacheKey = `${iso2}:${cpClean}`;
     const cached = cache.get(cacheKey);
     if (cached) {
