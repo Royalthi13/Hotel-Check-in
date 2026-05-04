@@ -325,7 +325,8 @@
     "instruction_phone": "Por su seguridad, introduzca los últimos 3 dígitos del teléfono asociado a la reserva.",
     "phone_last3_label": "Últimos 3 dígitos del teléfono",
     "button_submit": "Acceder al Check-in",
-    "error_message": "No hemos podido verificar tu reserva. Comprueba el apellido del titular."
+    "error_message": "No hemos podido verificar tu reserva. Comprueba el apellido del titular.",
+    "too_many_attempts": "Demasiados intentos. Por favor, vuelva a intentarlo más tarde."
   },
 
   "rooms": {
