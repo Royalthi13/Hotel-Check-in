@@ -33,7 +33,3 @@ export async function createCompanion(
   await apiAuth.post("/companions", payload);
 }
 
-// DELETE /companions/{id}
-export async function deleteCompanion(id: number): Promise<void> {
-  await apiAuth.delete(`/companions/${id}`);
-}

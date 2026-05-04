@@ -70,7 +70,6 @@ type CheckinAction =
   | { type: "SET_RGPD"; value: boolean }
   | { type: "SET_LEGAL_PASSED"; value: boolean }
   | { type: "SET_HAS_MINORS_FLAG"; value: boolean }
-  | { type: "RESTORE_FULL_STATE"; payload: CheckinState }
   | { type: "SET_COMPANIONS_LOADED"; companions: GuestData[] }
   | { type: "RESET" };
 
