@@ -301,12 +301,18 @@ function CheckinWizard() {
 
 // ── Listener global de expiración de auth ─────────────────────────────────────
 function AuthExpiredWatcher() {
-  const navigate = useNavigate();
   useEffect(() => {
-    const handler = () => navigate("/invalid", { replace: true });
-    window.addEventListener("AUTH_EXPIRED", handler);
-    return () => window.removeEventListener("AUTH_EXPIRED", handler);
-  }, [navigate]);
+    const handler = () => {
+      // Recargamos la misma ruta exacta pero le añadimos el chivatazo a la URL
+      // Al recargar, React leerá el sessionStorage (que ya está vacío)
+      // y mostrará la pantalla de verificación automáticamente.
+      window.location.href = window.location.pathname + "?expired=true";
+    };
+
+    window.addEventListener("SESSION_EXPIRED", handler);
+    return () => window.removeEventListener("SESSION_EXPIRED", handler);
+  }, []);
+
   return null;
 }
 
