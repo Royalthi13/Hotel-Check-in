@@ -1,11 +1,5 @@
 import { useEffect } from "react";
-import {
-  BrowserRouter,
-  Routes,
-  Route,
-  Navigate,
-  useNavigate,
-} from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import "./App.css";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { useCheckinContext } from "@/context/useCheckinContext";
@@ -96,7 +90,6 @@ function InvalidLink() {
 // ── Lógica del Wizard ─────────────────────────────────────────────────────────
 function CheckinWizard() {
   const { t } = useTranslation();
-  const navigate = useNavigate();
   const {
     state,
     nav,
@@ -146,10 +139,8 @@ function CheckinWizard() {
         <div className="card">
           <ScreenVerificarAcceso
             mode={verifyField!}
-            expected={verifyField === "email" ? expectedEmail! : expectedPhone!}
             bookingRef={state.reserva?.confirmacion ?? `#${state.bookingId}`}
             onSuccess={() => setAccessVerified(true)}
-            onTooManyAttempts={() => navigate("/invalid", { replace: true })}
           />
         </div>
       </div>
