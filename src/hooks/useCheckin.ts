@@ -275,8 +275,7 @@ export function checkinReducer(
       return { ...state, horaLlegada: action.value };
     case "SET_OBSERVACIONES":
       return { ...state, observaciones: action.value };
-    case "RESTORE_FULL_STATE":
-      return { ...state, ...action.payload };
+   
     case "RESET":
       return buildEmptyState(state.appMode);
     default:
