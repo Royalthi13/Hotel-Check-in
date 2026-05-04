@@ -693,7 +693,16 @@ const RenderList = (
           })}
         </Typography>
       </div>
-
+            {data.esMenor && (
+  <Box style={{ padding: "0 var(--px)", marginTop: 12 }}>
+    <Alert variant="info">
+      {t(
+        "forms.minor_address_info",
+        "La dirección del menor se ha copiado de su acompañante. Puedes modificarla si es diferente.",
+      )}
+    </Alert>
+  </Box>
+)}
       <form
         onSubmit={(e) => {
   e.preventDefault();

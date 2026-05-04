@@ -14,8 +14,7 @@ import type {
 } from "@/types";
 import { FLOW_STEPS } from "@/constants";
 import { loadCheckinData } from "@/api/checkin.service";
-import { loginMagicLink } from "@/api/auth.service";
-
+import { getCurrentTokenPayload } from "@/api/auth.service";
 // ── Lista de pasos válidos ───────────────────────────────────────────────────
 const VALID_STEPS: ReadonlyArray<StepId> = [
   "tablet_buscar",
@@ -70,7 +69,6 @@ type CheckinAction =
   | { type: "SET_RGPD"; value: boolean }
   | { type: "SET_LEGAL_PASSED"; value: boolean }
   | { type: "SET_HAS_MINORS_FLAG"; value: boolean }
-  | { type: "RESTORE_FULL_STATE"; payload: CheckinState }
   | { type: "SET_COMPANIONS_LOADED"; companions: GuestData[] }
   | { type: "RESET" };
 
@@ -276,8 +274,7 @@ export function checkinReducer(
       return { ...state, horaLlegada: action.value };
     case "SET_OBSERVACIONES":
       return { ...state, observaciones: action.value };
-    case "RESTORE_FULL_STATE":
-      return { ...state, ...action.payload };
+   
     case "RESET":
       return buildEmptyState(state.appMode);
     default:
@@ -402,30 +399,24 @@ export function useCheckin(tokenUrl?: string, stepUrl?: string) {
     (action: CheckinAction) => setState((prev) => checkinReducer(prev, action)),
     [],
   );
-
-  useEffect(() => {
+useEffect(() => {
     if (token === "new") {
       setIsLoading(false);
       return;
     }
     let cancelled = false;
     async function load() {
-      try {
-        const yaAutenticado =
-          sessionStorage.getItem("lumina_access_token") ??
-          localStorage.getItem("lumina_access_token");
-        if (!yaAutenticado) {
-          try {
-            await loginMagicLink(token);
-          } catch {
-            if (cancelled) return;
-            localStorage.removeItem(`h_ckin_data_${token}`);
-            navigateRef.current("/invalid", { replace: true });
-            return;
-          }
-        }
+      // Sin token JWT válido en storage → la pantalla de verificación lo conseguirá.
+      // Aquí solo cargamos cuando ya tenemos token.
+      const payload = getCurrentTokenPayload();
+      console.log("TOKEN EN STORAGE:", payload);
+      if (!payload) {
+        if (!cancelled) setIsLoading(false);
+        return;
+      }
 
-        const result = await loadCheckinData(token);
+      try {
+        const result = await loadCheckinData(payload.booking_id);
         if (cancelled) return;
 
         dispatch({
@@ -458,7 +449,6 @@ export function useCheckin(tokenUrl?: string, stepUrl?: string) {
       cancelled = true;
     };
   }, [token, dispatch]);
-
   useEffect(() => {
     return () => {
       if (navTimerRef.current) clearTimeout(navTimerRef.current);

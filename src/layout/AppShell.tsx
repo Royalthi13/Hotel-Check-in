@@ -41,7 +41,7 @@ function getActiveSideStep(step: StepId): StepId {
   return DOT_FOR[step] ?? step;
 }
 
-//  VALIDA LA PANTALLA DE INICIO
+// VALIDA LA PANTALLA DE INICIO
 function currentStepIsInvalid(
   step: StepId,
   guests: PartialGuestData[],
@@ -184,8 +184,9 @@ export const AppShell: React.FC<AppShellProps> = ({
   }, [trackWidth, targetX, progressX, nav.dotIndex]);
 
   const isStepUnlocked = (stepId: StepId) => {
+    // ✨ FIX 1: "Revisión" solo se desbloquea si hemos superado al menos la pantalla de inicio
     if (stepId === "revision" && !!onGoToRevision && activeStep !== "exito")
-      return true;
+      return maxSequentialSideIdx > 0;
     if (nav.allowedSteps) return nav.allowedSteps.has(stepId);
     return false;
   };
@@ -213,8 +214,9 @@ export const AppShell: React.FC<AppShellProps> = ({
 
     const targetStepId = dotSteps[landedIndex];
     const isAllowed = isStepUnlocked(targetStepId);
-    const isBlockedByError =
-      landedIndex > nav.dotIndex && stepInvalid && targetStepId !== "revision";
+
+    // ✨ FIX 2: Quitamos la excepción de "revision". Si hay error, hay error.
+    const isBlockedByError = landedIndex > nav.dotIndex && stepInvalid;
 
     if (isBlockedByError) window.dispatchEvent(new Event("FORCE_VALIDATE"));
     if (!isAllowed || isBlockedByError || landedIndex === nav.dotIndex) {
@@ -238,8 +240,9 @@ export const AppShell: React.FC<AppShellProps> = ({
 
     const targetStepId = dotSteps[targetIndex];
     const isAllowed = isStepUnlocked(targetStepId);
-    const isBlockedByError =
-      targetIndex > nav.dotIndex && stepInvalid && targetStepId !== "revision";
+
+    // ✨ FIX 2: Quitamos la excepción de "revision".
+    const isBlockedByError = targetIndex > nav.dotIndex && stepInvalid;
 
     if (isBlockedByError) {
       window.dispatchEvent(new Event("FORCE_VALIDATE"));
@@ -417,14 +420,12 @@ export const AppShell: React.FC<AppShellProps> = ({
                     <div
                       key={s.id}
                       onClick={() => {
-                        const isTargetRevision = s.id === "revision";
-
+                        // ✨ FIX 2: Aquí eliminamos la variable isTargetRevision que nos creaba el coladero.
                         if (
                           stepInvalid &&
                           isClickable &&
                           !isActive &&
-                          !isGoingBackward &&
-                          !isTargetRevision
+                          !isGoingBackward
                         ) {
                           window.dispatchEvent(new Event("FORCE_VALIDATE"));
                           return;

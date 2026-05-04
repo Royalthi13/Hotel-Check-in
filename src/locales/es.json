@@ -226,7 +226,6 @@
   },
 
   "forms": {
-    "minor_address_label": "Dirección del menor",
     "minor_address_info": "A efectos de registro, se asociará el mismo domicilio y datos de contacto que los del adulto responsable. No es necesario volver a rellenarlos.",
     "personal_title": "Datos personales",
     "minor_data": "Datos del menor",

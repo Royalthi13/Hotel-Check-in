@@ -21,14 +21,12 @@ export const CheckinProvider: React.FC<{ children: React.ReactNode }> = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isOffline, setIsOffline] = useState(!navigator.onLine);
   const [isPartialSuccess, setIsPartialSuccess] = useState(false);
-
-  const [accessVerified, setAccessVerifiedState] = useState(
-    () => sessionStorage.getItem(`access_verified_${token}`) === "true",
+// Verificación = tener JWT válido. La pantalla de verificación lo consigue;
+  // tras éxito hacemos un reload para que useCheckin recargue datos con el token.
+  const [accessVerified, setAccessVerified] = useState(
+    () => !!sessionStorage.getItem("lumina_access_token") ||
+          !!localStorage.getItem("lumina_access_token"),
   );
-  const setAccessVerified = (v: boolean) => {
-    setAccessVerifiedState(v);
-    sessionStorage.setItem(`access_verified_${token}`, String(v));
-  };
 
   const [legalPassed, setLegalPassed] = useState(
     () => sessionStorage.getItem(`legalPassed_${token}`) === "true",
@@ -117,8 +115,7 @@ export const CheckinProvider: React.FC<{ children: React.ReactNode }> = ({
       const { bookingId, clientId } = getBackendIds();
 
       if (isPartial) {
-        const newClientId = await savePartialCheckin(
-          bookingId,
+     const newClientId = await savePartialCheckin(
           clientId,
           state.guests[0],
         );

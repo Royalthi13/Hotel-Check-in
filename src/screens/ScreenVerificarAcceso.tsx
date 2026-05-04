@@ -17,6 +17,7 @@ export const ScreenVerificarAcceso: React.FC<Props> = ({
   onSuccess,
 }) => {
   const { t } = useTranslation();
+  const [mode, setMode] = useState<"email" | "phone">("email");
   const [val, setVal] = useState("");
   const [err, setErr] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -112,8 +113,8 @@ export const ScreenVerificarAcceso: React.FC<Props> = ({
 
   const label =
     mode === "email" ? t("forms.email") : t("verification.phone_last3_label");
-
-  const placeholder = mode === "email" ? t("forms.email_placeholder") : "•••";
+  const placeholder =
+    mode === "email" ? t("forms.email_placeholder") : "612 345 678";
 
   return (
     <form onSubmit={handleSubmit} className="screen verify-screen">
@@ -155,23 +156,38 @@ export const ScreenVerificarAcceso: React.FC<Props> = ({
           <Field label={label} required>
             <input
               type={mode === "email" ? "email" : "tel"}
-              inputMode={mode === "email" ? "email" : "numeric"}
+              inputMode={mode === "email" ? "email" : "tel"}
               value={val}
               onChange={(e) => {
-                setVal(
-                  mode === "phone"
-                    ? e.target.value.replace(/\D/g, "").slice(0, 3)
-                    : e.target.value,
-                );
+                setVal(e.target.value);
                 setErr("");
               }}
               placeholder={placeholder}
-              maxLength={mode === "phone" ? 3 : undefined}
               autoFocus
               disabled={isLoading || isBlocked}
               className={`verify-input ${mode === "email" ? "verify-input--email" : "verify-input--phone"} ${isBlocked ? "opacity-50" : ""}`}
             />
           </Field>
+
+          <button
+            type="button"
+            onClick={() => switchMode(mode === "email" ? "phone" : "email")}
+            style={{
+              background: "none",
+              border: "none",
+              color: "var(--primary)",
+              fontSize: 13,
+              cursor: "pointer",
+              marginTop: 12,
+              padding: "8px 4px",
+              textDecoration: "underline",
+              fontFamily: "inherit",
+            }}
+          >
+            {mode === "email"
+              ? t("verification.switch_to_phone")
+              : t("verification.switch_to_email")}
+          </button>
         </div>
 
         <div className="spacer verify-spacer" />

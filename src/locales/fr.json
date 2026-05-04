@@ -217,7 +217,6 @@
     "card_manual_sub_known": "Vérifiez les données que nous avons enregistrées et confirmez ou modifiez-les."
   },
   "forms": {
-    "minor_address_label": "Adresse du mineur",
     "minor_address_info": "À des fins d'enregistrement, la même adresse et les mêmes coordonnées que celles de l'adulte responsable seront appliquées. Il n'est pas nécessaire de les remplir à nouveau.",
     "personal_title": "Données personnelles",
     "minor_data": "Données du mineur",

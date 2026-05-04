@@ -113,34 +113,20 @@ function CheckinWizard() {
 
   // Verja anti-enumeración: 1º email, 2º últimas 3 cifras del teléfono.
   // Si no hay ninguno de los dos, no podemos verificar y dejamos pasar.
-  const expectedEmail = state.knownGuest?.email
-    ? String(state.knownGuest.email).trim()
-    : undefined;
-
-  const expectedPhone = state.knownGuest?.telefono
-    ? String(state.knownGuest.telefono).trim()
-    : undefined;
-
-  const verifyField: "email" | "phone" | null = expectedEmail
-    ? "email"
-    : expectedPhone
-      ? "phone"
-      : null;
-
   const needsVerification =
-    !accessVerified &&
-    state.knownGuest &&
-    verifyField !== null &&
-    nav.step !== "tablet_buscar";
-
+    !accessVerified && token !== "new" && nav.step !== "tablet_buscar";
   if (needsVerification && !isLoading) {
     return (
       <div className="shell">
         <div className="card">
           <ScreenVerificarAcceso
-            mode={verifyField!}
+            accessCode={token}
             bookingRef={state.reserva?.confirmacion ?? `#${state.bookingId}`}
-            onSuccess={() => setAccessVerified(true)}
+            onSuccess={() => {
+              setAccessVerified(true);
+              window.location.reload();
+            }}
+            onTooManyAttempts={() => navigate("/invalid", { replace: true })}
           />
         </div>
       </div>

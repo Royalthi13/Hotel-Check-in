@@ -217,7 +217,6 @@
     "card_manual_sub_known": "Controlli i dati che abbiamo salvato e li confermi o modifichi."
   },
   "forms": {
-    "minor_address_label": "Indirizzo del minore",
     "minor_address_info": "Ai fini della registrazione, verranno applicati lo stesso indirizzo e i dettagli di contatto dell'adulto responsabile. Non è necessario compilarli di nuovo.",
     "personal_title": "Dati personali",
     "minor_data": "Dati del minore",

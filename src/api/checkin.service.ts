@@ -1,9 +1,8 @@
-import { getBookingById, updateBookingCheckin } from "./bookings.service";
+import { getBookingById } from "./bookings.service";
 import { getClientById, createClient, updateClient } from "./clients.service";
 import {
   getCompanionsByBooking,
   createCompanion,
-  deleteCompanion,
 } from "./companions.service";
 import type { GuestData, PartialGuestData, Reserva } from "@/types";
 import { getRelationships } from "./catalogs.service";
@@ -25,11 +24,10 @@ export interface CheckinSubmitPayload {
   observaciones: string;
 }
 
-// ── Carga inicial de datos ───────────────────────────────────────────────────
 export async function loadCheckinData(
-  token: string,
+  bookingId: string | number,
 ): Promise<CheckinLoadResult> {
-  const { reserva, clientId, bookingId, raw } = await getBookingById(token);
+  const { reserva, clientId, bookingId: id, raw } = await getBookingById(bookingId);
 
   let knownGuest: GuestData | null = null;
   if (clientId) {
@@ -43,7 +41,7 @@ export async function loadCheckinData(
 
   let companions: GuestData[] = [];
   try {
-    const companionLinks = await getCompanionsByBooking(bookingId);
+   const companionLinks = await getCompanionsByBooking(id);
 
     if (companionLinks.length > 0) {
       const detailsResults = await Promise.allSettled(
@@ -92,17 +90,17 @@ export async function loadCheckinData(
     companions = [];
   }
 
-  return {
+ return {
     reserva,
     knownGuest,
     clientId,
-    bookingId,
+    bookingId: id,
     companions,
     isAlreadyCheckedIn: raw.pre_checking === true,
   };
 }
 
-// ── Envío final del Check-in ─────────────────────────────────────────────────
+
 export async function submitCheckin(
   payload: CheckinSubmitPayload,
 ): Promise<void> {
@@ -124,7 +122,6 @@ export async function submitCheckin(
         if (!adulto.parentescoParaAPI) {
           adulto.parentescoParaAPI = codigoSeleccionado;
         }
-
         const relacionInfo = catalogo.find(
           (r) => r.codrelation === codigoSeleccionado,
         );
@@ -159,66 +156,53 @@ export async function submitCheckin(
 
   const [mainGuest, ...companionGuests] = finalGuests;
 
-  // 3. Titular
+  // 3. Construir observaciones del titular (hora de llegada + texto libre)
+  let obsFinales = observaciones?.trim() || null;
+  if (
+    horaLlegada &&
+    horaLlegada !== "No especificada" &&
+    !horaLlegada.startsWith("No ")
+  ) {
+    const sufijo = `Hora llegada: ${horaLlegada}`;
+    obsFinales = obsFinales ? `${obsFinales}\n${sufijo}` : sufijo;
+  }
+
+  // 4. Titular
   let mainClientId = clientId;
   if (mainGuest) {
+    const guestWithObs: PartialGuestData = {
+      ...mainGuest,
+      observations: obsFinales ?? undefined,
+    };
     if (mainClientId) {
-      await updateClient(mainClientId, mainGuest);
+      await updateClient(mainClientId, guestWithObs);
     } else {
-      mainClientId = await createClient(mainGuest);
+      mainClientId = await createClient(guestWithObs);
     }
   }
 
-  // 4. Acompañantes
-  const newClientIds: number[] = [];
-  const parentescosMap = new Map<number, string>();
-
+  // 5. Acompañantes: actualizar existentes o crear nuevos con vínculo
   for (const guest of companionGuests) {
     if (!guest.nombre?.trim() && !guest.numDoc?.trim()) continue;
 
-    let id = guest.id;
-    if (id) {
-      await updateClient(id, guest);
+    if (guest.id) {
+      // El vínculo companion ya existe — solo actualizamos los datos del cliente
+      await updateClient(guest.id, guest);
     } else {
-      id = await createClient(guest);
-    }
-
-    newClientIds.push(id);
-    if (guest.parentescoParaAPI) {
-      parentescosMap.set(id, guest.parentescoParaAPI);
-    }
-  }
-
-  // 5. Limpieza antiguos
-  try {
-    const existing = await getCompanionsByBooking(bookingId);
-    const toDelete = existing.filter((c) => c.client_id !== mainClientId);
-    await Promise.all(toDelete.map((c) => deleteCompanion(c.id)));
-  } catch (e) {
-    console.warn("Error limpiando antiguos:", e);
-  }
-
-  // 6. Vincular nuevos
-  await Promise.all(
-    newClientIds.map((id) =>
-      createCompanion({
+      // Acompañante nuevo: crear cliente y vincular a la reserva
+      const newId = await createClient(guest);
+      await createCompanion({
         booking_id: bookingId,
-        client_id: id,
-        parentesco: parentescosMap.get(id) || null,
-      }),
-    ),
-  );
-
-  // 7. Finalizar
-  await updateBookingCheckin(bookingId, {
-    horaLlegada,
-    observaciones,
-    clientId: mainClientId,
-  });
+        client_id: newId,
+        parentesco:
+          (guest as GuestForAPI).parentescoParaAPI ??
+          guest.relacionesConAdultos?.[0]?.parentesco ??
+          null,
+      });
+    }
+  }
 }
-
 export async function savePartialCheckin(
-  bookingId: number,
   clientId: number | null,
   mainGuest: PartialGuestData,
 ): Promise<number> {
@@ -226,7 +210,5 @@ export async function savePartialCheckin(
     await updateClient(clientId, mainGuest);
     return clientId;
   }
-  const newId = await createClient(mainGuest);
-  await updateBookingCheckin(bookingId, { clientId: newId });
-  return newId;
+  return await createClient(mainGuest);
 }

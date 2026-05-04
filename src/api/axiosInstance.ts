@@ -25,7 +25,6 @@ apiAuth.interceptors.request.use((config: InternalAxiosRequestConfig) => {
   }
   return config;
 });
-
 const onResponseError = (error: AxiosError) => {
   if (error.response) {
     const data = error.response.data as Record<string, unknown> | undefined;
@@ -61,8 +60,13 @@ apiAuth.interceptors.response.use(
 
 // ── Token helpers ─────────────────────────────────────────────────────────────
 
-export const saveToken = (token: string, persistent = false): void => {
-  const expiry = String(Date.now() + TOKEN_TTL);
+export const saveToken = (
+  token: string,
+  persistent = false,
+  ttlSeconds?: number,
+): void => {
+  const ttlMs = ttlSeconds ? ttlSeconds * 1000 : DEFAULT_TTL;
+  const expiry = String(Date.now() + ttlMs);
   if (persistent) {
     localStorage.setItem(TOKEN_KEY, token);
     localStorage.setItem(EXPIRY_KEY, expiry);

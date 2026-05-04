@@ -217,7 +217,6 @@
     "card_manual_sub_known": "Überprüfen Sie die von uns gespeicherten Daten und bestätigen oder ändern Sie sie."
   },
   "forms": {
-    "minor_address_label": "Adresse des Minderjährigen",
     "minor_address_info": "Für die Registrierung werden dieselbe Adresse und dieselben Kontaktdaten wie die des verantwortlichen Erwachsenen übernommen. Es ist nicht erforderlich, diese erneut einzugeben.",
     "personal_title": "Persönliche Daten",
     "minor_data": "Daten des Minderjährigen",
