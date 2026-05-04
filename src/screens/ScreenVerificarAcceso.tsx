@@ -25,11 +25,18 @@ export const ScreenVerificarAcceso: React.FC<Props> = ({
   const { t } = useTranslation();
   const [val, setVal] = useState("");
   const [err, setErr] = useState("");
-  const [attempts, setAttempts] = useState(0);
+
+  const sessionKey = `verify_attempts_${bookingRef}`;
+
+  const [attempts, setAttempts] = useState(() => {
+    const stored = sessionStorage.getItem(sessionKey);
+    return stored ? parseInt(stored, 10) : 0;
+  });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     let ok = false;
+
     if (mode === "email") {
       ok = !!val.trim() && norm(val) === norm(expected);
     } else {
@@ -37,16 +44,22 @@ export const ScreenVerificarAcceso: React.FC<Props> = ({
       const last3Introducido = onlyDigits(val).slice(-3);
       ok = last3Esperado.length === 3 && last3Introducido === last3Esperado;
     }
+
     if (ok) {
+      sessionStorage.removeItem(sessionKey);
       onSuccess();
       return;
     }
+
     const next = attempts + 1;
     setAttempts(next);
+    sessionStorage.setItem(sessionKey, next.toString());
+
     if (next >= 3) {
       onTooManyAttempts();
       return;
     }
+
     setErr(t("verification.error_message"));
   };
 
