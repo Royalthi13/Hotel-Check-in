@@ -4,7 +4,7 @@ import type { AxiosError, InternalAxiosRequestConfig } from "axios";
 const TOKEN_KEY  = "lumina_access_token";
 const EXPIRY_KEY = "lumina_token_expiry";
 // 300 min = mismo valor que ACCESS_TOKEN_EXPIRE_MINUTES del backend
-const TOKEN_TTL  = 300 * 60 * 1000;
+const DEFAULT_TTL = 30 * 60 * 1000; 
 
 const BASE_URL = import.meta.env.VITE_API_URL
   ? `${import.meta.env.VITE_API_URL}`
@@ -24,12 +24,13 @@ apiAuth.interceptors.request.use((config: InternalAxiosRequestConfig) => {
   }
   return config;
 });
-
 const onResponseError = (error: AxiosError) => {
   if (error.response) {
     const data   = error.response.data as Record<string, unknown> | undefined;
     const detail = data?.detail ?? data?.message ?? `Error ${error.response.status}`;
-    return Promise.reject(new Error(String(detail)));
+    const err = new Error(String(detail)) as Error & { status?: number };
+    err.status = error.response.status;
+    return Promise.reject(err);
   }
   if (error.request) {
     return Promise.reject(
@@ -57,8 +58,13 @@ apiAuth.interceptors.response.use(
 );
 // ── Token helpers ─────────────────────────────────────────────────────────────
 
-export const saveToken = (token: string, persistent = false): void => {
-  const expiry = String(Date.now() + TOKEN_TTL);
+export const saveToken = (
+  token: string,
+  persistent = false,
+  ttlSeconds?: number,
+): void => {
+  const ttlMs = ttlSeconds ? ttlSeconds * 1000 : DEFAULT_TTL;
+  const expiry = String(Date.now() + ttlMs);
   if (persistent) {
     localStorage.setItem(TOKEN_KEY,  token);
     localStorage.setItem(EXPIRY_KEY, expiry);

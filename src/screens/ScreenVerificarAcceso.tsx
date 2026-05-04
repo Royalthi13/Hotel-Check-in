@@ -2,71 +2,65 @@ import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Field, Button, Alert, Icon } from "@/components/ui";
 import { LanguageSelector } from "../components/LanguageSelector";
+import { requestPreCheckinToken } from "@/api/auth.service";
 import "./ScreenVerificarAcceso.css";
 
 interface Props {
-  mode: "email" | "phone";
-  expected: string;
+  accessCode: string;
   bookingRef: string;
   onSuccess: () => void;
   onTooManyAttempts: () => void;
 }
 
-const norm = (s: string) => s.toLowerCase().trim();
-const onlyDigits = (s: string) => s.replace(/\D/g, "");
-
 export const ScreenVerificarAcceso: React.FC<Props> = ({
-  mode,
-  expected,
+  accessCode,
   bookingRef,
   onSuccess,
   onTooManyAttempts,
 }) => {
   const { t } = useTranslation();
+  const [mode, setMode] = useState<"email" | "phone">("email");
   const [val, setVal] = useState("");
   const [err, setErr] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  const sessionKey = `verify_attempts_${bookingRef}`;
-
-  const [attempts, setAttempts] = useState(() => {
-    const stored = sessionStorage.getItem(sessionKey);
-    return stored ? parseInt(stored, 10) : 0;
-  });
-
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    let ok = false;
+    if (!val.trim() || loading) return;
 
-    if (mode === "email") {
-      ok = !!val.trim() && norm(val) === norm(expected);
-    } else {
-      const last3Esperado = onlyDigits(expected).slice(-3);
-      const last3Introducido = onlyDigits(val).slice(-3);
-      ok = last3Esperado.length === 3 && last3Introducido === last3Esperado;
-    }
+    setLoading(true);
+    setErr("");
 
-    if (ok) {
-      sessionStorage.removeItem(sessionKey);
+    try {
+      const trimmed = val.trim();
+      await requestPreCheckinToken(
+        accessCode,
+        mode === "email" ? trimmed : undefined,
+        mode === "phone" ? trimmed : undefined,
+      );
       onSuccess();
-      return;
+    } catch (e: unknown) {
+      const error = e as Error & { status?: number };
+      if (error.status === 429) {
+        onTooManyAttempts();
+        return;
+      }
+      setErr(t("verification.error_message"));
+    } finally {
+      setLoading(false);
     }
+  };
 
-    const next = attempts + 1;
-    setAttempts(next);
-    sessionStorage.setItem(sessionKey, next.toString());
-
-    if (next >= 3) {
-      onTooManyAttempts();
-      return;
-    }
-
-    setErr(t("verification.error_message"));
+  const switchMode = (next: "email" | "phone") => {
+    setMode(next);
+    setVal("");
+    setErr("");
   };
 
   const label =
     mode === "email" ? t("forms.email") : t("verification.phone_last3_label");
-
-  const placeholder = mode === "email" ? t("forms.email_placeholder") : "•••";
+  const placeholder =
+    mode === "email" ? t("forms.email_placeholder") : "612 345 678";
 
   return (
     <form onSubmit={handleSubmit} className="screen verify-screen">
@@ -102,22 +96,39 @@ export const ScreenVerificarAcceso: React.FC<Props> = ({
           <Field label={label} required>
             <input
               type={mode === "email" ? "email" : "tel"}
-              inputMode={mode === "email" ? "email" : "numeric"}
+              inputMode={mode === "email" ? "email" : "tel"}
               value={val}
               onChange={(e) => {
-                setVal(
-                  mode === "phone"
-                    ? e.target.value.replace(/\D/g, "").slice(0, 3)
-                    : e.target.value,
-                );
+                setVal(e.target.value);
                 setErr("");
               }}
               placeholder={placeholder}
-              maxLength={mode === "phone" ? 3 : undefined}
               autoFocus
-              className={`verify-input ${mode === "email" ? "verify-input--email" : "verify-input--phone"}`}
+              className={`verify-input ${
+                mode === "email" ? "verify-input--email" : "verify-input--phone"
+              }`}
             />
           </Field>
+
+          <button
+            type="button"
+            onClick={() => switchMode(mode === "email" ? "phone" : "email")}
+            style={{
+              background: "none",
+              border: "none",
+              color: "var(--primary)",
+              fontSize: 13,
+              cursor: "pointer",
+              marginTop: 12,
+              padding: "8px 4px",
+              textDecoration: "underline",
+              fontFamily: "inherit",
+            }}
+          >
+            {mode === "email"
+              ? t("verification.switch_to_phone")
+              : t("verification.switch_to_email")}
+          </button>
         </div>
 
         <div className="spacer verify-spacer" />
@@ -127,11 +138,11 @@ export const ScreenVerificarAcceso: React.FC<Props> = ({
             variant="primary"
             type="submit"
             iconRight="right"
-            disabled={!val.trim()}
+            disabled={!val.trim() || loading}
             style={{ height: "56px", fontSize: "16px", fontWeight: "600" }}
             className={val.trim() ? "verify-btn-active" : ""}
           >
-            {t("verification.button_submit")}
+            {loading ? t("common.loading") : t("verification.button_submit")}
           </Button>
         </div>
       </div>

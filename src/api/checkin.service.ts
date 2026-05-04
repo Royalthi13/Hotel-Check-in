@@ -24,11 +24,10 @@ export interface CheckinSubmitPayload {
   observaciones: string;
 }
 
-// ── Carga inicial de datos ───────────────────────────────────────────────────
 export async function loadCheckinData(
-  token: string,
+  bookingId: string | number,
 ): Promise<CheckinLoadResult> {
-  const { reserva, clientId, bookingId, raw } = await getBookingById(token);
+  const { reserva, clientId, bookingId: id, raw } = await getBookingById(bookingId);
 
   let knownGuest: GuestData | null = null;
   if (clientId) {
@@ -42,7 +41,7 @@ export async function loadCheckinData(
 
   let companions: GuestData[] = [];
   try {
-    const companionLinks = await getCompanionsByBooking(bookingId);
+   const companionLinks = await getCompanionsByBooking(id);
 
     if (companionLinks.length > 0) {
       const detailsResults = await Promise.allSettled(
@@ -91,11 +90,11 @@ export async function loadCheckinData(
     companions = [];
   }
 
-  return {
+ return {
     reserva,
     knownGuest,
     clientId,
-    bookingId,
+    bookingId: id,
     companions,
     isAlreadyCheckedIn: raw.pre_checking === true,
   };
