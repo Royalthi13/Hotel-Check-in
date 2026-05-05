@@ -311,7 +311,9 @@
     "instruction_phone": "Geben Sie zu Ihrer Sicherheit die letzten 3 Ziffern der mit der Buchung verbundenen Telefonnummer ein.",
     "phone_last3_label": "Letzte 3 Ziffern der Telefonnummer",
     "button_submit": "Zum Check-in",
-    "error_message": "Wir konnten Ihre Buchung nicht überprüfen. Überprüfen Sie den Nachnamen des Hauptgastes."
+    "error_message": "Wir konnten Ihre Buchung nicht überprüfen. Überprüfen Sie den Nachnamen des Hauptgastes.",
+    "switch_to_phone": "Stattdessen Telefon verwenden",
+    "switch_to_email": "Stattdessen E-Mail verwenden"
   },
   "rooms": {
     "individual": "Einzelzimmer",

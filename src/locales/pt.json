@@ -311,7 +311,9 @@
     "instruction_phone": "Para a sua segurança, insira os últimos 3 dígitos do telefone associado à reserva.",
     "phone_last3_label": "Últimos 3 dígitos do telefone",
     "button_submit": "Acessar o Check-in",
-    "error_message": "Não foi possível verificar a sua reserva. Verifique o sobrenome do titular."
+    "error_message": "Não foi possível verificar a sua reserva. Verifique o sobrenome do titular.",
+    "switch_to_phone": "Usar telefone em vez disso",
+    "switch_to_email": "Usar email em vez disso"
   },
   "rooms": {
     "individual": "Quarto Individual",

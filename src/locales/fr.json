@@ -311,7 +311,9 @@
     "instruction_phone": "Pour votre sécurité, saisissez les 3 derniers chiffres du téléphone associé à la réservation.",
     "phone_last3_label": "Les 3 derniers chiffres du téléphone",
     "button_submit": "Accéder au Check-in",
-    "error_message": "Nous n'avons pas pu vérifier votre réservation. Vérifiez le nom de famille du titulaire."
+    "error_message": "Nous n'avons pas pu vérifier votre réservation. Vérifiez le nom de famille du titulaire.",
+    "switch_to_phone": "Utiliser le téléphone à la place",
+    "switch_to_email": "Utiliser l'email à la place"
   },
   "rooms": {
     "individual": "Chambre Simple",
