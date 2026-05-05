@@ -1,5 +1,11 @@
 import { useEffect } from "react";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import {
+  BrowserRouter,
+  Routes,
+  Route,
+  Navigate,
+  useNavigate,
+} from "react-router-dom";
 import "./App.css";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { useCheckinContext } from "@/context/useCheckinContext";
@@ -89,6 +95,7 @@ function InvalidLink() {
 // ── Lógica del Wizard ─────────────────────────────────────────────────────────
 function CheckinWizard() {
   const { t } = useTranslation();
+
   const {
     state,
     nav,
@@ -123,7 +130,6 @@ function CheckinWizard() {
               setAccessVerified(true);
               window.location.reload();
             }}
-            onTooManyAttempts={() => navigate("/invalid", { replace: true })}
           />
         </div>
       </div>
@@ -261,16 +267,14 @@ function CheckinWizard() {
 
 // ── Listener global de expiración de auth ─────────────────────────────────────
 function AuthExpiredWatcher() {
+  const navigate = useNavigate();
+
   useEffect(() => {
     const handler = () => {
-      // Si el path tiene /checkin/:token (no "new"), volvemos al mismo
-      // checkin para que ScreenVerificarAcceso pida token nuevo.
-      // Si es "new" (tablet), sí vamos a /invalid.
       const path = window.location.pathname;
       const isPreCheckinLink =
         path.startsWith("/checkin/") && !path.includes("/new");
       if (isPreCheckinLink) {
-        // Redirigir al mismo checkin sin step → ScreenVerificarAcceso reaparecerá
         const parts = path.split("/");
         navigate(`/checkin/${parts[2]}`, { replace: true });
       } else {
@@ -282,6 +286,7 @@ function AuthExpiredWatcher() {
   }, [navigate]);
   return null;
 }
+
 // ── Rutas de la Aplicación ───────────────────────────────────────────────────
 export default function App() {
   return (

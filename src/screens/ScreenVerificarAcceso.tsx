@@ -6,23 +6,21 @@ import { requestPreCheckinToken } from "@/api/axiosInstance";
 import "./ScreenVerificarAcceso.css";
 
 interface Props {
-  // Cambiamos el nombre de la prop a initialMode para que quede claro
-  // que es solo el valor de inicio.
   initialMode?: "email" | "phone";
   bookingRef: string;
+  accessCode: string;
   onSuccess: () => void;
 }
 
 export const ScreenVerificarAcceso: React.FC<Props> = ({
-  initialMode = "email", // Valor por defecto
+  initialMode = "email",
   bookingRef,
+  accessCode,
   onSuccess,
 }) => {
   const { t } = useTranslation();
 
-  // ✅ AQUÍ CREAMOS EL ESTADO PARA CONTROLAR EL MODO INTERNAMENTE
   const [verifyMode, setVerifyMode] = useState<"email" | "phone">(initialMode);
-
   const [val, setVal] = useState("");
   const [err, setErr] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -81,17 +79,22 @@ export const ScreenVerificarAcceso: React.FC<Props> = ({
 
     try {
       const payload = {
-        access_code: bookingRef,
-        ...(verifyMode === "email" // Usamos verifyMode
+        access_code:
+          accessCode && accessCode !== "new" ? accessCode : bookingRef,
+        ...(verifyMode === "email"
           ? { email: val.trim() }
           : { phone: val.replace(/\D/g, "") }),
       };
 
+      // 🔥 IMPORTANTE: NO guardes el token aquí
+      // Axios ya lo guarda en saveToken()
       await requestPreCheckinToken(payload);
 
       sessionStorage.removeItem(sessionKey);
       sessionStorage.removeItem(blockKey);
+
       window.history.replaceState({}, document.title, window.location.pathname);
+
       onSuccess();
     } catch (error: any) {
       const status = error.response?.status;
@@ -120,13 +123,13 @@ export const ScreenVerificarAcceso: React.FC<Props> = ({
     verifyMode === "email"
       ? t("forms.email")
       : t("verification.phone_last3_label");
+
   const placeholder =
     verifyMode === "email" ? t("forms.email_placeholder") : "612 345 678";
 
-  // ✅ FUNCIÓN PARA CAMBIAR EL MODO CUANDO SE PULSA EL BOTÓN
   const toggleMode = () => {
     setVerifyMode((prev) => (prev === "email" ? "phone" : "email"));
-    setVal(""); // Limpiamos el input al cambiar
+    setVal("");
     setErr("");
   };
 
@@ -174,13 +177,17 @@ export const ScreenVerificarAcceso: React.FC<Props> = ({
               placeholder={placeholder}
               autoFocus
               disabled={isLoading || isBlocked}
-              className={`verify-input ${verifyMode === "email" ? "verify-input--email" : "verify-input--phone"} ${isBlocked ? "opacity-50" : ""}`}
+              className={`verify-input ${
+                verifyMode === "email"
+                  ? "verify-input--email"
+                  : "verify-input--phone"
+              } ${isBlocked ? "opacity-50" : ""}`}
             />
           </Field>
 
           <button
             type="button"
-            onClick={toggleMode} // ✅ CONECTAMOS LA FUNCIÓN AQUÍ
+            onClick={toggleMode}
             style={{
               background: "none",
               border: "none",

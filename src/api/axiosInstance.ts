@@ -66,7 +66,7 @@ export const saveToken = (
   ttlSeconds?: number,
   accessCode?: string,
 ): void => {
-  const ttlMs = ttlSeconds ? ttlSeconds * 1000 : DEFAULT_TTL;
+  const ttlMs = ttlSeconds ? ttlSeconds * 1000 : TOKEN_TTL;
   const expiry = String(Date.now() + ttlMs);
   if (persistent) {
     localStorage.setItem(TOKEN_KEY, token);
@@ -115,8 +115,10 @@ export const requestPreCheckinToken = async (
   payload: RequestTokenPayload,
 ): Promise<void> => {
   const { data } = await api.post("/pre-checkin/request-token", payload);
-  // Guardamos el token temporal que nos devuelve (que dura 30 mins)
-  if (data.token) {
-    saveToken(data.token, false);
+
+  const token = data.token || data.access_token;
+
+  if (token) {
+    saveToken(token, false);
   }
 };
