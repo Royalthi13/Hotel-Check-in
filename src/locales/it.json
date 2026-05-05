@@ -305,6 +305,8 @@
     "email_confirmation": "Riceverà una conferma via email"
   },
   "verification": {
+    "switch_to_phone": "Passa al telefono",
+    "switch_to_email": "Passa all'email",
     "title": "Accesso Sicuro",
     "booking_label": "Prenotazione",
     "instruction_email": "Per la sua sicurezza, inserisca l'email con cui ha effettuato la prenotazione per verificare la sua identità.",

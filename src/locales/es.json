@@ -318,6 +318,8 @@
   },
 
   "verification": {
+    "switch_to_phone": "Cambiar a teléfono",
+    "switch_to_email": "Cambiar a email",
     "title": "Acceso Seguro",
     "booking_label": "Reserva",
     "instruction_email": "Por su seguridad, introduzca el email con el que realizó la reserva para verificar su identidad.",

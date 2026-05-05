@@ -305,6 +305,8 @@
     "email_confirmation": "You will receive a confirmation in your email"
   },
   "verification": {
+    "switch_to_phone": "Switch to phone",
+    "switch_to_email": "Switch to email",
     "title": "Secure Access",
     "booking_label": "Booking",
     "instruction_email": "For your security, enter the email used to make the booking to verify your identity.",

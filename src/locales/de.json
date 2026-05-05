@@ -305,6 +305,8 @@
     "email_confirmation": "Sie erhalten eine Bestätigung per E-Mail"
   },
   "verification": {
+    "switch_to_phone": "Zum Telefon wechseln",
+    "switch_to_email": "Zur E-Mail wechseln",
     "title": "Sicherer Zugang",
     "booking_label": "Buchung",
     "instruction_email": "Geben Sie zu Ihrer Sicherheit die E-Mail-Adresse ein, mit der Sie die Buchung vorgenommen haben, um Ihre Identität zu überprüfen.",
