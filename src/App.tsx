@@ -7,7 +7,6 @@ import { AppShell } from "@/layout/AppShell";
 import { LoadingSpinner, Alert, Icon } from "@/components/ui";
 import { useTranslation } from "react-i18next";
 import { CheckinProvider } from "@/context/CheckinContext";
-import { ScreenTabletBuscar } from "@/screens/ScreenTabletBuscar";
 import { ScreenBienvenida } from "@/screens/ScreenBienvenida";
 import { ScreenCheckinInicio } from "@/screens/ScreenCheckinInicio";
 import { ScreenEscanear } from "@/screens/ScreenEscanear";
@@ -21,7 +20,7 @@ import {
 
 import type { StepId, Reserva } from "@/types";
 import { ScreenVerificarAcceso } from "@/screens/ScreenVerificarAcceso";
-const STEPS_WITHOUT_DOTS = new Set<StepId>(["tablet_buscar", "exito"]);
+const STEPS_WITHOUT_DOTS = new Set<StepId>(["exito"]);
 
 // ── Página de enlace inválido / caducado ──────────────────────────────────────
 function InvalidLink() {
@@ -108,13 +107,11 @@ function CheckinWizard() {
     setAccessVerified,
   } = useCheckinContext();
 
-  const isActuallyLoading =
-    isLoading && token !== "new" && nav.step !== "tablet_buscar";
+  const isActuallyLoading = isLoading && token !== "new";
 
   // Verja anti-enumeración: 1º email, 2º últimas 3 cifras del teléfono.
   // Si no hay ninguno de los dos, no podemos verificar y dejamos pasar.
-  const needsVerification =
-    !accessVerified && token !== "new" && nav.step !== "tablet_buscar";
+  const needsVerification = !accessVerified && token !== "new";
   if (needsVerification && !isLoading) {
     return (
       <div className="shell">
@@ -148,20 +145,6 @@ function CheckinWizard() {
   const adultosConIndice = state.guests
     .map((g, i) => ({ ...g, originalIndex: i }))
     .filter((g) => !g.esMenor);
-
-  if (currentStep === "tablet_buscar") {
-    return (
-      <div className="shell">
-        <div className="card">
-          <ScreenTabletBuscar
-            onFound={(res, bookingId, clientId) =>
-              actions.setReservaFromTablet(res, bookingId, clientId)
-            }
-          />
-        </div>
-      </div>
-    );
-  }
 
   return (
     <AppShell
@@ -305,17 +288,6 @@ export default function App() {
       <AuthExpiredWatcher />
       <Routes>
         <Route path="/" element={<Navigate to="/checkin/new" replace />} />
-
-        <Route
-          path="/checkin/kiosko/tablet_buscar"
-          element={
-            <ErrorBoundary>
-              <CheckinProvider>
-                <CheckinWizard />
-              </CheckinProvider>
-            </ErrorBoundary>
-          }
-        />
 
         <Route
           path="/checkin/:token"
