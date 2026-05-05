@@ -115,32 +115,47 @@ export const CheckinProvider: React.FC<{ children: React.ReactNode }> = ({
     try {
       const { bookingId, clientId } = getBackendIds();
 
-      if (isPartial) {
-        // 1. CAMBIO: Usar nav.guestIndex en lugar de 0
-        // Así guardamos al huésped que acabamos de completar, sea el 1, el 2 o el que toque.
-        const newClientId = await savePartialCheckin(
-          clientId,
-          state.guests[nav.guestIndex],
-        );
+      // Función para sanear los datos antes de enviarlos a la API
+      const sanitizeGuestData = (guest: any) => {
+        if (!guest || !guest.telefono) return guest;
 
-        // 2. CAMBIO: Sincronizar el ID del huésped específico
+        const prefijoActual = guest.prefijo || "+34";
+        let telefonoLimpio = guest.telefono.trim();
+
+        // Si el teléfono ya trae el prefijo pegado (ej. por venir del backend), se lo extirpamos
+        if (telefonoLimpio.startsWith(prefijoActual)) {
+          telefonoLimpio = telefonoLimpio
+            .substring(prefijoActual.length)
+            .trim();
+        }
+
+        return {
+          ...guest,
+          telefono: `${prefijoActual} ${telefonoLimpio}`,
+        };
+      };
+
+      if (isPartial) {
+        // Limpiamos solo el huésped actual antes de guardarlo
+        const sanitizedGuest = sanitizeGuestData(state.guests[nav.guestIndex]);
+
+        const newClientId = await savePartialCheckin(clientId, sanitizedGuest);
+
         if (!state.guests[nav.guestIndex]?.id) {
           actions.updateGuest(nav.guestIndex, "id", newClientId);
         }
 
         setIsPartialSuccess(true);
-
-        // 🚩 3. CAMBIO CRÍTICO: ¡BORRA LA LÍNEA actions.goTo("exito", "forward")!
-        // Si dejas esa línea, el usuario se va a la pantalla de éxito en cuanto
-        // termina el primer huésped y no puede seguir con los demás.
         return;
       }
 
-      // --- El resto del código para el envío FINAL (isPartial = false) se queda igual ---
+      // Limpiamos todos los huéspedes para el guardado final
+      const sanitizedGuests = state.guests.map(sanitizeGuestData);
+
       await submitCheckin({
         bookingId,
         clientId,
-        guests: state.guests,
+        guests: sanitizedGuests,
         horaLlegada: state.horaLlegada,
         observaciones: state.observaciones,
       });
@@ -152,8 +167,6 @@ export const CheckinProvider: React.FC<{ children: React.ReactNode }> = ({
 
       actions.goTo("exito", "forward");
     } catch (err: unknown) {
-      // Si falla y no es un error que hayamos tirado nosotros con un mensaje,
-      // usará el title del ErrorBoundary como fallback.
       let msg = t("errorBoundary.title");
       if (err instanceof Error) msg = err.message;
       else if (typeof err === "string") msg = err;
