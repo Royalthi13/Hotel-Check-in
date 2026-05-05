@@ -117,11 +117,13 @@ function CheckinWizard() {
       <div className="shell">
         <div className="card">
           <ScreenVerificarAcceso
-            initialMode="email"
-            bookingRef={token}
+            accessCode={token}
+            bookingRef={state.reserva?.confirmacion ?? `#${state.bookingId}`}
             onSuccess={() => {
               setAccessVerified(true);
+              window.location.reload();
             }}
+            onTooManyAttempts={() => navigate("/invalid", { replace: true })}
           />
         </div>
       </div>
@@ -261,26 +263,25 @@ function CheckinWizard() {
 function AuthExpiredWatcher() {
   useEffect(() => {
     const handler = () => {
-      // 1. Extraemos el token de la URL (ej: /checkin/12345/form_personal -> "12345")
-      const pathParts = window.location.pathname.split("/");
-      const token = pathParts[2] || "new";
-
-      // 2. Le quitamos la pulsera VIP (borramos que está verificado)
-      sessionStorage.removeItem(`access_verified_${token}`);
-
-      // 3. Recargamos la página con el chivatazo.
-      // Como no tiene la pulsera VIP, verá la pantalla de verificación.
-      // Como han pasado menos de 1h, useCheckin recuperará sus datos del formulario.
-      window.location.href = window.location.pathname + "?expired=true";
+      // Si el path tiene /checkin/:token (no "new"), volvemos al mismo
+      // checkin para que ScreenVerificarAcceso pida token nuevo.
+      // Si es "new" (tablet), sí vamos a /invalid.
+      const path = window.location.pathname;
+      const isPreCheckinLink =
+        path.startsWith("/checkin/") && !path.includes("/new");
+      if (isPreCheckinLink) {
+        // Redirigir al mismo checkin sin step → ScreenVerificarAcceso reaparecerá
+        const parts = path.split("/");
+        navigate(`/checkin/${parts[2]}`, { replace: true });
+      } else {
+        navigate("/invalid", { replace: true });
+      }
     };
-
-    window.addEventListener("SESSION_EXPIRED", handler);
-    return () => window.removeEventListener("SESSION_EXPIRED", handler);
-  }, []);
-
+    window.addEventListener("AUTH_EXPIRED", handler);
+    return () => window.removeEventListener("AUTH_EXPIRED", handler);
+  }, [navigate]);
   return null;
 }
-
 // ── Rutas de la Aplicación ───────────────────────────────────────────────────
 export default function App() {
   return (

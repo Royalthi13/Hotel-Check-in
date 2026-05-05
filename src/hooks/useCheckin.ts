@@ -413,7 +413,7 @@ export function useCheckin(tokenUrl?: string, stepUrl?: string) {
       // Sin token JWT válido en storage → la pantalla de verificación lo conseguirá.
       // Aquí solo cargamos cuando ya tenemos token.
       const payload = getCurrentTokenPayload();
-      console.log("TOKEN EN STORAGE:", payload);
+      
       if (!payload) {
         if (!cancelled) setIsLoading(false);
         return;

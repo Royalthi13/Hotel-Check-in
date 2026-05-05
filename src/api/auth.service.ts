@@ -1,7 +1,7 @@
 import { api, saveToken, clearToken, getToken } from "./axiosInstance";
 
 export interface PreCheckinJwtPayload {
-  sub: number;
+  sub: string;
   client_id: number;
   booking_id: number;
   ip: string;
@@ -21,10 +21,10 @@ export function parseTokenPayload(token: string): PreCheckinJwtPayload | null {
 }
 export function getCurrentTokenPayload(): PreCheckinJwtPayload | null {
   const t = getToken();
-  console.log("getToken devuelve:", t);
+
   if (!t) return null;
   const payload = parseTokenPayload(t);
-    console.log("payload parseado:", payload);
+
   // Si el token no tiene los claims esperados (token viejo o corrupto), lo descartamos
   if (
     !payload ||
@@ -46,10 +46,8 @@ export async function requestPreCheckinToken(
   const body: Record<string, string> = { access_code: accessCode };
   if (email?.trim()) body.email = email.trim();
   if (phone?.trim()) body.phone = phone.trim();
-
   const { data } = await api.post("/pre-checkin/request-token", body);
-  saveToken(data.access_token, false, data.expires_in);
-
+  saveToken(data.access_token, false, data.expires_in, accessCode);
   const payload = parseTokenPayload(data.access_token);
   if (!payload) throw new Error("Token inválido");
   return payload;
