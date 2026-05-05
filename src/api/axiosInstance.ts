@@ -1,8 +1,9 @@
 import axios from "axios";
 import type { AxiosError, InternalAxiosRequestConfig } from "axios";
 
-const TOKEN_KEY  = "lumina_access_token";
-const EXPIRY_KEY = "lumina_token_expiry";
+const TOKEN_KEY       = "lumina_access_token";
+const EXPIRY_KEY      = "lumina_token_expiry";
+const ACCESS_CODE_KEY = "lumina_access_code";
 // 300 min = mismo valor que ACCESS_TOKEN_EXPIRE_MINUTES del backend
 const DEFAULT_TTL = 30 * 60 * 1000; 
 
@@ -57,29 +58,35 @@ apiAuth.interceptors.response.use(
   },
 );
 // ── Token helpers ─────────────────────────────────────────────────────────────
-
 export const saveToken = (
   token: string,
   persistent = false,
   ttlSeconds?: number,
+  accessCode?: string,
 ): void => {
   const ttlMs = ttlSeconds ? ttlSeconds * 1000 : DEFAULT_TTL;
   const expiry = String(Date.now() + ttlMs);
   if (persistent) {
     localStorage.setItem(TOKEN_KEY,  token);
     localStorage.setItem(EXPIRY_KEY, expiry);
+    if (accessCode) localStorage.setItem(ACCESS_CODE_KEY, accessCode);
   } else {
     sessionStorage.setItem(TOKEN_KEY,  token);
     sessionStorage.setItem(EXPIRY_KEY, expiry);
+    if (accessCode) sessionStorage.setItem(ACCESS_CODE_KEY, accessCode);
   }
 };
-
 export const clearToken = (): void => {
   sessionStorage.removeItem(TOKEN_KEY);
   sessionStorage.removeItem(EXPIRY_KEY);
+  sessionStorage.removeItem(ACCESS_CODE_KEY);
   localStorage.removeItem(TOKEN_KEY);
   localStorage.removeItem(EXPIRY_KEY);
+  localStorage.removeItem(ACCESS_CODE_KEY);
 };
+
+export const getStoredAccessCode = (): string | null =>
+  sessionStorage.getItem(ACCESS_CODE_KEY) ?? localStorage.getItem(ACCESS_CODE_KEY);
 
 export const getToken = (): string | null => {
   const expiry = Number(

@@ -131,10 +131,10 @@ if (needsVerification && !isLoading) {
         <ScreenVerificarAcceso
             accessCode={token}
             bookingRef={state.reserva?.confirmacion ?? `#${state.bookingId}`}
-            onSuccess={() => {
-              setAccessVerified(true);
-              window.location.reload();
-            }}
+          onSuccess={() => {
+  setAccessVerified(true);
+  window.location.reload();
+}}
             onTooManyAttempts={() => navigate("/invalid", { replace: true })}
           />
         </div>
@@ -289,13 +289,25 @@ if (needsVerification && !isLoading) {
 function AuthExpiredWatcher() {
   const navigate = useNavigate();
   useEffect(() => {
-    const handler = () => navigate("/invalid", { replace: true });
+    const handler = () => {
+      // Si el path tiene /checkin/:token (no "new"), volvemos al mismo
+      // checkin para que ScreenVerificarAcceso pida token nuevo.
+      // Si es "new" (tablet), sí vamos a /invalid.
+      const path = window.location.pathname;
+      const isPreCheckinLink = path.startsWith("/checkin/") && !path.includes("/new");
+      if (isPreCheckinLink) {
+        // Redirigir al mismo checkin sin step → ScreenVerificarAcceso reaparecerá
+        const parts = path.split("/");
+        navigate(`/checkin/${parts[2]}`, { replace: true });
+      } else {
+        navigate("/invalid", { replace: true });
+      }
+    };
     window.addEventListener("AUTH_EXPIRED", handler);
     return () => window.removeEventListener("AUTH_EXPIRED", handler);
   }, [navigate]);
   return null;
 }
-
 // ── Rutas de la Aplicación ───────────────────────────────────────────────────
 export default function App() {
   return (

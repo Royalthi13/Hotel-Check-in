@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
+import { clearToken, getStoredAccessCode } from "@/api/axiosInstance";
 import { useCheckin } from "@/hooks/useCheckin";
 import { submitCheckin, savePartialCheckin } from "@/api/checkin.service";
 import { CheckinContext } from "./CheckinContextDef";
-
+import { getCurrentTokenPayload } from "@/api/auth.service"
 export const CheckinProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
@@ -23,10 +24,17 @@ export const CheckinProvider: React.FC<{ children: React.ReactNode }> = ({
   const [isPartialSuccess, setIsPartialSuccess] = useState(false);
 // Verificación = tener JWT válido. La pantalla de verificación lo consigue;
   // tras éxito hacemos un reload para que useCheckin recargue datos con el token.
-  const [accessVerified, setAccessVerified] = useState(
-    () => !!sessionStorage.getItem("lumina_access_token") ||
-          !!localStorage.getItem("lumina_access_token"),
-  );
+  const [accessVerified, setAccessVerified] = useState(() => {
+    const payload = getCurrentTokenPayload();
+    if (!payload) return false;
+    // Verificar que el token pertenece al access_code actual de la URL
+    const storedCode = getStoredAccessCode();
+    if (storedCode && storedCode !== token) {
+      clearToken();
+      return false;
+    }
+    return true;
+  });
 
   const [legalPassed, setLegalPassed] = useState(
     () => sessionStorage.getItem(`legalPassed_${token}`) === "true",
