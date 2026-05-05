@@ -13,7 +13,6 @@ import { AppShell } from "@/layout/AppShell";
 import { LoadingSpinner, Alert, Icon } from "@/components/ui";
 import { useTranslation } from "react-i18next";
 import { CheckinProvider } from "@/context/CheckinContext";
-import { ScreenTabletBuscar } from "@/screens/ScreenTabletBuscar";
 import { ScreenBienvenida } from "@/screens/ScreenBienvenida";
 import { ScreenCheckinInicio } from "@/screens/ScreenCheckinInicio";
 import { ScreenEscanear } from "@/screens/ScreenEscanear";
@@ -120,15 +119,13 @@ function CheckinWizard() {
 
   // Verja anti-enumeración: 1º email, 2º últimas 3 cifras del teléfono.
   // Si no hay ninguno de los dos, no podemos verificar y dejamos pasar.
- const needsVerification =
-    !accessVerified &&
-    token !== "new" &&
-    nav.step !== "tablet_buscar";
-if (needsVerification && !isLoading) {
+  const needsVerification =
+    !accessVerified && token !== "new" && nav.step !== "tablet_buscar";
+  if (needsVerification && !isLoading) {
     return (
       <div className="shell">
         <div className="card">
-        <ScreenVerificarAcceso
+          <ScreenVerificarAcceso
             accessCode={token}
             bookingRef={state.reserva?.confirmacion ?? `#${state.bookingId}`}
             onSuccess={() => {
@@ -159,20 +156,6 @@ if (needsVerification && !isLoading) {
   const adultosConIndice = state.guests
     .map((g, i) => ({ ...g, originalIndex: i }))
     .filter((g) => !g.esMenor);
-
-  if (currentStep === "tablet_buscar") {
-    return (
-      <div className="shell">
-        <div className="card">
-          <ScreenTabletBuscar
-            onFound={(res, bookingId, clientId) =>
-              actions.setReservaFromTablet(res, bookingId, clientId)
-            }
-          />
-        </div>
-      </div>
-    );
-  }
 
   return (
     <AppShell
