@@ -367,12 +367,22 @@ export const ScreenExito: React.FC<{
   const nombreCompleto = [main.nombre, main.apellido].filter(Boolean).join(" ");
   const [copied, setCopied] = useState(false);
 
-  const handleCopy = () => {
-    navigator.clipboard.writeText(window.location.href);
+ const handleCopy = () => {
+    // Calcular el siguiente índice libre (huéspedes con datos reales)
+    const registeredCount = state.guests.filter(
+      (g) => g.nombre?.trim() || g.numDoc?.trim(),
+    ).length;
+
+    // URL base sin el step /exito + parámetro para que el compañero empiece en el slot correcto
+    const parts = window.location.pathname.split("/").filter(Boolean);
+    // ['checkin', '{token}', 'exito'] → tomamos solo ['checkin', '{token}']
+    const basePath = "/" + parts.slice(0, 2).join("/");
+    const url = `${window.location.origin}${basePath}?guestIndex=${registeredCount}`;
+
+    navigator.clipboard.writeText(url);
     setCopied(true);
     setTimeout(() => setCopied(false), 3000);
   };
-
   if (isPartial) {
     return (
       <div className="success-wrap">

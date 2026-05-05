@@ -273,10 +273,12 @@ export const AppShell: React.FC<AppShellProps> = ({
           overflow: "hidden",
         }}
       >
-        <Header
-          canGoBack={nav.canGoBack}
-          onBack={actions.goBack}
-          onLogoClick={() => actions.goTo("inicio", "back", 0)}
+       <Header
+  canGoBack={nav.canGoBack}
+  onBack={actions.goBack}
+  onLogoClick={activeStep !== "exito" ? () => actions.goTo("inicio", "back", 0) : undefined}
+  
+
           extraContent={<LanguageSelector />}
           name={hotelDisplayName}
           rightAction={
@@ -358,11 +360,12 @@ export const AppShell: React.FC<AppShellProps> = ({
         >
           <aside className="side-panel">
             <div className="side-panel-inner">
-              <div
-                className="sp-logo"
-                onClick={() => actions.goTo("inicio", "back", 0)}
-                style={{ cursor: "pointer" }}
-              >
+            
+<div
+  className="sp-logo"
+  onClick={activeStep !== "exito" ? () => actions.goTo("inicio", "back", 0) : undefined}
+  style={{ cursor: activeStep !== "exito" ? "pointer" : "default" }}
+>
                 <span>{t("brand.name")}</span>
                 <em>{t("brand.suffix")}</em>
               </div>

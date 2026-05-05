@@ -135,8 +135,7 @@ export const CheckinProvider: React.FC<{ children: React.ReactNode }> = ({
         actions.goTo("exito", "forward");
         return;
       }
-
-      await submitCheckin({
+const result = await submitCheckin({
         bookingId,
         clientId,
         guests: state.guests,
@@ -144,7 +143,8 @@ export const CheckinProvider: React.FC<{ children: React.ReactNode }> = ({
         observaciones: state.observaciones,
       });
 
-      setIsPartialSuccess(false);
+      // Si todavía quedan personas por registrar → pantalla parcial con botón compartir
+      setIsPartialSuccess(!result.isComplete);
       SESSION_KEYS_TO_CLEAR.forEach((key) => sessionStorage.removeItem(key));
       sessionStorage.removeItem(PERSISTENCE_KEY);
       localStorage.removeItem(PERSISTENCE_KEY);

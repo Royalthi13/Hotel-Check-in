@@ -137,3 +137,18 @@ export interface CheckinActions {
   setHasMinorsFlag: (v: boolean) => void;
   setGuests: (guests: PartialGuestData[]) => void;
 }
+// Añadir al final del archivo, antes del último export
+export interface PreCheckinStatus {
+  booking_id: number;
+  persons_required: number;
+  persons_registered: number;
+  persons_to_complete: number;
+  persons_to_create: number;
+  is_main_company: boolean;
+  incomplete_clients: Array<{
+    client_id: number;
+    name: string;
+    surname: string;
+    is_main: boolean;
+  }>;
+}

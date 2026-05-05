@@ -15,6 +15,14 @@ import type {
 import { FLOW_STEPS } from "@/constants";
 import { loadCheckinData } from "@/api/checkin.service";
 import { getCurrentTokenPayload } from "@/api/auth.service";
+
+/** Lee ?guestIndex=N del URL actual. Devuelve N si N > 0, o null. */
+function getCompanionGuestIndexFromUrl(): number | null {
+  if (typeof window === "undefined") return null;
+  const p = new URLSearchParams(window.location.search).get("guestIndex");
+  const n = p ? parseInt(p, 10) : 0;
+  return n > 0 ? n : null;
+}
 // ── Lista de pasos válidos ───────────────────────────────────────────────────
 const VALID_STEPS: ReadonlyArray<StepId> = [
   "tablet_buscar",
@@ -303,11 +311,12 @@ export function useCheckin(tokenUrl?: string, stepUrl?: string) {
     } catch (e) {
       console.warn("No se pudo cargar el historial", e);
     }
-
-    if (stepUrl && VALID_STEPS.includes(stepUrl as StepId)) {
+if (stepUrl && VALID_STEPS.includes(stepUrl as StepId)) {
       const stepExists = storedHistory.some((h) => h.step === stepUrl);
       if (!stepExists) {
-        return [...storedHistory, { step: stepUrl as StepId, guestIndex: 0 }];
+        // Si viene de enlace compartido, usar el guestIndex del URL
+        const urlGuestIdx = getCompanionGuestIndexFromUrl() ?? 0;
+        return [...storedHistory, { step: stepUrl as StepId, guestIndex: urlGuestIdx }];
       }
     }
     return storedHistory;
@@ -343,8 +352,8 @@ export function useCheckin(tokenUrl?: string, stepUrl?: string) {
   const [isLoading, setIsLoading] = useState(token !== "new");
   const [navDirection, setNavDirection] = useState<NavDirection>("forward");
   const [isNavigating, setIsNavigating] = useState(false);
-
-  const stateRef = useRef(state);
+// Índice de huésped que este dispositivo debe rellenar (viene de ?guestIndex=N)
+  const companionGuestIndexRef = useRef<number | null>(getCompanionGuestIndexFromUrl());  const stateRef = useRef(state);
   const isInternalNavRef = useRef(false);
   const navigateRef = useRef(navigate);
   const navTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -434,6 +443,40 @@ useEffect(() => {
             type: "SET_COMPANIONS_LOADED",
             companions: result.companions,
           });
+        }
+        // Rellenar el array de guests hasta numHuespedes para que los slots existan
+        dispatch({ type: "SET_NUM_PERSONAS", total: result.reserva.numHuespedes });
+
+        // ── Dispositivo compañero ─────────────────────────────────────────────
+        const companionIdx = companionGuestIndexRef.current;
+        if (
+          companionIdx !== null &&
+          result.knownGuest?.id &&
+          companionIdx < result.reserva.numHuespedes &&
+          stepUrl !== "bienvenida"   // evita bucle si ya redirigimos
+        ) {
+          const newHistory: HistoryEntry[] = [
+            { step: "bienvenida", guestIndex: companionIdx },
+          ];
+          // Guardar en localStorage ANTES de navegar (el remount del router lo restaurará)
+          localStorage.setItem(
+            `history_${token}`,
+            JSON.stringify({ data: newHistory, timestamp: Date.now() }),
+          );
+          localStorage.setItem(
+            `allowedSteps_${token}`,
+            JSON.stringify({
+              data: ["inicio", "bienvenida", "tablet_buscar"],
+              timestamp: Date.now(),
+            }),
+          );
+          setAppHistory(newHistory);
+          setAllowedSteps(new Set<StepId>(["inicio", "bienvenida", "tablet_buscar"]));
+          // Preservar ?guestIndex en la URL para sobrevivir el remount
+          navigateRef.current(
+            `/checkin/${token}/bienvenida?guestIndex=${companionIdx}`,
+            { replace: true },
+          );
         }
       } catch (e) {
         if (cancelled) return;
@@ -543,7 +586,16 @@ useEffect(() => {
         if (nextM >= 0) return goTo("form_relaciones", "forward", nextM);
         return goTo("form_extras", "forward", 0);
       };
-
+// Dispositivo compañero: al terminar su propio huésped va a extras,
+      // no intenta rellenar el siguiente (que es de otro dispositivo)
+      if (
+        from === "form_contacto" &&
+        companionGuestIndexRef.current !== null &&
+        currIdx === companionGuestIndexRef.current &&
+        !guests[currIdx]?.esMenor
+      ) {
+        return goTo("form_extras", "forward", 0);
+      }
       if (from === "form_personal") {
         const esMenor = guests[currIdx].esMenor;
 

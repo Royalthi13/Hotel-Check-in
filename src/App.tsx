@@ -158,19 +158,25 @@ function CheckinWizard() {
     .filter((g) => !g.esMenor);
 
   return (
-    <AppShell
-      nav={nav}
-      actions={{
-        goBack: actions.goBack,
-        goToDotIndex: actions.goToDotIndex,
-        goTo: actions.goTo,
-      }}
-      showDots={showDots}
-      reserva={state.reserva}
-      onGoToRevision={() => actions.goTo("revision", "back")}
-      guests={state.guests}
-      guestIndex={nav.guestIndex}
-    >
+    
+   <AppShell
+  nav={nav}
+  actions={{
+    goBack: actions.goBack,
+    goToDotIndex: actions.goToDotIndex,
+    // Si estamos en exito, ninguna navegación está permitida
+    goTo: currentStep === "exito" ? () => {} : actions.goTo,
+  }}
+  showDots={showDots}
+  reserva={state.reserva}
+  onGoToRevision={
+    currentStep === "exito"
+      ? undefined  // quita el botón de resumen también
+      : () => actions.goTo("revision", "back")
+  }
+  guests={state.guests}
+  guestIndex={nav.guestIndex}
+>
       {isOffline && (
         <div style={{ padding: "8px var(--px) 0" }}>
           <Alert variant="warm">{t("search.error_connection")}</Alert>
