@@ -228,11 +228,11 @@ export function toClientPayload(g: PartialGuestData): Record<string, unknown> {
       : g.telefono?.trim()
         ? `${g.prefijo ?? "+34"} ${g.telefono.trim()}`.trim()
         : null,
-    address: str(g.direccion) ?? null,
-    city: str(g.ciudad) ?? null,
-    province: str(g.provincia) ?? null,
-    cp: str(g.cp) ?? null,
-
+  address: str(g.direccion) ?? null,
+city: str(g.ciudad) ?? null,
+cod_city: str(g.codCity) ?? null,
+province: str(g.provincia) ?? null,
+cp: str(g.cp) ?? null,
     doc_type: docCod ?? null,
     vat: str(g.numDoc),
     doc_support: str(g.soporteDoc),
