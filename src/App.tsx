@@ -26,7 +26,8 @@ import {
 
 import type { StepId, Reserva } from "@/types";
 import { ScreenVerificarAcceso } from "@/screens/ScreenVerificarAcceso";
-const STEPS_WITHOUT_DOTS = new Set<StepId>(["tablet_buscar", "exito"]);
+
+const STEPS_WITHOUT_DOTS = new Set<StepId>(["exito"]); // 🧹 Limpio de tablet_buscar
 
 // ── Página de enlace inválido / caducado ──────────────────────────────────────
 function InvalidLink() {
@@ -114,13 +115,13 @@ function CheckinWizard() {
     setAccessVerified,
   } = useCheckinContext();
 
-  const isActuallyLoading =
-    isLoading && token !== "new" && nav.step !== "tablet_buscar";
+  // 🧹 Limpio de referencias a tablet_buscar
+  const isActuallyLoading = isLoading && token !== "new";
 
   // Verja anti-enumeración: 1º email, 2º últimas 3 cifras del teléfono.
   // Si no hay ninguno de los dos, no podemos verificar y dejamos pasar.
-  const needsVerification =
-    !accessVerified && token !== "new" && nav.step !== "tablet_buscar";
+  const needsVerification = !accessVerified && token !== "new"; // 🧹 Limpio de referencias a tablet_buscar
+
   if (needsVerification && !isLoading) {
     return (
       <div className="shell">
@@ -128,10 +129,10 @@ function CheckinWizard() {
           <ScreenVerificarAcceso
             accessCode={token}
             bookingRef={state.reserva?.confirmacion ?? `#${state.bookingId}`}
-          onSuccess={() => {
-  setAccessVerified(true);
-  window.location.reload();
-}}
+            onSuccess={() => {
+              setAccessVerified(true);
+              window.location.reload();
+            }}
             onTooManyAttempts={() => navigate("/invalid", { replace: true })}
           />
         </div>
@@ -157,26 +158,27 @@ function CheckinWizard() {
     .map((g, i) => ({ ...g, originalIndex: i }))
     .filter((g) => !g.esMenor);
 
+  // 🧹 Se borró el if(currentStep === "tablet_buscar") de aquí
+
   return (
-    
-   <AppShell
-  nav={nav}
-  actions={{
-    goBack: actions.goBack,
-    goToDotIndex: actions.goToDotIndex,
-    // Si estamos en exito, ninguna navegación está permitida
-    goTo: currentStep === "exito" ? () => {} : actions.goTo,
-  }}
-  showDots={showDots}
-  reserva={state.reserva}
-  onGoToRevision={
-    currentStep === "exito"
-      ? undefined  // quita el botón de resumen también
-      : () => actions.goTo("revision", "back")
-  }
-  guests={state.guests}
-  guestIndex={nav.guestIndex}
->
+    <AppShell
+      nav={nav}
+      actions={{
+        goBack: actions.goBack,
+        goToDotIndex: actions.goToDotIndex,
+        // Si estamos en exito, ninguna navegación está permitida
+        goTo: currentStep === "exito" ? () => {} : actions.goTo,
+      }}
+      showDots={showDots}
+      reserva={state.reserva}
+      onGoToRevision={
+        currentStep === "exito"
+          ? undefined // quita el botón de resumen también
+          : () => actions.goTo("revision", "back")
+      }
+      guests={state.guests}
+      guestIndex={nav.guestIndex}
+    >
       {isOffline && (
         <div style={{ padding: "8px var(--px) 0" }}>
           <Alert variant="warm">{t("search.error_connection")}</Alert>
@@ -283,7 +285,8 @@ function AuthExpiredWatcher() {
       // checkin para que ScreenVerificarAcceso pida token nuevo.
       // Si es "new" (tablet), sí vamos a /invalid.
       const path = window.location.pathname;
-      const isPreCheckinLink = path.startsWith("/checkin/") && !path.includes("/new");
+      const isPreCheckinLink =
+        path.startsWith("/checkin/") && !path.includes("/new");
       if (isPreCheckinLink) {
         // Redirigir al mismo checkin sin step → ScreenVerificarAcceso reaparecerá
         const parts = path.split("/");
@@ -305,16 +308,7 @@ export default function App() {
       <Routes>
         <Route path="/" element={<Navigate to="/checkin/new" replace />} />
 
-        <Route
-          path="/checkin/kiosko/tablet_buscar"
-          element={
-            <ErrorBoundary>
-              <CheckinProvider>
-                <CheckinWizard />
-              </CheckinProvider>
-            </ErrorBoundary>
-          }
-        />
+        {/* 🧹 Se borró la ruta /checkin/kiosko/tablet_buscar */}
 
         <Route
           path="/checkin/:token"
