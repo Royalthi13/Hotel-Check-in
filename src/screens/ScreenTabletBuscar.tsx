@@ -1,11 +1,10 @@
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Field, Button, Alert, LoadingSpinner, Icon } from "@/components/ui";
+import { getBookingById } from "@/api/bookings.service";
 import type { Reserva } from "@/types";
 
 interface Props {
-  // Ajustado para coincidir con la llamada en App.tsx:
-  // onFound={(res, bookingId, clientId) => ...}
   onFound: (
     reserva: Reserva,
     bookingId: number,
@@ -13,21 +12,17 @@ interface Props {
   ) => void;
 }
 
-/**
- * Pantalla de búsqueda de reserva para el quiosco del hotel (modo tablet).
- *
- * Usa fetch('/api/reservas/:id') para conectar con la base de datos real.
- */
 export const ScreenTabletBuscar: React.FC<Props> = ({ onFound }) => {
   const { t } = useTranslation();
-  const [num, setNum] = useState("");
+  const [num, setNum]           = useState("");
   const [contacto, setContacto] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+  const [loading, setLoading]   = useState(false);
+  const [error, setError]       = useState("");
 
   const buscar = async (e?: React.SyntheticEvent<HTMLFormElement>) => {
     if (e) e.preventDefault();
-    const trimmedNum = num.trim();
+
+    const trimmedNum      = num.trim();
     const trimmedContacto = contacto.trim();
 
     if (!trimmedNum || !trimmedContacto) {
@@ -35,11 +30,9 @@ export const ScreenTabletBuscar: React.FC<Props> = ({ onFound }) => {
       return;
     }
 
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    const phoneRegex = /^\+?[\d\s-]{9,15}$/;
-    const isEmail = emailRegex.test(trimmedContacto);
-    const isPhone = phoneRegex.test(trimmedContacto);
-
+    // Fix eslint: \- no necesita escape fuera de clase de caracteres
+    const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedContacto);
+    const isPhone = /^\+?[\d\s-]{6,15}$/.test(trimmedContacto);
     if (!isEmail && !isPhone) {
       setError(t("validation.invalid_email"));
       return;
@@ -49,38 +42,52 @@ export const ScreenTabletBuscar: React.FC<Props> = ({ onFound }) => {
     setLoading(true);
 
     try {
-      // 1. LLAMADA A LA API REAL
-      // Opcional: Si tu API necesita validar también el contacto, puedes pasarlo como query param
-      // ej: `/api/reservas/${encodeURIComponent(trimmedNum)}?contacto=${encodeURIComponent(trimmedContacto)}`
-      const res = await fetch(
-        `/api/reservas/${encodeURIComponent(trimmedNum)}`,
-      );
+      const result = await getBookingById(trimmedNum);
 
-      const data = (await res.json()) as {
-        ok: boolean;
-        reserva?: Reserva;
-        bookingId?: number; // Asumimos que el backend devuelve estos IDs
-        clientId?: number | null;
-        message?: string;
-      };
-
-      // 2. RESPUESTA EXITOSA
-      if (res.ok && data.ok && data.reserva) {
-        // Extraemos los IDs que necesita la app para el estado global
-        const bId = data.bookingId || 0; // Ajusta esto según lo que devuelva tu API real
-        const cId = data.clientId ?? null;
-
-        onFound(data.reserva, bId, cId);
-        return; // Salimos de la función sin quitar el loading para que la transición sea suave
+      if (!result?.reserva) {
+        setError(t("search.error_not_found"));
+        return;
       }
 
-      // 3. RESPUESTA DEL BACKEND PERO CON ERROR (Ej: No encontrada)
-      setError(data.message || t("search.error_no_booking"));
-      setLoading(false);
-    } catch (err) {
-      // 4. ERROR DE RED O CAÍDA DEL SERVIDOR
-      console.error("Error al buscar la reserva:", err);
-      setError(t("search.error_connection")); // "Error de conexión con el servidor"
+      const { reserva, clientId, bookingId } = result;
+
+      if (clientId) {
+        const { getClientById } = await import("@/api/clients.service");
+        try {
+          const titular    = await getClientById(clientId);
+          const input      = trimmedContacto.toLowerCase();
+          const onlyDigits = (s: string) => s.replace(/\D/g, "");
+          const emailMatch = !!titular.email &&
+            titular.email.trim().toLowerCase() === input;
+          const inputDigits = onlyDigits(trimmedContacto);
+          const phoneDigits = onlyDigits(titular.telefono ?? "");
+          const phoneMatch  =
+            phoneDigits.length >= 3 &&
+            inputDigits.length >= 3 &&
+            phoneDigits.endsWith(
+              inputDigits.slice(-Math.min(inputDigits.length, phoneDigits.length)),
+            );
+
+          if (!emailMatch && !phoneMatch) {
+            setError(t("search.error_not_found"));
+            return;
+          }
+        } catch {
+          if (import.meta.env.DEV) {
+            console.warn("[TabletBuscar] No se pudo verificar el contacto del titular");
+          }
+        }
+      }
+
+      onFound(reserva, bookingId, clientId);
+    } catch (err: unknown) {
+      const e = err as Error & { status?: number };
+      if (e.status === 404) {
+        setError(t("search.error_not_found"));
+      } else {
+        setError(t("search.error_connection"));
+      }
+    } finally {
       setLoading(false);
     }
   };
@@ -116,14 +123,7 @@ export const ScreenTabletBuscar: React.FC<Props> = ({ onFound }) => {
                     setError("");
                   }}
                   placeholder={t("search.contact_placeholder")}
-                  className={
-                    error &&
-                    (!contacto.trim() ||
-                      error.includes("Formato") ||
-                      error.includes("Invalid"))
-                      ? "err"
-                      : ""
-                  }
+                  className={error && !contacto.trim() ? "err" : ""}
                   style={{
                     fontSize: 18,
                     textAlign: "center",
@@ -136,6 +136,7 @@ export const ScreenTabletBuscar: React.FC<Props> = ({ onFound }) => {
               <Field label={t("search.booking_label")} required>
                 <input
                   type="text"
+                  inputMode="numeric"
                   value={num}
                   onChange={(e) => {
                     setNum(e.target.value);

@@ -24,13 +24,12 @@ import {
   ScreenExito,
 } from "@/screens/ScreenExtrasRevisionExito";
 
-// ✨ Añadidas las dos pantallas del Kiosko
 import { ScreenLogin } from "@/screens/ScreenLogin";
 import { ScreenTabletBuscar } from "@/screens/ScreenTabletBuscar";
+import { isStaffLoggedIn, clearStaffToken } from "@/api/axiosInstance";
 import type { StepId, Reserva } from "@/types";
 import { ScreenVerificarAcceso } from "@/screens/ScreenVerificarAcceso";
 
-// ✨ Añadimos los pasos del kiosko para que no muestren los "puntitos" de progreso arriba
 const STEPS_WITHOUT_DOTS = new Set<StepId>([
   "tablet_login",
   "tablet_buscar",
@@ -101,6 +100,68 @@ function InvalidLink() {
   );
 }
 
+// ── Rutas del Kiosko (fuera del CheckinProvider) ──────────────────────────────
+function KioskoRoutes() {
+  const navigate = useNavigate();
+
+  // Login — si ya está logado, ir directo a buscar
+  if (isStaffLoggedIn()) {
+    return (
+      <div className="shell">
+        <div className="card">
+          <ScreenTabletBuscar
+            onFound={(res, bookingId, clientId) => {
+              // Guardamos en sessionStorage para que CheckinProvider lo recoja
+              sessionStorage.setItem(
+                "kiosko_pending_booking",
+                JSON.stringify({ res, bookingId, clientId }),
+              );
+              navigate(`/checkin/kiosko/tablet_buscar`);
+            }}
+          />
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="shell">
+      <div className="card">
+        <ScreenLogin
+          onSuccess={() => navigate("/checkin/kiosko/tablet_buscar")}
+        />
+      </div>
+    </div>
+  );
+}
+
+function KioskoBuscar() {
+  const navigate = useNavigate();
+
+  // Si no hay sesión de staff, volver al login
+  if (!isStaffLoggedIn()) {
+    return <Navigate to="/checkin/kiosko/tablet_login" replace />;
+  }
+
+  return (
+    <div className="shell">
+      <div className="card">
+        <ScreenTabletBuscar
+          onFound={(res, bookingId, clientId) => {
+            // Pasamos los datos al flujo de checkin via CheckinProvider
+            // usando la URL con el bookingId como token temporal de kiosko
+            sessionStorage.setItem(
+              "kiosko_booking",
+              JSON.stringify({ res, bookingId, clientId }),
+            );
+            navigate(`/checkin/kiosko-${bookingId}/escanear`);
+          }}
+        />
+      </div>
+    </div>
+  );
+}
+
 // ── Lógica del Wizard ─────────────────────────────────────────────────────────
 function CheckinWizard() {
   const { t } = useTranslation();
@@ -123,11 +184,10 @@ function CheckinWizard() {
     setAccessVerified,
   } = useCheckinContext();
 
-  const isActuallyLoading = isLoading && token !== "new" && token !== "kiosko";
+  const isActuallyLoading = isLoading && token !== "new" && !token.startsWith("kiosko");
 
-  // ✨ VERJA DE SEGURIDAD: Si el token es "kiosko", no pedimos verificación de titular, es el staff.
   const needsVerification =
-    !accessVerified && token !== "new" && token !== "kiosko";
+    !accessVerified && token !== "new" && !token.startsWith("kiosko");
 
   if (needsVerification && !isLoading) {
     return (
@@ -159,42 +219,6 @@ function CheckinWizard() {
   }
 
   const currentStep = nav.step || "inicio";
-
-  // ✨ 1. FLUJO KIOSKO: PANTALLA DE LOGIN
-  if (currentStep === "tablet_login") {
-    return (
-      <div className="shell">
-        <div className="card">
-          <ScreenLogin
-            onSuccess={() => actions.goTo("tablet_buscar", "forward")}
-          />
-        </div>
-      </div>
-    );
-  }
-
-  // ✨ 2. FLUJO KIOSKO: PANTALLA DE BUSCAR RESERVA
-  if (currentStep === "tablet_buscar") {
-    return (
-      <div className="shell">
-        <div className="card">
-          <ScreenTabletBuscar
-            onFound={(res, bookingId, clientId) => {
-              actions.setReservaFromTablet(res, bookingId, clientId);
-              // ✨ LA MAGIA: Nos saltamos inicio y bienvenida, y marcamos legal como pasado
-              setLegalPassed(true);
-              // Asumimos que no hay menores por defecto, se pueden editar luego
-              setHasMinorsFlag(false);
-              // Directos a escanear documentos
-              actions.goTo("escanear", "forward");
-            }}
-          />
-        </div>
-      </div>
-    );
-  }
-
-  // ✨ 3. FLUJO GENERAL (Compartido Huésped/Kiosko)
   const showDots = !STEPS_WITHOUT_DOTS.has(currentStep);
   const currentGuest = state.guests[nav.guestIndex] ?? {};
   const adultosConIndice = state.guests
@@ -324,7 +348,6 @@ function AuthExpiredWatcher() {
       const path = window.location.pathname;
       const isPreCheckinLink =
         path.startsWith("/checkin/") &&
-        !path.includes("/new") &&
         !path.includes("/kiosko");
       if (isPreCheckinLink) {
         const parts = path.split("/");
@@ -345,14 +368,22 @@ export default function App() {
     <BrowserRouter>
       <AuthExpiredWatcher />
       <Routes>
-        {/* ✨ Redirigimos la raíz principal al Login del Staff */}
+        {/* Raíz → login del kiosko */}
+        <Route path="/" element={<Navigate to="/checkin/kiosko/tablet_login" replace />} />
+
+        {/* ── Rutas del KIOSKO (sin CheckinProvider) ── */}
+        <Route path="/checkin/kiosko/tablet_login" element={<KioskoRoutes />} />
+        <Route path="/checkin/kiosko/tablet_buscar" element={<KioskoBuscar />} />
+
+        {/* Logout del kiosko */}
         <Route
-          path="/"
-          element={<Navigate to="/checkin/kiosko/tablet_login" replace />}
+          path="/checkin/kiosko/logout"
+          element={
+            <LogoutKiosko />
+          }
         />
 
-        {/* Las rutas dinámicas :token y :step se encargarán de mapear 
-            /checkin/kiosko/tablet_login perfectamente */}
+        {/* ── Rutas normales de huésped (con CheckinProvider) ── */}
         <Route
           path="/checkin/:token"
           element={
@@ -363,7 +394,6 @@ export default function App() {
             </ErrorBoundary>
           }
         />
-
         <Route
           path="/checkin/:token/:step"
           element={
@@ -380,4 +410,13 @@ export default function App() {
       </Routes>
     </BrowserRouter>
   );
+}
+
+function LogoutKiosko() {
+  const navigate = useNavigate();
+  useEffect(() => {
+    clearStaffToken();
+    navigate("/checkin/kiosko/tablet_login", { replace: true });
+  }, [navigate]);
+  return null;
 }
