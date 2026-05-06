@@ -171,7 +171,11 @@
     "invalid_cif": "Invalid CIF. Format: letter + 7 digits + letter/digit (e.g., A1234567B)",
     "doc_too_short": "The document number seems too short",
     "missing_relationships": "Missing relationships in the forms. Please review the details of all guests.",
-    "duplicate_doc": "This document has already been registered for another guest."
+    "duplicate_doc": "This document has already been registered for another guest.",
+    "required_address": "Address is required",
+"required_cp": "Zip code is required",
+"required_city": "City is required",
+"city_must_be_selected": "Pick a city from the suggestions list"
   },
   "search": {
     "title_1": "Welcome to",
