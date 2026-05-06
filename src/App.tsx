@@ -140,10 +140,6 @@ function CheckinWizard() {
               setAccessVerified(true);
               window.location.reload();
             }}
-            onSuccess={() => {
-              setAccessVerified(true);
-              window.location.reload();
-            }}
             onTooManyAttempts={() => navigate("/invalid", { replace: true })}
           />
         </div>
@@ -204,8 +200,6 @@ function CheckinWizard() {
   const adultosConIndice = state.guests
     .map((g, i) => ({ ...g, originalIndex: i }))
     .filter((g) => !g.esMenor);
-
-  // 🧹 Se borró el if(currentStep === "tablet_buscar") de aquí
 
   return (
     <AppShell
