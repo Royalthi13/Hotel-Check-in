@@ -224,7 +224,13 @@
     "card_manual_title_known": "Revisar y confirmar mis datos",
     "card_manual_sub_known": "Compruebe los datos que tenemos guardados y confírmelos o modifíquelos."
   },
-
+  "login": {
+    "title": "Acceso Personal del Hotel",
+    "subtitle": "Introduce el PIN de recepción para continuar.",
+    "pin_label": "PIN de Acceso",
+    "btn_enter": "Entrar",
+    "error_incorrect_pin": "PIN incorrecto. Inténtalo de nuevo."
+  },
   "forms": {
     "minor_address_info": "A efectos de registro, se asociará el mismo domicilio y datos de contacto que los del adulto responsable. No es necesario volver a rellenarlos.",
     "personal_title": "Datos personales",
@@ -327,7 +333,6 @@
     "error_message": "No hemos podido verificar tu reserva. Comprueba el apellido del titular.",
     "switch_to_phone": "Usar teléfono en su lugar",
     "switch_to_email": "Usar email en su lugar"
-
   },
 
   "rooms": {

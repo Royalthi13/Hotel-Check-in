@@ -3,6 +3,7 @@ export type AppMode = "link" | "tablet";
 
 // ─── Pasos del flujo ──────────────────────────────────────────────────────────
 export type StepId =
+  | "tablet_login"
   | "tablet_buscar"
   | "inicio"
   | "bienvenida"
@@ -47,7 +48,7 @@ export interface GuestData {
   nacionalidad: string;
   parentescoParaAPI?: string;
   esMenor: boolean;
- observations?: string;
+  observations?: string;
   vengoConMenores?: boolean;
   tienesMenor?: boolean;
   nombreMenor?: string;

@@ -216,6 +216,13 @@
     "card_manual_title_known": "Rivedi e conferma i miei dati",
     "card_manual_sub_known": "Controlli i dati che abbiamo salvato e li confermi o modifichi."
   },
+  "login": {
+    "title": "Accesso Personale dell'Hotel",
+    "subtitle": "Inserisci il PIN della reception per continuare.",
+    "pin_label": "PIN di Accesso",
+    "btn_enter": "Entra",
+    "error_incorrect_pin": "PIN errato. Riprova."
+  },
   "forms": {
     "minor_address_info": "Ai fini della registrazione, verranno applicati lo stesso indirizzo e i dettagli di contatto dell'adulto responsabile. Non è necessario compilarli di nuovo.",
     "personal_title": "Dati personali",
