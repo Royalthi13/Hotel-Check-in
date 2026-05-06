@@ -25,6 +25,7 @@ import {
   Menu,
 } from "@mui/material";
 import { usePlaces } from "@/hooks/usePlaces";
+import { searchCitiesByName } from "@/api/cities.service";
 import dayjs, { type Dayjs } from "dayjs";
 import "dayjs/locale/es";
 import { useDebounce } from "@/hooks/useDebounce";
@@ -108,11 +109,9 @@ export const ScreenFormPersonal: React.FC = () => {
       .catch(() =>
         setTiposDoc(TIPOS_DOCUMENTO.map((d) => ({ value: d, label: d }))),
       );
-  }, []);
-
-  const fechaNac = data.fechaNac ? dayjs(data.fechaNac) : null;
-  const isDniOrNie = data.tipoDoc === "DNI" || data.tipoDoc === "NIE";
-
+  }, []);const fechaNac = data.fechaNac ? dayjs(data.fechaNac) : null;
+  // Backend exige doc_support para residenciales (todo excepto CIF).
+  const showDocSupport = !!data.tipoDoc && data.tipoDoc !== "CIF";
   const handleUpdate = (key: keyof PartialGuestData, value: unknown) =>
     actions.updateGuest(guestIndex, key, value);
   const handleSubmit = (e: React.SyntheticEvent<HTMLFormElement>) => {
@@ -273,10 +272,9 @@ export const ScreenFormPersonal: React.FC = () => {
 
             <Box
               sx={{
-                display: "grid",
-                gridTemplateColumns: {
+                display: "grid",gridTemplateColumns: {
                   xs: "1fr",
-                  sm: isDniOrNie ? "1fr 1fr 1fr" : "1fr 1fr",
+                  sm: showDocSupport ? "1fr 1fr 1fr" : "1fr 1fr",
                 },
                 gap: 2,
               }}
@@ -328,11 +326,10 @@ export const ScreenFormPersonal: React.FC = () => {
                   sx={inputSx}
                 />
                 <FieldError msg={errors.numDoc} />
-              </div>
-              {isDniOrNie && (
+              </div>{showDocSupport && (
                 <div>
                   <TextField
-                    required={isDniOrNie}
+                    required
                     label={t("forms.doc_support")}
                     fullWidth
                     value={data.soporteDoc ?? ""}
@@ -702,12 +699,42 @@ const RenderList = (
       )}
     </Alert>
   </Box>
-)}
-      <form
-        onSubmit={(e) => {
-  e.preventDefault();
-  if (validate(data)) actions.nextGuest(guestIndex, "form_contacto");
-}}
+)}<form
+        onSubmit={async (e) => {
+          e.preventDefault();
+
+          // Si España y no hay codCity todavía, intenta resolverlo del catálogo
+          // antes de validar. Solo se considera resuelto si hay match exacto
+          // por nombre (ignorando case/espacios).
+          let nextData = data;
+          const esEspanaSubmit =
+            data.pais === "ES" || data.pais === "ESP";
+          if (
+            esEspanaSubmit &&
+            !data.codCity?.trim() &&
+            data.ciudad?.trim()
+          ) {
+            try {
+              const matches = await searchCitiesByName(data.ciudad.trim());
+              const norm = (s: string) =>
+                s.trim().toLowerCase().replace(/\s+/g, " ");
+              const exact = matches.find(
+                (c) => norm(c.name) === norm(data.ciudad!),
+              );
+              if (exact) {
+                handleUpdate("ciudad", exact.name);
+                handleUpdate("codCity", exact.codcity);
+                nextData = { ...data, ciudad: exact.name, codCity: exact.codcity };
+              }
+            } catch (err) {
+              if (import.meta.env.DEV)
+                console.warn("Error resolviendo cod_city:", err);
+            }
+          }
+
+          if (validate(nextData))
+            actions.nextGuest(guestIndex, "form_contacto");
+        }}
         noValidate
       >
         <fieldset
@@ -815,9 +842,9 @@ const RenderList = (
                 />
               </Box>
             )}
-
-            <TextField
+<TextField
               label={t("forms.address")}
+              required
               fullWidth
               value={data.direccion ?? ""}
               onChange={(e) => {
@@ -825,6 +852,7 @@ const RenderList = (
                 clearError("direccion");
               }}
               error={!!errors.direccion}
+              helperText={errors.direccion || ""}
               sx={inputSx}
             />
             <Divider
@@ -885,12 +913,13 @@ const RenderList = (
                   ),
                 }}
               />
-
-          <TextField
+<TextField
                 label={t("forms.zipcode")}
+                required
                 fullWidth
                 value={data.cp ?? ""}
                 error={!!errors.cp}
+                helperText={errors.cp || ""}
                 sx={inputSx}
                 onChange={(e) => {
                   const val = e.target.value.toUpperCase();
@@ -942,8 +971,7 @@ const RenderList = (
                 <FieldError msg={errors.provincia} />
               </div>
               <div>
-                {esEspana ? (
-              <Autocomplete
+                {esEspana ? (<Autocomplete
                     freeSolo
                     options={sugerenciasMunicipios || []}
                     getOptionLabel={(o) =>
@@ -978,17 +1006,23 @@ const RenderList = (
                       <TextField
                         {...p}
                         label={t("forms.city")}
+                        required
                         error={!!errors.ciudad}
+                        helperText={errors.ciudad || ""}
                         sx={inputSx}
                       />
                     )}
-                  />
-                ) : (
+                  />) : (
                   <TextField
                     label={t("forms.city")}
+                    required
                     fullWidth
                     value={data.ciudad ?? ""}
-                    onChange={(e) => handleUpdate("ciudad", e.target.value)}
+                    error={!!errors.ciudad}
+                    onChange={(e) => {
+                      handleUpdate("ciudad", e.target.value);
+                      clearError("ciudad");
+                    }}
                     sx={inputSx}
                   />
                 )}
