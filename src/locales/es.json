@@ -177,7 +177,11 @@
     "invalid_cif": "CIF no válido. Formato: letra + 7 dígitos + letra/dígito (ej: A1234567B)",
     "doc_too_short": "El número de documento parece demasiado corto",
     "missing_relationships": "Faltan parentescos por rellenar en los formularios. Revise los datos de todos los huéspedes.",
-    "duplicate_doc": "Este documento ya ha sido registrado en otro huésped."
+    "duplicate_doc": "Este documento ya ha sido registrado en otro huésped.",
+    "required_address": "La dirección es obligatoria",
+"required_cp": "El código postal es obligatorio",
+"required_city": "La ciudad es obligatoria",
+"city_must_be_selected": "Selecciona una ciudad de la lista de sugerencias"
   },
 
   "search": {
