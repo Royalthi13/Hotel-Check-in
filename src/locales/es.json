@@ -229,6 +229,7 @@
     "card_manual_sub_known": "Compruebe los datos que tenemos guardados y confírmelos o modifíquelos."
   },
   "login": {
+    "username_label": "Usuario",
     "title": "Acceso Personal del Hotel",
     "subtitle": "Introduce el PIN de recepción para continuar.",
     "pin_label": "PIN de Acceso",

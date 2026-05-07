@@ -4,6 +4,9 @@ import { Field, Button, Alert, LoadingSpinner, Icon } from "@/components/ui";
 import { getBookingById } from "@/api/bookings.service";
 import type { Reserva } from "@/types";
 
+// 1. IMPORTANTE: Aquí importamos el componente para que React sepa qué es y no pete.
+import { LanguageSelector } from "@/components/LanguageSelector";
+
 interface Props {
   onFound: (
     reserva: Reserva,
@@ -14,15 +17,15 @@ interface Props {
 
 export const ScreenTabletBuscar: React.FC<Props> = ({ onFound }) => {
   const { t } = useTranslation();
-  const [num, setNum]           = useState("");
+  const [num, setNum] = useState("");
   const [contacto, setContacto] = useState("");
-  const [loading, setLoading]   = useState(false);
-  const [error, setError]       = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
   const buscar = async (e?: React.SyntheticEvent<HTMLFormElement>) => {
     if (e) e.preventDefault();
 
-    const trimmedNum      = num.trim();
+    const trimmedNum = num.trim();
     const trimmedContacto = contacto.trim();
 
     if (!trimmedNum || !trimmedContacto) {
@@ -54,18 +57,20 @@ export const ScreenTabletBuscar: React.FC<Props> = ({ onFound }) => {
       if (clientId) {
         const { getClientById } = await import("@/api/clients.service");
         try {
-          const titular    = await getClientById(clientId);
-          const input      = trimmedContacto.toLowerCase();
+          const titular = await getClientById(clientId);
+          const input = trimmedContacto.toLowerCase();
           const onlyDigits = (s: string) => s.replace(/\D/g, "");
-          const emailMatch = !!titular.email &&
-            titular.email.trim().toLowerCase() === input;
+          const emailMatch =
+            !!titular.email && titular.email.trim().toLowerCase() === input;
           const inputDigits = onlyDigits(trimmedContacto);
           const phoneDigits = onlyDigits(titular.telefono ?? "");
-          const phoneMatch  =
+          const phoneMatch =
             phoneDigits.length >= 3 &&
             inputDigits.length >= 3 &&
             phoneDigits.endsWith(
-              inputDigits.slice(-Math.min(inputDigits.length, phoneDigits.length)),
+              inputDigits.slice(
+                -Math.min(inputDigits.length, phoneDigits.length),
+              ),
             );
 
           if (!emailMatch && !phoneMatch) {
@@ -74,7 +79,9 @@ export const ScreenTabletBuscar: React.FC<Props> = ({ onFound }) => {
           }
         } catch {
           if (import.meta.env.DEV) {
-            console.warn("[TabletBuscar] No se pudo verificar el contacto del titular");
+            console.warn(
+              "[TabletBuscar] No se pudo verificar el contacto del titular",
+            );
           }
         }
       }
@@ -93,7 +100,13 @@ export const ScreenTabletBuscar: React.FC<Props> = ({ onFound }) => {
   };
 
   return (
-    <form className="screen" onSubmit={buscar}>
+    // 2. IMPORTANTE: Añadimos style={{ position: "relative" }} al form
+    <form className="screen" onSubmit={buscar} style={{ position: "relative" }}>
+      {/* 3. Selector de idioma — esquina superior derecha */}
+      <div style={{ position: "absolute", top: 20, right: 24, zIndex: 10 }}>
+        <LanguageSelector />
+      </div>
+
       <div style={{ display: "contents" }}>
         <div className="tablet-hero">
           <div className="tablet-big-icon">

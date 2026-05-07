@@ -173,9 +173,9 @@
     "missing_relationships": "Il manque des liens de parenté à remplir dans les formulaires. Vérifiez les données de tous les clients.",
     "duplicate_doc": "Ce document a déjà été enregistré pour un autre client.",
     "required_address": "L'adresse est obligatoire",
-"required_cp": "Le code postal est obligatoire",
-"required_city": "La ville est obligatoire",
-"city_must_be_selected": "Sélectionnez une ville dans la liste des suggestions"
+    "required_cp": "Le code postal est obligatoire",
+    "required_city": "La ville est obligatoire",
+    "city_must_be_selected": "Sélectionnez une ville dans la liste des suggestions"
   },
   "search": {
     "title_1": "Bienvenue au",
@@ -225,7 +225,8 @@
     "subtitle": "Entrez le code PIN de la réception pour continuer.",
     "pin_label": "Code PIN d'accès",
     "btn_enter": "Entrer",
-    "error_incorrect_pin": "Code PIN incorrect. Veuillez réessayer."
+    "error_incorrect_pin": "Code PIN incorrect. Veuillez réessayer.",
+    "username_label": "Utilisateur"
   },
   "forms": {
     "minor_address_info": "À des fins d'enregistrement, la même adresse et les mêmes coordonnées que celles de l'adulte responsable seront appliquées. Il n'est pas nécessaire de les remplir à nouveau.",

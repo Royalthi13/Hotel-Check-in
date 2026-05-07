@@ -173,9 +173,9 @@
     "missing_relationships": "Missing relationships in the forms. Please review the details of all guests.",
     "duplicate_doc": "This document has already been registered for another guest.",
     "required_address": "Address is required",
-"required_cp": "Zip code is required",
-"required_city": "City is required",
-"city_must_be_selected": "Pick a city from the suggestions list"
+    "required_cp": "Zip code is required",
+    "required_city": "City is required",
+    "city_must_be_selected": "Pick a city from the suggestions list"
   },
   "search": {
     "title_1": "Welcome to",
@@ -225,7 +225,8 @@
     "subtitle": "Enter the reception PIN to continue.",
     "pin_label": "Access PIN",
     "btn_enter": "Enter",
-    "error_incorrect_pin": "Incorrect PIN. Please try again."
+    "error_incorrect_pin": "Incorrect PIN. Please try again.",
+    "username_label": "User"
   },
   "forms": {
     "minor_address_info": "For registration purposes, the same address and contact details as the responsible adult will be applied. There is no need to fill them in again.",
