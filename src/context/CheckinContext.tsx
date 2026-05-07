@@ -142,10 +142,16 @@ const result = await submitCheckin({
         horaLlegada: state.horaLlegada,
         observaciones: state.observaciones,
       });
-
-      // Si todavía quedan personas por registrar → pantalla parcial con botón compartir
+// Si todavía quedan personas por registrar → pantalla parcial con botón compartir
       setIsPartialSuccess(!result.isComplete);
-      SESSION_KEYS_TO_CLEAR.forEach((key) => sessionStorage.removeItem(key));
+
+      // Limpieza completa: los keys del wizard viven en localStorage
+      // (los escribe useCheckin.ts), pero por si acaso barremos también
+      // sessionStorage para no dejar restos de versiones anteriores.
+      SESSION_KEYS_TO_CLEAR.forEach((key) => {
+        localStorage.removeItem(key);
+        sessionStorage.removeItem(key);
+      });
       sessionStorage.removeItem(PERSISTENCE_KEY);
       localStorage.removeItem(PERSISTENCE_KEY);
 

@@ -171,7 +171,11 @@
     "invalid_cif": "Ungültige CIF. Format: Buchstabe + 7 Ziffern + Buchstabe/Ziffer (z. B. A1234567B)",
     "doc_too_short": "Die Dokumentennummer scheint zu kurz zu sein",
     "missing_relationships": "In den Formularen fehlen Verwandtschaftsverhältnisse. Bitte überprüfen Sie die Daten aller Gäste.",
-    "duplicate_doc": "Dieses Dokument wurde bereits bei einem anderen Gast registriert."
+    "duplicate_doc": "Dieses Dokument wurde bereits bei einem anderen Gast registriert.",
+    "required_address": "Adresse ist erforderlich",
+"required_cp": "Postleitzahl ist erforderlich",
+"required_city": "Stadt ist erforderlich",
+"city_must_be_selected": "Wählen Sie eine Stadt aus der Vorschlagsliste"
   },
   "search": {
     "title_1": "Willkommen beim",

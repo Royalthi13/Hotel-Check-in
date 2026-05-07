@@ -690,16 +690,7 @@ const RenderList = (
           })}
         </Typography>
       </div>
-            {data.esMenor && (
-  <Box style={{ padding: "0 var(--px)", marginTop: 12 }}>
-    <Alert variant="info">
-      {t(
-        "forms.minor_address_info",
-        "La dirección del menor se ha copiado de su acompañante. Puedes modificarla si es diferente.",
-      )}
-    </Alert>
-  </Box>
-)}<form
+            <form
         onSubmit={async (e) => {
           e.preventDefault();
 
@@ -749,15 +740,15 @@ const RenderList = (
               gap: 2.5,
               px: "var(--px)",
             }}
-          >
-         {esUnMenor && !!data.direccion && (
-  <Alert variant="info">
-    {t("forms.minor_address_info", {
-      defaultValue:
-        "La dirección se ha completado con la del adulto responsable. Puedes modificarla si es diferente.",
-    })}
-  </Alert>
-)}
+          >{esUnMenor &&
+  !!data.direccion &&
+  data.relacionesConAdultos?.some((r) =>
+    ["PM", "TU"].includes(r.parentesco),
+  ) && (
+    <Alert variant="info">
+      {t("forms.minor_address_info")}
+    </Alert>
+  )}
             {!data.esMenor && (
               <Box
                 sx={{

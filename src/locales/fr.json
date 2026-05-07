@@ -171,7 +171,11 @@
     "invalid_cif": "CIF non valide. Format : lettre + 7 chiffres + lettre/chiffre (ex : A1234567B)",
     "doc_too_short": "Le numéro de document semble trop court",
     "missing_relationships": "Il manque des liens de parenté à remplir dans les formulaires. Vérifiez les données de tous les clients.",
-    "duplicate_doc": "Ce document a déjà été enregistré pour un autre client."
+    "duplicate_doc": "Ce document a déjà été enregistré pour un autre client.",
+    "required_address": "L'adresse est obligatoire",
+"required_cp": "Le code postal est obligatoire",
+"required_city": "La ville est obligatoire",
+"city_must_be_selected": "Sélectionnez une ville dans la liste des suggestions"
   },
   "search": {
     "title_1": "Bienvenue au",

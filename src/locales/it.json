@@ -171,7 +171,11 @@
     "invalid_cif": "CIF non valido. Formato: lettera + 7 cifre + lettera/cifra (es. A1234567B)",
     "doc_too_short": "Il numero del documento sembra troppo corto",
     "missing_relationships": "Mancano i gradi di parentela da compilare nei moduli. Controlla i dati di tutti gli ospiti.",
-    "duplicate_doc": "Questo documento è già stato registrato per un altro ospite."
+    "duplicate_doc": "Questo documento è già stato registrato per un altro ospite.",
+    "required_address": "L'indirizzo è obbligatorio",
+"required_cp": "Il codice postale è obbligatorio",
+"required_city": "La città è obbligatoria",
+"city_must_be_selected": "Seleziona una città dalla lista dei suggerimenti"
   },
   "search": {
     "title_1": "Benvenuto al",
