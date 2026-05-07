@@ -111,7 +111,13 @@ export async function getBookingById(bookingId: string | number): Promise<{
   return null;
 }
 /**
- * ACTUALIZACIÓN: Ahora acepta clientId en el payload para vinculación explícita
+ * Actualiza la reserva durante el flujo de pre-checkin.
+ *
+ * - `clientId`: vincula el cliente titular a la reserva (útil cuando se crea
+ *   un cliente nuevo en mid-flow y la reserva no tenía titular previo).
+ * - `markCompleted`: si true, marca `pre_checking = true` y añade hora/notas
+ *   al campo `notes` de la reserva. Si false, deja pre_checking como estaba
+ *   (útil para partial-saves intermedios).
  */
 export async function updateBookingCheckin(
   bookingId: number,
@@ -119,6 +125,7 @@ export async function updateBookingCheckin(
     horaLlegada?: string;
     observaciones?: string;
     clientId?: number | null;
+    markCompleted?: boolean;
   },
   existingRaw?: BookingSearch,
 ): Promise<void> {
@@ -126,23 +133,27 @@ export async function updateBookingCheckin(
     existingRaw ??
     (await apiAuth.get<BookingSearch>(`/bookings/${bookingId}`)).data;
 
-  let notasFinales: string | null =
-    payload.observaciones ?? current.notes ?? null;
+  const completing = payload.markCompleted === true;
 
-  if (
-    payload.horaLlegada &&
-    payload.horaLlegada !== "No especificada" &&
-    !payload.horaLlegada.startsWith("No ")
-  ) {
-    const sufijo = `Hora llegada: ${payload.horaLlegada}`;
-    notasFinales = notasFinales ? `${notasFinales}\n${sufijo}` : sufijo;
+  let notasFinales: string | null = current.notes ?? null;
+
+  if (completing) {
+    notasFinales = payload.observaciones?.trim() || current.notes || null;
+
+    if (
+      payload.horaLlegada &&
+      payload.horaLlegada !== "No especificada" &&
+      !payload.horaLlegada.startsWith("No ")
+    ) {
+      const sufijo = `Hora llegada: ${payload.horaLlegada}`;
+      notasFinales = notasFinales ? `${notasFinales}\n${sufijo}` : sufijo;
+    }
   }
 
   await apiAuth.put(`/bookings/${bookingId}`, {
     room_id: current.room_id,
     check_in: current.check_in,
     check_out: current.check_out,
-    // 👇 VINCULACIÓN EXPLÍCITA: Si viene en el payload, usamos ese, si no, el que tenía.
     client_id:
       payload.clientId !== undefined ? payload.clientId : current.client_id,
     status_id: current.status_id,
@@ -154,6 +165,6 @@ export async function updateBookingCheckin(
     pay_num: current.pay_num,
     pay_titular: current.pay_titular,
     card_cad: current.card_cad,
-    pre_checking: true,
+    pre_checking: completing ? true : current.pre_checking,
   });
 }

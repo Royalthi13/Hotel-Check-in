@@ -1,4 +1,4 @@
-import { getBookingById } from "./bookings.service";
+import { getBookingById, updateBookingCheckin } from "./bookings.service";
 import { getClientById, createClient, updateClient } from "./clients.service";
 import { getCompanionsByBooking, createCompanion } from "./companions.service";
 import type { GuestData, PartialGuestData, Reserva } from "@/types";
@@ -206,18 +206,25 @@ export async function submitCheckin(
         client_id: newId,
       });
     }
-  }
-
-  // 6. ¿Está el pre-checkin completamente terminado?
+  }// 6. Marcar la reserva como pre-checkeada y guardar hora/notas en booking
+  await updateBookingCheckin(bookingId, {
+    horaLlegada,
+    observaciones,
+    clientId: mainClientId,
+    markCompleted: true,
+  });
+  // 7. ¿Está el pre-checkin completamente terminado?
   const status = await getCheckinStatus(bookingId);
-  console.log("[checkin] STATUS RESPONSE:", JSON.stringify(status));
+  if (import.meta.env.DEV) {
+    console.log("[checkin] STATUS RESPONSE:", JSON.stringify(status));
+  }
 
   const checkinCompleto = status !== null && status.persons_to_create === 0;
 
   return { isComplete: checkinCompleto };
 }
 
-// Guardado parcial — NO llama validateClient nunca
+// Guardado parcial del titular — usado por handlePartialSubmit (botón explícito)
 export async function savePartialCheckin(
   clientId: number | null,
   mainGuest: PartialGuestData,
@@ -227,4 +234,28 @@ export async function savePartialCheckin(
     return clientId;
   }
   return await createClient(mainGuest);
+}
+// Autoguardado por huésped al pasar al siguiente.
+// - Si guest.id existe → updateClient (idempotente)
+// - Si no, titular → createClient + linkar a la reserva (booking.client_id)
+// - Si no, acompañante → createClient + createCompanion link
+// Devuelve el id para que el caller lo sincronice al state.
+export async function savePartialGuest(
+  bookingId: number,
+  guest: PartialGuestData,
+  isMain: boolean,
+): Promise<number> {
+  if (guest.id) {
+    await updateClient(guest.id, guest);
+    return guest.id;
+  }
+  const newId = await createClient(guest);
+  if (isMain) {
+    // Vincular el titular nuevo a la reserva sin marcar pre_checking todavía.
+    // Eso lo hace updateBookingCheckin en el submit final.
+    await updateBookingCheckin(bookingId, { clientId: newId }, undefined);
+  } else {
+    await createCompanion({ booking_id: bookingId, client_id: newId });
+  }
+  return newId;
 }
