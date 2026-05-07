@@ -3,7 +3,11 @@ import { useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { clearToken, getStoredAccessCode } from "@/api/axiosInstance";
 import { useCheckin } from "@/hooks/useCheckin";
-import { submitCheckin, savePartialCheckin } from "@/api/checkin.service";
+import {
+  submitCheckin,
+  savePartialCheckin,
+  savePartialGuest,
+} from "@/api/checkin.service";
 import { CheckinContext } from "./CheckinContextDef";
 import { getCurrentTokenPayload } from "@/api/auth.service"
 export const CheckinProvider: React.FC<{ children: React.ReactNode }> = ({
@@ -169,14 +173,43 @@ const result = await submitCheckin({
       setIsSubmitting(false);
     }
   };
-
-  const handleSubmit = () => submitToServer(false);
+const handleSubmit = () => submitToServer(false);
   const handlePartialSubmit = () => submitToServer(true);
+
+  // Autosave por huésped: cuando se invoca nextGuest (transición entre
+  // huéspedes o pasos), persistimos el huésped actual a la BDD.
+  // Idempotente: si ya tiene id hace UPDATE, si no CREATE + companion link.
+  const wrappedActions = {
+    ...actions,
+    nextGuest: (currIdx: number, fromStep: Parameters<typeof actions.nextGuest>[1]) => {
+      const proceed = () => actions.nextGuest(currIdx, fromStep);
+      const guest = state.guests[currIdx];
+      const tieneDatos = !!(guest?.nombre?.trim() || guest?.numDoc?.trim());
+
+      if (!state.bookingId || !tieneDatos) return proceed();
+
+      setIsSubmitting(true);
+      savePartialGuest(state.bookingId, guest, currIdx === 0)
+        .then((newId) => {
+          if (!guest.id) actions.updateGuest(currIdx, "id", newId);
+        })
+        .catch((e) => {
+          if (import.meta.env.DEV)
+            console.warn("[autoSave huésped]", currIdx, e);
+          // No bloqueamos navegación si falla — el submitCheckin final
+          // re-intenta sobre todos los huéspedes.
+        })
+        .finally(() => {
+          setIsSubmitting(false);
+          proceed();
+        });
+    },
+  };
 
   const value = {
     state,
     nav,
-    actions,
+    actions: wrappedActions,
     isLoading,
     submitError,
     isSubmitting,
