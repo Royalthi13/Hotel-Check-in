@@ -527,20 +527,30 @@ useEffect(() => {
   useEffect(() => {
     activeGuestIndexRef.current = activeGuestIndex;
   }, [activeGuestIndex]);
-
-  const goTo = useCallback(
+const goTo = useCallback(
     (nextStep: StepId, dir: NavDirection = "forward", gIdx?: number) => {
       if (isNavigating) return;
       setIsNavigating(true);
       setAllowedSteps((prev) => new Set(prev).add(nextStep));
       isInternalNavRef.current = true;
       setNavDirection(dir);
-      setAppHistory((prev) => [
-        ...prev,
-        { step: nextStep, guestIndex: gIdx ?? activeGuestIndexRef.current },
-      ]);
-      if (dir === "forward") navigate(`/checkin/${token}/${nextStep}`);
-      else navigate(`/checkin/${token}/${nextStep}`, { replace: true });
+
+      // exito = paso terminal: limpiamos history y reemplazamos la URL
+      // para que el back del navegador no lleve a revision/form_*.
+      const isTerminal = nextStep === "exito";
+      const guestIdx = gIdx ?? activeGuestIndexRef.current;
+
+      if (isTerminal) {
+        setAppHistory([{ step: nextStep, guestIndex: guestIdx }]);
+        navigate(`/checkin/${token}/${nextStep}`, { replace: true });
+      } else {
+        setAppHistory((prev) => [
+          ...prev,
+          { step: nextStep, guestIndex: guestIdx },
+        ]);
+        if (dir === "forward") navigate(`/checkin/${token}/${nextStep}`);
+        else navigate(`/checkin/${token}/${nextStep}`, { replace: true });
+      }
       navTimerRef.current = setTimeout(() => setIsNavigating(false), 350);
     },
     [navigate, token, isNavigating],
