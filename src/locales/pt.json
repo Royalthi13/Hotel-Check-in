@@ -173,9 +173,9 @@
     "missing_relationships": "Faltam parentescos a serem preenchidos nos formulários. Revise os dados de todos os hóspedes.",
     "duplicate_doc": "Este documento já foi registrado em outro hóspede.",
     "required_address": "O endereço é obrigatório",
-"required_cp": "O código postal é obrigatório",
-"required_city": "A cidade é obrigatória",
-"city_must_be_selected": "Selecione uma cidade da lista de sugestões"
+    "required_cp": "O código postal é obrigatório",
+    "required_city": "A cidade é obrigatória",
+    "city_must_be_selected": "Selecione uma cidade da lista de sugestões"
   },
   "search": {
     "title_1": "Bem-vindo ao",
@@ -271,6 +271,10 @@
     "error_read": "Não conseguimos ler os dados de forma clara. Certifique-se de que a imagem tem boa iluminação, não está desfocada e não tem reflexos do flash."
   },
   "review": {
+    "missing_data_title": "Faltam dados obrigatórios para enviar o formulário:",
+    "missing_relation": "Falta atribuir um adulto responsável",
+    "main_guest": "Hóspede principal",
+    "companion": "Acompanhante {{count}}",
     "review_data_title": "Revise os seus dados",
     "review_data_sub": "Verifique se todas as informações estão corretas antes de confirmar o pré check-in.",
     "extras_title": "Preferências e extras",

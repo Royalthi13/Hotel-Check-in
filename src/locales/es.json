@@ -179,9 +179,9 @@
     "missing_relationships": "Faltan parentescos por rellenar en los formularios. Revise los datos de todos los huéspedes.",
     "duplicate_doc": "Este documento ya ha sido registrado en otro huésped.",
     "required_address": "La dirección es obligatoria",
-"required_cp": "El código postal es obligatorio",
-"required_city": "La ciudad es obligatoria",
-"city_must_be_selected": "Selecciona una ciudad de la lista de sugerencias"
+    "required_cp": "El código postal es obligatorio",
+    "required_city": "La ciudad es obligatoria",
+    "city_must_be_selected": "Selecciona una ciudad de la lista de sugerencias"
   },
 
   "search": {
@@ -282,6 +282,10 @@
   },
 
   "review": {
+    "missing_data_title": "Faltan datos obligatorios para enviar el formulario:",
+    "missing_relation": "Falta asignar un adulto responsable",
+    "main_guest": "Huésped principal",
+    "companion": "Acompañante {{count}}",
     "review_data_title": "Revise sus datos",
     "review_data_sub": "Compruebe que toda la información es correcta antes de confirmar el pre check-in.",
     "extras_title": "Preferencias y extras",
@@ -331,7 +335,6 @@
     "error_message": "No hemos podido verificar tu reserva. Comprueba el apellido del titular.",
     "switch_to_phone": "Usar teléfono en su lugar",
     "switch_to_email": "Usar email en su lugar"
-
   },
 
   "rooms": {

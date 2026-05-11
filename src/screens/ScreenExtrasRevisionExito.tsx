@@ -40,7 +40,7 @@ export const ScreenFormExtras: React.FC<FormExtrasProps> = ({
           onNext();
         }}
       >
-        <div className="fields" style={{ marginTop: 12 }}>
+        <div className="fields extras-fields-container">
           <div className="divlabel">{t("review.arrival")}</div>
           <Field label={t("review.est_arrival")}>
             <select
@@ -65,9 +65,9 @@ export const ScreenFormExtras: React.FC<FormExtrasProps> = ({
             />
           </Field>
 
-          <Alert variant="info" style={{ marginTop: 8 }}>
-            {t("review.requests_info")}
-          </Alert>
+          <div className="extras-alert-wrapper">
+            <Alert variant="info">{t("review.requests_info")}</Alert>
+          </div>
         </div>
       </form>
       <div className="spacer" />
@@ -84,20 +84,34 @@ export const ScreenFormExtras: React.FC<FormExtrasProps> = ({
 // VALIDACIÓN
 // ═══════════════════════════════════════════════════════════════════════════
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function isGuestValid(g: PartialGuestData, idx: number, t: any): boolean {
+function getGuestErrors(g: PartialGuestData, idx: number, t: any): string[] {
+  const errors: string[] = [];
+
   const personalErrors = validatePersonal({ ...g, isTitular: idx === 0 }, t);
-  if (Object.keys(personalErrors).length > 0) return false;
+  if (Object.keys(personalErrors).length > 0) {
+    errors.push(...(Object.values(personalErrors) as string[]));
+  }
 
   if (!g.esMenor) {
     const contactErrors = validateContacto(g, t);
-    if (Object.keys(contactErrors).length > 0) return false;
+    if (Object.keys(contactErrors).length > 0) {
+      errors.push(...(Object.values(contactErrors) as string[]));
+    }
+  } else {
+    if ((g.relacionesConAdultos ?? []).length === 0) {
+      errors.push(
+        t("review.missing_relation", {
+          defaultValue: "Falta asignar un adulto responsable",
+        }),
+      );
+    }
   }
-  if (g.esMenor && (g.relacionesConAdultos ?? []).length === 0) return false;
-  return true;
+
+  return Array.from(new Set(errors));
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// REVISIÓN (Cero Errores)
+// REVISIÓN
 // ═══════════════════════════════════════════════════════════════════════════
 interface RevisionProps {
   state: CheckinState;
@@ -121,9 +135,24 @@ export const ScreenRevision: React.FC<RevisionProps> = ({
     getRelationships().then(setListaRelaciones).catch(console.error);
   }, []);
 
-  const isDataComplete = guests.every((g, idx) => isGuestValid(g, idx, t));
+  const validationIssues = guests
+    .map((g, idx) => ({
+      guestIndex: idx,
+      name:
+        fullName(g) !== "—"
+          ? fullName(g)
+          : idx === 0
+            ? t("review.main_guest", { defaultValue: "Huésped principal" })
+            : t("review.companion", {
+                count: idx + 1,
+                defaultValue: `Acompañante ${idx + 1}`,
+              }),
+      errors: getGuestErrors(g, idx, t),
+    }))
+    .filter((issue) => issue.errors.length > 0);
 
-  // Traductor seguro para países (Evita el constants.nacionalidades.ESP)
+  const isDataComplete = validationIssues.length === 0;
+
   const traducirPais = useCallback(
     (codigo?: string) => {
       if (!codigo) return "—";
@@ -155,9 +184,9 @@ export const ScreenRevision: React.FC<RevisionProps> = ({
         <p>{t("review.review_data_sub")}</p>
       </div>
 
-      <div style={{ padding: "8px var(--px) 0" }}>
+      <div className="revision-content">
         {reserva && (
-          <div style={{ marginBottom: 12 }}>
+          <div className="reserva-wrapper">
             <ReservationCard reserva={reserva} />
           </div>
         )}
@@ -193,7 +222,6 @@ export const ScreenRevision: React.FC<RevisionProps> = ({
                       [t("forms.nationality"), traducirPais(g.pais)],
                     ];
 
-                    // Si es menor: mostrar de quién depende
                     if (
                       g.esMenor &&
                       (g.relacionesConAdultos ?? []).length > 0
@@ -220,7 +248,6 @@ export const ScreenRevision: React.FC<RevisionProps> = ({
                       });
                     }
 
-                    // Si es adulto: mostrar menores a su cargo
                     if (!g.esMenor && menoresAcargo.length > 0) {
                       menoresAcargo.forEach((m) => {
                         const rel = m.relacionesConAdultos?.find(
@@ -242,7 +269,7 @@ export const ScreenRevision: React.FC<RevisionProps> = ({
                   })()}
                 />
 
-                {/* BLOQUE DOCUMENTACIÓN (TRADUCIDO) */}
+                {/* BLOQUE DOCUMENTACIÓN */}
                 <ConfirmBlock
                   title={
                     idx === 0
@@ -275,7 +302,7 @@ export const ScreenRevision: React.FC<RevisionProps> = ({
           })}
         </div>
 
-        {/* BLOQUE CONTACTO (SÓLO TITULAR) */}
+        {/* BLOQUE CONTACTO */}
         <ConfirmBlock
           title={t("review.contact_address")}
           onEdit={() => onEditStep("form_contacto", 0)}
@@ -313,6 +340,26 @@ export const ScreenRevision: React.FC<RevisionProps> = ({
         )}
       </div>
 
+      {validationIssues.length > 0 && (
+        // Cambiado style por className
+        <div className="validation-errors-wrapper">
+          <Alert variant="err">
+            <strong className="validation-errors-title">
+              {t("review.missing_data_title", {
+                defaultValue: "Faltan datos obligatorios:",
+              })}
+            </strong>
+            <ul className="validation-errors-list">
+              {validationIssues.map((issue) => (
+                <li key={issue.guestIndex}>
+                  <strong>{issue.name}:</strong> {issue.errors.join(" · ")}
+                </li>
+              ))}
+            </ul>
+          </Alert>
+        </div>
+      )}
+
       <div className="chk-area">
         <input
           type="checkbox"
@@ -320,13 +367,11 @@ export const ScreenRevision: React.FC<RevisionProps> = ({
           checked={isConfirmed}
           onChange={(e) => setIsConfirmed(e.target.checked)}
         />
-        <label htmlFor="chk-accept" style={{ cursor: "pointer" }}>
-          {t("review.confirm_data_only")}
-        </label>
+        <label htmlFor="chk-accept">{t("review.confirm_data_only")}</label>
       </div>
 
       <div className="spacer" />
-      <div className="btn-row" style={{ flexDirection: "column", gap: 12 }}>
+      <div className="btn-row col-layout">
         <Button
           variant="primary"
           iconRight={isSubmitting ? undefined : "check"}
@@ -335,11 +380,7 @@ export const ScreenRevision: React.FC<RevisionProps> = ({
         >
           {isSubmitting ? (
             <>
-              <div
-                className="spinner"
-                style={{ width: 18, height: 18, borderWidth: 2 }}
-              />{" "}
-              {t("review.btn_sending")}
+              <div className="spinner spinner-sm" /> {t("review.btn_sending")}
             </>
           ) : (
             t("review.btn_complete_checkin")
@@ -367,15 +408,12 @@ export const ScreenExito: React.FC<{
   const nombreCompleto = [main.nombre, main.apellido].filter(Boolean).join(" ");
   const [copied, setCopied] = useState(false);
 
- const handleCopy = () => {
-    // Calcular el siguiente índice libre (huéspedes con datos reales)
+  const handleCopy = () => {
     const registeredCount = state.guests.filter(
       (g) => g.nombre?.trim() || g.numDoc?.trim(),
     ).length;
 
-    // URL base sin el step /exito + parámetro para que el compañero empiece en el slot correcto
     const parts = window.location.pathname.split("/").filter(Boolean);
-    // ['checkin', '{token}', 'exito'] → tomamos solo ['checkin', '{token}']
     const basePath = "/" + parts.slice(0, 2).join("/");
     const url = `${window.location.origin}${basePath}?guestIndex=${registeredCount}`;
 
@@ -383,10 +421,11 @@ export const ScreenExito: React.FC<{
     setCopied(true);
     setTimeout(() => setCopied(false), 3000);
   };
+
   if (isPartial) {
     return (
       <div className="success-wrap">
-        <div className="success-ring" style={{ borderColor: "var(--primary)" }}>
+        <div className="success-ring primary-border">
           <Icon name="checkC" size={42} color="var(--primary)" />
         </div>
         <h1 className="success-title">{t("success.partial_title")}</h1>
@@ -425,13 +464,7 @@ export const ScreenExito: React.FC<{
               <span>{t("success.room")}</span>
               <span>{reserva.habitacion}</span>
             </div>
-            <div
-              style={{
-                height: 1,
-                background: "var(--border)",
-                margin: "8px 0",
-              }}
-            />
+            <div className="success-divider" />
           </>
         )}
         <div className="si-row">
@@ -461,17 +494,10 @@ export const ScreenExito: React.FC<{
         )}
       </div>
 
-      <div
-        style={{
-          width: "100%",
-          display: "flex",
-          flexDirection: "column",
-          gap: 10,
-        }}
-      >
+      <div className="success-actions-group">
         <Button
           variant="primary"
-          style={{ background: "var(--secondary)" }}
+          className="btn-print"
           onClick={() => window.print()}
         >
           <Icon name="check" size={16} /> {t("success.btn_print")}
@@ -482,7 +508,7 @@ export const ScreenExito: React.FC<{
           </Button>
         )}
       </div>
-      <div className="privacy" style={{ marginTop: 14 }}>
+      <div className="privacy privacy-mt">
         <Icon name="info" size={11} /> {t("success.email_confirmation")}
       </div>
     </div>

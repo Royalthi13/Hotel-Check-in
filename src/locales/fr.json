@@ -173,9 +173,9 @@
     "missing_relationships": "Il manque des liens de parenté à remplir dans les formulaires. Vérifiez les données de tous les clients.",
     "duplicate_doc": "Ce document a déjà été enregistré pour un autre client.",
     "required_address": "L'adresse est obligatoire",
-"required_cp": "Le code postal est obligatoire",
-"required_city": "La ville est obligatoire",
-"city_must_be_selected": "Sélectionnez une ville dans la liste des suggestions"
+    "required_cp": "Le code postal est obligatoire",
+    "required_city": "La ville est obligatoire",
+    "city_must_be_selected": "Sélectionnez une ville dans la liste des suggestions"
   },
   "search": {
     "title_1": "Bienvenue au",
@@ -271,6 +271,10 @@
     "error_read": "Nous n'avons pas pu lire clairement les données. Assurez-vous que l'image a une bonne lumière, n'est pas floue et n'a pas de reflets de flash."
   },
   "review": {
+    "missing_data_title": "Données obligatoires manquantes pour soumettre le formulaire :",
+    "missing_relation": "Il manque l'affectation d'un adulte responsable",
+    "main_guest": "Client principal",
+    "companion": "Accompagnant {{count}}",
     "review_data_title": "Révisez vos données",
     "review_data_sub": "Vérifiez que toutes les informations sont correctes avant de confirmer le pré check-in.",
     "extras_title": "Préférences et suppléments",

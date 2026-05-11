@@ -173,9 +173,9 @@
     "missing_relationships": "In den Formularen fehlen Verwandtschaftsverhältnisse. Bitte überprüfen Sie die Daten aller Gäste.",
     "duplicate_doc": "Dieses Dokument wurde bereits bei einem anderen Gast registriert.",
     "required_address": "Adresse ist erforderlich",
-"required_cp": "Postleitzahl ist erforderlich",
-"required_city": "Stadt ist erforderlich",
-"city_must_be_selected": "Wählen Sie eine Stadt aus der Vorschlagsliste"
+    "required_cp": "Postleitzahl ist erforderlich",
+    "required_city": "Stadt ist erforderlich",
+    "city_must_be_selected": "Wählen Sie eine Stadt aus der Vorschlagsliste"
   },
   "search": {
     "title_1": "Willkommen beim",
@@ -271,6 +271,10 @@
     "error_read": "Wir konnten die Daten nicht klar lesen. Stellen Sie sicher, dass das Bild gutes Licht hat, nicht verschwommen ist und keine Blitzreflexionen aufweist."
   },
   "review": {
+    "missing_data_title": "Fehlende Pflichtangaben zum Absenden des Formulars:",
+    "missing_relation": "Fehlende Zuweisung eines verantwortlichen Erwachsenen",
+    "main_guest": "Hauptgast",
+    "companion": "Begleitperson {{count}}",
     "review_data_title": "Überprüfen Sie Ihre Daten",
     "review_data_sub": "Überprüfen Sie, ob alle Informationen korrekt sind, bevor Sie den Pre-Check-in bestätigen.",
     "extras_title": "Präferenzen und Extras",

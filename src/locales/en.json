@@ -173,9 +173,9 @@
     "missing_relationships": "Missing relationships in the forms. Please review the details of all guests.",
     "duplicate_doc": "This document has already been registered for another guest.",
     "required_address": "Address is required",
-"required_cp": "Zip code is required",
-"required_city": "City is required",
-"city_must_be_selected": "Pick a city from the suggestions list"
+    "required_cp": "Zip code is required",
+    "required_city": "City is required",
+    "city_must_be_selected": "Pick a city from the suggestions list"
   },
   "search": {
     "title_1": "Welcome to",
@@ -271,6 +271,10 @@
     "error_read": "We could not read the details clearly. Make sure the image has good lighting, is not blurry, and has no flash glare."
   },
   "review": {
+    "missing_data_title": "Missing mandatory data to submit the form:",
+    "missing_relation": "Missing responsible adult assignment",
+    "main_guest": "Main guest",
+    "companion": "Companion {{count}}",
     "review_data_title": "Review your details",
     "review_data_sub": "Check that all information is correct before confirming the pre check-in.",
     "extras_title": "Preferences and extras",

@@ -173,9 +173,9 @@
     "missing_relationships": "Mancano i gradi di parentela da compilare nei moduli. Controlla i dati di tutti gli ospiti.",
     "duplicate_doc": "Questo documento è già stato registrato per un altro ospite.",
     "required_address": "L'indirizzo è obbligatorio",
-"required_cp": "Il codice postale è obbligatorio",
-"required_city": "La città è obbligatoria",
-"city_must_be_selected": "Seleziona una città dalla lista dei suggerimenti"
+    "required_cp": "Il codice postale è obbligatorio",
+    "required_city": "La città è obbligatoria",
+    "city_must_be_selected": "Seleziona una città dalla lista dei suggerimenti"
   },
   "search": {
     "title_1": "Benvenuto al",
@@ -271,6 +271,10 @@
     "error_read": "Non siamo riusciti a leggere i dati in modo chiaro. Assicurarsi che l'immagine abbia una buona luce, non sia sfocata e non abbia riflessi del flash."
   },
   "review": {
+    "missing_data_title": "Dati obbligatori mancanti per inviare il modulo:",
+    "missing_relation": "Manca l'assegnazione di un adulto responsabile",
+    "main_guest": "Ospite principale",
+    "companion": "Accompagnatore {{count}}",
     "review_data_title": "Rivedi i tuoi dati",
     "review_data_sub": "Verifichi che tutte le informazioni siano corrette prima di confermare il pre check-in.",
     "extras_title": "Preferenze ed extra",

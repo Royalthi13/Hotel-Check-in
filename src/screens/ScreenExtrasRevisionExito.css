@@ -186,3 +186,68 @@
     padding-top: 56px;
   }
 }
+/* --- ScreenFormExtras --- */
+.extras-fields-container {
+  margin-top: 12px;
+}
+.extras-alert-wrapper {
+  margin-top: 8px;
+}
+
+/* --- ScreenRevision --- */
+.revision-content {
+  padding: 8px var(--px) 0;
+}
+.reserva-wrapper {
+  margin-bottom: 12px;
+}
+.validation-errors-wrapper {
+  padding: 0 var(--px);
+  margin: 16px 0;
+}
+.validation-errors-title {
+  display: block;
+  margin-bottom: 8px;
+}
+.validation-errors-list {
+  margin: 0;
+  padding-left: 20px;
+  font-size: 0.85rem;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.chk-area label {
+  cursor: pointer;
+}
+.btn-row.col-layout {
+  flex-direction: column;
+  gap: 12px;
+}
+.spinner.spinner-sm {
+  width: 18px;
+  height: 18px;
+  border-width: 2px;
+}
+
+/* --- ScreenExito --- */
+.success-ring.primary-border {
+  border-color: var(--primary);
+}
+.success-divider {
+  height: 1px;
+  background: var(--border);
+  margin: 8px 0;
+}
+.success-actions-group {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.btn-print {
+  background: var(--secondary) !important;
+}
+.privacy.privacy-mt {
+  margin-top: 14px;
+}
