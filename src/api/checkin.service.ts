@@ -184,22 +184,13 @@ export async function submitCheckin(
       // Existía antes de esta sesión → PUT
       await updateClient(guest.id, guest);
       registeredInThisSubmit.push(guest.id);
+    } else {
+      // Creado en esta sesión → datos ya correctos del POST, solo contabilizar
+       
+      registeredInThisSubmit.push(guest.id);
     }
   }
-// 6. Marcar reserva completada
-  if (!payload.isCompanion) {
-     try {
-    await updateBookingCheckin(bookingId, {
-      horaLlegada,
-      observaciones,
-      clientId: mainClientId,
-      markCompleted: true,
-    });
-  } catch(e){
-     console.error("ERROR updateBookingCheckin", e);
-      throw e;
-  }
-  }
+
 
   // 7. Comprobar estado
   if (payload.isCompanion) {
