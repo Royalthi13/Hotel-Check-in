@@ -411,5 +411,10 @@
   },
   "bienvenida": {
     "next_guest_alert": "Inizio della registrazione per l'Ospite {{count}}"
+  },
+  "errors": {
+    "connection": "Impossibile connettersi al server. Controlla la tua connessione.",
+    "staff_session_expired": "Sessione di reception scaduta. Effettua nuovamente l'accesso.",
+    "guest_session_expired": "Sessione scaduta. Accedi nuovamente tramite il link della tua prenotazione."
   }
 }

@@ -411,5 +411,10 @@
   },
   "bienvenida": {
     "next_guest_alert": "Registrierung für Gast {{count}} wird gestartet"
+  },
+  "errors": {
+    "connection": "Keine Verbindung zum Server möglich. Bitte überprüfen Sie Ihre Verbindung.",
+    "staff_session_expired": "Rezeptionssitzung abgelaufen. Bitte melden Sie sich erneut an.",
+    "guest_session_expired": "Sitzung abgelaufen. Bitte greifen Sie über Ihren Buchungslink erneut zu."
   }
 }

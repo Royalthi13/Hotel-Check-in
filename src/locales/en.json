@@ -412,5 +412,10 @@
   },
   "bienvenida": {
     "next_guest_alert": "Starting registration for Guest {{count}}"
+  },
+  "errors": {
+    "connection": "Could not connect to the server. Please check your connection.",
+    "staff_session_expired": "Reception session expired. Please log in again.",
+    "guest_session_expired": "Session expired. Please access again using your booking link."
   }
 }

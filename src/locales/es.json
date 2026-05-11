@@ -432,5 +432,10 @@
   },
   "bienvenida": {
     "next_guest_alert": "Iniciando el registro del Huésped {{count}}"
+  },
+  "errors": {
+    "connection": "No se pudo conectar con el servidor. Comprueba tu conexión.",
+    "staff_session_expired": "Sesión de recepción expirada. Inicie sesión de nuevo.",
+    "guest_session_expired": "Sesión expirada. Acceda de nuevo mediante su enlace de reserva."
   }
 }

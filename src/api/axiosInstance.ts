@@ -1,16 +1,17 @@
 import axios from "axios";
 import type { AxiosError, InternalAxiosRequestConfig } from "axios";
+import i18n from "@/i18n";
 
 // ── Claves pre-checkin (huésped) ──────────────────────────────────────────────
-const TOKEN_KEY       = "lumina_access_token";
-const EXPIRY_KEY      = "lumina_token_expiry";
+const TOKEN_KEY = "lumina_access_token";
+const EXPIRY_KEY = "lumina_token_expiry";
 const ACCESS_CODE_KEY = "lumina_access_code";
-const DEFAULT_TTL     = 30 * 60 * 1000; // 30 min
+const DEFAULT_TTL = 30 * 60 * 1000; // 30 min
 
 // ── Claves staff / kiosko ─────────────────────────────────────────────────────
-const STAFF_TOKEN_KEY  = "lumina_staff_token";
+const STAFF_TOKEN_KEY = "lumina_staff_token";
 const STAFF_EXPIRY_KEY = "lumina_staff_expiry";
-const STAFF_TTL        = 8 * 60 * 60 * 1000; // 8 horas
+const STAFF_TTL = 8 * 60 * 60 * 1000; // 8 horas
 
 const BASE_URL = import.meta.env.VITE_API_URL
   ? `${import.meta.env.VITE_API_URL}`
@@ -34,16 +35,15 @@ apiAuth.interceptors.request.use((config: InternalAxiosRequestConfig) => {
 
 const onResponseError = (error: AxiosError) => {
   if (error.response) {
-    const data   = error.response.data as Record<string, unknown> | undefined;
-    const detail = data?.detail ?? data?.message ?? `Error ${error.response.status}`;
+    const data = error.response.data as Record<string, unknown> | undefined;
+    const detail =
+      data?.detail ?? data?.message ?? `Error ${error.response.status}`;
     const err = new Error(String(detail)) as Error & { status?: number };
     err.status = error.response.status;
     return Promise.reject(err);
   }
   if (error.request) {
-    return Promise.reject(
-      new Error("No se pudo conectar con el servidor. Comprueba tu conexión."),
-    );
+    return Promise.reject(new Error(i18n.t("errors.connection")));
   }
   return Promise.reject(error);
 };
@@ -58,13 +58,13 @@ apiAuth.interceptors.response.use(
         clearStaffToken();
         // Redirigimos al login del kiosko
         window.location.replace("/checkin/kiosko/tablet_login");
-        return Promise.reject(new Error("Sesión de recepción expirada. Inicie sesión de nuevo."));
+        return Promise.reject(
+          new Error(i18n.t("errors.staff_session_expired")),
+        );
       }
       clearToken();
       window.dispatchEvent(new CustomEvent("AUTH_EXPIRED"));
-      return Promise.reject(
-        new Error("Sesión expirada. Acceda de nuevo mediante su enlace de reserva."),
-      );
+      return Promise.reject(new Error(i18n.t("errors.guest_session_expired")));
     }
     return onResponseError(err);
   },
@@ -77,14 +77,14 @@ export const saveToken = (
   ttlSeconds?: number,
   accessCode?: string,
 ): void => {
-  const ttlMs  = ttlSeconds ? ttlSeconds * 1000 : DEFAULT_TTL;
+  const ttlMs = ttlSeconds ? ttlSeconds * 1000 : DEFAULT_TTL;
   const expiry = String(Date.now() + ttlMs);
   if (persistent) {
-    localStorage.setItem(TOKEN_KEY,  token);
+    localStorage.setItem(TOKEN_KEY, token);
     localStorage.setItem(EXPIRY_KEY, expiry);
     if (accessCode) localStorage.setItem(ACCESS_CODE_KEY, accessCode);
   } else {
-    sessionStorage.setItem(TOKEN_KEY,  token);
+    sessionStorage.setItem(TOKEN_KEY, token);
     sessionStorage.setItem(EXPIRY_KEY, expiry);
     if (accessCode) sessionStorage.setItem(ACCESS_CODE_KEY, accessCode);
   }
@@ -100,11 +100,14 @@ export const clearToken = (): void => {
 };
 
 export const getStoredAccessCode = (): string | null =>
-  sessionStorage.getItem(ACCESS_CODE_KEY) ?? localStorage.getItem(ACCESS_CODE_KEY);
+  sessionStorage.getItem(ACCESS_CODE_KEY) ??
+  localStorage.getItem(ACCESS_CODE_KEY);
 
 export const getToken = (): string | null => {
   const expiry = Number(
-    sessionStorage.getItem(EXPIRY_KEY) ?? localStorage.getItem(EXPIRY_KEY) ?? "0",
+    sessionStorage.getItem(EXPIRY_KEY) ??
+      localStorage.getItem(EXPIRY_KEY) ??
+      "0",
   );
   if (expiry && Date.now() > expiry) {
     clearToken();
@@ -115,7 +118,7 @@ export const getToken = (): string | null => {
 
 // ── Helpers token staff (kiosko / recepción) ──────────────────────────────────
 export const saveStaffToken = (token: string): void => {
-  localStorage.setItem(STAFF_TOKEN_KEY,  token);
+  localStorage.setItem(STAFF_TOKEN_KEY, token);
   localStorage.setItem(STAFF_EXPIRY_KEY, String(Date.now() + STAFF_TTL));
 };
 

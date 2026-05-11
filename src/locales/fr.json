@@ -412,5 +412,10 @@
   },
   "bienvenida": {
     "next_guest_alert": "Début de l'enregistrement pour le Client {{count}}"
+  },
+  "errors": {
+    "connection": "Impossible de se connecter au serveur. Veuillez vérifier votre connexion.",
+    "staff_session_expired": "La session de réception a expiré. Veuillez vous reconnecter.",
+    "guest_session_expired": "Session expirée. Veuillez y accéder à nouveau via votre lien de réservation."
   }
 }
