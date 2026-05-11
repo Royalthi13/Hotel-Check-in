@@ -17,14 +17,11 @@ const BASE_URL = import.meta.env.VITE_API_URL
   ? `${import.meta.env.VITE_API_URL}`
   : "/api";
 
-// Sin auth — solo para /auth/token
+// ── ÚNICA INSTANCIA PARA TODAS LAS PETICIONES ──
 export const api = axios.create({ baseURL: BASE_URL, timeout: 15_000 });
 
-// Con auth — añade Bearer automáticamente (pre-checkin O staff, lo que esté disponible)
-export const apiAuth = axios.create({ baseURL: BASE_URL, timeout: 15_000 });
-
-apiAuth.interceptors.request.use((config: InternalAxiosRequestConfig) => {
-  // Primero intentamos el token de staff (kiosko), luego el de pre-checkin (huésped)
+// 1. Interceptor de Petición (Request): Añade el token automáticamente si existe
+api.interceptors.request.use((config: InternalAxiosRequestConfig) => {
   const token = getStaffToken() ?? getToken();
   if (token) {
     config.headers = config.headers ?? {};
@@ -33,40 +30,52 @@ apiAuth.interceptors.request.use((config: InternalAxiosRequestConfig) => {
   return config;
 });
 
-const onResponseError = (error: AxiosError) => {
+// Función auxiliar para formatear los errores visualmente
+const parseError = (error: AxiosError) => {
   if (error.response) {
     const data = error.response.data as Record<string, unknown> | undefined;
     const detail =
       data?.detail ?? data?.message ?? `Error ${error.response.status}`;
     const err = new Error(String(detail)) as Error & { status?: number };
     err.status = error.response.status;
-    return Promise.reject(err);
+    return err;
   }
   if (error.request) {
-    return Promise.reject(new Error(i18n.t("errors.connection")));
+    return new Error(i18n.t("errors.connection"));
   }
-  return Promise.reject(error);
+  return error;
 };
 
-api.interceptors.response.use((r) => r, onResponseError);
-apiAuth.interceptors.response.use(
-  (r) => r,
-  (err: AxiosError) => {
-    if (err.response?.status === 401) {
-      // Si era una sesión de staff, limpiamos solo el token de staff
+// 2. Interceptor de Respuesta (Response): Detecta errores globales como el 401
+api.interceptors.response.use(
+  (response) => response,
+  (error: AxiosError) => {
+    // Si da 401 (No autorizado) y la URL NO es la de login (para no bloquear intentos fallidos)
+    if (
+      error.response?.status === 401 &&
+      !error.config?.url?.includes("login")
+    ) {
+      // Caso A: Caducó el Kiosko
       if (getStaffToken()) {
         clearStaffToken();
-        // Redirigimos al login del kiosko
         window.location.replace("/checkin/kiosko/tablet_login");
         return Promise.reject(
           new Error(i18n.t("errors.staff_session_expired")),
         );
       }
-      clearToken();
-      window.dispatchEvent(new CustomEvent("AUTH_EXPIRED"));
-      return Promise.reject(new Error(i18n.t("errors.guest_session_expired")));
+
+      // Caso B: Caducó el Huésped
+      if (getToken()) {
+        clearToken();
+        window.dispatchEvent(new CustomEvent("AUTH_EXPIRED"));
+        return Promise.reject(
+          new Error(i18n.t("errors.guest_session_expired")),
+        );
+      }
     }
-    return onResponseError(err);
+
+    // Si es otro error (404, 500...), se procesa con la función auxiliar
+    return Promise.reject(parseError(error));
   },
 );
 
