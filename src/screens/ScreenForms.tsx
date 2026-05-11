@@ -39,17 +39,8 @@ const inputSx = {
   },
   "& .MuiOutlinedInput-notchedOutline": { borderColor: "var(--border)" },
 };
-<<<<<<< Updated upstream
-const COD_TO_FRONTEND: Record<string, string> = {
-  NIF: "DNI",
-  NIE: "NIE",
-  CIF: "CIF",
-  PAS: "Pasaporte",
-  OTRO: "Otro",
-};
-=======
 
->>>>>>> Stashed changes
+
 
 const modalPaperSx = {
   borderRadius: "16px",
