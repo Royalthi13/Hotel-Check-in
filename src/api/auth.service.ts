@@ -47,9 +47,12 @@ export async function requestPreCheckinToken(
   if (email?.trim()) body.email = email.trim();
   if (phone?.trim()) body.phone = phone.trim();
   const { data } = await api.post("/pre-checkin/request-token", body);
+  if (!data || !data.access_token) {
+    throw new Error("No se ha recibido un token válido desde el servidor.");
+  }
   saveToken(data.access_token, false, data.expires_in, accessCode);
   const payload = parseTokenPayload(data.access_token);
-  if (!payload) throw new Error("Token inválido");
+  if (!payload) throw new Error("Token inválido tras ser decodificado");
   return payload;
 }
 
