@@ -1,4 +1,4 @@
-import { apiAuth } from "./axiosInstance";
+import { api } from "./axiosInstance";
 import type { Reserva } from "@/types";
 import { getClientById } from "./clients.service";
 export interface BookingSearch {
@@ -48,7 +48,7 @@ export async function getBookingById(bookingId: string | number): Promise<{
   raw: BookingSearch;
   isAlreadyCheckedIn: boolean;
 }> {
-  const { data } = await apiAuth.get<BookingSearch>(`/bookings/${bookingId}`);
+  const { data } = await api.get<BookingSearch>(`/bookings/${bookingId}`);
   return {
     reserva: toReserva(data),
     clientId: data.client_id ?? null,
@@ -56,11 +56,17 @@ export async function getBookingById(bookingId: string | number): Promise<{
     raw: data,
     isAlreadyCheckedIn: data.pre_checking === true,
   };
-}export async function searchBookingByConfirmation(
+}
+export async function searchBookingByConfirmation(
   query: string,
   contactoInput: string,
-): Promise<{ reserva: Reserva; clientId: number | null; bookingId: number } | null> {
-  let resultEncontrado: Awaited<ReturnType<typeof getBookingById>> | null = null;
+): Promise<{
+  reserva: Reserva;
+  clientId: number | null;
+  bookingId: number;
+} | null> {
+  let resultEncontrado: Awaited<ReturnType<typeof getBookingById>> | null =
+    null;
   try {
     resultEncontrado = await getBookingById(query);
   } catch (e) {
@@ -82,7 +88,7 @@ export async function getBookingById(bookingId: string | number): Promise<{
 
   // Cargamos el cliente titular y verificamos email o últimas 3 cifras del teléfono
   try {
-  const titular = await getClientById(resultEncontrado.clientId);
+    const titular = await getClientById(resultEncontrado.clientId);
 
     const input = contactoInput.trim().toLowerCase();
     const onlyDigits = (s: string) => s.replace(/\D/g, "");
@@ -95,7 +101,9 @@ export async function getBookingById(bookingId: string | number): Promise<{
     const phoneMatch =
       phoneDigits.length >= 3 &&
       inputDigits.length >= 3 &&
-      phoneDigits.endsWith(inputDigits.slice(-Math.min(inputDigits.length, phoneDigits.length)));
+      phoneDigits.endsWith(
+        inputDigits.slice(-Math.min(inputDigits.length, phoneDigits.length)),
+      );
 
     if (emailMatch || phoneMatch) {
       return {
@@ -131,7 +139,7 @@ export async function updateBookingCheckin(
 ): Promise<void> {
   const current =
     existingRaw ??
-    (await apiAuth.get<BookingSearch>(`/bookings/${bookingId}`)).data;
+    (await api.get<BookingSearch>(`/bookings/${bookingId}`)).data;
 
   const completing = payload.markCompleted === true;
 
@@ -150,7 +158,7 @@ export async function updateBookingCheckin(
     }
   }
 
-  await apiAuth.put(`/bookings/${bookingId}`, {
+  await api.put(`/bookings/${bookingId}`, {
     room_id: current.room_id,
     check_in: current.check_in,
     check_out: current.check_out,

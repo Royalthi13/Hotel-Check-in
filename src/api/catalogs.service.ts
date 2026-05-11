@@ -1,4 +1,4 @@
-import { apiAuth } from "./axiosInstance";
+import { api } from "./axiosInstance";
 import type { RelacionDB } from "@/types";
 
 // ── 1. INTERFACES (La forma de los datos) ──────────────────────────
@@ -27,7 +27,7 @@ export async function getCountries(): Promise<CountryResponse[]> {
   // Si ya los tenemos en memoria, los devolvemos al instante
   if (cache.countries) return cache.countries;
 
-  const { data } = await apiAuth.get<CountryResponse[]>("/countries");
+  const { data } = await api.get<CountryResponse[]>("/countries");
   const result = Array.isArray(data) ? data : [];
 
   if (result.length > 0) {
@@ -42,7 +42,7 @@ export async function getCountries(): Promise<CountryResponse[]> {
 export async function getDocumentTypes(): Promise<DocumentTypeResponse[]> {
   if (cache.documentTypes) return cache.documentTypes;
 
-  const { data } = await apiAuth.get<DocumentTypeResponse[]>("/documents_type");
+  const { data } = await api.get<DocumentTypeResponse[]>("/documents_type");
   const result = Array.isArray(data) ? data : [];
 
   if (result.length > 0) {
@@ -55,7 +55,7 @@ export async function getDocumentTypes(): Promise<DocumentTypeResponse[]> {
 export async function getRelationships(): Promise<RelacionDB[]> {
   if (cache.relationships) return cache.relationships;
 
-  const { data } = await apiAuth.get<RelacionDB[]>("/relationships");
+  const { data } = await api.get<RelacionDB[]>("/relationships");
   const result = Array.isArray(data) ? data : [];
 
   if (result.length > 0) {
@@ -64,5 +64,3 @@ export async function getRelationships(): Promise<RelacionDB[]> {
 
   return result;
 }
-
-

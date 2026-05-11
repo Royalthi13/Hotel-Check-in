@@ -1,4 +1,4 @@
-import { apiAuth } from "./axiosInstance";
+import { api } from "./axiosInstance";
 
 export interface CompanionResponse {
   id: number;
@@ -17,7 +17,7 @@ export interface CompanionPayload {
 export async function getCompanionsByBooking(
   bookingId: number,
 ): Promise<CompanionResponse[]> {
-  const { data, status } = await apiAuth.get<CompanionResponse[]>(
+  const { data, status } = await api.get<CompanionResponse[]>(
     `/companions/booking/${bookingId}`,
     { validateStatus: (s) => s === 200 || s === 204 },
   );
@@ -30,6 +30,5 @@ export async function getCompanionsByBooking(
 export async function createCompanion(
   payload: CompanionPayload,
 ): Promise<void> {
-  await apiAuth.post("/companions", payload);
+  await api.post("/companions", payload);
 }
-

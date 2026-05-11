@@ -1,4 +1,4 @@
-import { apiAuth } from "./axiosInstance";
+import { api } from "./axiosInstance";
 
 export interface CityResult {
   codcity: string;
@@ -13,7 +13,7 @@ export async function searchCitiesByName(name: string): Promise<CityResult[]> {
   if (!key || key.length < 2) return [];
   if (searchCache.has(key)) return searchCache.get(key)!;
 
-  const { data, status } = await apiAuth.get<CityResult[]>(
+  const { data, status } = await api.get<CityResult[]>(
     `/cities/name/${encodeURIComponent(key)}`,
     { validateStatus: (s) => s === 200 || s === 204 },
   );
@@ -22,5 +22,3 @@ export async function searchCitiesByName(name: string): Promise<CityResult[]> {
   searchCache.set(key, results);
   return results;
 }
-
-
