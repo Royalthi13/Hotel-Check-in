@@ -282,7 +282,7 @@ export function checkinReducer(
       return { ...state, horaLlegada: action.value };
     case "SET_OBSERVACIONES":
       return { ...state, observaciones: action.value };
-   
+
     case "RESET":
       return buildEmptyState(state.appMode);
     default:
@@ -311,19 +311,22 @@ export function useCheckin(tokenUrl?: string, stepUrl?: string) {
     } catch (e) {
       console.warn("No se pudo cargar el historial", e);
     }
-if (stepUrl && VALID_STEPS.includes(stepUrl as StepId)) {
+    if (stepUrl && VALID_STEPS.includes(stepUrl as StepId)) {
       const stepExists = storedHistory.some((h) => h.step === stepUrl);
       if (!stepExists) {
         // Si viene de enlace compartido, usar el guestIndex del URL
         const urlGuestIdx = getCompanionGuestIndexFromUrl() ?? 0;
-        return [...storedHistory, { step: stepUrl as StepId, guestIndex: urlGuestIdx }];
+        return [
+          ...storedHistory,
+          { step: stepUrl as StepId, guestIndex: urlGuestIdx },
+        ];
       }
     }
     return storedHistory;
   });
 
   const [allowedSteps, setAllowedSteps] = useState<Set<StepId>>(() => {
-    let validStored: StepId[] = ["inicio", "tablet_buscar"];
+    let validStored: StepId[] = ["inicio", "tablet_buscar", "revision"];
     try {
       const raw = localStorage.getItem(`allowedSteps_${token}`);
       if (raw) {
@@ -352,8 +355,11 @@ if (stepUrl && VALID_STEPS.includes(stepUrl as StepId)) {
   const [isLoading, setIsLoading] = useState(token !== "new");
   const [navDirection, setNavDirection] = useState<NavDirection>("forward");
   const [isNavigating, setIsNavigating] = useState(false);
-// Índice de huésped que este dispositivo debe rellenar (viene de ?guestIndex=N)
-  const companionGuestIndexRef = useRef<number | null>(getCompanionGuestIndexFromUrl());  const stateRef = useRef(state);
+  // Índice de huésped que este dispositivo debe rellenar (viene de ?guestIndex=N)
+  const companionGuestIndexRef = useRef<number | null>(
+    getCompanionGuestIndexFromUrl(),
+  );
+  const stateRef = useRef(state);
   const isInternalNavRef = useRef(false);
   const navigateRef = useRef(navigate);
   const navTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -408,7 +414,7 @@ if (stepUrl && VALID_STEPS.includes(stepUrl as StepId)) {
     (action: CheckinAction) => setState((prev) => checkinReducer(prev, action)),
     [],
   );
-useEffect(() => {
+  useEffect(() => {
     if (token === "new") {
       setIsLoading(false);
       return;
@@ -418,7 +424,7 @@ useEffect(() => {
       // Sin token JWT válido en storage → la pantalla de verificación lo conseguirá.
       // Aquí solo cargamos cuando ya tenemos token.
       const payload = getCurrentTokenPayload();
-      
+
       if (!payload) {
         if (!cancelled) setIsLoading(false);
         return;
@@ -445,7 +451,10 @@ useEffect(() => {
           });
         }
         // Rellenar el array de guests hasta numHuespedes para que los slots existan
-        dispatch({ type: "SET_NUM_PERSONAS", total: result.reserva.numHuespedes });
+        dispatch({
+          type: "SET_NUM_PERSONAS",
+          total: result.reserva.numHuespedes,
+        });
 
         // ── Dispositivo compañero ─────────────────────────────────────────────
         const companionIdx = companionGuestIndexRef.current;
@@ -453,7 +462,7 @@ useEffect(() => {
           companionIdx !== null &&
           result.knownGuest?.id &&
           companionIdx < result.reserva.numHuespedes &&
-          stepUrl !== "bienvenida"   // evita bucle si ya redirigimos
+          stepUrl !== "bienvenida" // evita bucle si ya redirigimos
         ) {
           const newHistory: HistoryEntry[] = [
             { step: "bienvenida", guestIndex: companionIdx },
@@ -471,7 +480,9 @@ useEffect(() => {
             }),
           );
           setAppHistory(newHistory);
-          setAllowedSteps(new Set<StepId>(["inicio", "bienvenida", "tablet_buscar"]));
+          setAllowedSteps(
+            new Set<StepId>(["inicio", "bienvenida", "tablet_buscar"]),
+          );
           // Preservar ?guestIndex en la URL para sobrevivir el remount
           navigateRef.current(
             `/checkin/${token}/bienvenida?guestIndex=${companionIdx}`,
@@ -527,7 +538,7 @@ useEffect(() => {
   useEffect(() => {
     activeGuestIndexRef.current = activeGuestIndex;
   }, [activeGuestIndex]);
-const goTo = useCallback(
+  const goTo = useCallback(
     (nextStep: StepId, dir: NavDirection = "forward", gIdx?: number) => {
       if (isNavigating) return;
       setIsNavigating(true);
@@ -596,7 +607,7 @@ const goTo = useCallback(
         if (nextM >= 0) return goTo("form_relaciones", "forward", nextM);
         return goTo("form_extras", "forward", 0);
       };
-// Dispositivo compañero: al terminar su propio huésped va a extras,
+      // Dispositivo compañero: al terminar su propio huésped va a extras,
       // no intenta rellenar el siguiente (que es de otro dispositivo)
       if (
         from === "form_contacto" &&
@@ -606,6 +617,11 @@ const goTo = useCallback(
       ) {
         return goTo("form_extras", "forward", 0);
       }
+
+      if (from === "huesped_intermedio") {
+        return goTo("bienvenida", "forward", currIdx + 1);
+      }
+
       if (from === "form_personal") {
         const esMenor = guests[currIdx].esMenor;
 
@@ -627,7 +643,7 @@ const goTo = useCallback(
         }
 
         if (currIdx + 1 < numPersonas) {
-          return goTo("bienvenida", "forward", currIdx + 1);
+          return goTo("huesped_intermedio", "forward", currIdx);
         }
         return goToFirstMinorOrExtras();
       }

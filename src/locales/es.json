@@ -415,5 +415,15 @@
     ],
     "footer": "Para más detalles, puede solicitar el documento completo en recepción.",
     "accept_check": "He leído la información legal y acepto el tratamiento de mis datos."
+  },
+
+  "huesped_intermedio": {
+    "title": "¡Datos guardados!",
+    "subtitle": "La información de este huésped se ha registrado correctamente. ¿Desea continuar con la siguiente persona o guardar el progreso y enviar un enlace para que lo complete el acompañante?",
+    "btn_continue": "Continuar con la siguiente persona",
+    "btn_link": "Guardar y enviar enlace"
+  },
+  "bienvenida": {
+    "next_guest_alert": "Iniciando el registro del Huésped {{count}}"
   }
 }
