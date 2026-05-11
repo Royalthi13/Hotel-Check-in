@@ -135,6 +135,9 @@ export const ScreenRevision: React.FC<RevisionProps> = ({
     getRelationships().then(setListaRelaciones).catch(console.error);
   }, []);
 
+  const fullName = (g: PartialGuestData) =>
+    [g.nombre, g.apellido, g.apellido2].filter(Boolean).join(" ") || "—";
+
   const validationIssues = guests
     .map((g, idx) => ({
       guestIndex: idx,
@@ -173,9 +176,6 @@ export const ScreenRevision: React.FC<RevisionProps> = ({
     },
     [t, i18n.language],
   );
-
-  const fullName = (g: PartialGuestData) =>
-    [g.nombre, g.apellido, g.apellido2].filter(Boolean).join(" ") || "—";
 
   return (
     <>
