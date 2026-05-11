@@ -147,7 +147,7 @@ export const ScreenRevision: React.FC<RevisionProps> = ({
           : idx === 0
             ? t("review.main_guest", { defaultValue: "Huésped principal" })
             : t("review.companion", {
-                count: idx + 1,
+                count: idx,
                 defaultValue: `Acompañante ${idx + 1}`,
               }),
       errors: getGuestErrors(g, idx, t),
@@ -208,7 +208,7 @@ export const ScreenRevision: React.FC<RevisionProps> = ({
                   title={
                     idx === 0
                       ? t("review.main_guest_personal")
-                      : t("review.companion_personal", { count: idx + 1 })
+                      : t("review.companion_personal", { count: idx })
                   }
                   onEdit={() => onEditStep("form_personal", idx)}
                   rows={((): Array<[string, string | null]> => {
@@ -232,7 +232,9 @@ export const ScreenRevision: React.FC<RevisionProps> = ({
                           ? [adult.nombre, adult.apellido]
                               .filter(Boolean)
                               .join(" ")
-                          : `Adulto ${r.adultoIndex + 1}`;
+                          : r.adultoIndex === 0
+                            ? t("review.main_guest")
+                            : t("review.companion", { count: r.adultoIndex });
                         const relDb = listaRelaciones.find(
                           (db) => db.codrelation === r.parentesco,
                         );
@@ -274,7 +276,7 @@ export const ScreenRevision: React.FC<RevisionProps> = ({
                   title={
                     idx === 0
                       ? t("review.main_guest_doc")
-                      : t("review.companion_doc", { count: idx + 1 })
+                      : t("review.companion_doc", { count: idx })
                   }
                   onEdit={() => onEditStep("form_personal", idx)}
                   rows={[
