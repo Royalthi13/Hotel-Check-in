@@ -39,6 +39,11 @@ export const CheckinProvider: React.FC<{ children: React.ReactNode }> = ({
     }
     return true;
   });
+const latestStateRef = React.useRef(state);
+  React.useEffect(() => { latestStateRef.current = state; }, [state]);
+
+// IDs de clientes creados en ESTA sesión — tracked para evitar PUT innecesarios en submit
+  const sessionCreatedIdsRef = React.useRef<Set<number>>(new Set());
 
   const [legalPassed, setLegalPassed] = useState(
     () => sessionStorage.getItem(`legalPassed_${token}`) === "true",
@@ -126,10 +131,10 @@ export const CheckinProvider: React.FC<{ children: React.ReactNode }> = ({
     try {
       const { bookingId, clientId } = getBackendIds();
 
-      if (isPartial) {
-     const newClientId = await savePartialCheckin(
+     if (isPartial) {
+        const newClientId = await savePartialCheckin(
           clientId,
-          state.guests[0],
+          latestStateRef.current.guests[0],
         );
         // Sincronizamos el nuevo clientId en el state para futuros submits
         if (!state.guests[0]?.id) {
@@ -139,12 +144,17 @@ export const CheckinProvider: React.FC<{ children: React.ReactNode }> = ({
         actions.goTo("exito", "forward");
         return;
       }
-const result = await submitCheckin({
+const isCompanion =
+        new URLSearchParams(window.location.search).get("guestIndex") !== null;
+
+      const result = await submitCheckin({
         bookingId,
         clientId,
-        guests: state.guests,
-        horaLlegada: state.horaLlegada,
-        observaciones: state.observaciones,
+        guests: latestStateRef.current.guests,
+        horaLlegada: latestStateRef.current.horaLlegada,
+        observaciones: latestStateRef.current.observaciones,
+        sessionCreatedIds: sessionCreatedIdsRef.current,
+        isCompanion,
       });
 // Si todavía quedan personas por registrar → pantalla parcial con botón compartir
       setIsPartialSuccess(!result.isComplete);
@@ -152,12 +162,14 @@ const result = await submitCheckin({
       // Limpieza completa: los keys del wizard viven en localStorage
       // (los escribe useCheckin.ts), pero por si acaso barremos también
       // sessionStorage para no dejar restos de versiones anteriores.
-      SESSION_KEYS_TO_CLEAR.forEach((key) => {
+   SESSION_KEYS_TO_CLEAR.forEach((key) => {
         localStorage.removeItem(key);
         sessionStorage.removeItem(key);
       });
       sessionStorage.removeItem(PERSISTENCE_KEY);
       localStorage.removeItem(PERSISTENCE_KEY);
+      // Limpiar el set de ids de sesión
+      sessionCreatedIdsRef.current.clear();
 
       actions.goTo("exito", "forward");
     } catch (err: unknown) {
@@ -183,15 +195,17 @@ const handleSubmit = () => submitToServer(false);
     ...actions,
     nextGuest: (currIdx: number, fromStep: Parameters<typeof actions.nextGuest>[1]) => {
       const proceed = () => actions.nextGuest(currIdx, fromStep);
-      const guest = state.guests[currIdx];
+      const guest = latestStateRef.current.guests[currIdx];
       const tieneDatos = !!(guest?.nombre?.trim() || guest?.numDoc?.trim());
+     if (!state.bookingId || !tieneDatos || currIdx !== 0) return proceed();
 
-      if (!state.bookingId || !tieneDatos) return proceed();
-
-      setIsSubmitting(true);
-      savePartialGuest(state.bookingId, guest, currIdx === 0)
-        .then((newId) => {
-          if (!guest.id) actions.updateGuest(currIdx, "id", newId);
+ setIsSubmitting(true);
+ savePartialGuest(latestStateRef.current.bookingId ?? state.bookingId, guest, currIdx === 0)
+       .then((newId) => {
+          if (!guest.id) {
+            sessionCreatedIdsRef.current.add(newId);
+            actions.updateGuest(currIdx, "id", newId);
+          }
         })
         .catch((e) => {
           if (import.meta.env.DEV)

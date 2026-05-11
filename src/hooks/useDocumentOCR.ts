@@ -359,7 +359,7 @@ function mrzToGuest(parsed: ParseResult): Partial<PartialGuestData> {
 
     if (match) {
       out.numDoc = match[1].toUpperCase();
-      out.tipoDoc = /^[XYZ]/i.test(match[1]) ? "NIE" : "DNI";
+     out.tipoDoc = /^[XYZ]/i.test(match[1]) ? "NIE" : "NIF";
       out.soporteDoc = soporte;
     } else {
       let cleaned = optionalFull.replace(/\s+/g, "");
@@ -367,12 +367,12 @@ function mrzToGuest(parsed: ParseResult): Partial<PartialGuestData> {
         cleaned = cleaned.substring(1);
       out.numDoc = cleaned.substring(0, 9);
       out.soporteDoc = soporte;
-      out.tipoDoc = natCode === "ESP" ? "DNI" : "Otro";
+      out.tipoDoc = natCode === "ESP" ? "NIF" : "OTRO";
     }
-  } else if (parsed.format === "TD3") {
+ } else if (parsed.format === "TD3") {
     const passNum = (f.documentNumber ?? "").replace(/<+$/g, "").trim();
     if (passNum) {
-      out.tipoDoc = "Pasaporte";
+      out.tipoDoc = "PAS";
       out.numDoc = passNum;
     }
   }

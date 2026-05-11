@@ -218,8 +218,13 @@ export function checkinReducer(
     case "UPDATE_GUEST": {
       const guests = [...state.guests];
       let finalValue = action.value;
-      if (typeof finalValue === "string")
+    const FREE_TEXT_FIELDS: (keyof PartialGuestData)[] = [
+        "direccion", "email", "telefono", "ciudad", "provincia",
+        "cp", "observations", "numDoc", "soporteDoc",
+      ];
+      if (typeof finalValue === "string" && !FREE_TEXT_FIELDS.includes(action.key)) {
         finalValue = finalValue.replace(/\s+/g, " ").trim();
+      }
       const updated = { ...guests[action.index], [action.key]: finalValue };
       if (action.key === "fechaNac" && typeof finalValue === "string") {
         const parsed = dayjs(finalValue);

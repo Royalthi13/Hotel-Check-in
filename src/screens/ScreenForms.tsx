@@ -39,6 +39,7 @@ const inputSx = {
   },
   "& .MuiOutlinedInput-notchedOutline": { borderColor: "var(--border)" },
 };
+<<<<<<< Updated upstream
 const COD_TO_FRONTEND: Record<string, string> = {
   NIF: "DNI",
   NIE: "NIE",
@@ -46,6 +47,9 @@ const COD_TO_FRONTEND: Record<string, string> = {
   PAS: "Pasaporte",
   OTRO: "Otro",
 };
+=======
+
+>>>>>>> Stashed changes
 
 const modalPaperSx = {
   borderRadius: "16px",
@@ -103,19 +107,23 @@ export const ScreenFormPersonal: React.FC = () => {
     getDocumentTypes()
       .then((tipos) =>
         setTiposDoc(
-          tipos.map((tipo) => ({
-            value: COD_TO_FRONTEND[tipo.coddoc] ?? tipo.coddoc,
-            label: tipo.name,
-          })),
+          tipos
+            .filter((tipo) => tipo.coddoc !== "CIF")
+            .map((tipo) => ({ value: tipo.coddoc, label: tipo.name })),
         ),
       )
       .catch(() =>
-        setTiposDoc(TIPOS_DOCUMENTO.map((d) => ({ value: d, label: d }))),
+        setTiposDoc([
+          { value: "NIF", label: "NIF" },
+          { value: "NIE", label: "NIE" },
+          { value: "PAS", label: "PAS"},
+          { value: "OTRO", label: "Otro" },
+        ]),
       );
   }, []);
   const fechaNac = data.fechaNac ? dayjs(data.fechaNac) : null;
   // Backend exige doc_support para residenciales (todo excepto CIF).
-  const showDocSupport = !!data.tipoDoc && data.tipoDoc !== "CIF";
+const showDocSupport = data.tipoDoc === "NIF" || data.tipoDoc === "NIE";
   const handleUpdate = (key: keyof PartialGuestData, value: unknown) =>
     actions.updateGuest(guestIndex, key, value);
   const handleSubmit = (e: React.SyntheticEvent<HTMLFormElement>) => {
@@ -304,11 +312,9 @@ export const ScreenFormPersonal: React.FC = () => {
                   {(tiposDoc.length > 0
                     ? tiposDoc
                     : TIPOS_DOCUMENTO.map((d) => ({ value: d, label: d }))
-                  ).map((doc) => (
+                ).map((doc) => (
                     <MenuItem key={doc.value} value={doc.value}>
-                      {t(`constants.documentos.${doc.value}`, {
-                        defaultValue: doc.label,
-                      })}
+                      {doc.label}
                     </MenuItem>
                   ))}
                 </TextField>

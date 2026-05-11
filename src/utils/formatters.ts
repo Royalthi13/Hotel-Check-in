@@ -1,7 +1,7 @@
 export const formatDocument = (val: string, tipo: string): string => {
   let cleaned = val.toUpperCase().replace(/[^A-Z0-9]/g, "");
 
-  if (tipo === "DNI") {
+ if (tipo === "NIF") {
     cleaned = cleaned.slice(0, 9);
     if (cleaned.length > 8) return `${cleaned.slice(0, 8)}-${cleaned.slice(8)}`;
   }
