@@ -106,14 +106,7 @@ const NAC_TO_CODPAIS: Record<string, string> = {
 };
 
 // Tipo documento — BD acepta: CIF, NIE, NIF, OTRO, PAS
-const DOC_TO_COD: Record<string, string> = {
-  DNI: "NIF",
-  NIF: "NIF",
-  NIE: "NIE",
-  CIF: "CIF",
-  Pasaporte: "PAS",
-  Otro: "OTRO",
-};
+
 // ── Mapeos inversos DB → Frontend ─────────────────────────────────────────────
 // Los 3 mapeos principales (ISO2, NAC, DOC) ya están arriba — construimos los
 // inversos a partir de ellos para que un solo cambio actualice ambos sentidos.
@@ -123,13 +116,7 @@ const CODPAIS_TO_ISO2: Record<string, string> = Object.fromEntries(
 const CODPAIS_TO_NAC: Record<string, string> = Object.fromEntries(
   Object.entries(NAC_TO_CODPAIS).map(([nac, codpais]) => [codpais, nac]),
 );
-const COD_TO_DOC: Record<string, string> = {
-  NIF: "DNI",
-  NIE: "NIE",
-  CIF: "CIF",
-  PAS: "Pasaporte",
-  OTRO: "Otro",
-};
+
 // Nota: el parentesco NO se mapea — la API devuelve y acepta el mismo
 // `codrelation` (ej: "HJ", "TU", "PM", "OT") que el frontend guarda en el
 // state. ScreenRelacionesMenor.tsx lo rellena del dropdown de la API,
@@ -159,8 +146,7 @@ export function toGuestData(c: ClientResponse): GuestData {
     pais: CODPAIS_TO_ISO2[c.country ?? ""] ?? "ES",
     // codpais → label de nacionalidad ("ESP" → "Española"), fallback "Otra"
     nacionalidad: CODPAIS_TO_NAC[c.nationality ?? ""] ?? "Otra",
-    // "NIF" → "DNI", "PAS" → "Pasaporte", etc.
-    tipoDoc: COD_TO_DOC[c.doc_type ?? ""] ?? "DNI",
+tipoDoc: c.doc_type ?? "",
 
     email: c.email ?? "",
     prefijo: prefijo,
@@ -199,7 +185,7 @@ export function toClientPayload(g: PartialGuestData): Record<string, unknown> {
     g.nacionalidad && g.nacionalidad !== "Otra"
       ? (NAC_TO_CODPAIS[g.nacionalidad] ?? codpais)
       : codpais;
-  const docCod = DOC_TO_COD[g.tipoDoc ?? ""] ?? undefined;
+const docCod = g.tipoDoc || undefined;
 
   const apellido1 = (g.apellido ?? "").trim();
   const apellido2 = (g.apellido2 ?? "").trim();
@@ -228,11 +214,12 @@ export function toClientPayload(g: PartialGuestData): Record<string, unknown> {
       : g.telefono?.trim()
         ? `${g.prefijo ?? "+34"} ${g.telefono.trim()}`.trim()
         : null,
+
   address: str(g.direccion) ?? null,
-city: str(g.ciudad) ?? null,
-cod_city: str(g.codCity) ?? null,
-province: str(g.provincia) ?? null,
-cp: str(g.cp) ?? null,
+  city: str(g.ciudad) ?? null,
+  cod_city: str(g.codCity) || null,
+  province: str(g.provincia) ?? null,
+  cp: str(g.cp) ?? null,
     doc_type: docCod ?? null,
     vat: str(g.numDoc),
     doc_support: str(g.soporteDoc),

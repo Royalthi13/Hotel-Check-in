@@ -39,6 +39,13 @@ export const CheckinProvider: React.FC<{ children: React.ReactNode }> = ({
     }
     return true;
   });
+  const latestStateRef = React.useRef(state);
+  React.useEffect(() => {
+    latestStateRef.current = state;
+  }, [state]);
+
+  // IDs de clientes creados en ESTA sesión — tracked para evitar PUT innecesarios en submit
+  const sessionCreatedIdsRef = React.useRef<Set<number>>(new Set());
 
   const [legalPassed, setLegalPassed] = useState(
     () => sessionStorage.getItem(`legalPassed_${token}`) === "true",
@@ -127,7 +134,10 @@ export const CheckinProvider: React.FC<{ children: React.ReactNode }> = ({
       const { bookingId, clientId } = getBackendIds();
 
       if (isPartial) {
-        const newClientId = await savePartialCheckin(clientId, state.guests[0]);
+        const newClientId = await savePartialCheckin(
+          clientId,
+          latestStateRef.current.guests[0],
+        );
         // Sincronizamos el nuevo clientId en el state para futuros submits
         if (!state.guests[0]?.id) {
           actions.updateGuest(0, "id", newClientId);
@@ -136,12 +146,17 @@ export const CheckinProvider: React.FC<{ children: React.ReactNode }> = ({
         actions.goTo("exito", "forward");
         return;
       }
+      const isCompanion =
+        new URLSearchParams(window.location.search).get("guestIndex") !== null;
+
       const result = await submitCheckin({
         bookingId,
         clientId,
-        guests: state.guests,
-        horaLlegada: state.horaLlegada,
-        observaciones: state.observaciones,
+        guests: latestStateRef.current.guests,
+        horaLlegada: latestStateRef.current.horaLlegada,
+        observaciones: latestStateRef.current.observaciones,
+        sessionCreatedIds: sessionCreatedIdsRef.current,
+        isCompanion,
       });
       // Si todavía quedan personas por registrar → pantalla parcial con botón compartir
       setIsPartialSuccess(!result.isComplete);
@@ -155,6 +170,8 @@ export const CheckinProvider: React.FC<{ children: React.ReactNode }> = ({
       });
       sessionStorage.removeItem(PERSISTENCE_KEY);
       localStorage.removeItem(PERSISTENCE_KEY);
+      // Limpiar el set de ids de sesión
+      sessionCreatedIdsRef.current.clear();
 
       actions.goTo("exito", "forward");
     } catch (err: unknown) {
@@ -195,13 +212,19 @@ export const CheckinProvider: React.FC<{ children: React.ReactNode }> = ({
       };
       const guest = state.guests[currIdx];
       const tieneDatos = !!(guest?.nombre?.trim() || guest?.numDoc?.trim());
-
-      if (!state.bookingId || !tieneDatos) return proceed();
+      if (!state.bookingId || !tieneDatos || currIdx !== 0) return proceed();
 
       setIsSubmitting(true);
-      savePartialGuest(state.bookingId, guest, currIdx === 0)
+      savePartialGuest(
+        latestStateRef.current.bookingId ?? state.bookingId,
+        guest,
+        currIdx === 0,
+      )
         .then((newId) => {
-          if (!guest.id) actions.updateGuest(currIdx, "id", newId);
+          if (!guest.id) {
+            sessionCreatedIdsRef.current.add(newId);
+            actions.updateGuest(currIdx, "id", newId);
+          }
         })
         .catch((e) => {
           if (import.meta.env.DEV)

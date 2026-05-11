@@ -21,6 +21,7 @@ export interface CheckinSubmitPayload {
   guests: PartialGuestData[];
   horaLlegada: string;
   observaciones: string;
+  isCompanion?: boolean;
 }
 
 // ── Consulta el estado real del pre-checkin en el backend ─────────────────────
@@ -97,11 +98,11 @@ export async function loadCheckinData(
     isAlreadyCheckedIn: raw.pre_checking === true,
   };
 }
-
 export async function submitCheckin(
-  payload: CheckinSubmitPayload,
+  payload: CheckinSubmitPayload & { sessionCreatedIds?: Set<number> },
 ): Promise<{ isComplete: boolean }> {
   const { bookingId, clientId, guests, horaLlegada, observaciones } = payload;
+  const sessionCreatedIds = payload.sessionCreatedIds ?? new Set<number>();
   const catalogo = await getRelationships();
 
   type GuestForAPI = PartialGuestData & { parentescoParaAPI?: string };
@@ -114,29 +115,14 @@ export async function submitCheckin(
       const adultoIndex = rel.adultoIndex;
       const codigoSeleccionado = rel.parentesco;
       const adulto = finalGuests[adultoIndex];
-
       if (adulto) {
-        // 1.1 Asignamos al adulto el código original (Ej: "PM")
         if (!adulto.parentescoParaAPI) {
           adulto.parentescoParaAPI = codigoSeleccionado;
         }
-
-        // 1.2 Buscamos en el catálogo de tu BD (limpiando espacios y asegurando mayúsculas)
         const relacionInfo = catalogo.find(
-          (r) =>
-            r.codrelation?.trim().toUpperCase() ===
-            codigoSeleccionado?.trim().toUpperCase(),
+          (r) => r.codrelation?.trim().toUpperCase() === codigoSeleccionado?.trim().toUpperCase(),
         );
-
-        // 1.3 Asignamos al menor su inversa (Ej: "HJ") o un fallback si es null (Ej: "OT")
-        if (relacionInfo?.linked_relation) {
-          finalGuests[index].parentescoParaAPI = relacionInfo.linked_relation;
-        } else {
-          // Si la BD dice <null> o falla, le ponemos "OT" (Otro).
-          // ESTO ES CLAVE: Al ponerle un valor, evitamos que en clients.service
-          // haga el fallback y se copie el "PM" del adulto por error.
-          finalGuests[index].parentescoParaAPI = "OT";
-        }
+        finalGuests[index].parentescoParaAPI = relacionInfo?.linked_relation ?? "OT";
       }
     }
   });
@@ -164,66 +150,57 @@ export async function submitCheckin(
 
   const [mainGuest, ...companionGuests] = finalGuests;
 
-  // 3. Observaciones del titular
+  // 3. Observaciones
   let obsFinales = observaciones?.trim() || null;
-  if (
-    horaLlegada &&
-    horaLlegada !== "No especificada" &&
-    !horaLlegada.startsWith("No ")
-  ) {
+  if (horaLlegada && horaLlegada !== "No especificada" && !horaLlegada.startsWith("No ")) {
     const sufijo = `Hora llegada: ${horaLlegada}`;
     obsFinales = obsFinales ? `${obsFinales}\n${sufijo}` : sufijo;
   }
 
-  // 4. Guardar titular
+  // 4. Titular: PUT si existía antes, POST si no tiene id
   let mainClientId = clientId;
   if (mainGuest) {
-    const guestWithObs: PartialGuestData = {
-      ...mainGuest,
-      observations: obsFinales ?? undefined,
-    };
-    if (mainClientId) {
+    const guestWithObs: PartialGuestData = { ...mainGuest, observations: obsFinales ?? undefined };
+   if (mainClientId) {
+      // Titular: siempre PUT — el token pre-checkin tiene permiso sobre su propio client_id
       await updateClient(mainClientId, guestWithObs);
     } else {
       mainClientId = await createClient(guestWithObs);
     }
   }
 
-  // 5. Guardar acompañantes — recoger todos los IDs registrados en este submit
+  // 5. Acompañantes
   const registeredInThisSubmit: number[] = mainClientId ? [mainClientId] : [];
 
   for (const guest of companionGuests) {
     if (!guest.nombre?.trim() && !guest.numDoc?.trim()) continue;
 
-    if (guest.id) {
+    if (!guest.id) {
+      // No existe en BD → POST + link
+      const newId = await createClient(guest);
+      registeredInThisSubmit.push(newId);
+      await createCompanion({ booking_id: bookingId, client_id: newId });
+    } else if (!sessionCreatedIds.has(guest.id)) {
+      // Existía antes de esta sesión → PUT
       await updateClient(guest.id, guest);
       registeredInThisSubmit.push(guest.id);
     } else {
-      const newId = await createClient(guest);
-      registeredInThisSubmit.push(newId);
-      await createCompanion({
-        booking_id: bookingId,
-        client_id: newId,
-      });
+      // Creado en esta sesión → datos ya correctos del POST, solo contabilizar
+       
+      registeredInThisSubmit.push(guest.id);
     }
-  }// 6. Marcar la reserva como pre-checkeada y guardar hora/notas en booking
-  await updateBookingCheckin(bookingId, {
-    horaLlegada,
-    observaciones,
-    clientId: mainClientId,
-    markCompleted: true,
-  });
-  // 7. ¿Está el pre-checkin completamente terminado?
-  const status = await getCheckinStatus(bookingId);
-  if (import.meta.env.DEV) {
-    console.log("[checkin] STATUS RESPONSE:", JSON.stringify(status));
   }
 
-  const checkinCompleto = status !== null && status.persons_to_create === 0;
 
-  return { isComplete: checkinCompleto };
+  // 7. Comprobar estado
+  if (payload.isCompanion) {
+    return { isComplete: false };
+  }
+  const status = await getCheckinStatus(bookingId);
+  if (import.meta.env.DEV) console.log("[checkin] STATUS RESPONSE:", JSON.stringify(status));
+
+  return { isComplete: status !== null && status.persons_to_create === 0 };
 }
-
 // Guardado parcial del titular — usado por handlePartialSubmit (botón explícito)
 export async function savePartialCheckin(
   clientId: number | null,
@@ -235,24 +212,24 @@ export async function savePartialCheckin(
   }
   return await createClient(mainGuest);
 }
+
 // Autoguardado por huésped al pasar al siguiente.
-// - Si guest.id existe → updateClient (idempotente)
-// - Si no, titular → createClient + linkar a la reserva (booking.client_id)
-// - Si no, acompañante → createClient + createCompanion link
-// Devuelve el id para que el caller lo sincronice al state.
 export async function savePartialGuest(
   bookingId: number,
   guest: PartialGuestData,
   isMain: boolean,
 ): Promise<number> {
   if (guest.id) {
-    await updateClient(guest.id, guest);
+    // Si ya tiene id: titular → PUT para guardar progreso parcial
+    //                acompañante → ya existe, no tocar (el submit final lo actualizará si procede)
+    if (isMain) {
+      await updateClient(guest.id, guest);
+    }
     return guest.id;
   }
+  // No tiene id → crear
   const newId = await createClient(guest);
   if (isMain) {
-    // Vincular el titular nuevo a la reserva sin marcar pre_checking todavía.
-    // Eso lo hace updateBookingCheckin en el submit final.
     await updateBookingCheckin(bookingId, { clientId: newId }, undefined);
   } else {
     await createCompanion({ booking_id: bookingId, client_id: newId });

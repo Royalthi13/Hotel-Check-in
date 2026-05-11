@@ -77,16 +77,14 @@ export function validarNumeroDocumento(
 ): string | null {
   const n = num.trim().toUpperCase().replace(/-/g, "");
   if (!n) return t("validation.required_doc_num");
-
-  switch (tipo) {
-    case "DNI":
+switch (tipo) {
     case "NIF":
       if (!validarDNI(n)) return t("validation.invalid_dni");
       break;
     case "NIE":
       if (!validarNIE(n)) return t("validation.invalid_nie");
       break;
-    case "Pasaporte":
+    case "PAS":
       if (!validarPasaporte(n)) return t("validation.invalid_passport");
       break;
     case "CIF":
@@ -132,16 +130,12 @@ export function validatePersonal(
     // Backend exige doc_support para todos los residenciales (no CIF).
     // Formato estricto (8-12 alfanum con letra+dígito) solo para DNI/NIF/NIE;
     // para Pasaporte/Otro basta con que esté relleno.
-    if (data.tipoDoc && data.tipoDoc !== "CIF") {
+   const needsDocSupport = data.tipoDoc === "NIF" || data.tipoDoc === "NIE";
+    if (needsDocSupport) {
       const soporte = data.soporteDoc?.trim();
-      const isSpanishDoc =
-        data.tipoDoc === "DNI" ||
-        data.tipoDoc === "NIF" ||
-        data.tipoDoc === "NIE";
-
       if (!soporte) {
         e.soporteDoc = t("validation.required_doc_support");
-      } else if (isSpanishDoc && !validarDocSupport(soporte)) {
+      } else if (!validarDocSupport(soporte)) {
         e.soporteDoc = t("validation.invalid_doc_support");
       }
     }
@@ -190,11 +184,7 @@ export function validateContacto(
   if (!data.cp?.trim()) e.cp = t("validation.required_cp");
   if (!data.ciudad?.trim()) e.ciudad = t("validation.required_city");
 
-  // Para España: exigimos cod_city. Sin él, el backend ilike() puede no
-  // encontrar match → cod_city queda NULL → data_full=false.
-  if ((data.pais === "ES" || data.pais === "ESP") && !data.codCity?.trim()) {
-    e.ciudad = t("validation.city_must_be_selected");
-  }
+ 
 
   return e;
 }
