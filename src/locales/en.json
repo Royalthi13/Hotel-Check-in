@@ -403,5 +403,14 @@
     ],
     "footer": "For more details, you can request the full document at reception.",
     "accept_check": "I have read the legal information and accept the processing of my data."
+  },
+  "huesped_intermedio": {
+    "title": "Data saved!",
+    "subtitle": "This guest's information has been successfully registered. Do you want to continue with the next person or save your progress and send a link for the companion to complete?",
+    "btn_continue": "Continue with the next person",
+    "btn_link": "Save and send link"
+  },
+  "bienvenida": {
+    "next_guest_alert": "Starting registration for Guest {{count}}"
   }
 }

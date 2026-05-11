@@ -1029,33 +1029,23 @@ export const ScreenFormContacto: React.FC = () => {
             </Box>
           </Box>
           <div className="spacer" />
-          <div
-            className="btn-row"
-            style={{
-              display: "flex",
-              gap: "10px",
-              flexWrap: "wrap",
-              justifyContent: "flex-end",
-            }}
-          >
-            {guestIndex === 0 && (
-              <Button
-                variant="secondary"
-                onClick={handlePartialSubmit}
-                style={{ flex: 1, minWidth: "200px" }}
-              >
-                {t("common.save_partial")}
-              </Button>
-            )}
+          <div className="btn-row" style={{ justifyContent: "center" }}>
             <Button
               variant="primary"
               type="submit"
+              disabled={isSubmitting}
               iconRight="right"
-              style={{ flex: 1, minWidth: "200px" }}
+              style={{
+                width: "100%",
+              }}
             >
-              {guestIndex < state.numPersonas - 1
-                ? t("common.next_guest")
-                : t("common.continue")}
+              {isSubmitting ? (
+                <div
+                  className="spinner spinner-sm"
+                  style={{ marginRight: 8 }}
+                />
+              ) : null}
+              {t("common.continue")}
             </Button>
           </div>
         </fieldset>

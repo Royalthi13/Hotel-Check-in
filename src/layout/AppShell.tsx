@@ -273,12 +273,14 @@ export const AppShell: React.FC<AppShellProps> = ({
           overflow: "hidden",
         }}
       >
-       <Header
-  canGoBack={nav.canGoBack}
-  onBack={actions.goBack}
-  onLogoClick={activeStep !== "exito" ? () => actions.goTo("inicio", "back", 0) : undefined}
-  
-
+        <Header
+          canGoBack={nav.canGoBack}
+          onBack={actions.goBack}
+          onLogoClick={
+            activeStep !== "exito"
+              ? () => actions.goTo("inicio", "back", 0)
+              : undefined
+          }
           extraContent={<LanguageSelector />}
           name={hotelDisplayName}
           rightAction={
@@ -289,10 +291,7 @@ export const AppShell: React.FC<AppShellProps> = ({
               ? {
                   label: t("common.summary"),
                   icon: "clipboard",
-                  onClick: () =>
-                    stepInvalid
-                      ? window.dispatchEvent(new Event("FORCE_VALIDATE"))
-                      : onGoToRevision?.(),
+                  onClick: () => onGoToRevision(),
                   disabled: summaryDisabled,
                 }
               : undefined
@@ -360,12 +359,17 @@ export const AppShell: React.FC<AppShellProps> = ({
         >
           <aside className="side-panel">
             <div className="side-panel-inner">
-            
-<div
-  className="sp-logo"
-  onClick={activeStep !== "exito" ? () => actions.goTo("inicio", "back", 0) : undefined}
-  style={{ cursor: activeStep !== "exito" ? "pointer" : "default" }}
->
+              <div
+                className="sp-logo"
+                onClick={
+                  activeStep !== "exito"
+                    ? () => actions.goTo("inicio", "back", 0)
+                    : undefined
+                }
+                style={{
+                  cursor: activeStep !== "exito" ? "pointer" : "default",
+                }}
+              >
                 <span>{t("brand.name")}</span>
                 <em>{t("brand.suffix")}</em>
               </div>
@@ -375,11 +379,7 @@ export const AppShell: React.FC<AppShellProps> = ({
                 <button
                   type="button"
                   className="sp-summary-btn sp-summary-btn--desktop"
-                  onClick={() =>
-                    stepInvalid
-                      ? window.dispatchEvent(new Event("FORCE_VALIDATE"))
-                      : onGoToRevision?.()
-                  }
+                  onClick={() => onGoToRevision?.()}
                   disabled={summaryDisabled || maxSequentialSideIdx === 0}
                   style={{ opacity: maxSequentialSideIdx === 0 ? 0.3 : 1 }}
                 >
@@ -423,12 +423,12 @@ export const AppShell: React.FC<AppShellProps> = ({
                     <div
                       key={s.id}
                       onClick={() => {
-                        // ✨ FIX 2: Aquí eliminamos la variable isTargetRevision que nos creaba el coladero.
                         if (
                           stepInvalid &&
                           isClickable &&
                           !isActive &&
-                          !isGoingBackward
+                          !isGoingBackward &&
+                          s.id !== "revision"
                         ) {
                           window.dispatchEvent(new Event("FORCE_VALIDATE"));
                           return;

@@ -29,6 +29,7 @@ import { ScreenTabletBuscar } from "@/screens/ScreenTabletBuscar";
 import { isStaffLoggedIn, clearStaffToken } from "@/api/axiosInstance";
 import type { StepId, Reserva } from "@/types";
 import { ScreenVerificarAcceso } from "@/screens/ScreenVerificarAcceso";
+import { ScreenHuespedIntermedio } from "@/screens/ScreenHuespedIntermedio";
 
 const STEPS_WITHOUT_DOTS = new Set<StepId>([
   "tablet_login",
@@ -184,7 +185,8 @@ function CheckinWizard() {
     setAccessVerified,
   } = useCheckinContext();
 
-  const isActuallyLoading = isLoading && token !== "new" && !token.startsWith("kiosko");
+  const isActuallyLoading =
+    isLoading && token !== "new" && !token.startsWith("kiosko");
 
   const needsVerification =
     !accessVerified && token !== "new" && !token.startsWith("kiosko");
@@ -249,6 +251,14 @@ function CheckinWizard() {
         </div>
       )}
 
+      {currentStep === "tablet_buscar" && (
+        <ScreenTabletBuscar
+          onFound={(res, bookingId, clientId) => {
+            actions.setReservaFromTablet(res, bookingId, clientId);
+          }}
+        />
+      )}
+
       {currentStep === "inicio" && (
         <ScreenCheckinInicio
           reserva={state.reserva as Reserva}
@@ -283,6 +293,7 @@ function CheckinWizard() {
       {currentStep === "form_personal" && <ScreenFormPersonal />}
       {currentStep === "form_contacto" && <ScreenFormContacto />}
 
+      {currentStep === "huesped_intermedio" && <ScreenHuespedIntermedio />}
       {currentStep === "form_relaciones" && (
         <ScreenRelacionesMenor
           menor={currentGuest}
@@ -347,8 +358,7 @@ function AuthExpiredWatcher() {
     const handler = () => {
       const path = window.location.pathname;
       const isPreCheckinLink =
-        path.startsWith("/checkin/") &&
-        !path.includes("/kiosko");
+        path.startsWith("/checkin/") && !path.includes("/kiosko");
       if (isPreCheckinLink) {
         const parts = path.split("/");
         navigate(`/checkin/${parts[2]}`, { replace: true });
@@ -369,19 +379,20 @@ export default function App() {
       <AuthExpiredWatcher />
       <Routes>
         {/* Raíz → login del kiosko */}
-        <Route path="/" element={<Navigate to="/checkin/kiosko/tablet_login" replace />} />
+        <Route
+          path="/"
+          element={<Navigate to="/checkin/kiosko/tablet_login" replace />}
+        />
 
         {/* ── Rutas del KIOSKO (sin CheckinProvider) ── */}
         <Route path="/checkin/kiosko/tablet_login" element={<KioskoRoutes />} />
-        <Route path="/checkin/kiosko/tablet_buscar" element={<KioskoBuscar />} />
+        <Route
+          path="/checkin/kiosko/tablet_buscar"
+          element={<KioskoBuscar />}
+        />
 
         {/* Logout del kiosko */}
-        <Route
-          path="/checkin/kiosko/logout"
-          element={
-            <LogoutKiosko />
-          }
-        />
+        <Route path="/checkin/kiosko/logout" element={<LogoutKiosko />} />
 
         {/* ── Rutas normales de huésped (con CheckinProvider) ── */}
         <Route

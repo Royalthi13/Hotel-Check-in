@@ -403,5 +403,14 @@
     ],
     "footer": "Para mais detalhes, pode solicitar o documento completo na recepção.",
     "accept_check": "Li a informação legal e aceito o tratamento dos meus dados."
+  },
+  "huesped_intermedio": {
+    "title": "Dados guardados!",
+    "subtitle": "As informações deste hóspede foram registadas com sucesso. Deseja continuar com a próxima pessoa ou guardar o progresso e enviar um link para que o acompanhante o preencha?",
+    "btn_continue": "Continuar com a próxima pessoa",
+    "btn_link": "Guardar e enviar link"
+  },
+  "bienvenida": {
+    "next_guest_alert": "A iniciar o registo do Hóspede {{count}}"
   }
 }

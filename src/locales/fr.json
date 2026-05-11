@@ -403,5 +403,14 @@
     ],
     "footer": "Pour plus de détails, vous pouvez demander le document complet à la réception.",
     "accept_check": "J'ai lu les informations légales et j'accepte le traitement de mes données."
+  },
+  "huesped_intermedio": {
+    "title": "Données enregistrées !",
+    "subtitle": "Les informations de ce client ont été enregistrées avec succès. Souhaitez-vous continuer avec la personne suivante ou enregistrer votre progression et envoyer un lien pour que l'accompagnant puisse compléter le reste ?",
+    "btn_continue": "Continuer avec la personne suivante",
+    "btn_link": "Enregistrer et envoyer le lien"
+  },
+  "bienvenida": {
+    "next_guest_alert": "Début de l'enregistrement pour le Client {{count}}"
   }
 }

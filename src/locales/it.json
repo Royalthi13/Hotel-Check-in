@@ -402,5 +402,14 @@
     ],
     "footer": "Per ulteriori dettagli, può richiedere il documento completo alla reception.",
     "accept_check": "Ho letto l'informativa legale e acconsento al trattamento dei miei dati."
+  },
+  "huesped_intermedio": {
+    "title": "Dati salvati!",
+    "subtitle": "Le informazioni di questo ospite sono state registrate correttamente. Desideri continuare con la persona successiva o salvare i progressi e inviare un link affinché l'accompagnatore possa completare la procedura?",
+    "btn_continue": "Continua con la persona successiva",
+    "btn_link": "Salva e invia il link"
+  },
+  "bienvenida": {
+    "next_guest_alert": "Inizio della registrazione per l'Ospite {{count}}"
   }
 }

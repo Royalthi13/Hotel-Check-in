@@ -402,5 +402,14 @@
     ],
     "footer": "Für weitere Details können Sie das vollständige Dokument an der Rezeption anfordern.",
     "accept_check": "Ich habe die rechtlichen Informationen gelesen und stimme der Verarbeitung meiner Daten zu."
+  },
+  "huesped_intermedio": {
+    "title": "Daten gespeichert!",
+    "subtitle": "Die Informationen dieses Gastes wurden erfolgreich registriert. Möchten Sie mit der nächsten Person fortfahren oder den Fortschritt speichern und einen Link senden, damit die Begleitperson den Vorgang abschließen kann?",
+    "btn_continue": "Mit der nächsten Person fortfahren",
+    "btn_link": "Speichern und Link senden"
+  },
+  "bienvenida": {
+    "next_guest_alert": "Registrierung für Gast {{count}} wird gestartet"
   }
 }
