@@ -203,20 +203,51 @@
 }
 .validation-errors-wrapper {
   padding: 0 var(--px);
-  margin: 16px 0;
+  margin: 24px 0;
 }
 .validation-errors-title {
   display: block;
-  margin-bottom: 8px;
+  font-size: 15px;
+  font-weight: 700;
+  color: #c62828;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(198, 40, 40, 0.15);
 }
 .validation-errors-list {
   margin: 0;
-  padding-left: 20px;
-  font-size: 0.85rem;
+  padding: 0;
+  list-style: none;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 12px;
 }
+
+.validation-errors-list li {
+  background: rgba(255, 255, 255, 0.5); 
+  padding: 12px 14px;
+  border-radius: 8px;
+  border-left: 3px solid #ef5350;
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: var(--text-mid);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+}
+
+/* El nombre del huésped dentro del error */
+.validation-errors-list li strong {
+  display: block;
+  color: #b71c1c;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 6px;
+}
+
+/* El texto del error */
+.validation-errors-list li span {
+  display: block;
+  color: var(--text); 
 .chk-area label {
   cursor: pointer;
 }
