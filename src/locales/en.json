@@ -220,6 +220,14 @@
     "card_manual_title_known": "Review and confirm my details",
     "card_manual_sub_known": "Check the details we have saved and confirm or modify them."
   },
+  "login": {
+    "title": "Hotel Staff Access",
+    "subtitle": "Enter the reception PIN to continue.",
+    "pin_label": "Access PIN",
+    "btn_enter": "Enter",
+    "error_incorrect_pin": "Incorrect PIN. Please try again.",
+    "username_label": "User"
+  },
   "forms": {
     "minor_address_info": "For registration purposes, the same address and contact details as the responsible adult will be applied. There is no need to fill them in again.",
     "personal_title": "Personal details",

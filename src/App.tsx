@@ -24,10 +24,17 @@ import {
   ScreenExito,
 } from "@/screens/ScreenExtrasRevisionExito";
 
+import { ScreenLogin } from "@/screens/ScreenLogin";
+import { ScreenTabletBuscar } from "@/screens/ScreenTabletBuscar";
+import { isStaffLoggedIn, clearStaffToken } from "@/api/axiosInstance";
 import type { StepId, Reserva } from "@/types";
 import { ScreenVerificarAcceso } from "@/screens/ScreenVerificarAcceso";
 
-const STEPS_WITHOUT_DOTS = new Set<StepId>(["exito"]); // 🧹 Limpio de tablet_buscar
+const STEPS_WITHOUT_DOTS = new Set<StepId>([
+  "tablet_login",
+  "tablet_buscar",
+  "exito",
+]);
 
 // ── Página de enlace inválido / caducado ──────────────────────────────────────
 function InvalidLink() {
@@ -93,6 +100,68 @@ function InvalidLink() {
   );
 }
 
+// ── Rutas del Kiosko (fuera del CheckinProvider) ──────────────────────────────
+function KioskoRoutes() {
+  const navigate = useNavigate();
+
+  // Login — si ya está logado, ir directo a buscar
+  if (isStaffLoggedIn()) {
+    return (
+      <div className="shell">
+        <div className="card">
+          <ScreenTabletBuscar
+            onFound={(res, bookingId, clientId) => {
+              // Guardamos en sessionStorage para que CheckinProvider lo recoja
+              sessionStorage.setItem(
+                "kiosko_pending_booking",
+                JSON.stringify({ res, bookingId, clientId }),
+              );
+              navigate(`/checkin/kiosko/tablet_buscar`);
+            }}
+          />
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="shell">
+      <div className="card">
+        <ScreenLogin
+          onSuccess={() => navigate("/checkin/kiosko/tablet_buscar")}
+        />
+      </div>
+    </div>
+  );
+}
+
+function KioskoBuscar() {
+  const navigate = useNavigate();
+
+  // Si no hay sesión de staff, volver al login
+  if (!isStaffLoggedIn()) {
+    return <Navigate to="/checkin/kiosko/tablet_login" replace />;
+  }
+
+  return (
+    <div className="shell">
+      <div className="card">
+        <ScreenTabletBuscar
+          onFound={(res, bookingId, clientId) => {
+            // Pasamos los datos al flujo de checkin via CheckinProvider
+            // usando la URL con el bookingId como token temporal de kiosko
+            sessionStorage.setItem(
+              "kiosko_booking",
+              JSON.stringify({ res, bookingId, clientId }),
+            );
+            navigate(`/checkin/kiosko-${bookingId}/escanear`);
+          }}
+        />
+      </div>
+    </div>
+  );
+}
+
 // ── Lógica del Wizard ─────────────────────────────────────────────────────────
 function CheckinWizard() {
   const { t } = useTranslation();
@@ -115,12 +184,10 @@ function CheckinWizard() {
     setAccessVerified,
   } = useCheckinContext();
 
-  // 🧹 Limpio de referencias a tablet_buscar
-  const isActuallyLoading = isLoading && token !== "new";
+  const isActuallyLoading = isLoading && token !== "new" && !token.startsWith("kiosko");
 
-  // Verja anti-enumeración: 1º email, 2º últimas 3 cifras del teléfono.
-  // Si no hay ninguno de los dos, no podemos verificar y dejamos pasar.
-  const needsVerification = !accessVerified && token !== "new"; // 🧹 Limpio de referencias a tablet_buscar
+  const needsVerification =
+    !accessVerified && token !== "new" && !token.startsWith("kiosko");
 
   if (needsVerification && !isLoading) {
     return (
@@ -158,22 +225,19 @@ function CheckinWizard() {
     .map((g, i) => ({ ...g, originalIndex: i }))
     .filter((g) => !g.esMenor);
 
-  // 🧹 Se borró el if(currentStep === "tablet_buscar") de aquí
-
   return (
     <AppShell
       nav={nav}
       actions={{
         goBack: actions.goBack,
         goToDotIndex: actions.goToDotIndex,
-        // Si estamos en exito, ninguna navegación está permitida
         goTo: currentStep === "exito" ? () => {} : actions.goTo,
       }}
       showDots={showDots}
       reserva={state.reserva}
       onGoToRevision={
         currentStep === "exito"
-          ? undefined // quita el botón de resumen también
+          ? undefined
           : () => actions.goTo("revision", "back")
       }
       guests={state.guests}
@@ -281,14 +345,11 @@ function AuthExpiredWatcher() {
   const navigate = useNavigate();
   useEffect(() => {
     const handler = () => {
-      // Si el path tiene /checkin/:token (no "new"), volvemos al mismo
-      // checkin para que ScreenVerificarAcceso pida token nuevo.
-      // Si es "new" (tablet), sí vamos a /invalid.
       const path = window.location.pathname;
       const isPreCheckinLink =
-        path.startsWith("/checkin/") && !path.includes("/new");
+        path.startsWith("/checkin/") &&
+        !path.includes("/kiosko");
       if (isPreCheckinLink) {
-        // Redirigir al mismo checkin sin step → ScreenVerificarAcceso reaparecerá
         const parts = path.split("/");
         navigate(`/checkin/${parts[2]}`, { replace: true });
       } else {
@@ -300,16 +361,29 @@ function AuthExpiredWatcher() {
   }, [navigate]);
   return null;
 }
+
 // ── Rutas de la Aplicación ───────────────────────────────────────────────────
 export default function App() {
   return (
     <BrowserRouter>
       <AuthExpiredWatcher />
       <Routes>
-        <Route path="/" element={<Navigate to="/checkin/new" replace />} />
+        {/* Raíz → login del kiosko */}
+        <Route path="/" element={<Navigate to="/checkin/kiosko/tablet_login" replace />} />
 
-        {/* 🧹 Se borró la ruta /checkin/kiosko/tablet_buscar */}
+        {/* ── Rutas del KIOSKO (sin CheckinProvider) ── */}
+        <Route path="/checkin/kiosko/tablet_login" element={<KioskoRoutes />} />
+        <Route path="/checkin/kiosko/tablet_buscar" element={<KioskoBuscar />} />
 
+        {/* Logout del kiosko */}
+        <Route
+          path="/checkin/kiosko/logout"
+          element={
+            <LogoutKiosko />
+          }
+        />
+
+        {/* ── Rutas normales de huésped (con CheckinProvider) ── */}
         <Route
           path="/checkin/:token"
           element={
@@ -320,7 +394,6 @@ export default function App() {
             </ErrorBoundary>
           }
         />
-
         <Route
           path="/checkin/:token/:step"
           element={
@@ -337,4 +410,13 @@ export default function App() {
       </Routes>
     </BrowserRouter>
   );
+}
+
+function LogoutKiosko() {
+  const navigate = useNavigate();
+  useEffect(() => {
+    clearStaffToken();
+    navigate("/checkin/kiosko/tablet_login", { replace: true });
+  }, [navigate]);
+  return null;
 }

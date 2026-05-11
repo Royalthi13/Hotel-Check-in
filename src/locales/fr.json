@@ -220,6 +220,14 @@
     "card_manual_title_known": "Réviser et confirmer mes données",
     "card_manual_sub_known": "Vérifiez les données que nous avons enregistrées et confirmez ou modifiez-les."
   },
+  "login": {
+    "title": "Accès Personnel de l'Hôtel",
+    "subtitle": "Entrez le code PIN de la réception pour continuer.",
+    "pin_label": "Code PIN d'accès",
+    "btn_enter": "Entrer",
+    "error_incorrect_pin": "Code PIN incorrect. Veuillez réessayer.",
+    "username_label": "Utilisateur"
+  },
   "forms": {
     "minor_address_info": "À des fins d'enregistrement, la même adresse et les mêmes coordonnées que celles de l'adulte responsable seront appliquées. Il n'est pas nécessaire de les remplir à nouveau.",
     "personal_title": "Données personnelles",
