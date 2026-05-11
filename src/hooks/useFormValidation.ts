@@ -107,7 +107,6 @@ export function validatePersonal(
 
   if (!data.nombre?.trim()) e.nombre = t("validation.required_name");
   if (!data.apellido?.trim()) e.apellido = t("validation.required_surname");
-  if (!data.sexo) e.sexo = t("validation.required_gender");
 
   if (!data.fechaNac) {
     e.fechaNac = t("validation.required_birthdate");
@@ -130,7 +129,7 @@ export function validatePersonal(
   } else {
     const errorNum = validarNumeroDocumento(data.tipoDoc, data.numDoc ?? "", t);
     if (errorNum) e.numDoc = errorNum;
-// Backend exige doc_support para todos los residenciales (no CIF).
+    // Backend exige doc_support para todos los residenciales (no CIF).
     // Formato estricto (8-12 alfanum con letra+dígito) solo para DNI/NIF/NIE;
     // para Pasaporte/Otro basta con que esté relleno.
     if (data.tipoDoc && data.tipoDoc !== "CIF") {
@@ -184,7 +183,7 @@ export function validateContacto(
       e.telefono = t("validation.required_phone");
     }
   }
-if (!data.pais) e.pais = t("validation.required_country");
+  if (!data.pais) e.pais = t("validation.required_country");
 
   // Backend exige address, cp y city/cod_city para que data_full=true
   if (!data.direccion?.trim()) e.direccion = t("validation.required_address");

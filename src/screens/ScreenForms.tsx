@@ -40,9 +40,12 @@ const inputSx = {
   "& .MuiOutlinedInput-notchedOutline": { borderColor: "var(--border)" },
 };
 const COD_TO_FRONTEND: Record<string, string> = {
-  NIF: "DNI", NIE: "NIE", CIF: "CIF", PAS: "Pasaporte", OTRO: "Otro",
+  NIF: "DNI",
+  NIE: "NIE",
+  CIF: "CIF",
+  PAS: "Pasaporte",
+  OTRO: "Otro",
 };
-
 
 const modalPaperSx = {
   borderRadius: "16px",
@@ -58,8 +61,6 @@ const menuPaperSx = {
   boxShadow: "0 10px 40px rgba(0,0,0,0.1)",
   overflow: "hidden",
 };
-
-
 
 const FieldError: React.FC<{ msg?: string }> = ({ msg }) =>
   msg ? (
@@ -93,7 +94,9 @@ export const ScreenFormPersonal: React.FC = () => {
 
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
-  const [tiposDoc, setTiposDoc] = useState<Array<{ value: string; label: string }>>([]);
+  const [tiposDoc, setTiposDoc] = useState<
+    Array<{ value: string; label: string }>
+  >([]);
 
   const isMainGuest = guestIndex === 0;
   useEffect(() => {
@@ -109,7 +112,8 @@ export const ScreenFormPersonal: React.FC = () => {
       .catch(() =>
         setTiposDoc(TIPOS_DOCUMENTO.map((d) => ({ value: d, label: d }))),
       );
-  }, []);const fechaNac = data.fechaNac ? dayjs(data.fechaNac) : null;
+  }, []);
+  const fechaNac = data.fechaNac ? dayjs(data.fechaNac) : null;
   // Backend exige doc_support para residenciales (todo excepto CIF).
   const showDocSupport = !!data.tipoDoc && data.tipoDoc !== "CIF";
   const handleUpdate = (key: keyof PartialGuestData, value: unknown) =>
@@ -222,7 +226,6 @@ export const ScreenFormPersonal: React.FC = () => {
                 <TextField
                   select
                   label={t("forms.gender")}
-                  required
                   fullWidth
                   value={data.sexo ?? ""}
                   onChange={(e) => {
@@ -245,7 +248,7 @@ export const ScreenFormPersonal: React.FC = () => {
                   label={t("forms.birthdate")}
                   value={fechaNac}
                   disableFuture
-                 onChange={(v: Dayjs | null) => {
+                  onChange={(v: Dayjs | null) => {
                     handleUpdate(
                       "fechaNac",
                       v?.isValid() ? v.format("YYYY-MM-DD") : "",
@@ -272,7 +275,8 @@ export const ScreenFormPersonal: React.FC = () => {
 
             <Box
               sx={{
-                display: "grid",gridTemplateColumns: {
+                display: "grid",
+                gridTemplateColumns: {
                   xs: "1fr",
                   sm: showDocSupport ? "1fr 1fr 1fr" : "1fr 1fr",
                 },
@@ -285,7 +289,7 @@ export const ScreenFormPersonal: React.FC = () => {
                   label={t("forms.doc_type")}
                   required
                   fullWidth
-                 value={
+                  value={
                     tiposDoc.some((d) => d.value === data.tipoDoc)
                       ? data.tipoDoc
                       : ""
@@ -296,7 +300,8 @@ export const ScreenFormPersonal: React.FC = () => {
                   }}
                   error={!!errors.tipoDoc}
                   sx={inputSx}
-                >{(tiposDoc.length > 0
+                >
+                  {(tiposDoc.length > 0
                     ? tiposDoc
                     : TIPOS_DOCUMENTO.map((d) => ({ value: d, label: d }))
                   ).map((doc) => (
@@ -326,7 +331,8 @@ export const ScreenFormPersonal: React.FC = () => {
                   sx={inputSx}
                 />
                 <FieldError msg={errors.numDoc} />
-              </div>{showDocSupport && (
+              </div>
+              {showDocSupport && (
                 <div>
                   <TextField
                     required
@@ -438,7 +444,8 @@ export const ScreenFormPersonal: React.FC = () => {
         </Button>
       </Dialog>
     </>
-  );};
+  );
+};
 // --- COMPONENTE 2: DATOS DE CONTACTO ---
 type PrefixItem = { code: string; dial: string; nameTranslated: string };
 export const ScreenFormContacto: React.FC = () => {
@@ -453,7 +460,7 @@ export const ScreenFormContacto: React.FC = () => {
   );
   const esUnMenor = !!data.esMenor;
   const { t, i18n } = useTranslation();
-const handleUpdate = useCallback(
+  const handleUpdate = useCallback(
     (key: keyof PartialGuestData, value: unknown) =>
       actions.updateGuest(guestIndex, key, value),
     [actions, guestIndex],
@@ -471,12 +478,14 @@ const handleUpdate = useCallback(
 
   const contactoValidator = useCallback(
     (d: PartialGuestData, tf: TFunction) =>
-      
-      validateContacto(d, tf, d.esMenor ? { email: true, telefono: true } : lockedFields),
+      validateContacto(
+        d,
+        tf,
+        d.esMenor ? { email: true, telefono: true } : lockedFields,
+      ),
     [lockedFields],
   );
   const { errors, validate, clearError } = useFormValidation(contactoValidator);
-
 
   const { sugerenciasProvincias, sugerenciasMunicipios, cargarMunicipios } =
     usePlaces();
@@ -524,9 +533,8 @@ const handleUpdate = useCallback(
 
   const prefijoActual = useMemo(
     () =>
-      prefijosTraducidos.find(
-       (p) => p.dial === (data.prefijo || "+34"),
-      ) || prefijosTraducidos.find((p) => p.code === "ES"),
+      prefijosTraducidos.find((p) => p.dial === (data.prefijo || "+34")) ||
+      prefijosTraducidos.find((p) => p.code === "ES"),
     [prefijosTraducidos, data],
   );
 
@@ -555,7 +563,7 @@ const handleUpdate = useCallback(
       ),
     [prefijosTraducidos, paisSearch],
   );
-// (data.pais se inicializa a "ES" en el reducer al crear el guest,
+  // (data.pais se inicializa a "ES" en el reducer al crear el guest,
   //  por eso ya no hacen falta este useEffect ni fallbacks aquí.)
 
   // --- 🔥 DEBOUNCES PARA VALIDACIÓN Y BÚSQUEDA ---
@@ -574,14 +582,13 @@ const handleUpdate = useCallback(
     [data.telefono, data.esMenor],
   );
 
- 
   useEffect(() => {
     const handleForceValidate = () => validate(data);
     window.addEventListener("FORCE_VALIDATE", handleForceValidate);
     return () =>
       window.removeEventListener("FORCE_VALIDATE", handleForceValidate);
   }, [data, validate]);
-const RenderList = (
+  const RenderList = (
     onSelect: (c: PrefixItem) => void,
     searchVal: string,
     setSearchVal: (v: string) => void,
@@ -690,7 +697,7 @@ const RenderList = (
           })}
         </Typography>
       </div>
-            <form
+      <form
         onSubmit={async (e) => {
           e.preventDefault();
 
@@ -698,13 +705,8 @@ const RenderList = (
           // antes de validar. Solo se considera resuelto si hay match exacto
           // por nombre (ignorando case/espacios).
           let nextData = data;
-          const esEspanaSubmit =
-            data.pais === "ES" || data.pais === "ESP";
-          if (
-            esEspanaSubmit &&
-            !data.codCity?.trim() &&
-            data.ciudad?.trim()
-          ) {
+          const esEspanaSubmit = data.pais === "ES" || data.pais === "ESP";
+          if (esEspanaSubmit && !data.codCity?.trim() && data.ciudad?.trim()) {
             try {
               const matches = await searchCitiesByName(data.ciudad.trim());
               const norm = (s: string) =>
@@ -715,7 +717,11 @@ const RenderList = (
               if (exact) {
                 handleUpdate("ciudad", exact.name);
                 handleUpdate("codCity", exact.codcity);
-                nextData = { ...data, ciudad: exact.name, codCity: exact.codcity };
+                nextData = {
+                  ...data,
+                  ciudad: exact.name,
+                  codCity: exact.codcity,
+                };
               }
             } catch (err) {
               if (import.meta.env.DEV)
@@ -740,15 +746,14 @@ const RenderList = (
               gap: 2.5,
               px: "var(--px)",
             }}
-          >{esUnMenor &&
-  !!data.direccion &&
-  data.relacionesConAdultos?.some((r) =>
-    ["PM", "TU"].includes(r.parentesco),
-  ) && (
-    <Alert variant="info">
-      {t("forms.minor_address_info")}
-    </Alert>
-  )}
+          >
+            {esUnMenor &&
+              !!data.direccion &&
+              data.relacionesConAdultos?.some((r) =>
+                ["PM", "TU"].includes(r.parentesco),
+              ) && (
+                <Alert variant="info">{t("forms.minor_address_info")}</Alert>
+              )}
             {!data.esMenor && (
               <Box
                 sx={{
@@ -833,7 +838,7 @@ const RenderList = (
                 />
               </Box>
             )}
-<TextField
+            <TextField
               label={t("forms.address")}
               required
               fullWidth
@@ -904,7 +909,7 @@ const RenderList = (
                   ),
                 }}
               />
-<TextField
+              <TextField
                 label={t("forms.zipcode")}
                 required
                 fullWidth
@@ -962,7 +967,8 @@ const RenderList = (
                 <FieldError msg={errors.provincia} />
               </div>
               <div>
-                {esEspana ? (<Autocomplete
+                {esEspana ? (
+                  <Autocomplete
                     freeSolo
                     options={sugerenciasMunicipios || []}
                     getOptionLabel={(o) =>
@@ -1003,7 +1009,8 @@ const RenderList = (
                         sx={inputSx}
                       />
                     )}
-                  />) : (
+                  />
+                ) : (
                   <TextField
                     label={t("forms.city")}
                     required
@@ -1063,7 +1070,8 @@ const RenderList = (
         PaperProps={{ sx: modalPaperSx }}
       >
         {RenderList(
-          (c) => {handleUpdate("prefijo", c.dial);
+          (c) => {
+            handleUpdate("prefijo", c.dial);
             setPrefijoModalOpen(false);
             setPrefijoSearch("");
           },
@@ -1101,7 +1109,8 @@ const RenderList = (
         PaperProps={{ sx: menuPaperSx }}
       >
         {RenderList(
-          (c) => {handleUpdate("prefijo", c.dial);
+          (c) => {
+            handleUpdate("prefijo", c.dial);
             setAnchorElPrefijo(null);
             setPrefijoSearch("");
           },
