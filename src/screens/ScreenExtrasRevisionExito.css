@@ -224,7 +224,7 @@
 }
 
 .validation-errors-list li {
-  background: rgba(255, 255, 255, 0.5); 
+  background: rgba(255, 255, 255, 0.5);
   padding: 12px 14px;
   border-radius: 8px;
   border-left: 3px solid #ef5350;
@@ -247,38 +247,39 @@
 /* El texto del error */
 .validation-errors-list li span {
   display: block;
-  color: var(--text); 
-.chk-area label {
-  cursor: pointer;
-}
-.btn-row.col-layout {
-  flex-direction: column;
-  gap: 12px;
-}
-.spinner.spinner-sm {
-  width: 18px;
-  height: 18px;
-  border-width: 2px;
-}
+  color: var(--text);
+  .chk-area label {
+    cursor: pointer;
+  }
+  .btn-row.col-layout {
+    flex-direction: column;
+    gap: 12px;
+  }
+  .spinner.spinner-sm {
+    width: 18px;
+    height: 18px;
+    border-width: 2px;
+  }
 
-/* --- ScreenExito --- */
-.success-ring.primary-border {
-  border-color: var(--primary);
-}
-.success-divider {
-  height: 1px;
-  background: var(--border);
-  margin: 8px 0;
-}
-.success-actions-group {
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-.btn-print {
-  background: var(--secondary) !important;
-}
-.privacy.privacy-mt {
-  margin-top: 14px;
+  /* --- ScreenExito --- */
+  .success-ring.primary-border {
+    border-color: var(--primary);
+  }
+  .success-divider {
+    height: 1px;
+    background: var(--border);
+    margin: 8px 0;
+  }
+  .success-actions-group {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .btn-print {
+    background: var(--secondary) !important;
+  }
+  .privacy.privacy-mt {
+    margin-top: 14px;
+  }
 }
