@@ -9,7 +9,7 @@ import {
   savePartialGuest,
 } from "@/api/checkin.service";
 import { CheckinContext } from "./CheckinContextDef";
-import { getCurrentTokenPayload } from "@/api/auth.service"
+import { getCurrentTokenPayload } from "@/api/auth.service";
 export const CheckinProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
@@ -26,7 +26,7 @@ export const CheckinProvider: React.FC<{ children: React.ReactNode }> = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isOffline, setIsOffline] = useState(!navigator.onLine);
   const [isPartialSuccess, setIsPartialSuccess] = useState(false);
-// Verificación = tener JWT válido. La pantalla de verificación lo consigue;
+  // Verificación = tener JWT válido. La pantalla de verificación lo consigue;
   // tras éxito hacemos un reload para que useCheckin recargue datos con el token.
   const [accessVerified, setAccessVerified] = useState(() => {
     const payload = getCurrentTokenPayload();
@@ -127,10 +127,7 @@ export const CheckinProvider: React.FC<{ children: React.ReactNode }> = ({
       const { bookingId, clientId } = getBackendIds();
 
       if (isPartial) {
-     const newClientId = await savePartialCheckin(
-          clientId,
-          state.guests[0],
-        );
+        const newClientId = await savePartialCheckin(clientId, state.guests[0]);
         // Sincronizamos el nuevo clientId en el state para futuros submits
         if (!state.guests[0]?.id) {
           actions.updateGuest(0, "id", newClientId);
@@ -139,14 +136,14 @@ export const CheckinProvider: React.FC<{ children: React.ReactNode }> = ({
         actions.goTo("exito", "forward");
         return;
       }
-const result = await submitCheckin({
+      const result = await submitCheckin({
         bookingId,
         clientId,
         guests: state.guests,
         horaLlegada: state.horaLlegada,
         observaciones: state.observaciones,
       });
-// Si todavía quedan personas por registrar → pantalla parcial con botón compartir
+      // Si todavía quedan personas por registrar → pantalla parcial con botón compartir
       setIsPartialSuccess(!result.isComplete);
 
       // Limpieza completa: los keys del wizard viven en localStorage
@@ -173,16 +170,29 @@ const result = await submitCheckin({
       setIsSubmitting(false);
     }
   };
-const handleSubmit = () => submitToServer(false);
+  const handleSubmit = () => submitToServer(false);
   const handlePartialSubmit = () => submitToServer(true);
 
-  // Autosave por huésped: cuando se invoca nextGuest (transición entre
-  // huéspedes o pasos), persistimos el huésped actual a la BDD.
-  // Idempotente: si ya tiene id hace UPDATE, si no CREATE + companion link.
   const wrappedActions = {
     ...actions,
-    nextGuest: (currIdx: number, fromStep: Parameters<typeof actions.nextGuest>[1]) => {
-      const proceed = () => actions.nextGuest(currIdx, fromStep);
+    nextGuest: (
+      currIdx: number,
+      fromStep: Parameters<typeof actions.nextGuest>[1],
+    ) => {
+      const proceed = () => {
+        const isLastGuest = currIdx >= state.numPersonas - 1;
+
+        if (!isLastGuest && fromStep === "form_contacto") {
+          actions.goTo("huesped_intermedio", "forward", currIdx);
+        } else {
+          // Si ya estamos en la intermedia y el usuario dio a "Continuar", vamos a bienvenida del siguiente
+          if (fromStep === "huesped_intermedio") {
+            actions.goTo("bienvenida", "forward", currIdx + 1);
+          } else {
+            actions.nextGuest(currIdx, fromStep);
+          }
+        }
+      };
       const guest = state.guests[currIdx];
       const tieneDatos = !!(guest?.nombre?.trim() || guest?.numDoc?.trim());
 
