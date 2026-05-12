@@ -226,7 +226,8 @@
     "pin_label": "Access PIN",
     "btn_enter": "Enter",
     "error_incorrect_pin": "Incorrect PIN. Please try again.",
-    "username_label": "User"
+    "username_label": "User",
+    "error_too_many_attempts": "Too many attempts. Please wait a few minutes and try again."
   },
   "forms": {
     "minor_address_info": "For registration purposes, the same address and contact details as the responsible adult will be applied. There is no need to fill them in again.",

@@ -45,12 +45,14 @@ interface HistoryEntry {
 
 type CheckinAction =
   | { type: "SET_KNOWN_GUEST"; guest: GuestData }
-  | {
-      type: "SET_RESERVA_TABLET";
-      reserva: Reserva;
-      bookingId: number;
-      clientId: number | null;
-    }
+| {
+    type: "SET_RESERVA_TABLET";
+    reserva: Reserva;
+    bookingId: number;
+    clientId: number | null;
+    knownGuest?: GuestData | null; // <--- Nuevo
+    companions?: GuestData[];      // <--- Nuevo
+  }
   | {
       type: "SET_RESERVA";
       reserva: Reserva;
@@ -156,17 +158,26 @@ export function checkinReducer(
       };
     }
 
-    case "SET_RESERVA_TABLET":
-      return {
-        ...state,
-        reserva: action.reserva,
-        bookingId: action.bookingId,
-        clientId: action.clientId,
-        numPersonas: action.reserva.numHuespedes,
-        numAdultos: action.reserva.numHuespedes,
-        numMenores: 0,
-        guests: mergeGuests([], action.reserva.numHuespedes),
-      };
+    // BUSCA EL CASE "SET_RESERVA_TABLET" Y REEMPLÁZALO COMPLETAMENTE:
+case "SET_RESERVA_TABLET": {
+  const mainGuest = action.knownGuest 
+    ? { ...action.knownGuest, esMenor: false } 
+    : emptyGuest();
+    
+  const allGuests = [mainGuest, ...(action.companions || [])];
+
+  return {
+    ...state,
+    reserva: action.reserva,
+    bookingId: action.bookingId,
+    clientId: action.clientId,
+    knownGuest: action.knownGuest || null,
+    numPersonas: action.reserva.numHuespedes,
+    guests: mergeGuests(allGuests, action.reserva.numHuespedes),
+    numAdultos: allGuests.filter((g) => !g.esMenor).length,
+    numMenores: allGuests.filter((g) => g.esMenor).length,
+  };
+}
 
     case "SET_RESERVA":
       return {
@@ -424,42 +435,67 @@ export function useCheckin(tokenUrl?: string, stepUrl?: string) {
       setIsLoading(false);
       return;
     }
-    let cancelled = false;
-    async function load() {
-      // Sin token JWT válido en storage → la pantalla de verificación lo conseguirá.
-      // Aquí solo cargamos cuando ya tenemos token.
-      const payload = getCurrentTokenPayload();
 
-      if (!payload) {
-        if (!cancelled) setIsLoading(false);
-        return;
+    // Recepción / tablet: URL /checkin/kiosko-{bookingId}/… — autenticación staff,
+    // no hay JWT de huésped; el id de reserva va en el propio token de ruta.
+    const kioskoMatch = /^kiosko-(\d+)$/.exec(token);
+    const kioskoBookingId = kioskoMatch
+      ? parseInt(kioskoMatch[1], 10)
+      : NaN;
+
+    let cancelled = false;
+
+    async function load() {
+      let bookingIdToLoad: number | null = null;
+      const isKioskoRoute =
+        !Number.isNaN(kioskoBookingId) && kioskoBookingId > 0;
+
+      if (isKioskoRoute) {
+        bookingIdToLoad = kioskoBookingId;
+      } else {
+        const payload = getCurrentTokenPayload();
+        if (!payload) {
+          if (!cancelled) setIsLoading(false);
+          return;
+        }
+        bookingIdToLoad = payload.booking_id;
       }
 
       try {
-        const result = await loadCheckinData(payload.booking_id);
+        const result = await loadCheckinData(bookingIdToLoad);
         if (cancelled) return;
 
-        dispatch({
-          type: "SET_RESERVA",
-          reserva: result.reserva,
-          bookingId: result.bookingId,
-          clientId: result.clientId,
-        });
-
-        if (result.knownGuest) {
-          dispatch({ type: "SET_KNOWN_GUEST", guest: result.knownGuest });
-        }
-        if (result.companions.length > 0) {
+        if (isKioskoRoute) {
           dispatch({
-            type: "SET_COMPANIONS_LOADED",
+            type: "SET_RESERVA_TABLET",
+            reserva: result.reserva,
+            bookingId: result.bookingId,
+            clientId: result.clientId,
+            knownGuest: result.knownGuest,
             companions: result.companions,
           });
+        } else {
+          dispatch({
+            type: "SET_RESERVA",
+            reserva: result.reserva,
+            bookingId: result.bookingId,
+            clientId: result.clientId,
+          });
+
+          if (result.knownGuest) {
+            dispatch({ type: "SET_KNOWN_GUEST", guest: result.knownGuest });
+          }
+          if (result.companions.length > 0) {
+            dispatch({
+              type: "SET_COMPANIONS_LOADED",
+              companions: result.companions,
+            });
+          }
+          dispatch({
+            type: "SET_NUM_PERSONAS",
+            total: result.reserva.numHuespedes,
+          });
         }
-        // Rellenar el array de guests hasta numHuespedes para que los slots existan
-        dispatch({
-          type: "SET_NUM_PERSONAS",
-          total: result.reserva.numHuespedes,
-        });
 
         // ── Dispositivo compañero ─────────────────────────────────────────────
         const companionIdx = companionGuestIndexRef.current;
@@ -467,12 +503,11 @@ export function useCheckin(tokenUrl?: string, stepUrl?: string) {
           companionIdx !== null &&
           result.knownGuest?.id &&
           companionIdx < result.reserva.numHuespedes &&
-          stepUrl !== "bienvenida" // evita bucle si ya redirigimos
+          stepUrl !== "bienvenida"
         ) {
           const newHistory: HistoryEntry[] = [
             { step: "bienvenida", guestIndex: companionIdx },
           ];
-          // Guardar en localStorage ANTES de navegar (el remount del router lo restaurará)
           localStorage.setItem(
             `history_${token}`,
             JSON.stringify({ data: newHistory, timestamp: Date.now() }),
@@ -488,7 +523,6 @@ export function useCheckin(tokenUrl?: string, stepUrl?: string) {
           setAllowedSteps(
             new Set<StepId>(["inicio", "bienvenida", "tablet_buscar"]),
           );
-          // Preservar ?guestIndex en la URL para sobrevivir el remount
           navigateRef.current(
             `/checkin/${token}/bienvenida?guestIndex=${companionIdx}`,
             { replace: true },
@@ -503,11 +537,12 @@ export function useCheckin(tokenUrl?: string, stepUrl?: string) {
         if (!cancelled) setIsLoading(false);
       }
     }
+
     load();
     return () => {
       cancelled = true;
     };
-  }, [token, dispatch]);
+  }, [token, dispatch, stepUrl]);
   useEffect(() => {
     return () => {
       if (navTimerRef.current) clearTimeout(navTimerRef.current);
@@ -727,16 +762,26 @@ export function useCheckin(tokenUrl?: string, stepUrl?: string) {
         if (idx < 0 || idx >= dotSteps.length) return;
         goTo(dotSteps[idx], idx < currentDotIndex ? "back" : "forward", 0);
       },
-      setReservaFromTablet: (res: Reserva, bId: number, cId: number | null) => {
-        dispatch({
-          type: "SET_RESERVA_TABLET",
-          reserva: res,
-          bookingId: bId,
-          clientId: cId,
-        });
-        setAppHistory([{ step: "bienvenida", guestIndex: 0 }]);
-        setAllowedSteps(new Set(["bienvenida", "tablet_buscar"]));
-        goTo("bienvenida", "forward", 0);
+      setReservaFromTablet: async (_res: Reserva, bId: number, clientId: number | null) => {
+        void clientId;
+        try {
+          const result = await loadCheckinData(bId);
+
+          dispatch({
+            type: "SET_RESERVA_TABLET",
+            reserva: result.reserva,
+            bookingId: result.bookingId,
+            clientId: result.clientId,
+            knownGuest: result.knownGuest,
+            companions: result.companions,
+          });
+
+          setAppHistory([{ step: "bienvenida", guestIndex: 0 }]);
+          setAllowedSteps(new Set(["bienvenida", "tablet_buscar", "inicio"]));
+          goTo("bienvenida", "forward", 0);
+        } catch (e) {
+          console.error("Error al cargar datos completos en modo tablet:", e);
+        }
       },
       setNumPersonas: (total) => dispatch({ type: "SET_NUM_PERSONAS", total }),
       setGuests: (guests) => dispatch({ type: "SET_GUESTS", guests }),

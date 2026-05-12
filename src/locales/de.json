@@ -225,7 +225,9 @@
     "subtitle": "Geben Sie die Rezeptions-PIN ein, um fortzufahren.",
     "pin_label": "Zugangs-PIN",
     "btn_enter": "Eintreten",
-    "error_incorrect_pin": "Falsche PIN. Bitte versuchen Sie es erneut."
+    "error_incorrect_pin": "Falsche PIN. Bitte versuchen Sie es erneut.",
+    "username_label": "Benutzer",
+    "error_too_many_attempts": "Zu viele Versuche. Bitte warten Sie einige Minuten und versuchen Sie es erneut."
   },
   "forms": {
     "minor_address_info": "Für die Registrierung werden dieselbe Adresse und dieselben Kontaktdaten wie die des verantwortlichen Erwachsenen übernommen. Es ist nicht erforderlich, diese erneut einzugeben.",

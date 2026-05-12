@@ -1002,7 +1002,6 @@ export const ScreenFormContacto: React.FC = () => {
                         label={t("forms.city")}
                         required
                         error={!!errors.ciudad}
-                        helperText={errors.ciudad || ""}
                         sx={inputSx}
                       />
                     )}
@@ -1026,14 +1025,34 @@ export const ScreenFormContacto: React.FC = () => {
             </Box>
           </Box>
           <div className="spacer" />
-          <div className="btn-row" style={{ justifyContent: "center" }}>
+          <div
+            className="btn-row"
+            style={{
+              display: "flex",
+              gap: "10px",
+              flexWrap: "wrap",
+              justifyContent: "center",
+            }}
+          >
+            {guestIndex === 0 && state.numPersonas > 1 && (
+              <Button
+                variant="secondary"
+                type="button"
+                disabled={isSubmitting}
+                onClick={() => void handlePartialSubmit()}
+                style={{ flex: 1, minWidth: "200px" }}
+              >
+                {t("common.save_partial")}
+              </Button>
+            )}
             <Button
               variant="primary"
               type="submit"
               disabled={isSubmitting}
               iconRight="right"
               style={{
-                width: "100%",
+                flex: 1,
+                minWidth: "200px",
               }}
             >
               {isSubmitting ? (

@@ -226,7 +226,8 @@
     "pin_label": "Code PIN d'accès",
     "btn_enter": "Entrer",
     "error_incorrect_pin": "Code PIN incorrect. Veuillez réessayer.",
-    "username_label": "Utilisateur"
+    "username_label": "Utilisateur",
+    "error_too_many_attempts": "Trop de tentatives. Veuillez patienter quelques minutes et réessayer."
   },
   "forms": {
     "minor_address_info": "À des fins d'enregistrement, la même adresse et les mêmes coordonnées que celles de l'adulte responsable seront appliquées. Il n'est pas nécessaire de les remplir à nouveau.",

@@ -176,7 +176,8 @@ function CheckinWizard() {
 
   const isKiosko = token.startsWith("kiosko");
 
-  const isActuallyLoading = isLoading && token !== "new" && !isKiosko;
+  // Incluye kiosko: ahí también hay que esperar a loadCheckinData (Bearer staff).
+  const isActuallyLoading = isLoading && token !== "new";
 
   const needsVerification = !accessVerified && token !== "new" && !isKiosko;
 

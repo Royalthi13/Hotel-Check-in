@@ -121,7 +121,12 @@ export const ScreenTabletBuscar: React.FC<Props> = ({ onFound }) => {
 
         <div className="spacer" />
         <div className="btn-row">
-          <Button variant="primary" iconRight="search" disabled={loading}>
+          <Button
+            type="submit"
+            variant="primary"
+            iconRight="search"
+            disabled={loading}
+          >
             {loading ? t("common.loading") : t("search.btn_search")}
           </Button>
         </div>

@@ -225,7 +225,9 @@
     "subtitle": "Inserisci il PIN della reception per continuare.",
     "pin_label": "PIN di Accesso",
     "btn_enter": "Entra",
-    "error_incorrect_pin": "PIN errato. Riprova."
+    "error_incorrect_pin": "PIN errato. Riprova.",
+    "username_label": "Utente",
+    "error_too_many_attempts": "Troppi tentativi. Attenda qualche minuto e riprovi."
   },
   "forms": {
     "minor_address_info": "Ai fini della registrazione, verranno applicati lo stesso indirizzo e i dettagli di contatto dell'adulto responsabile. Non è necessario compilarli di nuovo.",

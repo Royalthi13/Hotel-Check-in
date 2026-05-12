@@ -128,7 +128,7 @@ export async function normalizeOcrCity(ocrText: string) {
 
   // 3. ESTRATEGIA DE POP (Tu código original por si acaso lo anterior falla)
   if (results.length === 0) {
-    let parts = query.split(" ");
+    const parts = query.split(" ");
     while (results.length === 0 && parts.length > 1) {
       parts.pop();
       results = await searchCitiesByName(parts.join(" "));
