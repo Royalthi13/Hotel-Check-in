@@ -319,7 +319,9 @@
     "room": "Room",
     "btn_print": "Save / Print confirmation",
     "btn_add_time": "Add arrival time",
-    "email_confirmation": "You will receive a confirmation in your email"
+    "email_confirmation": "You will receive a confirmation in your email",
+    "btn_new_search": "Search another booking",
+    "btn_logout": "Log out"
   },
   "verification": {
     "title": "Secure Access",

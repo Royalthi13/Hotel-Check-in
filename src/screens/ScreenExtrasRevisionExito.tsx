@@ -118,6 +118,7 @@ interface RevisionProps {
   isSubmitting: boolean;
   onEditStep: (step: string, guestIndex?: number) => void;
   onSubmit: () => Promise<void>;
+  isKiosko?: boolean;
 }
 
 export const ScreenRevision: React.FC<RevisionProps> = ({
@@ -125,6 +126,7 @@ export const ScreenRevision: React.FC<RevisionProps> = ({
   isSubmitting,
   onEditStep,
   onSubmit,
+  isKiosko,
 }) => {
   const { t, i18n } = useTranslation();
   const { reserva, guests, horaLlegada, observaciones } = state;
@@ -325,7 +327,7 @@ export const ScreenRevision: React.FC<RevisionProps> = ({
         />
 
         {/* BLOQUE EXTRAS */}
-        {(horaLlegada || observaciones) && (
+        {!isKiosko && (horaLlegada || observaciones) && (
           <ConfirmBlock
             title={t("review.extras_title")}
             onEdit={() => onEditStep("form_extras")}
@@ -396,14 +398,17 @@ export const ScreenRevision: React.FC<RevisionProps> = ({
   );
 };
 
-// ═══════════════════════════════════════════════════════════════════════════
+/// ═══════════════════════════════════════════════════════════════════════════
 // ÉXITO
 // ═══════════════════════════════════════════════════════════════════════════
 export const ScreenExito: React.FC<{
   state: CheckinState;
   onAddHora?: () => void;
   isPartial?: boolean;
-}> = ({ state, onAddHora, isPartial }) => {
+  isKiosko?: boolean;
+  onNewSearch?: () => void;
+  onLogout?: () => void;
+}> = ({ state, onAddHora, isPartial, isKiosko, onNewSearch, onLogout }) => {
   const { t } = useTranslation();
   const { reserva, guests, horaLlegada } = state;
   const main = guests[0] || {};
@@ -432,13 +437,16 @@ export const ScreenExito: React.FC<{
         </div>
         <h1 className="success-title">{t("success.partial_title")}</h1>
         <p className="success-sub">{t("success.partial_sub")}</p>
-        <Button
-          variant="primary"
-          onClick={handleCopy}
-          iconLeft={copied ? "check" : undefined}
-        >
-          {copied ? t("common.copied") : t("common.copy_link")}
-        </Button>
+
+        <div className="success-actions-group">
+          <Button
+            variant="primary"
+            onClick={handleCopy}
+            iconLeft={copied ? "check" : undefined}
+          >
+            {copied ? t("common.copied") : t("common.copy_link")}
+          </Button>
+        </div>
       </div>
     );
   }
@@ -497,19 +505,41 @@ export const ScreenExito: React.FC<{
       </div>
 
       <div className="success-actions-group">
-        <Button
-          variant="primary"
-          className="btn-print"
-          onClick={() => window.print()}
-        >
-          <Icon name="check" size={16} /> {t("success.btn_print")}
-        </Button>
-        {(!horaLlegada || horaLlegada === "No especificada") && onAddHora && (
-          <Button variant="secondary" iconLeft="clock" onClick={onAddHora}>
-            {t("success.btn_add_time")}
-          </Button>
+        {!isKiosko ? (
+          <>
+            {/* Botones para el huésped */}
+            <Button
+              variant="primary"
+              className="btn-print"
+              onClick={() => window.print()}
+            >
+              <Icon name="check" size={16} /> {t("success.btn_print")}
+            </Button>
+
+            {(!horaLlegada || horaLlegada === "No especificada") &&
+              onAddHora && (
+                <Button
+                  variant="secondary"
+                  iconLeft="clock"
+                  onClick={onAddHora}
+                >
+                  {t("success.btn_add_time")}
+                </Button>
+              )}
+          </>
+        ) : (
+          <>
+            {/* Botones para el Staff en check-in completado */}
+            <Button variant="primary" iconLeft="search" onClick={onNewSearch}>
+              {t("success.btn_new_search")}
+            </Button>
+            <Button variant="secondary" onClick={onLogout}>
+              {t("success.btn_logout")}
+            </Button>
+          </>
         )}
       </div>
+
       <div className="privacy privacy-mt">
         <Icon name="info" size={11} /> {t("success.email_confirmation")}
       </div>

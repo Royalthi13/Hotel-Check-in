@@ -319,7 +319,9 @@
     "room": "Chambre",
     "btn_print": "Enregistrer / Imprimer la confirmation",
     "btn_add_time": "Ajouter l'heure d'arrivée",
-    "email_confirmation": "Vous recevrez une confirmation par e-mail"
+    "email_confirmation": "Vous recevrez une confirmation par e-mail",
+    "btn_new_search": "Rechercher une autre réservation",
+  "btn_logout": "Se déconnecter"
   },
   "verification": {
     "title": "Accès Sécurisé",

@@ -234,7 +234,6 @@
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
 }
 
-/* El nombre del huésped dentro del error */
 .validation-errors-list li strong {
   display: block;
   color: #b71c1c;
@@ -248,38 +247,47 @@
 .validation-errors-list li span {
   display: block;
   color: var(--text);
-  .chk-area label {
-    cursor: pointer;
-  }
-  .btn-row.col-layout {
-    flex-direction: column;
-    gap: 12px;
-  }
-  .spinner.spinner-sm {
-    width: 18px;
-    height: 18px;
-    border-width: 2px;
-  }
+}
 
-  /* --- ScreenExito --- */
-  .success-ring.primary-border {
-    border-color: var(--primary);
-  }
-  .success-divider {
-    height: 1px;
-    background: var(--border);
-    margin: 8px 0;
-  }
-  .success-actions-group {
-    width: 100%;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-  }
-  .btn-print {
-    background: var(--secondary) !important;
-  }
-  .privacy.privacy-mt {
-    margin-top: 14px;
-  }
+.chk-area label {
+  cursor: pointer;
+}
+
+.btn-row.col-layout {
+  flex-direction: column;
+  gap: 12px;
+}
+
+.spinner.spinner-sm {
+  width: 18px;
+  height: 18px;
+  border-width: 2px;
+}
+
+/* --- ScreenExito --- */
+.success-ring.primary-border {
+  border-color: var(--primary);
+}
+
+.success-divider {
+  height: 1px;
+  background: var(--border);
+  margin: 8px 0;
+}
+
+.success-actions-group {
+  width: 100%;
+  max-width: 320px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  margin: 0 auto;
+}
+
+.btn-print {
+  background: var(--primary) !important;
+}
+
+.privacy.privacy-mt {
+  margin-top: 14px;
 }

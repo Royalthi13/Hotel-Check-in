@@ -318,6 +318,7 @@ function CheckinWizard() {
           <ScreenRevision
             state={state}
             isSubmitting={isSubmitting}
+            isKiosko={isKiosko}
             onEditStep={(targetStep, gIdx) =>
               actions.goTo(targetStep as StepId, "back", gIdx)
             }
@@ -331,6 +332,9 @@ function CheckinWizard() {
           state={state}
           onAddHora={() => actions.goTo("form_extras", "back")}
           isPartial={isPartialSuccess}
+          isKiosko={isKiosko}
+          onNewSearch={() => navigate("/buscar", { replace: true })}
+          onLogout={() => navigate("/logout", { replace: true })}
         />
       )}
     </AppShell>
