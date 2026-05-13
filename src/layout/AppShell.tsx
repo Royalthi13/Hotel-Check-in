@@ -278,7 +278,7 @@ export const AppShell: React.FC<AppShellProps> = ({
           onBack={actions.goBack}
           onLogoClick={
             activeStep !== "exito"
-              ? () => actions.goTo("inicio", "back", 0)
+              ? () => actions.goTo("inicio", "back", guestIndex)
               : undefined
           }
           extraContent={<LanguageSelector />}
@@ -363,7 +363,7 @@ export const AppShell: React.FC<AppShellProps> = ({
                 className="sp-logo"
                 onClick={
                   activeStep !== "exito"
-                    ? () => actions.goTo("inicio", "back", 0)
+                    ? () => actions.goTo("inicio", "back", guestIndex)
                     : undefined
                 }
                 style={{
@@ -439,15 +439,13 @@ export const AppShell: React.FC<AppShellProps> = ({
                           return;
                         }
 
-                        if (isClickable) {
-                          const dIdx = (nav.dotSteps || []).indexOf(s.id);
-                          if (dIdx !== -1) actions.goToDotIndex(dIdx);
-                          else
-                            actions.goTo(
-                              s.id,
-                              isGoingBackward ? "back" : "forward",
-                              0,
-                            );
+                      if (isClickable) {
+                          // ✨ FIX 3: Usamos siempre goTo para forzar explícitamente el guestIndex actual
+                          actions.goTo(
+                            s.id,
+                            isGoingBackward ? "back" : "forward",
+                            guestIndex
+                          );
                         }
                       }}
                       className={[

@@ -315,8 +315,7 @@ export function useCheckin(tokenUrl?: string, stepUrl?: string) {
   const [state, setState] = useState<CheckinState>(() =>
     getInitialState(token, initialMode),
   );
-
-  const [appHistory, setAppHistory] = useState<HistoryEntry[]>(() => {
+const [appHistory, setAppHistory] = useState<HistoryEntry[]>(() => {
     let storedHistory: HistoryEntry[] = [];
     try {
       const raw = localStorage.getItem(`history_${token}`);
@@ -327,14 +326,20 @@ export function useCheckin(tokenUrl?: string, stepUrl?: string) {
     } catch (e) {
       console.warn("No se pudo cargar el historial", e);
     }
+    
+    // ✨ FIX 1: Si hay un guestIndex explícito en la URL, IGNORAMOS el historial viejo.
+    const urlGuestIdx = getCompanionGuestIndexFromUrl();
+    if (urlGuestIdx !== null) {
+      const initStep: StepId = (stepUrl as StepId) || "bienvenida";
+      return [{ step: initStep, guestIndex: urlGuestIdx }];
+    }
+
     if (stepUrl && VALID_STEPS.includes(stepUrl as StepId)) {
       const stepExists = storedHistory.some((h) => h.step === stepUrl);
       if (!stepExists) {
-        // Si viene de enlace compartido, usar el guestIndex del URL
-        const urlGuestIdx = getCompanionGuestIndexFromUrl() ?? 0;
         return [
           ...storedHistory,
-          { step: stepUrl as StepId, guestIndex: urlGuestIdx },
+          { step: stepUrl as StepId, guestIndex: 0 },
         ];
       }
     }
@@ -351,6 +356,16 @@ export function useCheckin(tokenUrl?: string, stepUrl?: string) {
       }
     } catch (e) {
       console.warn("No se pudieron cargar los pasos permitidos", e);
+    }
+
+    // ✨ FIX 2: Reiniciar pasos si venimos de un enlace de acompañante, de forma Type-Safe
+    const urlGuestIdx = getCompanionGuestIndexFromUrl();
+    if (urlGuestIdx !== null) {
+      const baseSteps: StepId[] = ["inicio", "bienvenida", "tablet_buscar"];
+      if (stepUrl && VALID_STEPS.includes(stepUrl as StepId)) {
+        baseSteps.push(stepUrl as StepId);
+      }
+      return new Set<StepId>(baseSteps);
     }
 
     if (stepUrl && VALID_STEPS.includes(stepUrl as StepId)) {
@@ -504,10 +519,11 @@ const kioskoBookingId = isNumericToken && isStaffLoggedIn()
         }
 
         // ── Dispositivo compañero ─────────────────────────────────────────────
+       // ── Dispositivo compañero ─────────────────────────────────────────────
         const companionIdx = companionGuestIndexRef.current;
         if (
           companionIdx !== null &&
-          result.knownGuest?.id &&
+          // ✨ FIX 3: Quitamos result.knownGuest?.id para que siempre funcione
           companionIdx < result.reserva.numHuespedes &&
           stepUrl !== "bienvenida"
         ) {
@@ -560,6 +576,11 @@ const kioskoBookingId = isNumericToken && isStaffLoggedIn()
   const actualStep: StepId = (() => {
     if (requestedStep && VALID_STEPS.includes(requestedStep))
       return requestedStep;
+      
+    // ✨ FIX 4: Si entra por enlace de acompañante sin paso definido, forzar bienvenida
+    const urlGuestIdx = getCompanionGuestIndexFromUrl();
+    if (urlGuestIdx !== null) return "bienvenida";
+
     if (initialMode === "tablet") return "tablet_buscar";
 
     const yaAcepto = sessionStorage.getItem(`legalPassed_${token}`) === "true";
@@ -573,14 +594,29 @@ const kioskoBookingId = isNumericToken && isStaffLoggedIn()
 
     return "inicio";
   })();
-
- const activeGuestIndex = (() => {
+  const activeGuestIndex = (() => {
+    let idx = 0;
     const last = appHistory[appHistory.length - 1];
-    if (last && last.step === actualStep) return last.guestIndex;
-    for (let i = appHistory.length - 1; i >= 0; i--) {
-      if (appHistory[i].step === actualStep) return appHistory[i].guestIndex;
+    
+    if (last && last.step === actualStep) {
+      idx = last.guestIndex;
+    } else if (isNavigating && last) {
+      idx = last.guestIndex;
+    } else {
+      let found = false;
+      for (let i = appHistory.length - 1; i >= 0; i--) {
+        if (appHistory[i].step === actualStep) {
+          idx = appHistory[i].guestIndex;
+          found = true;
+          break;
+        }
+      }
+      if (!found) idx = last ? last.guestIndex : 0;
     }
-    return 0;
+    
+    // ✨ FIX 5: Nunca permitir que el índice del huésped sea mayor que (numPersonas - 1)
+    // Esto evita el "Huésped 3 de 2" limitándolo siempre al máximo permitido.
+    return Math.min(idx, Math.max(0, state.numPersonas - 1));
   })();
 
   useEffect(() => {
@@ -766,9 +802,9 @@ const kioskoBookingId = isNumericToken && isStaffLoggedIn()
     () => ({
       goTo,
       goBack,
-      goToDotIndex: (idx: number) => {
+     goToDotIndex: (idx: number) => {
         if (idx < 0 || idx >= dotSteps.length) return;
-        goTo(dotSteps[idx], idx < currentDotIndex ? "back" : "forward", 0);
+        goTo(dotSteps[idx], idx < currentDotIndex ? "back" : "forward", activeGuestIndexRef.current);
       },
       setReservaFromTablet: async (_res: Reserva, bId: number, clientId: number | null) => {
         void clientId;
