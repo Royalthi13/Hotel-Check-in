@@ -99,15 +99,9 @@ try {
     if (raw) {
       const storedData = JSON.parse(raw);
       const { timestamp, state } = storedData;
-      if (Date.now() - timestamp < 30 * 60 * 1000) {
-        // En modo incógnito/nuevo acceso, limpiar huéspedes sin id para evitar caché sucia
-        if (state?.guests) {
-          state.guests = state.guests.map((g: PartialGuestData) =>
-            g.id ? g : { esMenor: false, relacionesConAdultos: [], pais: "ES" }
-          );
-        }
-        return state;
-      } else {
+     if (Date.now() - timestamp < 30 * 60 * 1000) {
+  return state;
+}else {
         localStorage.removeItem(sessionKey);
       }
     }
@@ -442,9 +436,10 @@ export function useCheckin(tokenUrl?: string, stepUrl?: string) {
       return;
     }
 
-    // Recepción / tablet: URL /checkin/kiosko-{bookingId}/… — autenticación staff,
-    // no hay JWT de huésped; el id de reserva va en el propio token de ruta.
-    const kioskoBookingId = isStaffLoggedIn() && /^\d+$/.test(token)
+    
+  
+const isNumericToken = /^\d+$/.test(token);
+const kioskoBookingId = isNumericToken && isStaffLoggedIn()
   ? parseInt(token, 10)
   : NaN;
 

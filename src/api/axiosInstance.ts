@@ -58,7 +58,7 @@ api.interceptors.response.use(
       // Caso A: Caducó el Kiosko
       if (getStaffToken()) {
         clearStaffToken();
-        window.location.replace("/checkin/kiosko/tablet_login");
+        window.location.replace("/new");
         return Promise.reject(
           new Error(i18n.t("errors.staff_session_expired")),
         );

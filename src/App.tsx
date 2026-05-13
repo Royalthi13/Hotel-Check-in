@@ -172,10 +172,10 @@ function CheckinWizard() {
     setAccessVerified,
   } = useCheckinContext();
 
-const isKiosko = isStaffLoggedIn();
+const isKiosko = /^\d+$/.test(token) && isStaffLoggedIn();
 
   // Incluye kiosko: ahí también hay que esperar a loadCheckinData (Bearer staff).
-const isActuallyLoading = isLoading && token !== "new" && !/^\d+$/.test(token) === false;
+const isActuallyLoading = isLoading && token !== "new";
 
   const needsVerification = !accessVerified && token !== "new" && !isKiosko;
 
@@ -279,12 +279,7 @@ const isActuallyLoading = isLoading && token !== "new" && !/^\d+$/.test(token) =
       {currentStep === "form_personal" && <ScreenFormPersonal />}
       {currentStep === "form_contacto" && <ScreenFormContacto />}
 
-      {currentStep === "huesped_intermedio" &&
-        (isKiosko ? (
-          <Navigate to={`/checkin/${token}/form_personal`} replace />
-        ) : (
-          <ScreenHuespedIntermedio />
-        ))}
+      {currentStep === "huesped_intermedio" && <ScreenHuespedIntermedio />}
 
       {currentStep === "form_relaciones" && (
         <ScreenRelacionesMenor
