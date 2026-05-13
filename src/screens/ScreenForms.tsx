@@ -691,14 +691,12 @@ export const ScreenFormContacto: React.FC = () => {
         </Typography>
       </div>
       <form
-        onSubmit={async (e) => {
+       onSubmit={async (e) => {
           e.preventDefault();
 
-          // Si España y no hay codCity todavía, intenta resolverlo del catálogo
-          // antes de validar. Solo se considera resuelto si hay match exacto
-          // por nombre (ignorando case/espacios).
           let nextData = data;
           const esEspanaSubmit = data.pais === "ES" || data.pais === "ESP";
+
           if (esEspanaSubmit && !data.codCity?.trim() && data.ciudad?.trim()) {
             try {
               const matches = await searchCitiesByName(data.ciudad.trim());
@@ -707,20 +705,20 @@ export const ScreenFormContacto: React.FC = () => {
               const exact = matches.find(
                 (c) => norm(c.name) === norm(data.ciudad!),
               );
-            if (exact) {
-              handleUpdate("ciudad", exact.name);
-              handleUpdate("codCity", exact.codcity);
-              nextData = {
-                ...data,
-                ciudad: exact.name,
-                codCity: exact.codcity,
-              };
+              if (exact) {
+                handleUpdate("ciudad", exact.name);
+                handleUpdate("codCity", exact.codcity);
+                nextData = {
+                  ...data,
+                  ciudad: exact.name,
+                  codCity: exact.codcity,
+                };
+              }
+            } catch (err) {
+              if (import.meta.env.DEV)
+                console.warn("Error resolviendo cod_city:", err);
             }
-          } catch (err) {
-            if (import.meta.env.DEV)
-              console.warn("Error resolviendo cod_city:", err);
           }
-        }
 
           if (validate(nextData))
             actions.nextGuest(guestIndex, "form_contacto");

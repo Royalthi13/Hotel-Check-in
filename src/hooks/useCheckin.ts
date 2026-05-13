@@ -15,7 +15,7 @@ import type {
 import { FLOW_STEPS } from "@/constants";
 import { loadCheckinData } from "@/api/checkin.service";
 import { getCurrentTokenPayload } from "@/api/auth.service";
-import { getStoredAccessCode, clearToken } from "@/api/axiosInstance";
+import { getStoredAccessCode, clearToken, isStaffLoggedIn } from "@/api/axiosInstance";
 
 /** Lee ?guestIndex=N del URL actual. Devuelve N si N > 0, o null. */
 function getCompanionGuestIndexFromUrl(): number | null {
@@ -444,10 +444,9 @@ export function useCheckin(tokenUrl?: string, stepUrl?: string) {
 
     // Recepción / tablet: URL /checkin/kiosko-{bookingId}/… — autenticación staff,
     // no hay JWT de huésped; el id de reserva va en el propio token de ruta.
-    const kioskoMatch = /^kiosko-(\d+)$/.exec(token);
-    const kioskoBookingId = kioskoMatch
-      ? parseInt(kioskoMatch[1], 10)
-      : NaN;
+    const kioskoBookingId = isStaffLoggedIn() && /^\d+$/.test(token)
+  ? parseInt(token, 10)
+  : NaN;
 
     let cancelled = false;
 

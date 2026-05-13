@@ -18,6 +18,7 @@ import { ScreenCheckinInicio } from "@/screens/ScreenCheckinInicio";
 import { ScreenEscanear } from "@/screens/ScreenEscanear";
 import { ScreenRelacionesMenor } from "@/screens/ScreenRelacionesMenor";
 import { ScreenFormPersonal, ScreenFormContacto } from "@/screens/ScreenForms";
+
 import {
   ScreenFormExtras,
   ScreenRevision,
@@ -132,7 +133,7 @@ function KioskoBuscar() {
           onFound={(res, bookingId, clientId) => {
           
             // El recepcionista va directo al inicio del checkin
-            navigate(`/checkin/kiosko-${bookingId}/inicio`);
+          navigate(`/checkin/${bookingId}/inicio`);
           }}
         />
       </div>
@@ -171,10 +172,10 @@ function CheckinWizard() {
     setAccessVerified,
   } = useCheckinContext();
 
-  const isKiosko = token.startsWith("kiosko");
+const isKiosko = isStaffLoggedIn();
 
   // Incluye kiosko: ahí también hay que esperar a loadCheckinData (Bearer staff).
-  const isActuallyLoading = isLoading && token !== "new";
+const isActuallyLoading = isLoading && token !== "new" && !/^\d+$/.test(token) === false;
 
   const needsVerification = !accessVerified && token !== "new" && !isKiosko;
 
