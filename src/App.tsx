@@ -130,10 +130,7 @@ function KioskoBuscar() {
       <div className="card">
         <ScreenTabletBuscar
           onFound={(res, bookingId, clientId) => {
-            sessionStorage.setItem(
-              "kiosko_booking",
-              JSON.stringify({ res, bookingId, clientId }),
-            );
+          
             // El recepcionista va directo al inicio del checkin
             navigate(`/checkin/kiosko-${bookingId}/inicio`);
           }}
@@ -242,8 +239,9 @@ function CheckinWizard() {
       )}
 
       {currentStep === "inicio" && (
-        <ScreenCheckinInicio
+    <ScreenCheckinInicio
           reserva={state.reserva as Reserva}
+          isKiosko={isKiosko}
           onNext={(hayMenores: boolean) => {
             setHasMinorsFlag(hayMenores);
             setLegalPassed(true);

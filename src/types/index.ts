@@ -47,7 +47,7 @@ export interface GuestData {
   sexo: string;
   fechaNac: string;
   nacionalidad: string;
-  parentescoParaAPI?: string;
+ parentescoParaAPI?: string;
   esMenor: boolean;
   observations?: string;
   vengoConMenores?: boolean;

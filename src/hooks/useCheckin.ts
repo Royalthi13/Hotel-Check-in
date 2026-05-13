@@ -15,6 +15,7 @@ import type {
 import { FLOW_STEPS } from "@/constants";
 import { loadCheckinData } from "@/api/checkin.service";
 import { getCurrentTokenPayload } from "@/api/auth.service";
+import { getStoredAccessCode, clearToken } from "@/api/axiosInstance";
 
 /** Lee ?guestIndex=N del URL actual. Devuelve N si N > 0, o null. */
 function getCompanionGuestIndexFromUrl(): number | null {
@@ -455,6 +456,12 @@ export function useCheckin(tokenUrl?: string, stepUrl?: string) {
       } else {
         const payload = getCurrentTokenPayload();
         if (!payload) {
+          if (!cancelled) setIsLoading(false);
+          return;
+        }
+        const storedCode = getStoredAccessCode();
+        if (storedCode && storedCode !== token) {
+          clearToken();
           if (!cancelled) setIsLoading(false);
           return;
         }

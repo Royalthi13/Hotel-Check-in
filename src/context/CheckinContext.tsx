@@ -146,8 +146,7 @@ export const CheckinProvider: React.FC<{ children: React.ReactNode }> = ({
         actions.goTo("exito", "forward");
         return;
       }
-      const isCompanion =
-        new URLSearchParams(window.location.search).get("guestIndex") !== null;
+    
 
       const result = await submitCheckin({
         bookingId,
@@ -155,8 +154,8 @@ export const CheckinProvider: React.FC<{ children: React.ReactNode }> = ({
         guests: latestStateRef.current.guests,
         horaLlegada: latestStateRef.current.horaLlegada,
         observaciones: latestStateRef.current.observaciones,
-        sessionCreatedIds: sessionCreatedIdsRef.current,
-        isCompanion,
+  
+       
       });
       // Si todavía quedan personas por registrar → pantalla parcial con botón compartir
       setIsPartialSuccess(!result.isComplete);

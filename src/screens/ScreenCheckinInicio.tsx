@@ -6,6 +6,7 @@ import type { Reserva } from "@/types";
 
 interface Props {
   reserva?: Reserva | null;
+  isKiosko?: boolean;
   onNext: (hayMenores: boolean) => void;
 }
 
@@ -14,8 +15,13 @@ interface LegalSection {
   p: string;
 }
 
-export const ScreenCheckinInicio: React.FC<Props> = ({ reserva, onNext }) => {
+export const ScreenCheckinInicio: React.FC<Props> = ({ reserva, isKiosko, onNext }) => {
   const { t } = useTranslation();
+
+  useEffect(() => {
+    if (isKiosko) onNext(false);
+  }, [isKiosko]);
+
   const {
     legalPassed,
     setLegalPassed,

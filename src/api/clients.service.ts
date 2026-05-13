@@ -208,12 +208,10 @@ export function toClientPayload(g: PartialGuestData): Record<string, unknown> {
   // El parentesco ya viene como codrelation de la API (ej: "HJ", "TU", "OT").
   // Si checkin.service.ts sobrescribió con `parentescoParaAPI` (relación invertida
   // para el adulto, ej: "PM"), ése tiene prioridad.
-  const withApiField = g as PartialGuestData & { parentescoParaAPI?: string };
   const codrelation =
-    withApiField.parentescoParaAPI ??
+    g.parentescoParaAPI ??
     g.relacionesConAdultos?.[0]?.parentesco ??
     undefined;
-
   return {
     name: str(g.nombre) ?? "",
     surname: surname || "",

@@ -711,20 +711,25 @@ export const ScreenFormContacto: React.FC = () => {
               const exact = matches.find(
                 (c) => norm(c.name) === norm(data.ciudad!),
               );
-              if (exact) {
-                handleUpdate("ciudad", exact.name);
-                handleUpdate("codCity", exact.codcity);
-                nextData = {
-                  ...data,
-                  ciudad: exact.name,
-                  codCity: exact.codcity,
-                };
-              }
-            } catch (err) {
-              if (import.meta.env.DEV)
-                console.warn("Error resolviendo cod_city:", err);
+            if (exact) {
+              handleUpdate("ciudad", exact.name);
+              handleUpdate("codCity", exact.codcity);
+              nextData = {
+                ...data,
+                ciudad: exact.name,
+                codCity: exact.codcity,
+              };
+            } else {
+              // Ciudad escrita pero no resuelta: limpiamos para forzar selección
+              handleUpdate("codCity", "");
+              handleUpdate("ciudad", "");
+              nextData = { ...data, ciudad: "", codCity: "" };
             }
+          } catch (err) {
+            if (import.meta.env.DEV)
+              console.warn("Error resolviendo cod_city:", err);
           }
+        }
 
           if (validate(nextData))
             actions.nextGuest(guestIndex, "form_contacto");

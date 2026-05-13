@@ -21,8 +21,9 @@ export interface CheckinSubmitPayload {
   guests: PartialGuestData[];
   horaLlegada: string;
   observaciones: string;
+  sessionCreatedIds?: Set<number>;
+ 
 }
-
 // ── Consulta el estado real del pre-checkin en el backend ─────────────────────
 async function getCheckinStatus(
   bookingId: number,
@@ -215,9 +216,7 @@ export async function submitCheckin(
   });
   // 7. ¿Está el pre-checkin completamente terminado?
   const status = await getCheckinStatus(bookingId);
-  if (import.meta.env.DEV) {
-    console.log("[checkin] STATUS RESPONSE:", JSON.stringify(status));
-  }
+ 
 
   const checkinCompleto = status !== null && status.persons_to_create === 0;
 

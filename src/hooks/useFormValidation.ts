@@ -182,7 +182,14 @@ export function validateContacto(
   // Backend exige address, cp y city/cod_city para que data_full=true
   if (!data.direccion?.trim()) e.direccion = t("validation.required_address");
   if (!data.cp?.trim()) e.cp = t("validation.required_cp");
-  if (!data.ciudad?.trim()) e.ciudad = t("validation.required_city");
+ if (!data.ciudad?.trim()) {
+    e.ciudad = t("validation.required_city");
+  } else if (
+    (data.pais === "ES" || data.pais === "ESP") &&
+    !data.codCity?.trim()
+  ) {
+    e.ciudad = t("validation.city_must_be_selected");
+  }
 
  
 
