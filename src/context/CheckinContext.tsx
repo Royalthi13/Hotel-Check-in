@@ -195,19 +195,20 @@ export const CheckinProvider: React.FC<{ children: React.ReactNode }> = ({
       currIdx: number,
       fromStep: Parameters<typeof actions.nextGuest>[1],
     ) => {
-      const proceed = () => {
+    const proceed = () => {
         const isLastGuest = currIdx >= state.numPersonas - 1;
+
+        if (fromStep === "huesped_intermedio") {
+          actions.goTo("bienvenida", "forward", currIdx + 1);
+          return;
+        }
 
         if (!isLastGuest && fromStep === "form_contacto") {
           actions.goTo("huesped_intermedio", "forward", currIdx);
-        } else {
-          // Si ya estamos en la intermedia y el usuario dio a "Continuar", vamos a bienvenida del siguiente
-          if (fromStep === "huesped_intermedio") {
-            actions.goTo("bienvenida", "forward", currIdx + 1);
-          } else {
-            actions.nextGuest(currIdx, fromStep);
-          }
+          return;
         }
+
+        actions.nextGuest(currIdx, fromStep);
       };
       const guest = state.guests[currIdx];
       const tieneDatos = !!(guest?.nombre?.trim() || guest?.numDoc?.trim());

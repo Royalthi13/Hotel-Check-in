@@ -124,11 +124,11 @@ const CODPAIS_TO_NAC: Record<string, string> = Object.fromEntries(
   Object.entries(NAC_TO_CODPAIS).map(([nac, codpais]) => [codpais, nac]),
 );
 const COD_TO_DOC: Record<string, string> = {
-  NIF: "DNI",
+  NIF: "NIF",
   NIE: "NIE",
   CIF: "CIF",
-  PAS: "Pasaporte",
-  OTRO: "Otro",
+  PAS: "PAS",
+  OTRO: "OTRO",
 };
 // Nota: el parentesco NO se mapea — la API devuelve y acepta el mismo
 // `codrelation` (ej: "HJ", "TU", "PM", "OT") que el frontend guarda en el

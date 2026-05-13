@@ -288,11 +288,7 @@ const showDocSupport = data.tipoDoc === "NIF" || data.tipoDoc === "NIE";
                   label={t("forms.doc_type")}
                   required
                   fullWidth
-                  value={
-                    tiposDoc.some((d) => d.value === data.tipoDoc)
-                      ? data.tipoDoc
-                      : ""
-                  }
+                 value={data.tipoDoc ?? ""}
                   onChange={(e) => {
                     handleUpdate("tipoDoc", e.target.value);
                     clearError("tipoDoc");
@@ -719,11 +715,6 @@ export const ScreenFormContacto: React.FC = () => {
                 ciudad: exact.name,
                 codCity: exact.codcity,
               };
-            } else {
-              // Ciudad escrita pero no resuelta: limpiamos para forzar selección
-              handleUpdate("codCity", "");
-              handleUpdate("ciudad", "");
-              nextData = { ...data, ciudad: "", codCity: "" };
             }
           } catch (err) {
             if (import.meta.env.DEV)

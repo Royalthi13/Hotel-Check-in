@@ -18,9 +18,13 @@ interface LegalSection {
 export const ScreenCheckinInicio: React.FC<Props> = ({ reserva, isKiosko, onNext }) => {
   const { t } = useTranslation();
 
+  const kioskoJumpedRef = React.useRef(false);
   useEffect(() => {
-    if (isKiosko) onNext(false);
-  }, [isKiosko]);
+    if (isKiosko && !kioskoJumpedRef.current) {
+      kioskoJumpedRef.current = true;
+      onNext(false);
+    }
+  }, [isKiosko, onNext]);
 
   const {
     legalPassed,

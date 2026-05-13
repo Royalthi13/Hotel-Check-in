@@ -94,13 +94,18 @@ function getInitialState(token: string, mode: AppMode): CheckinState {
   } catch (e) {
     console.warn(e);
   }
-
-  try {
+try {
     const raw = localStorage.getItem(sessionKey);
     if (raw) {
       const storedData = JSON.parse(raw);
       const { timestamp, state } = storedData;
       if (Date.now() - timestamp < 30 * 60 * 1000) {
+        // En modo incógnito/nuevo acceso, limpiar huéspedes sin id para evitar caché sucia
+        if (state?.guests) {
+          state.guests = state.guests.map((g: PartialGuestData) =>
+            g.id ? g : { esMenor: false, relacionesConAdultos: [], pais: "ES" }
+          );
+        }
         return state;
       } else {
         localStorage.removeItem(sessionKey);
@@ -575,7 +580,9 @@ export function useCheckin(tokenUrl?: string, stepUrl?: string) {
     return "inicio";
   })();
 
-  const activeGuestIndex = (() => {
+ const activeGuestIndex = (() => {
+    const last = appHistory[appHistory.length - 1];
+    if (last && last.step === actualStep) return last.guestIndex;
     for (let i = appHistory.length - 1; i >= 0; i--) {
       if (appHistory[i].step === actualStep) return appHistory[i].guestIndex;
     }
@@ -601,9 +608,9 @@ export function useCheckin(tokenUrl?: string, stepUrl?: string) {
       if (isTerminal) {
         setAppHistory([{ step: nextStep, guestIndex: guestIdx }]);
         navigate(`/checkin/${token}/${nextStep}`, { replace: true });
-      } else {
+    } else {
         setAppHistory((prev) => [
-          ...prev,
+          ...prev.filter((h) => !(h.step === nextStep && dir === "forward")),
           { step: nextStep, guestIndex: guestIdx },
         ]);
         if (dir === "forward") navigate(`/checkin/${token}/${nextStep}`);
