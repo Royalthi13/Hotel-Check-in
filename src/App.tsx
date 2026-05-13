@@ -130,10 +130,9 @@ function KioskoBuscar() {
     <div className="shell">
       <div className="card">
         <ScreenTabletBuscar
-          onFound={(res, bookingId, clientId) => {
-          
+          onFound={(_, bookingId) => {
             // El recepcionista va directo al inicio del checkin
-          navigate(`/checkin/${bookingId}/inicio`);
+            navigate(`/checkin/${bookingId}/inicio`);
           }}
         />
       </div>
@@ -172,10 +171,10 @@ function CheckinWizard() {
     setAccessVerified,
   } = useCheckinContext();
 
-const isKiosko = /^\d+$/.test(token) && isStaffLoggedIn();
+  const isKiosko = /^\d+$/.test(token) && isStaffLoggedIn();
 
   // Incluye kiosko: ahí también hay que esperar a loadCheckinData (Bearer staff).
-const isActuallyLoading = isLoading && token !== "new";
+  const isActuallyLoading = isLoading && token !== "new";
 
   const needsVerification = !accessVerified && token !== "new" && !isKiosko;
 
@@ -240,7 +239,7 @@ const isActuallyLoading = isLoading && token !== "new";
       )}
 
       {currentStep === "inicio" && (
-    <ScreenCheckinInicio
+        <ScreenCheckinInicio
           reserva={state.reserva as Reserva}
           isKiosko={isKiosko}
           onNext={(hayMenores: boolean) => {
