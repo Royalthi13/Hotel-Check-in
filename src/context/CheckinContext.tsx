@@ -21,21 +21,19 @@ export const CheckinProvider: React.FC<{ children: React.ReactNode }> = ({
   const { token: urlToken, step } = useParams();
   const token = urlToken ?? "new";
   const PERSISTENCE_KEY = `h_ckin_data_${token}`;
-  const [state, nav, actions, isLoading, setModoFlujo] = useCheckin(
-    token,
-    step,
-  );
+  
+  const [state, nav, actions, isLoading, setModoFlujo] = useCheckin(token, step);
 
   const [submitError, setSubmitError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isOffline, setIsOffline] = useState(!navigator.onLine);
   const [isPartialSuccess, setIsPartialSuccess] = useState(false);
-  // Verificación = tener JWT válido. La pantalla de verificación lo consigue;
-  // tras éxito hacemos un reload para que useCheckin recargue datos con el token.
+  
+  const isKiosko = isStaffLoggedIn();
+
   const [accessVerified, setAccessVerified] = useState(() => {
     const payload = getCurrentTokenPayload();
     if (!payload) return false;
-    // Verificar que el token pertenece al access_code actual de la URL
     const storedCode = getStoredAccessCode();
     if (storedCode && storedCode !== token) {
       clearToken();
@@ -43,12 +41,13 @@ export const CheckinProvider: React.FC<{ children: React.ReactNode }> = ({
     }
     return true;
   });
+
   const latestStateRef = React.useRef(state);
   React.useEffect(() => {
     latestStateRef.current = state;
   }, [state]);
 
-  // IDs de clientes creados en ESTA sesión — tracked para evitar PUT innecesarios en submit
+  // Ref para trackear IDs creados en esta sesión
   const sessionCreatedIdsRef = React.useRef<Set<number>>(new Set());
 
   const [legalPassed, setLegalPassed] = useState(
@@ -58,7 +57,6 @@ export const CheckinProvider: React.FC<{ children: React.ReactNode }> = ({
     () => sessionStorage.getItem(`hasMinors_${token}`) === "true",
   );
 
-  // --- PERSISTENCIA LEGAL ---
   useEffect(() => {
     sessionStorage.setItem(`legalPassed_${token}`, String(legalPassed));
   }, [legalPassed, token]);
@@ -67,21 +65,18 @@ export const CheckinProvider: React.FC<{ children: React.ReactNode }> = ({
     sessionStorage.setItem(`hasMinors_${token}`, String(hasMinorsFlag));
   }, [hasMinorsFlag, token]);
 
-  // --- DETECTOR ONLINE/OFFLINE ---
   useEffect(() => {
     const on = () => setIsOffline(false);
     const off = () => setIsOffline(true);
-
     window.addEventListener("online", on);
     window.addEventListener("offline", off);
-
     return () => {
       window.removeEventListener("online", on);
       window.removeEventListener("offline", off);
     };
   }, []);
 
-  // --- PERSISTENCIA DE HUÉSPEDES (sessionStorage, se vacía al cerrar pestaña) ---
+  // Persistencia de seguridad en sessionStorage
   useEffect(() => {
     if (state.guests && state.guests.length > 0) {
       const backup = {
@@ -92,18 +87,10 @@ export const CheckinProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   }, [state.guests, PERSISTENCE_KEY]);
 
-  // --- LIMPIEZA Y AUXILIARES ---
-  const clearSubmitError = () => setSubmitError("");
-
   const getBackendIds = () => {
     const bookingId = state.bookingId;
-    // clientId puede venir del state o haberse generado en un partial-submit previo
     const clientId = state.clientId ?? state.guests[0]?.id ?? null;
-
-    if (!bookingId) {
-      throw new Error(t("checkin.error_invalid_reservation"));
-    }
-
+    if (!bookingId) throw new Error(t("checkin.error_invalid_reservation"));
     return { bookingId, clientId };
   };
 
@@ -114,23 +101,10 @@ export const CheckinProvider: React.FC<{ children: React.ReactNode }> = ({
     `legalPassed_${token}`,
     `hasMinors_${token}`,
     `modoFlujo_${token}`,
-    `verify_attempts_${token}`, // Añadido por si usas el token en vez de bookingRef
+    `verify_attempts_${token}`,
   ];
 
-  const handleChooseMethod = (method: "scan" | "manual") => {
-    setModoFlujo(method);
-
-    if (nav.guestIndex === 0) {
-      actions.setNumPersonas(state.reserva?.numHuespedes ?? 1);
-    }
-
-    actions.goTo(
-      method === "scan" ? "escanear" : "form_personal",
-      "forward",
-      nav.guestIndex,
-    );
-  };
-
+  // --- LÓGICA DE ENVÍO CORREGIDA (Sin borrar IDs) ---
   const submitToServer = async (isPartial: boolean): Promise<void> => {
     setSubmitError("");
     setIsSubmitting(true);
@@ -138,124 +112,84 @@ export const CheckinProvider: React.FC<{ children: React.ReactNode }> = ({
       const { bookingId, clientId } = getBackendIds();
 
       if (isPartial) {
-        const newClientId = await savePartialCheckin(
-          clientId,
-          latestStateRef.current.guests[0],
-        );
-        // Sincronizamos el nuevo clientId en el state para futuros submits
-        if (!state.guests[0]?.id) {
-          actions.updateGuest(0, "id", newClientId);
-        }
+        const newId = await savePartialCheckin(clientId, latestStateRef.current.guests[0]);
+        if (!state.guests[0]?.id) actions.updateGuest(0, "id", newId);
         setIsPartialSuccess(true);
         actions.goTo("exito", "forward");
         return;
       }
 
-      // CÓPIA Y PEGA ESTO:
-      // 1. Limpiamos los IDs de los acompañantes para que la Base de Datos cree unos nuevos sin dar error
-      const guestsSinId = latestStateRef.current.guests.map(
-        (huesped, index) => {
-          if (index === 0) return huesped;
-          const { id, ...datosLimpios } = huesped;
-          return datosLimpios;
-        },
-      );
-
-      // 2. Enviamos los datos limpios
+      // ✅ Enviamos los huéspedes tal cual están para permitir PUT (actualización)
       const result = await submitCheckin({
         bookingId,
         clientId,
-        guests: guestsSinId,
+        guests: latestStateRef.current.guests, 
         horaLlegada: latestStateRef.current.horaLlegada,
         observaciones: latestStateRef.current.observaciones,
       });
+
       setIsPartialSuccess(!result.isComplete);
 
-      // Limpieza completa: los keys del wizard viven en localStorage
-      // (los escribe useCheckin.ts), pero por si acaso barremos también
-      // sessionStorage para no dejar restos de versiones anteriores.
       SESSION_KEYS_TO_CLEAR.forEach((key) => {
         localStorage.removeItem(key);
         sessionStorage.removeItem(key);
       });
       sessionStorage.removeItem(PERSISTENCE_KEY);
       localStorage.removeItem(PERSISTENCE_KEY);
-      // Limpiar el set de ids de sesión
       sessionCreatedIdsRef.current.clear();
 
       actions.goTo("exito", "forward");
-    } catch (err: unknown) {
-      // Si falla y no es un error que hayamos tirado nosotros con un mensaje,
-      // usará el title del ErrorBoundary como fallback.
-      let msg = t("errorBoundary.title");
-      if (err instanceof Error) msg = err.message;
-      else if (typeof err === "string") msg = err;
-
-      setSubmitError(msg);
-      throw err;
+    } catch (err: any) {
+      // Guardamos el error pero NO hacemos throw para evitar la pantalla roja
+      setSubmitError(err.message || t("errorBoundary.title"));
     } finally {
       setIsSubmitting(false);
     }
   };
-  const handleSubmit = () => submitToServer(false);
-  const handlePartialSubmit = () => submitToServer(true);
-  const isKiosko = isStaffLoggedIn();
 
+  // --- ACCIONES WRAPPED CORREGIDAS (Auto-guardado para todos) ---
   const wrappedActions = {
     ...actions,
-    nextGuest: (
-      currIdx: number,
-      fromStep: Parameters<typeof actions.nextGuest>[1],
-    ) => {
+    nextGuest: (currIdx: number, fromStep: any) => {
       const proceed = () => {
         const isLastGuest = currIdx >= state.numPersonas - 1;
-
         if (fromStep === "huesped_intermedio") {
           actions.goTo("bienvenida", "forward", currIdx + 1);
           return;
         }
-
         if (!isLastGuest && fromStep === "form_contacto") {
           if (isKiosko) {
-            // En kiosko el recepcionista rellena todos los huéspedes
-            // en el mismo dispositivo: ir directo al siguiente form_personal
-            // sin pasar por huesped_intermedio (que causaba el bucle).
             actions.goTo("form_personal", "forward", currIdx + 1);
             return;
           }
           actions.goTo("huesped_intermedio", "forward", currIdx);
           return;
         }
-
         actions.nextGuest(currIdx, fromStep);
       };
 
       const guest = state.guests[currIdx];
       const tieneDatos = !!(guest?.nombre?.trim() || guest?.numDoc?.trim());
-      if (!state.bookingId || !tieneDatos || currIdx !== 0) return proceed();
+
+      // ✅ Guardamos a cualquier huésped (0, 1, 2...) al avanzar
+      if (!state.bookingId || !tieneDatos) return proceed();
 
       setIsSubmitting(true);
-      savePartialGuest(
-        latestStateRef.current.bookingId ?? state.bookingId,
-        guest,
-        currIdx === 0,
-      )
+      savePartialGuest(state.bookingId, guest, currIdx === 0)
         .then((newId) => {
           if (!guest.id) {
             sessionCreatedIdsRef.current.add(newId);
             actions.updateGuest(currIdx, "id", newId);
           }
         })
-        .catch((e) => {
-          if (import.meta.env.DEV)
-            console.warn("[autoSave huésped]", currIdx, e);
-        })
+        .catch(console.warn)
         .finally(() => {
           setIsSubmitting(false);
           proceed();
         });
     },
   };
+
   const value = {
     state,
     nav,
@@ -270,10 +204,14 @@ export const CheckinProvider: React.FC<{ children: React.ReactNode }> = ({
     hasMinorsFlag,
     setHasMinorsFlag,
     token,
-    handleChooseMethod,
-    handleSubmit,
-    handlePartialSubmit,
-    clearSubmitError,
+    handleChooseMethod: (method: "scan" | "manual") => {
+      setModoFlujo(method);
+      if (nav.guestIndex === 0) actions.setNumPersonas(state.reserva?.numHuespedes ?? 1);
+      actions.goTo(method === "scan" ? "escanear" : "form_personal", "forward", nav.guestIndex);
+    },
+    handleSubmit: () => submitToServer(false),
+    handlePartialSubmit: () => submitToServer(true),
+    clearSubmitError: () => setSubmitError(""),
     accessVerified,
     setAccessVerified,
   };

@@ -39,16 +39,10 @@ async function getCheckinStatus(
     return null;
   }
 }
-
 export async function loadCheckinData(
   bookingId: string | number,
 ): Promise<CheckinLoadResult> {
-  const {
-    reserva,
-    clientId,
-    bookingId: id,
-    raw,
-  } = await getBookingById(bookingId);
+  const { reserva, clientId, bookingId: id, raw } = await getBookingById(bookingId);
 
   let knownGuest: GuestData | null = null;
   if (clientId) {
@@ -63,23 +57,16 @@ export async function loadCheckinData(
   let companions: GuestData[] = [];
   try {
     const companionLinks = await getCompanionsByBooking(id);
-
     if (companionLinks.length > 0) {
       const detailsResults = await Promise.allSettled(
         companionLinks.map((link) => getClientById(link.client_id)),
       );
-
       companions = detailsResults
-        .filter(
-          (r): r is PromiseFulfilledResult<GuestData> =>
-            r.status === "fulfilled",
-        )
+        .filter((r): r is PromiseFulfilledResult<GuestData> => r.status === "fulfilled")
         .map((r) => ({
           ...r.value,
           esMenor: r.value.fechaNac
-            ? new Date().getFullYear() -
-                new Date(r.value.fechaNac).getFullYear() <
-              18
+            ? new Date().getFullYear() - new Date(r.value.fechaNac).getFullYear() < 18
             : (r.value.esMenor ?? false),
           relacionesConAdultos: r.value.relacionesConAdultos ?? [],
         }));
@@ -89,16 +76,33 @@ export async function loadCheckinData(
     companions = [];
   }
 
-  return {
-    reserva,
-    knownGuest,
-    clientId,
-    bookingId: id,
-    companions,
-    isAlreadyCheckedIn: raw.pre_checking === true,
-  };
-}
+  // 👇 BLOQUE CRÍTICO: Sincronizar IDs con el estado del servidor
+  const status = await getCheckinStatus(id);
+  if (status && status.incomplete_clients) {
+    const mainIncomplete = status.incomplete_clients.find((c: any) => c.is_main);
+    if (mainIncomplete && knownGuest) {
+      knownGuest.id = mainIncomplete.client_id;
+    }
 
+    const companionIncompletes = status.incomplete_clients.filter((c: any) => !c.is_main);
+    companionIncompletes.forEach((inc: any) => {
+      const exists = companions.find((c) => c.id === inc.client_id);
+      if (!exists) {
+        companions.push({
+          id: inc.client_id,
+          nombre: inc.name || "",
+          apellido: inc.surname || "",
+          apellido2: "",
+          esMenor: false,
+          relacionesConAdultos: [],
+          sexo: "", fechaNac: "", nacionalidad: "", tipoDoc: "", numDoc: ""
+        } as GuestData);
+      }
+    });
+  }
+
+  return { reserva, knownGuest, clientId, bookingId: id, companions, isAlreadyCheckedIn: raw.pre_checking === true };
+}
 export async function submitCheckin(
   payload: CheckinSubmitPayload,
 ): Promise<{ isComplete: boolean }> {
