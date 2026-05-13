@@ -15,7 +15,11 @@ import type {
 import { FLOW_STEPS } from "@/constants";
 import { loadCheckinData } from "@/api/checkin.service";
 import { getCurrentTokenPayload } from "@/api/auth.service";
-import { getStoredAccessCode, clearToken, isStaffLoggedIn } from "@/api/axiosInstance";
+import {
+  getStoredAccessCode,
+  clearToken,
+  isStaffLoggedIn,
+} from "@/api/axiosInstance";
 
 /** Lee ?guestIndex=N del URL actual. Devuelve N si N > 0, o null. */
 function getCompanionGuestIndexFromUrl(): number | null {
@@ -46,14 +50,14 @@ interface HistoryEntry {
 
 type CheckinAction =
   | { type: "SET_KNOWN_GUEST"; guest: GuestData }
-| {
-    type: "SET_RESERVA_TABLET";
-    reserva: Reserva;
-    bookingId: number;
-    clientId: number | null;
-    knownGuest?: GuestData | null; // <--- Nuevo
-    companions?: GuestData[];      // <--- Nuevo
-  }
+  | {
+      type: "SET_RESERVA_TABLET";
+      reserva: Reserva;
+      bookingId: number;
+      clientId: number | null;
+      knownGuest?: GuestData | null; // <--- Nuevo
+      companions?: GuestData[]; // <--- Nuevo
+    }
   | {
       type: "SET_RESERVA";
       reserva: Reserva;
@@ -94,14 +98,14 @@ function getInitialState(token: string, mode: AppMode): CheckinState {
   } catch (e) {
     console.warn(e);
   }
-try {
+  try {
     const raw = localStorage.getItem(sessionKey);
     if (raw) {
       const storedData = JSON.parse(raw);
       const { timestamp, state } = storedData;
-     if (Date.now() - timestamp < 30 * 60 * 1000) {
-  return state;
-}else {
+      if (Date.now() - timestamp < 30 * 60 * 1000) {
+        return state;
+      } else {
         localStorage.removeItem(sessionKey);
       }
     }
@@ -159,25 +163,25 @@ export function checkinReducer(
     }
 
     // BUSCA EL CASE "SET_RESERVA_TABLET" Y REEMPLÁZALO COMPLETAMENTE:
-case "SET_RESERVA_TABLET": {
-  const mainGuest = action.knownGuest 
-    ? { ...action.knownGuest, esMenor: false } 
-    : emptyGuest();
-    
-  const allGuests = [mainGuest, ...(action.companions || [])];
+    case "SET_RESERVA_TABLET": {
+      const mainGuest = action.knownGuest
+        ? { ...action.knownGuest, esMenor: false }
+        : emptyGuest();
 
-  return {
-    ...state,
-    reserva: action.reserva,
-    bookingId: action.bookingId,
-    clientId: action.clientId,
-    knownGuest: action.knownGuest || null,
-    numPersonas: action.reserva.numHuespedes,
-    guests: mergeGuests(allGuests, action.reserva.numHuespedes),
-    numAdultos: allGuests.filter((g) => !g.esMenor).length,
-    numMenores: allGuests.filter((g) => g.esMenor).length,
-  };
-}
+      const allGuests = [mainGuest, ...(action.companions || [])];
+
+      return {
+        ...state,
+        reserva: action.reserva,
+        bookingId: action.bookingId,
+        clientId: action.clientId,
+        knownGuest: action.knownGuest || null,
+        numPersonas: action.reserva.numHuespedes,
+        guests: mergeGuests(allGuests, action.reserva.numHuespedes),
+        numAdultos: allGuests.filter((g) => !g.esMenor).length,
+        numMenores: allGuests.filter((g) => g.esMenor).length,
+      };
+    }
 
     case "SET_RESERVA":
       return {
@@ -229,11 +233,21 @@ case "SET_RESERVA_TABLET": {
     case "UPDATE_GUEST": {
       const guests = [...state.guests];
       let finalValue = action.value;
-    const FREE_TEXT_FIELDS: (keyof PartialGuestData)[] = [
-        "direccion", "email", "telefono", "ciudad", "provincia",
-        "cp", "observations", "numDoc", "soporteDoc",
+      const FREE_TEXT_FIELDS: (keyof PartialGuestData)[] = [
+        "direccion",
+        "email",
+        "telefono",
+        "ciudad",
+        "provincia",
+        "cp",
+        "observations",
+        "numDoc",
+        "soporteDoc",
       ];
-      if (typeof finalValue === "string" && !FREE_TEXT_FIELDS.includes(action.key)) {
+      if (
+        typeof finalValue === "string" &&
+        !FREE_TEXT_FIELDS.includes(action.key)
+      ) {
         finalValue = finalValue.replace(/\s+/g, " ").trim();
       }
       const updated = { ...guests[action.index], [action.key]: finalValue };
@@ -436,12 +450,9 @@ export function useCheckin(tokenUrl?: string, stepUrl?: string) {
       return;
     }
 
-    
-  
-const isNumericToken = /^\d+$/.test(token);
-const kioskoBookingId = isNumericToken && isStaffLoggedIn()
-  ? parseInt(token, 10)
-  : NaN;
+    const isNumericToken = /^\d+$/.test(token);
+    const kioskoBookingId =
+      isNumericToken && isStaffLoggedIn() ? parseInt(token, 10) : NaN;
 
     let cancelled = false;
 
@@ -548,7 +559,8 @@ const kioskoBookingId = isNumericToken && isStaffLoggedIn()
     return () => {
       cancelled = true;
     };
-  }, [token, dispatch, stepUrl]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [token, dispatch]);
   useEffect(() => {
     return () => {
       if (navTimerRef.current) clearTimeout(navTimerRef.current);
@@ -574,7 +586,7 @@ const kioskoBookingId = isNumericToken && isStaffLoggedIn()
     return "inicio";
   })();
 
- const activeGuestIndex = (() => {
+  const activeGuestIndex = (() => {
     const last = appHistory[appHistory.length - 1];
     if (last && last.step === actualStep) return last.guestIndex;
     for (let i = appHistory.length - 1; i >= 0; i--) {
@@ -602,7 +614,7 @@ const kioskoBookingId = isNumericToken && isStaffLoggedIn()
       if (isTerminal) {
         setAppHistory([{ step: nextStep, guestIndex: guestIdx }]);
         navigate(`/checkin/${token}/${nextStep}`, { replace: true });
-    } else {
+      } else {
         setAppHistory((prev) => [
           ...prev.filter((h) => !(h.step === nextStep && dir === "forward")),
           { step: nextStep, guestIndex: guestIdx },
@@ -770,7 +782,11 @@ const kioskoBookingId = isNumericToken && isStaffLoggedIn()
         if (idx < 0 || idx >= dotSteps.length) return;
         goTo(dotSteps[idx], idx < currentDotIndex ? "back" : "forward", 0);
       },
-      setReservaFromTablet: async (_res: Reserva, bId: number, clientId: number | null) => {
+      setReservaFromTablet: async (
+        _res: Reserva,
+        bId: number,
+        clientId: number | null,
+      ) => {
         void clientId;
         try {
           const result = await loadCheckinData(bId);

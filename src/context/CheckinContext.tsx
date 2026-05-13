@@ -1,7 +1,11 @@
 import React, { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { clearToken, getStoredAccessCode, isStaffLoggedIn } from "@/api/axiosInstance";
+import {
+  clearToken,
+  getStoredAccessCode,
+  isStaffLoggedIn,
+} from "@/api/axiosInstance";
 import { useCheckin } from "@/hooks/useCheckin";
 import {
   submitCheckin,
@@ -146,18 +150,25 @@ export const CheckinProvider: React.FC<{ children: React.ReactNode }> = ({
         actions.goTo("exito", "forward");
         return;
       }
-    
 
+      // CÓPIA Y PEGA ESTO:
+      // 1. Limpiamos los IDs de los acompañantes para que la Base de Datos cree unos nuevos sin dar error
+      const guestsSinId = latestStateRef.current.guests.map(
+        (huesped, index) => {
+          if (index === 0) return huesped;
+          const { id, ...datosLimpios } = huesped;
+          return datosLimpios;
+        },
+      );
+
+      // 2. Enviamos los datos limpios
       const result = await submitCheckin({
         bookingId,
         clientId,
-        guests: latestStateRef.current.guests,
+        guests: guestsSinId,
         horaLlegada: latestStateRef.current.horaLlegada,
         observaciones: latestStateRef.current.observaciones,
-  
-       
       });
-      // Si todavía quedan personas por registrar → pantalla parcial con botón compartir
       setIsPartialSuccess(!result.isComplete);
 
       // Limpieza completa: los keys del wizard viven en localStorage
@@ -188,63 +199,63 @@ export const CheckinProvider: React.FC<{ children: React.ReactNode }> = ({
   };
   const handleSubmit = () => submitToServer(false);
   const handlePartialSubmit = () => submitToServer(true);
-const isKiosko = isStaffLoggedIn();
+  const isKiosko = isStaffLoggedIn();
 
-const wrappedActions = {
-  ...actions,
-  nextGuest: (
-    currIdx: number,
-    fromStep: Parameters<typeof actions.nextGuest>[1],
-  ) => {
-    const proceed = () => {
-      const isLastGuest = currIdx >= state.numPersonas - 1;
+  const wrappedActions = {
+    ...actions,
+    nextGuest: (
+      currIdx: number,
+      fromStep: Parameters<typeof actions.nextGuest>[1],
+    ) => {
+      const proceed = () => {
+        const isLastGuest = currIdx >= state.numPersonas - 1;
 
-      if (fromStep === "huesped_intermedio") {
-        actions.goTo("bienvenida", "forward", currIdx + 1);
-        return;
-      }
-
-      if (!isLastGuest && fromStep === "form_contacto") {
-        if (isKiosko) {
-          // En kiosko el recepcionista rellena todos los huéspedes
-          // en el mismo dispositivo: ir directo al siguiente form_personal
-          // sin pasar por huesped_intermedio (que causaba el bucle).
-          actions.goTo("form_personal", "forward", currIdx + 1);
+        if (fromStep === "huesped_intermedio") {
+          actions.goTo("bienvenida", "forward", currIdx + 1);
           return;
         }
-        actions.goTo("huesped_intermedio", "forward", currIdx);
-        return;
-      }
 
-      actions.nextGuest(currIdx, fromStep);
-    };
-
-    const guest = state.guests[currIdx];
-    const tieneDatos = !!(guest?.nombre?.trim() || guest?.numDoc?.trim());
-    if (!state.bookingId || !tieneDatos || currIdx !== 0) return proceed();
-
-    setIsSubmitting(true);
-    savePartialGuest(
-      latestStateRef.current.bookingId ?? state.bookingId,
-      guest,
-      currIdx === 0,
-    )
-      .then((newId) => {
-        if (!guest.id) {
-          sessionCreatedIdsRef.current.add(newId);
-          actions.updateGuest(currIdx, "id", newId);
+        if (!isLastGuest && fromStep === "form_contacto") {
+          if (isKiosko) {
+            // En kiosko el recepcionista rellena todos los huéspedes
+            // en el mismo dispositivo: ir directo al siguiente form_personal
+            // sin pasar por huesped_intermedio (que causaba el bucle).
+            actions.goTo("form_personal", "forward", currIdx + 1);
+            return;
+          }
+          actions.goTo("huesped_intermedio", "forward", currIdx);
+          return;
         }
-      })
-      .catch((e) => {
-        if (import.meta.env.DEV)
-          console.warn("[autoSave huésped]", currIdx, e);
-      })
-      .finally(() => {
-        setIsSubmitting(false);
-        proceed();
-      });
-  },
-};
+
+        actions.nextGuest(currIdx, fromStep);
+      };
+
+      const guest = state.guests[currIdx];
+      const tieneDatos = !!(guest?.nombre?.trim() || guest?.numDoc?.trim());
+      if (!state.bookingId || !tieneDatos || currIdx !== 0) return proceed();
+
+      setIsSubmitting(true);
+      savePartialGuest(
+        latestStateRef.current.bookingId ?? state.bookingId,
+        guest,
+        currIdx === 0,
+      )
+        .then((newId) => {
+          if (!guest.id) {
+            sessionCreatedIdsRef.current.add(newId);
+            actions.updateGuest(currIdx, "id", newId);
+          }
+        })
+        .catch((e) => {
+          if (import.meta.env.DEV)
+            console.warn("[autoSave huésped]", currIdx, e);
+        })
+        .finally(() => {
+          setIsSubmitting(false);
+          proceed();
+        });
+    },
+  };
   const value = {
     state,
     nav,
