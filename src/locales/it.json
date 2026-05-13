@@ -277,6 +277,7 @@
     "btn_retry": "Riprova",
     "btn_manual": "Preferisco compilare i dati manualmente",
     "success_msg": "Documento letto con successo. Caricamento del modulo...",
+
     "error_read": "Non siamo riusciti a leggere i dati in modo chiaro. Assicurarsi che l'immagine abbia una buona luce, non sia sfocata e non abbia riflessi del flash."
   },
   "review": {
@@ -319,7 +320,9 @@
     "room": "Camera",
     "btn_print": "Salva / Stampa conferma",
     "btn_add_time": "Aggiungi orario di arrivo",
-    "email_confirmation": "Riceverà una conferma via email"
+    "email_confirmation": "Riceverà una conferma via email",
+    "btn_new_search": "Cerca un'altra prenotazione",
+  "btn_logout": "Disconnetti"
   },
   "verification": {
     "title": "Accesso Sicuro",

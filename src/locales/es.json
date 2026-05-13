@@ -330,7 +330,9 @@
     "room": "Habitación",
     "btn_print": "Guardar / Imprimir confirmación",
     "btn_add_time": "Añadir hora de llegada",
-    "email_confirmation": "Recibirá una confirmación en su email"
+    "email_confirmation": "Recibirá una confirmación en su email",
+    "btn_new_search": "Buscar otra reserva",
+    "btn_logout": "Cerrar sesión"
   },
 
   "verification": {

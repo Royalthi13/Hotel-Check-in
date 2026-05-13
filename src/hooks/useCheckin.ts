@@ -329,7 +329,7 @@ export function useCheckin(tokenUrl?: string, stepUrl?: string) {
   const [state, setState] = useState<CheckinState>(() =>
     getInitialState(token, initialMode),
   );
-const [appHistory, setAppHistory] = useState<HistoryEntry[]>(() => {
+  const [appHistory, setAppHistory] = useState<HistoryEntry[]>(() => {
     let storedHistory: HistoryEntry[] = [];
     try {
       const raw = localStorage.getItem(`history_${token}`);
@@ -340,7 +340,7 @@ const [appHistory, setAppHistory] = useState<HistoryEntry[]>(() => {
     } catch (e) {
       console.warn("No se pudo cargar el historial", e);
     }
-    
+
     // ✨ FIX 1: Si hay un guestIndex explícito en la URL, IGNORAMOS el historial viejo.
     const urlGuestIdx = getCompanionGuestIndexFromUrl();
     if (urlGuestIdx !== null) {
@@ -351,10 +351,7 @@ const [appHistory, setAppHistory] = useState<HistoryEntry[]>(() => {
     if (stepUrl && VALID_STEPS.includes(stepUrl as StepId)) {
       const stepExists = storedHistory.some((h) => h.step === stepUrl);
       if (!stepExists) {
-        return [
-          ...storedHistory,
-          { step: stepUrl as StepId, guestIndex: 0 },
-        ];
+        return [...storedHistory, { step: stepUrl as StepId, guestIndex: 0 }];
       }
     }
     return storedHistory;
@@ -530,7 +527,7 @@ const [appHistory, setAppHistory] = useState<HistoryEntry[]>(() => {
         }
 
         // ── Dispositivo compañero ─────────────────────────────────────────────
-       // ── Dispositivo compañero ─────────────────────────────────────────────
+        // ── Dispositivo compañero ─────────────────────────────────────────────
         const companionIdx = companionGuestIndexRef.current;
         if (
           companionIdx !== null &&
@@ -588,7 +585,7 @@ const [appHistory, setAppHistory] = useState<HistoryEntry[]>(() => {
   const actualStep: StepId = (() => {
     if (requestedStep && VALID_STEPS.includes(requestedStep))
       return requestedStep;
-      
+
     // ✨ FIX 4: Si entra por enlace de acompañante sin paso definido, forzar bienvenida
     const urlGuestIdx = getCompanionGuestIndexFromUrl();
     if (urlGuestIdx !== null) return "bienvenida";
@@ -609,7 +606,7 @@ const [appHistory, setAppHistory] = useState<HistoryEntry[]>(() => {
   const activeGuestIndex = (() => {
     let idx = 0;
     const last = appHistory[appHistory.length - 1];
-    
+
     if (last && last.step === actualStep) {
       idx = last.guestIndex;
     } else if (isNavigating && last) {
@@ -625,7 +622,7 @@ const [appHistory, setAppHistory] = useState<HistoryEntry[]>(() => {
       }
       if (!found) idx = last ? last.guestIndex : 0;
     }
-    
+
     // ✨ FIX 5: Nunca permitir que el índice del huésped sea mayor que (numPersonas - 1)
     // Esto evita el "Huésped 3 de 2" limitándolo siempre al máximo permitido.
     return Math.min(idx, Math.max(0, state.numPersonas - 1));
@@ -692,26 +689,33 @@ const [appHistory, setAppHistory] = useState<HistoryEntry[]>(() => {
     (currIdx: number, from: StepId) => {
       const { guests, numPersonas } = stateRef.current;
 
+      // Determinamos si es modo Staff para saltar la pantalla de extras
+      const isKioskoMode = /^\d+$/.test(token) && isStaffLoggedIn();
+
       const goToFirstMinorOrExtras = () => {
         const nextM = guests.findIndex((g) => g.esMenor);
         if (nextM >= 0) return goTo("form_relaciones", "forward", nextM);
-        return goTo("form_extras", "forward", 0);
+
+        //  Si es Staff, salta directamente a revisión. Si no, va a extras.
+        return goTo(isKioskoMode ? "revision" : "form_extras", "forward", 0);
       };
 
       const goToNextMinorRelaciones = (startIdx: number) => {
         const nextM = guests.findIndex((g, i) => i > startIdx && g.esMenor);
         if (nextM >= 0) return goTo("form_relaciones", "forward", nextM);
-        return goTo("form_extras", "forward", 0);
+
+        // Si es Staff, salta directamente a revisión. Si no, va a extras.
+        return goTo(isKioskoMode ? "revision" : "form_extras", "forward", 0);
       };
-      // Dispositivo compañero: al terminar su propio huésped va a extras,
-      // no intenta rellenar el siguiente (que es de otro dispositivo)
+
+      // Dispositivo compañero: al terminar su propio huésped va a extras (o revisión si staff)
       if (
         from === "form_contacto" &&
         companionGuestIndexRef.current !== null &&
         currIdx === companionGuestIndexRef.current &&
         !guests[currIdx]?.esMenor
       ) {
-        return goTo("form_extras", "forward", 0);
+        return goTo(isKioskoMode ? "revision" : "form_extras", "forward", 0);
       }
 
       if (from === "huesped_intermedio") {
@@ -759,7 +763,7 @@ const [appHistory, setAppHistory] = useState<HistoryEntry[]>(() => {
         return goToNextMinorRelaciones(currIdx);
       }
     },
-    [goTo],
+    [goTo, token],
   );
 
   const dotSteps = useMemo(() => {
@@ -814,9 +818,13 @@ const [appHistory, setAppHistory] = useState<HistoryEntry[]>(() => {
     () => ({
       goTo,
       goBack,
-     goToDotIndex: (idx: number) => {
+      goToDotIndex: (idx: number) => {
         if (idx < 0 || idx >= dotSteps.length) return;
-        goTo(dotSteps[idx], idx < currentDotIndex ? "back" : "forward", activeGuestIndexRef.current);
+        goTo(
+          dotSteps[idx],
+          idx < currentDotIndex ? "back" : "forward",
+          activeGuestIndexRef.current,
+        );
       },
       setReservaFromTablet: async (
         _res: Reserva,

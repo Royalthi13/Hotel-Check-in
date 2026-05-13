@@ -319,7 +319,9 @@
     "room": "Quarto",
     "btn_print": "Salvar / Imprimir confirmação",
     "btn_add_time": "Adicionar hora de chegada",
-    "email_confirmation": "Receberá uma confirmação no seu email"
+    "email_confirmation": "Receberá uma confirmação no seu email",
+    "btn_new_search": "Pesquisar outra reserva",
+    "btn_logout": "Sair"
   },
   "verification": {
     "title": "Acesso Seguro",

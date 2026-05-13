@@ -319,7 +319,9 @@
     "room": "Zimmer",
     "btn_print": "Bestätigung speichern / drucken",
     "btn_add_time": "Ankunftszeit hinzufügen",
-    "email_confirmation": "Sie erhalten eine Bestätigung per E-Mail"
+    "email_confirmation": "Sie erhalten eine Bestätigung per E-Mail",
+    "btn_new_search": "Weitere Buchung suchen",
+    "btn_logout": "Abmelden"
   },
   "verification": {
     "title": "Sicherer Zugang",
